@@ -1,0 +1,11 @@
+<div class="control-multiselect-wr">
+  <ng-container *ngIf="dropdownSettings">
+    <ng-multiselect-dropdown
+        class="control-multiselect"
+        [ngModel]="model"
+        (ngModelChange)="onModelChange($event)"
+        [settings]="dropdownSettings"
+        [data]="dropdownList"
+    ></ng-multiselect-dropdown>
+  </ng-container>
+</div>

@@ -1,0 +1,22 @@
+.editor-container[data-mode-id="qql"] {
+  .monaco-action-bar {
+    .actions-container {
+      .action-item.disabled,
+      .action-item:first-child,
+      .action-item:last-child {
+        display: none;
+      }
+    }
+  }
+
+  .disable-paste {
+    .monaco-action-bar {
+      .actions-container {
+        .action-item:nth-child(6) {
+          opacity: .5;
+          pointer-events: none;
+        }
+      }
+    }
+  }
+}

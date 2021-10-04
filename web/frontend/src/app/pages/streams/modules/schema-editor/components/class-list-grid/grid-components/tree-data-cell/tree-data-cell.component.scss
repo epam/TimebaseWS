@@ -1,0 +1,48 @@
+@import '~src/app/core/styles/variables';
+
+.showHideChildrenBtn {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  padding-right: 3 * $ss;
+  padding-left: 3 * $ss;
+  cursor: pointer;
+
+  .icon {
+    position: relative;
+    display: block;
+    width: 6 * $ss;
+    height: 6 * $ss;
+    fill: currentColor;
+  }
+
+  &.rotate90 {
+    .icon {
+      transform: rotate(90deg);
+    }
+  }
+
+  &:hover {
+    .icon {
+      fill: $white;
+    }
+  }
+}
+
+.spacers {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+
+  .spacer {
+    &:nth-child(1),
+    &:nth-child(2) {
+      width: 0;
+    }
+  }
+}
+
+.spacer {
+  width: 5 * $ss;
+}
+

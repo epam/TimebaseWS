@@ -1,0 +1,36 @@
+<!--h6 class="title">Start Date:</h6-->
+
+<ng-template [ngIf]="!hideTimePicker">
+  <div class="time-fromWr">
+    <div class="controlWr datepicker-inputWr">
+      <label class="btn timePickerLabel" for="rangeFromInput">From</label>
+      <input
+        class="btn bs-datepicker datepicker-input"
+        [bsConfig]="bsConfig"
+        id="rangeFromInput"
+        type="text"
+        #dp="bsDatepicker"
+        [(appSafeDatePickerValue)]="currentDateTimeFullHoursFrom"
+        bsDatepicker
+        (keyup.enter)="onFilterSubmit()"
+        triggers="dblclick:click"
+      />
+      <button class="btn btn-navy btn-from" (click)="dp.toggle()" [attr.aria-expanded]="dp.isOpen" type="button"></button>
+    </div>
+  </div>
+  <button (click)="onFilterSubmit()" tooltip="{{'buttons.apply_start_date' | translate}}"
+    [ngClass]="{'filtered': (activeTab | async).filter.from}" class="btn btn-info controlWr" placement="bottom"
+    type="submit">Apply
+  </button>
+  <button (click)="onClearFilter()" tooltip="{{'buttons.clean_start_date' | translate}}" placement="bottom"
+    class="btn btn-navy controlWr" type="button">Clean
+  </button>
+  <button (click)="setConfig()" #btn
+    class="btn btn-navy controlWr no-display" type="button">setConfig
+  </button>
+</ng-template>
+<div class="filterForm d-flex">
+  <button (click)="openFilterModalWithComponent()" tooltip="{{'buttons.filters' | translate}}" placement="bottom"
+    [ngClass]="{'filtered': filteredTypesSymbols}" class="btn btn-info symbolsTypesFilter">Filter
+  </button>
+</div>

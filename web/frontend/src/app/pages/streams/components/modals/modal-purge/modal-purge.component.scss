@@ -1,0 +1,8 @@
+@import "../modal-truncate/modal-truncate.component";
+
+::ng-deep {
+  .time-bar-legend {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+  }
+}

@@ -1,0 +1,12 @@
+dependencies {
+    api project(":java:grafana-api")
+    implementation 'org.finos.timebase-ce:timebase-api'
+    implementation 'com.epam.deltix:containers'
+
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    compileOnly 'com.google.code.findbugs:jsr305'
+
+    implementation 'com.google.guava:guava'
+
+    testImplementation "junit:junit"
+}

@@ -1,0 +1,9 @@
+@import "~src/app/core/styles/variables";
+
+:host {
+  display: flex;
+
+  app-schema-download-btn {
+    margin-right: 5 * $ss;
+  }
+}

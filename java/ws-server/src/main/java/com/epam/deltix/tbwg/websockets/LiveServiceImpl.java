@@ -1,0 +1,73 @@
+package com.epam.deltix.tbwg.websockets;
+
+import com.epam.deltix.tbwg.services.timebase.TimebaseServiceImpl;
+import com.epam.deltix.util.concurrent.QuickExecutor;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.server.ServerHttpRequest;
+import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.http.server.ServletServerHttpRequest;
+import org.springframework.web.servlet.HandlerMapping;
+import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.config.annotation.EnableWebSocket;
+import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+import org.springframework.web.socket.server.HandshakeInterceptor;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.validation.constraints.NotNull;
+import java.util.Map;
+
+/**
+ * Live data processor Service
+ */
+@Configuration
+@EnableAutoConfiguration
+@EnableWebSocket
+@SuppressFBWarnings("NP_NULL_ON_SOME_PATH")
+public class LiveServiceImpl implements WebSocketConfigurer {
+
+    private QuickExecutor       executor = QuickExecutor.createNewInstance("Live Handler", null);
+
+    @Autowired
+    private TimebaseServiceImpl service;
+
+    @Override
+    public void         registerWebSocketHandlers(@NotNull WebSocketHandlerRegistry registry) {
+        registry.addHandler(new WSHandler(service, executor),"/ws/v0/{streamId}/select")
+                .addHandler(new WSHandler(service, executor), "/ws/v0/select")
+                .addHandler(new WSHandler(service, executor, service.getFlushPeriodMs()), "/ws/v0/{streamId}/monitor")
+                .addInterceptors(new TemplateHandshakeInterceptor())
+                .setAllowedOrigins("*");
+    }
+
+    private static class TemplateHandshakeInterceptor implements HandshakeInterceptor {
+        @Override
+        public boolean beforeHandshake(ServerHttpRequest request,
+                                       ServerHttpResponse response, WebSocketHandler wsHandler,
+                                       Map<String, Object> attributes) throws Exception {
+
+            /* Retrieve original HTTP request */
+            HttpServletRequest origRequest =
+                    ((ServletServerHttpRequest) request).getServletRequest();
+
+            /* Retrieve template variables */
+            Map<String, String> uriTemplateVars = (Map<String, String>) origRequest
+                    .getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
+
+            /* Put template variables into WebSocket session attributes */
+            if (uriTemplateVars != null) {
+                attributes.putAll(uriTemplateVars);
+            }
+
+            return true;
+        }
+
+        @Override
+        public void afterHandshake(ServerHttpRequest request,
+                                   ServerHttpResponse response, WebSocketHandler wsHandler,
+                                   Exception exception) {}
+    }
+}

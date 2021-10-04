@@ -1,0 +1,14 @@
+dependencies {
+    api 'com.epam.deltix:dfp'
+    api 'com.epam.deltix:containers'
+    api "org.finos.timebase-ce:timebase-client"
+
+    compileOnly 'com.fasterxml.jackson.core:jackson-annotations'
+    compileOnly 'com.google.code.findbugs:jsr305'
+
+    implementation 'org.reflections:reflections'
+    implementation 'com.google.guava:guava'
+
+    testImplementation "junit:junit"
+    testImplementation 'com.epam.deltix:timebase-messages'
+}

@@ -1,0 +1,17 @@
+@import "../../../../../core/styles/variables";
+
+ng-multiselect-dropdown {
+  margin-bottom: 10px;
+  display: block;
+  font-size: $fs-reg;
+
+  ::ng-deep .multiselect-item-checkbox:hover {
+    background-color: transparent;
+  }
+}
+
+.btn {
+  height: 15.5 * $ss;
+  padding-bottom: 0;
+  padding-top: 0;
+}

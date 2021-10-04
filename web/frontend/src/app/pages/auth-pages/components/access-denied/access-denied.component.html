@@ -1,0 +1,16 @@
+<div class="login-widow-container d-flex justify-content-center align-items-center">
+  <section class="login-widow">
+    <header class="window-header bg-info">
+      <h3 class="window-header-name">{{'titles.access_denied' | translate}}</h3>
+    </header>
+    <div class="window-content">
+      <p>{{'notification_messages.access_denied_page_text' | translate}}</p>
+    </div>
+    <footer class="window-footer">
+      <button class="btn btn-primary btn-sm btn-round" type="button" (click)="onLogout()">
+        <span class="glyphicon glyphicon-log-out"></span>
+        <span class="button-text">{{'buttons.logout' | translate}}</span>
+      </button>
+    </footer>
+  </section>
+</div>

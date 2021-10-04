@@ -1,0 +1,247 @@
+@import "~src/app/core/styles/variables";
+
+.props-form ::ng-deep {
+  .form-control {
+    box-sizing: border-box;
+    height: 1.8125rem;
+  }
+
+  .form-group.controlWr {
+    flex-basis: 80%;
+  }
+
+  .form-control-label {
+    flex-basis: 20%;
+    margin-right: 0;
+    margin-bottom: 0;
+
+    &.btn {
+      text-align: right;
+    }
+
+    & + .form-group {
+      padding-left: 4 * $ss;
+
+      .form-control-label {
+        border-radius: 0;
+      }
+
+    }
+  }
+
+  .form-control-description {
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    //width: 100%;
+    font-size: 12px;
+    padding-bottom: 4px;
+    opacity: .8;
+  }
+
+  .form-group:not(:last-child) {
+    margin-bottom: 0;
+  }
+
+  .form-control-wr {
+    width: 100%;
+    flex-shrink: 1.5;
+
+  }
+
+  input.form-control[type="text"],
+  select.form-control {
+    background: $input-bg !important;
+    border-width: 0 !important;
+  }
+
+  input.form-control[type],
+  select.form-control {
+    @extend %input;
+    width: 100%;
+
+    &:focus {
+      color: $white;
+      background-color: transparentize($white, .8);
+      border-color: $input-focus-border-color;
+      outline: 0;
+      @if $enable-shadows {
+        box-shadow: $input-box-shadow, $input-focus-box-shadow;
+      } @else {
+        box-shadow: $input-focus-box-shadow;
+      }
+
+      option {
+        color: inherit;
+      }
+
+      &.ng-invalid.ng-dirty {
+        border-color: $danger;
+      }
+    }
+
+    &.ng-invalid.ng-dirty {
+      &, &:focus {
+        border-color: $danger;
+      }
+    }
+
+    &[readonly] {
+      color: $secondary;
+
+      &, &:focus {
+        border-color: $secondary;
+        color: $gray-400;
+      }
+    }
+  }
+
+  select.form-control {
+    padding-left: 2*$ss;
+    padding-right: 2*$ss;
+  }
+
+  .form-control-cb-wr {
+    display: flex;
+    align-items: center;
+
+    height: 1.8125rem;
+    box-sizing: border-box;
+
+    position: relative;
+    overflow: hidden;
+    padding: 0.2rem;
+    padding-left: 3*$ss;
+
+    //margin-left: -.2rem;
+
+    .form-control-cb {
+      display: block;
+      position: relative;
+      height: calc(10 * #{$ss} - 1px);
+      width: calc(10 * #{$ss} - 1px);
+      box-sizing: border-box;
+      border: 1px solid $secondary;
+      margin-bottom: 0;
+      cursor: pointer;
+    }
+
+    .form-control-cb-indicator {
+      position: absolute;
+      background-color: $white;
+      display: block;
+      top: 2*$ss;
+      bottom: 2*$ss;
+      right: 2*$ss;
+      left: 2*$ss;
+      transform: scale(0);
+      transition-property: transform;
+      transition-duration: .2s;
+      z-index: 2;
+    }
+
+    input[type="checkbox"] {
+      position: absolute;
+      top: -10000px;
+      left: -10000px;
+      //visibility: hidden;
+      opacity: 0;
+      height: 0;
+      width: 0;
+    }
+
+    .form-control-cb-focus-indicator {
+      position: absolute;
+      display: none;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1;
+    }
+
+    .form-control-cb {
+      input[type="checkbox"]:checked + .form-control-cb-indicator {
+        transform: scale(1);
+      }
+    }
+
+    .form-control-cb {
+      input[type="checkbox"]:focus ~ .form-control-cb-focus-indicator {
+        display: block;
+        background-color: transparentize($white, .8);
+        border-color: $input-focus-border-color;
+        outline: 0;
+        @if $enable-shadows {
+          box-shadow: $input-box-shadow, $input-focus-box-shadow;
+        } @else {
+          box-shadow: $input-focus-box-shadow;
+        }
+      }
+    }
+  }
+}
+
+.btns-wr {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+
+  .btn:not(:last-child) {
+    margin-left: 4*$ss;
+  }
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+::ng-deep {
+
+  .controlWr {
+    margin-bottom: 4 * $ss;
+
+    .btn:not(.btn-from) {
+      margin-bottom: 0;
+      color: $white;
+      border-bottom-right-radius: 0;
+      border-top-right-radius: 0;
+    }
+
+    .control-label {
+      line-height: 1.8125rem;
+      background-color: $btn-navy;
+      border-bottom-right-radius: 0;
+      border-top-right-radius: 0;
+
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+
+    }
+
+    .input-control {
+      border-bottom-left-radius: 0;
+      border-top-left-radius: 0;
+      text-align: left;
+      min-width: 230px;
+      font-weight: normal;
+      user-select: auto;
+      text-transform: none;
+      background: $input-bg !important;
+    }
+  }
+
+  .child-form-group {
+    padding: 4 * $ss;
+    border: 1px dashed $input-bg;
+
+    > .form-group.form-control-wr {
+      padding-right: 4 * $ss;
+    }
+
+    & > .form-group.form-control-wr,
+    app-field-builder:last-child > .form-group {
+      margin-bottom: 0;
+    }
+  }
+}

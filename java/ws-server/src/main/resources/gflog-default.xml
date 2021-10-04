@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<config>
+    <appender name="consoleAppender" factory="com.epam.deltix.gflog.core.appender.ConsoleAppenderFactory"/>
+
+    <logger>
+        <appender-ref ref="consoleAppender"/>
+    </logger>
+
+    <logger name="org.reflections" level="ERROR">
+        <appender-ref ref="consoleAppender"/>
+    </logger>
+</config>

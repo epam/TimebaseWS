@@ -1,0 +1,82 @@
+@import "src/app/core/styles/variables";
+
+.grid-columns-context-menu {
+
+  &.fix-height {
+    overflow-y: auto;
+    max-height: calc(100vh / 2);
+  }
+
+  .dropdown-menu {
+    padding: 0;
+    margin: 0;
+  }
+
+  .dropdown-item {
+    color: unset;
+
+    &:hover, &:focus {
+      &, .dropdown-item {
+        background-color: transparent;
+      }
+    }
+  }
+}
+
+.grid-context-menu {
+  .dropdown-divider {
+    border-color: $dark-blue;
+    margin: 2 * $ss 0;
+    opacity: 0.4;
+  }
+
+  .dropdown-menu {
+    padding: 4 * $ss 0;
+    margin: 0;
+    font-size: 6 * $ss;
+    color: $white;
+
+    .dropdown-item {
+      &:focus {
+        background-color: transparent;
+      }
+
+      &, &.passive {
+        color: $white;
+        padding: 2 * $ss 7 * $ss;
+        cursor: pointer;
+        position: relative;
+      }
+
+      &:hover {
+        background-color: $blue;
+      }
+
+      &.hasSubMenu {
+        padding: 0;
+
+        &:before {
+          pointer-events: none;
+          position: absolute;
+          right: 5 * $ss;
+          top: 50%;
+          transform: translateY(-50%);
+        }
+
+        > * {
+          padding: 2 * $ss 7 * $ss;
+        }
+      }
+    }
+
+    .disabled {
+      .dropdown-item {
+        opacity: 0.4;
+      }
+    }
+  }
+}
+
+.grid-column-pin-submenu {
+  margin-top: -10px;
+}

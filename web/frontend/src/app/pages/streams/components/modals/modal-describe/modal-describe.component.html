@@ -1,0 +1,9 @@
+<app-modal>
+  <ng-container title >{{'titles.describe' | translate}} {{stream.name}}</ng-container>
+  <ng-container content *ngIf="describe | async as _describe" >
+    <pre>{{ _describe.ddl }}</pre>
+  </ng-container>
+  <ng-container footer >
+    <button (click)="onCopy()" class="btn btn-info" type="button">{{'buttons.copy_&_close' | translate}}</button>
+  </ng-container>
+</app-modal>

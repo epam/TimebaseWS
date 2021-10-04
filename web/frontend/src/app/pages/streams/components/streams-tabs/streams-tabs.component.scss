@@ -1,0 +1,163 @@
+@import "../../../../core/styles/variables";
+
+$tabs-scroll-margin: 10 * $ss;
+
+.streams-tabs {
+  height: 30 * $ss;
+  padding-left: 0;
+  display: flex;
+  align-items: center;
+}
+
+.timezone {
+  svg {
+    margin-right: 3 * $ss;
+  }
+}
+
+.close-btn {
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  color: $white;
+  opacity: 0.5;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.left-menu {
+  flex-grow: 1;
+  display: flex;
+  min-width: 0;
+
+  .left-btns-wrapper, .tabs {
+    padding: 7 * $ss 0 7 * $ss;
+    display: flex;
+  }
+
+  .tabs {
+    &:after, &:before {
+      content: '';
+      display: block;
+      min-width: $tabs-scroll-margin;
+    }
+
+    .navigation-btn.active {
+      background: $dark-blue;
+      border-bottom: $ss solid $white;
+      padding-bottom: 2 * $ss;
+
+      a {
+        color: $white;
+      }
+    }
+  }
+
+  .perf-scroll-wrap {
+    overflow: hidden;
+    position: relative;
+
+    &:after, &:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 13px;
+      width: $tabs-scroll-margin;
+      z-index: 1;
+    }
+
+    &:before {
+      left: 0;
+      background: linear-gradient(275deg, transparent 0%, rgba($body-bg, 1) 50%);
+    }
+
+    &:after {
+      right: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba($body-bg, 1) 50%);
+    }
+  }
+
+  .tabs {
+    .tab, .tab a {
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+    }
+
+    a {
+      color: $table-th;
+      font-size: $fs-title;
+
+      &:hover, &:active {
+        text-decoration: none;
+      }
+
+      svg {
+        margin-right: 2 * $ss;
+      }
+
+    }
+
+    .close-btn {
+      margin-left: 3 * $ss;
+    }
+  }
+}
+
+.right-menu {
+  display: flex;
+
+  .navigation-btn:not(.last-navigation-btn) {
+    margin-right: 7.5 * $ss;
+  }
+
+  button {
+    svg {
+      width: 10 * $ss;
+      height: 10 * $ss;
+    }
+  }
+}
+
+.dropdown-wrapper {
+  display: flex;
+  position: relative;
+
+
+  .dropdown-item {
+    color: $white;
+    font-size: $fs-reg;
+    padding-right: 5 * $ss;
+
+    &, a {
+      display: flex;
+      align-items: center;
+    }
+
+    a {
+      flex-grow: 1;
+      color: inherit;
+
+      &, &:hover {
+        text-decoration: none;
+      }
+
+      svg {
+        margin-right: 2 * $ss;
+      }
+    }
+
+    &:hover {
+      background: $blue;
+    }
+
+    .close-btn {
+      margin-left: 10 * $ss;
+    }
+  }
+
+}

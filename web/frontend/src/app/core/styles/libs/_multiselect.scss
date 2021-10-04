@@ -1,0 +1,10 @@
+@import "../variables";
+
+ng-multiselect-dropdown {
+  .multiselect-dropdown {
+    .dropdown-btn span.selected-item {
+      margin-bottom: 2 * $ss;
+    }
+  }
+}
+

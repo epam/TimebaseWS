@@ -1,0 +1,32 @@
+@import "src/app/core/styles/variables";
+
+.import-file-content {
+  width: 268 * $ss;
+}
+
+deltix-ng-autocomplete ::ng-deep {
+  input.autocomplete-input {
+    background: transparent;
+    border: 1px solid $input-border;
+  }
+}
+
+.range-labels {
+  display: flex;
+
+  label{
+    flex-grow: 1;
+
+    &:first-child {
+      margin-right: 10 * $ss;
+    }
+  }
+}
+
+.form-control-cb-wr {
+  display: inline-block;
+}
+
+app-file-btn {
+  display: block;
+}

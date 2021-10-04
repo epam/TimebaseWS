@@ -1,0 +1,16 @@
+@import '~src/app/core/styles/variables';
+
+:host {
+  display: flex;
+}
+
+.btn {
+  height: 10 * $ss;
+  line-height: 10 * $ss;
+  padding: 0 4 * $ss;
+
+  &:focus {
+    box-shadow: none;
+  }
+}
+

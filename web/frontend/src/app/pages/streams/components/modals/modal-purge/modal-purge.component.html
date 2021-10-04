@@ -1,0 +1,27 @@
+<app-modal>
+  <ng-container title >{{'titles.purgeModal' | translate}} {{stream.name}}</ng-container>
+  <ng-container content >
+    <p class="w-100">
+      <span>{{'text.purge_explanation' | translate}}</span>
+    </p>
+    <ng-template [ngIf]="endDate && startDate">
+      <div class="w-100">
+        <span class="font-weight-bold w-100">{{'buttons.purge' | translate}} {{'titles.toTime' | translate}}:</span>
+        <app-time-bar-picker
+            method="purge"
+            [endDate]="endDate"
+            [startDate]="startDate"
+            [(selectedDate)]="selectedDate"
+        ></app-time-bar-picker>
+      </div>
+    </ng-template>
+  </ng-container>
+  <ng-container footer >
+    <button [tooltip]="'buttons.purge' | translate" (click)="onPurgeSubmit()" class="btn btn-info" type="button">
+      {{'buttons.purge' | translate}}
+    </button>
+    <button [tooltip]="'buttons.cancel' | translate" appModalHideBtn class="btn btn-default last" type="button">
+      {{'buttons.cancel' | translate}}
+    </button>
+  </ng-container>
+</app-modal>

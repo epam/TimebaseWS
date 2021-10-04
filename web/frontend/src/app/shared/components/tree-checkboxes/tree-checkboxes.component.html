@@ -1,0 +1,37 @@
+<div class="global-filter" [class.open-item]="globalState.showChildren" *ngIf="globalFilter" >
+  <div (click)="globalExpand()" class="tree__expand-icon"></div>
+  <div class="form-control-cb-wr">
+    <label class="container-ch">
+      <input (change)="toggleItem(globalState, true)"  [checked]="globalState.checked" type="checkbox"/>
+      <span [class.partial-checked]="globalState.partialChecked" class="checkmark"></span>
+    </label>
+  </div>
+  <input class="form-control" [placeholder]="'titles.search' | translate" [formControl]="filterControl" type="text" />
+</div>
+<ng-container *ngFor="let item of tree">
+  <ng-container *ngTemplateOutlet="treeItem; context: {item: item, root: true}"></ng-container>
+</ng-container>
+<ng-template #treeItem let-item="item" let-root="root">
+  <div [class.open-item]="item.showChildren" >
+    <div class="tree__header"
+        [class.hidden-by-search]="item.hiddenBySearch"
+        [class.is-root]="root"
+        [class.global-filter-view]="globalFilter"
+        [class.without-children]="!item.children?.length"
+    >
+      <div (click)="toggleItemShowChildren(item)" class="tree__expand-icon"></div>
+      <div class="form-control-cb-wr">
+        <label class="container-ch">
+          <input (change)="toggleItem(item)" [checked]="item.checked" type="checkbox"/>
+          <span [class.partial-checked]="item.partialChecked" class="checkmark"></span>
+          {{ item.name }}
+        </label>
+      </div>
+    </div>
+    <ng-container *ngFor="let child of item.children">
+      <div class="tree__branch">
+        <ng-container *ngTemplateOutlet="treeItem; context: {item: child}"></ng-container>
+      </div>
+    </ng-container>
+  </div>
+</ng-template>

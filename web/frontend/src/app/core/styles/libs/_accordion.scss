@@ -1,0 +1,56 @@
+@import "../variables";
+
+accordion, accordion-group {
+  &, & .card, & .card-header {
+    background-color: transparent;
+  }
+
+  .card, .card-header {
+    border: none;
+  }
+
+  .panel-heading, .accordion-toggle .btn, .panel-body {
+    padding: 0;
+  }
+
+  .panel-body {
+    margin-top: $ss * 10;
+  }
+
+  accordion-group {
+    margin-bottom: $ss * 10;
+  }
+
+  .panel {
+    .panel-heading {
+      display: flex;
+      align-items: center;
+
+      &::before {
+        margin-right: $ss * 10;
+        content: '';
+        display: inline-block;
+        top: $ss * 5;
+        width: 0;
+        height: 0;
+        border-top: 2.5 * $fs solid #adadad;
+        border-left: 2.5 * $fs solid transparent;
+        border-right: 2.5 * $fs solid transparent;
+      }
+
+      .btn.btn-link {
+        color: #fff;
+        text-decoration: none;
+        font-size: 7.5 * $fs;
+      }
+    }
+
+    &.panel-open {
+      .panel-heading::before {
+        border-top: none;
+        border-bottom: 2.5 * $fs solid #adadad;
+      }
+    }
+  }
+
+}

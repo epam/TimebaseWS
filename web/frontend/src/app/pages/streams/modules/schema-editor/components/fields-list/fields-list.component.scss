@@ -1,0 +1,14 @@
+@import '~src/app/core/styles/variables';
+
+.gridWr, .grid{
+  position: relative;
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+ag-grid-angular ::ng-deep {
+  .ag-cell-focus {
+    border-color: transparent !important;
+  }
+}

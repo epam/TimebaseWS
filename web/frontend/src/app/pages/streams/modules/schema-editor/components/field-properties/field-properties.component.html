@@ -1,0 +1,11 @@
+<div *ngIf="fields$ | async as fields" class="module-wrapper props-wr">
+  <app-pure-form-builder
+      [fields]="fields"
+      [form]="formGroup"
+  ></app-pure-form-builder>
+  <div class="field-properties-bottom">
+    <button (click)="revert()" [disabled]="revertDisabled$ | async" class="btn btn-default">
+      {{ 'buttons.revert' | translate }}
+    </button>
+  </div>
+</div>

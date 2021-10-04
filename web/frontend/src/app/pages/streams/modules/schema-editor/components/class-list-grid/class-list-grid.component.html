@@ -1,0 +1,68 @@
+<ag-grid-angular #typesGrid [gridOptions]="gridOptions$ | async" class="grid ag-theme-balham-dark w-100 h-100">
+</ag-grid-angular>
+
+
+<ng-template #editItemModalTemplate>
+  <div class="modal-header">
+    <h4 class="modal-title pull-left">{{(editItemModalState.isEnum ? 'text.editEnumProps' : 'text.editClassProps') | translate}}</h4>
+  </div>
+  <div class="modal-body">
+    <form [formGroup]="editTypeItemForm" class="form-horizontal props-form nameForm" id="nameForm" (ngSubmit)="onConfirmChanges(editItemModalState)">
+      <div class="controlWr">
+        <label class="btn control-label" for="nameInput">
+          {{'forms.editTypeItem.name' | translate}}
+          <strong class="text-danger">*</strong>
+        </label>
+        <input class="btn input-control"
+          type="text"
+          id="nameInput"
+          name="name"
+          formControlName="name"
+        />
+      </div>
+      <span *ngIf="isNameForbidden()" class="alert alert-danger my-1 p-2 fadeInDown animated validation-error">{{'forms.validators.nameExists' | translate}}</span>
+      <ng-template [ngIf]="!editItemModalState.isEnum && !editItemModalState.isAbstract">
+        <div class="controlWr">
+          <div class="form-group d-flex align-items-start controlWr">
+            <label class="form-control-label btn control-label" for="isUsedInput">
+              <!--            <strong class="text-danger" *ngIf="field.required">*</strong>-->
+              {{'forms.editTypeItem.isUsed' | translate}}
+            </label>
+            <div class="form-control-wr">
+              <div class="form-control-cb-wr">
+                <label class="form-control-cb">
+                  <input type="checkbox"
+                    id="isUsedInput"
+                    name="isUsed"
+                    [checked]="getCbValue()"
+                    formControlName="isUsed">
+                  <span class="form-control-cb-indicator"></span>
+                  <span class="form-control-cb-focus-indicator"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+      <div class="controlWr">
+        <label class="btn control-label" for="titleInput">
+          {{'forms.editTypeItem.title' | translate}}
+        </label>
+        <input class="btn input-control"
+          type="text"
+          id="titleInput"
+          name="title"
+          formControlName="title"
+        />
+      </div>
+    </form>
+  </div>
+  <div class="modal-footer d-flex justify-content-end">
+    <button [disabled]="editTypeItemForm.invalid || editTypeItemForm.pristine" type="submit" form="nameForm" class="btn btn-success pull-right" aria-label="Close">
+      <span aria-hidden="true">{{'buttons.confirm' | translate}}</span>
+    </button>
+    <button type="button" class="btn btn-outline-light pull-right" aria-label="Close" (click)="editItemModalRef.hide()">
+      <span aria-hidden="true">{{'buttons.cancel' | translate}}</span>
+    </button>
+  </div>
+</ng-template>

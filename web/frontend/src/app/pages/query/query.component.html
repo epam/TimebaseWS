@@ -1,0 +1,57 @@
+<div class="col-md-12 full-height-page">
+  <as-split (appDragProgress)="onDragProgress()" direction="horizontal">
+    <as-split-area [size]="75" >
+      <as-split
+          class="vertical-split"
+          [class.show-details]="showDetails$ | async"
+          (dragEnd)="onDragEnd($event)"
+          (appDragProgress)="onDragProgress()"
+          direction="vertical"
+      >
+        <as-split-area [size]="editorSize$ | async">
+          <form [formGroup]="form" (submit)="onSubmit()">
+            <div class="query-tools">
+              <button
+                  [disabled]="sendBtnDisabled$ | async"
+                  class="btn btn-info"
+                  [tooltip]="sendBtnText$ | async"
+                  placement="right"
+              >
+                {{ sendBtnText$ | async }}
+              </button>
+              <div class="query-tools__rows">
+                <label for="rows">{{ 'text.maxRows' | translate }}:</label>
+                <input appNumbersOnly maxlength="6" id="rows" class="form-control" formControlName="rows">
+              </div>
+            </div>
+            <div #editorWrapper class="editor-wrapper">
+              <ngx-monaco-editor
+                  formControlName="query"
+                  (onInit)="onInit($event)"
+                  [options]="editorOptions"
+              ></ngx-monaco-editor>
+            </div>
+          </form>
+        </as-split-area>
+        <as-split-area [size]="gridSize$ | async">
+          <alert *ngIf="queryError" type="danger">
+            <pre>{{ queryError }}</pre>
+          </alert>
+          <div class="grid-wrapper">
+            <div *ngIf="loading$ | async" class="loaderWr display-block">
+              <div class="loader display-block">{{ 'text.loading' | translate }}...</div>
+            </div>
+            <ag-grid-angular
+                [class.hidden]="!showGrid || queryError"
+                [gridOptions]="gridOptions$ | async"
+                class="ag-theme-balham-dark"
+            ></ag-grid-angular>
+          </div>
+        </as-split-area>
+      </as-split>
+    </as-split-area>
+    <as-split-area [size]="25" [visible]="showDetails$ | async">
+      <app-message-info *ngIf="showDetails$ | async"></app-message-info>
+    </as-split-area>
+  </as-split>
+</div>

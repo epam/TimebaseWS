@@ -1,0 +1,193 @@
+<div class="col-md-12 streams-tabs">
+  <div class="left-menu">
+    <div class="left-btns-wrapper">
+      <ng-container *ngIf="tabs$ | async as tabs">
+        <ng-container *ngIf="tabs.length">
+          <div (appClickOutside)="closeTabList()" class="dropdown-wrapper">
+            <button
+                [tooltip]="openTabsList ? null : 'buttons.open_tabs_list' | translate"
+                [class.active]="openTabsList"
+                (click)="toggleTabList()"
+                class="navigation-btn last-navigation-btn"
+                container="noTextWrap"
+            >
+              <svg height="16" width="16" viewBox="0 0 16 16" id="collection" class="bi bi-collection" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" d="M14.5 13.5h-13A.5.5 0 0 1 1 13V6a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5zm-13 1A1.5 1.5 0 0 1 0 13V6a1.5 1.5 0 0 1 1.5-1.5h13A1.5 1.5 0 0 1 16 6v7a1.5 1.5 0 0 1-1.5 1.5h-13zM2 3a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 0-1h-11A.5.5 0 0 0 2 3zm2-2a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 0-1h-7A.5.5 0 0 0 4 1z" />
+              </svg>
+            </button>
+            <div *ngIf="openTabsList" class="dropdown-menu show">
+              <perfect-scrollbar [config]="config" class="perf-scroll scroll-dropdown">
+                <div routerLinkActive="active" class="dropdown-item" *ngFor="let tab of tabs; trackBy: streamsTrack">
+                  <a
+                      [routerLink]="tab.linkArray"
+                      routerLinkActive="active"
+                  >
+                    <ng-container *ngTemplateOutlet="tabInner; context: {tab: tab}"></ng-container>
+                  </a>
+                  <button
+                      (click)="closeTab(tab)"
+                      class="close-btn"
+                      [tooltip]="'buttons.close' | translate"
+                      placement="right"
+                      container="noTextWrap"
+                  >
+                    <ng-container *ngTemplateOutlet="closeIcon"></ng-container>
+                  </button>
+                </div>
+                <div>
+                  <a (click)="closeAllTabs()" class="dropdown-item">Close all tabs</a>
+                </div>
+              </perfect-scrollbar>
+            </div>
+          </div>
+        </ng-container>
+      </ng-container>
+    </div>
+    <div *ngIf="tabs$ | async as tabs" class="perf-scroll-wrap">
+      <perfect-scrollbar
+          (psScrollX)="onScrollEvent($event)"
+          (psXReachEnd)="onScrollEvent($event)"
+          (psXReachStart)="onScrollEvent($event)"
+          [config]="config"
+          class="perf-scroll perf-scroll--tabs"
+      >
+        <div class="tabs">
+          <div routerLinkActive="active" class="tab navigation-btn" *ngFor="let tab of tabs;">
+            <a
+                [routerLink]="tab.linkArray"
+                [queryParams]="tab.linkQuery"
+            >
+              <ng-container *ngTemplateOutlet="tabInner; context: {tab: tab}"></ng-container>
+            </a>
+            <button
+                (click)="closeTab(tab)"
+                class="close-btn"
+                [tooltip]="'buttons.close' | translate"
+                [adaptivePosition]="false"
+                container="body"
+                placement="right"
+            >
+              <ng-container *ngTemplateOutlet="closeIcon"></ng-container>
+            </button>
+          </div>
+        </div>
+      </perfect-scrollbar>
+    </div>
+  </div>
+  <div class="right-menu">
+    <button
+        (click)="openGlobalSettings()"
+        [class.active]="globalFiltersHasChanges$ | async"
+        class="navigation-btn timezone"
+        [tooltip]="'buttons.global_settings' | translate"
+        [adaptivePosition]="false"
+        placement="bottom"
+        containerClass="noTextWrap"
+    >
+      <ng-container *ngTemplateOutlet="timeZoneIcon"></ng-container>
+      {{ timezone$ | async }}
+    </button>
+    <button
+        (click)="onLogOut()"
+        [tooltip]="'buttons.logout' | translate"
+        [adaptivePosition]="false"
+        class="navigation-btn last-navigation-btn"
+        placement="bottom"
+        containerClass="noTextWrap"
+    >
+      <svg id="i-settings" xmlns="http://www.w3.org/2000/svg" viewBox='0 0 512 512' width="20" height="20" fill="none"
+          stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32">
+        <path d='M320,176V136a40,40,0,0,0-40-40H88a40,40,0,0,0-40,40V376a40,40,0,0,0,40,40H280a40,40,0,0,0,40-40V336' />
+        <polyline points='384 176 464 256 384 336' />
+        <line x1='191' y1='256' x2='464' y2='256' />
+      </svg>
+    </button>
+    <!--    </li>-->
+  </div>
+</div>
+<ng-template #timeZoneIcon>
+  <svg fill="currentColor" viewBox="0 0 457.66212 457.66212" xmlns="http://www.w3.org/2000/svg">
+    <path d="m334.792969 240.109375c-52.292969 0-94.6875 42.390625-94.6875 94.683594s42.394531 94.6875 94.6875 94.6875 94.6875-42.394531 94.6875-94.6875c-.0625-52.269531-42.417969-94.625-94.6875-94.683594zm0 173.371094c-43.457031 0-78.6875-35.230469-78.6875-78.6875s35.230469-78.6875 78.6875-78.6875 78.6875 35.230469 78.6875 78.6875c-.050781 43.4375-35.25 78.636719-78.6875 78.6875zm0 0" />
+    <path d="m368.53125 333.832031h-30.699219v-42.410156c0-4.421875-3.582031-8-8-8s-8 3.578125-8 8v50.597656c.039063 2.117188.921875 4.132813 2.449219 5.597657 1.527344 1.46875 3.578125 2.265624 5.695312 2.214843h38.554688c4.421875 0 8-3.582031 8-8s-3.578125-8-8-8zm0 0" />
+    <path d="m401.140625 231.417969c1.457031-9.851563 2.1875-19.792969 2.191406-29.753907 0-111.199218-90.46875-201.664062-201.667969-201.664062-111.195312 0-201.664062 90.46875-201.664062 201.664062 0 111.199219 90.46875 201.667969 201.664062 201.667969 9.960938 0 19.902344-.734375 29.753907-2.191406 27.125 42.292969 77.273437 63.804687 126.613281 54.308594 49.339844-9.496094 87.921875-48.078125 97.417969-97.417969 9.496093-49.339844-12.015625-99.488281-54.308594-126.613281zm-66.347656-19.5c-4.949219.027343-9.898438.355469-14.808594.976562.035156-1.046875.0625-2.066406.089844-3.066406h67.085937c-.191406 4-.554687 8.933594-1.070312 13.40625-16.078125-7.445313-33.578125-11.304687-51.296875-11.3125zm-278.5 105.1875c-24.339844-30.636719-38.378907-68.183594-40.109375-107.273438h67.0625c.515625 25.644531 4.675781 51.085938 12.359375 75.558594-14.386719 8.875-27.59375 19.53125-39.3125 31.714844zm39.3125-198.953125c-7.679688 24.515625-11.84375 49.996094-12.359375 75.679687h-67.0625c1.554687-39.164062 15.609375-76.800781 40.109375-107.398437 11.71875 12.183594 24.929687 22.839844 39.3125 31.71875zm251.460937-31.71875c24.484375 30.601562 38.527344 68.238281 40.082032 107.398437h-67.0625c-.511719-25.605469-4.652344-51.007812-12.300782-75.449219 14.398438-8.9375 27.597656-19.675781 39.28125-31.949218zm-42.984375 107.398437h-94.25v-45.839843c29.164063-1.023438 57.753907-8.398438 83.773438-21.609376 6.476562 21.917969 10 44.601563 10.476562 67.449219zm-94.25-61.851562v-113.414063c36 19.21875 62.800781 51.527344 78.59375 92.445313-24.285156 12.824219-51.152343 19.992187-78.59375 20.96875zm-16-.035157c-27.417969-1.101562-54.246093-8.320312-78.515625-21.132812 15.808594-40.828125 42.515625-73.058594 78.515625-92.246094zm0 16.011719v45.875h-94.585937c.539062-22.925781 4.140625-45.679687 10.710937-67.648437 26.023438 13.320312 54.660157 20.757812 83.875 21.773437zm-94.585937 61.875h94.585937v45.539063c-29.226562 1.082031-57.863281 8.574218-83.875 21.949218-6.574219-21.914062-10.171875-44.613281-10.710937-67.488281zm94.585937 61.546875v113.398438c-36-19.199219-62.714843-51.433594-78.519531-92.265625 24.265625-12.820313 51.097656-20.042969 78.519531-21.132813zm26.289063 107.316406c-3.371094 2.15625-7.289063 4.183594-10.289063 6.082032v-113.429688c6 .238282 12.578125.800782 18.855469 1.691406-18.707031 32.105469-21.855469 70.957032-8.566406 105.65625zm18.558594-120.253906c-9.523438-1.753906-19.167969-2.792968-28.847657-3.109375v-45.5h94.238281c-.058593 2-.089843 4.066407-.191406 6.125-25.761718 6.726563-48.640625 21.636719-65.199218 42.484375zm97.851562-184.246094c-10.210938 10.902344-21.722656 20.511719-34.269531 28.621094-13.414063-33.632812-34.007813-61.84375-60.582031-82.460937 36.296874 8.042969 69.339843 26.800781 94.851562 53.839843zm-174.875-53.839843c-26.527344 20.582031-47.09375 48.726562-60.511719 82.28125-12.542969-8.074219-24.066406-17.632813-34.316406-28.46875 25.511719-27.023438 58.542969-45.769531 94.828125-53.8125zm-94.828125 308.804687c10.25-10.835937 21.769531-20.394531 34.3125-28.46875 13.414063 33.550782 33.976563 61.699219 60.5 82.28125-36.277344-8.046875-69.304687-26.789062-94.8125-53.8125zm267.964844 112.5c-59.023438.003906-106.875-47.847656-106.871094-106.871094 0-59.027343 47.847656-106.875 106.875-106.875 59.023437.003907 106.871094 47.855469 106.867187 106.878907-.0625 58.996093-47.875 106.804687-106.871093 106.871093zm0 0" />
+  </svg>
+</ng-template>
+<ng-template #tabInner let-tab="tab">
+  <ng-template [ngIf]="!tab.query">
+    <ng-template [ngIf]="!tab.live && !tab.monitor && !tab.reverse && !tab.schema && !tab.schemaEdit && !tab.streamCreate && !tab.chart && !tab.flow">
+      <svg id="i-book"
+          xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="16" height="16" fill="none"
+          stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+        <path
+            d="M16 7 C16 7 9 1 2 6 L2 28 C9 23 16 28 16 28 16 28 23 23 30 28 L30 6 C23 1 16 7 16 7 Z M16 7 L16 28" />
+      </svg>
+    </ng-template>
+    <ng-template [ngIf]="tab.live">
+      <svg id="i-clock-live" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" stroke="none" fill="currentcolor">
+        <path d="M15.1,19.37l1,1.74c-0.96,0.44-2.01,0.73-3.1,0.84v-2.02C13.74,19.84,14.44,19.65,15.1,19.37z M4.07,13H2.05 c0.11,1.1,0.4,2.14,0.84,3.1l1.74-1C4.35,14.44,4.16,13.74,4.07,13z M15.1,4.63l1-1.74C15.14,2.45,14.1,2.16,13,2.05v2.02 C13.74,4.16,14.44,4.35,15.1,4.63z M19.93,11h2.02c-0.11-1.1-0.4-2.14-0.84-3.1l-1.74,1C19.65,9.56,19.84,10.26,19.93,11z M8.9,19.37l-1,1.74c0.96,0.44,2.01,0.73,3.1,0.84v-2.02C10.26,19.84,9.56,19.65,8.9,19.37z M11,4.07V2.05 c-1.1,0.11-2.14,0.4-3.1,0.84l1,1.74C9.56,4.35,10.26,4.16,11,4.07z M18.36,7.17l1.74-1.01c-0.63-0.87-1.4-1.64-2.27-2.27 l-1.01,1.74C17.41,6.08,17.92,6.59,18.36,7.17z M4.63,8.9l-1.74-1C2.45,8.86,2.16,9.9,2.05,11h2.02C4.16,10.26,4.35,9.56,4.63,8.9z M19.93,13c-0.09,0.74-0.28,1.44-0.56,2.1l1.74,1c0.44-0.96,0.73-2.01,0.84-3.1H19.93z M16.83,18.36l1.01,1.74 c0.87-0.63,1.64-1.4,2.27-2.27l-1.74-1.01C17.92,17.41,17.41,17.92,16.83,18.36z M7.17,5.64L6.17,3.89 C5.29,4.53,4.53,5.29,3.9,6.17l1.74,1.01C6.08,6.59,6.59,6.08,7.17,5.64z M5.64,16.83L3.9,17.83c0.63,0.87,1.4,1.64,2.27,2.27 l1.01-1.74C6.59,17.92,6.08,17.41,5.64,16.83z M13,7h-2v5.41l4.29,4.29l1.41-1.41L13,11.59V7z" />
+      </svg>
+    </ng-template>
+    <ng-template [ngIf]="tab.monitor">
+      <svg id="i-clock" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"
+          width="16" height="16" fill="none" stroke="currentcolor" stroke-linecap="round"
+          stroke-linejoin="round" stroke-width="2">
+        <circle cx="16" cy="16" r="14" />
+        <path d="M16 8 L16 16 20 20" />
+      </svg>
+    </ng-template>
+    <ng-template [ngIf]="tab.reverse">
+      <svg id="i-reply" xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 32 32" width="16" height="16" fill="none" stroke="currentcolor" stroke-linecap="round"
+          stroke-linejoin="round" stroke-width="2">
+        <path d="M10 6 L3 14 10 22 M3 14 L18 14 C26 14 30 18 30 26" />
+      </svg>
+    </ng-template>
+    <ng-template [ngIf]="tab.schema">
+      <svg id="i-fullscreen-exit" xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 32 32" width="16" height="16" fill="none" stroke="currentcolor" stroke-linecap="round"
+          stroke-linejoin="round" stroke-width="2">
+        <path d="M4 12 L12 12 12 4 M20 4 L20 12 28 12 M4 20 L12 20 12 28 M28 20 L20 20 20 28" />
+      </svg>
+    </ng-template>
+    <ng-template [ngIf]="tab.schemaEdit || tab.streamCreate">
+      <svg id="i-fullscreen-exit" xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 32 32" width="16" height="16" fill="none" stroke="currentcolor" stroke-linecap="round"
+          stroke-linejoin="round" stroke-width="2">
+        <path d="M4 12 L12 12 12 4 M20 4 L20 12 28 12 M4 20 L12 20 12 28 M28 20 L20 20 20 28" />
+        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+      </svg>
+    </ng-template>
+    <ng-template [ngIf]="tab.chart">
+      <svg id="i-activity" xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 32 32" width="16" height="16" fill="none" stroke="currentcolor" stroke-linecap="round"
+          stroke-linejoin="round" stroke-width="2">
+        <path d="M4 16 L11 16 14 29 18 3 21 16 28 16" />
+      </svg>
+    </ng-template>
+    {{ tab.title }}
+  </ng-template>
+  <ng-template [ngIf]="tab.query">
+    <svg id="i-msg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"
+        width="16" height="16" fill="none" stroke="currentcolor" stroke-linecap="round"
+        stroke-linejoin="round" stroke-width="2">
+      <path d="M2 4 L30 4 30 22 16 22 8 29 8 22 2 22 Z" />
+    </svg>
+    Query
+  </ng-template>
+  <ng-template [ngIf]="tab.flow">
+    <svg id="i-msg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="16" height="16" fill="currentcolor"
+        stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+      <path d="M21,8c-1.45,0-2.26,1.44-1.93,2.51l-3.55,3.56c-0.3-0.09-0.74-0.09-1.04,0l-2.55-2.55C12.27,10.45,11.46,9,10,9 c-1.45,0-2.27,1.44-1.93,2.52l-4.56,4.55C2.44,15.74,1,16.55,1,18c0,1.1,0.9,2,2,2c1.45,0,2.26-1.44,1.93-2.51l4.55-4.56 c0.3,0.09,0.74,0.09,1.04,0l2.55,2.55C12.73,16.55,13.54,18,15,18c1.45,0,2.27-1.44,1.93-2.52l3.56-3.55 C21.56,12.26,23,11.45,23,10C23,8.9,22.1,8,21,8z" />
+      <polygon points="15,9 15.94,6.93 18,6 15.94,5.07 15,3 14.08,5.07 12,6 14.08,6.93" />
+      <polygon points="3.5,11 4,9 6,8.5 4,8 3.5,6 3,8 1,8.5 3,9" />
+    </svg>
+    Flow
+  </ng-template>
+</ng-template>
+<ng-template #closeIcon>
+  <svg fill="none" height="8" id="i-close" stroke="currentcolor" stroke-linecap="round"
+      stroke-linejoin="round" stroke-width="2" viewBox="0 0 32 32" width="8"
+      xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 30 L30 2 M30 30 L2 2" />
+  </svg>
+</ng-template>

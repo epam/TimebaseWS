@@ -1,0 +1,9 @@
+@import '~src/app/core/styles/variables';
+
+::ng-deep{
+  .hasErrors{
+    background-color: $danger;
+    color: $white;
+  }
+
+}

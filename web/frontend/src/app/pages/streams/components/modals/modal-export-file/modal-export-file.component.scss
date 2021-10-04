@@ -1,0 +1,15 @@
+@import "src/app/core/styles/variables";
+
+.export-file-content {
+  width: 268 * $ss;
+}
+
+.config-row {
+  margin-bottom: 7.5 * $ss;
+
+  label {
+    width: 36 * $ss;
+    text-align: right;
+    padding-right: 5 * $ss;
+  }
+}

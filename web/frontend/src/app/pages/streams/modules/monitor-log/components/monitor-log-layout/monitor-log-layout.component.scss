@@ -1,0 +1,102 @@
+@import "~src/app/core/styles/variables";
+
+.details-stream-wrap {
+  display: flex;
+
+  .d-stream {
+    padding-right: 0;
+    padding-left: 0;
+  }
+}
+
+.stream-details {
+  position: relative;
+  display: block;
+  height: 100%;
+  background: $nav-bg;
+  border-radius: calc(4 * #{$ss});
+  min-height: calc(100vh - 40 * #{$ss});
+  padding: 7.5 * $ss;
+}
+
+.no-padding-left {
+  padding-left: 0;
+}
+
+.grid-wr {
+  position: absolute;
+  top: (2 + 1.5 * 1.2) * 1rem;
+  right: 7.5 * $ss;
+  bottom: 7.5 * $ss;
+  left: 7.5 * $ss;
+  display: flex;
+  flex-direction: column;
+  &.hide-filters {
+    top: 1rem;
+  }
+}
+
+.error-message {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  flex-shrink: 0;
+  font-size: 6 * $ss;
+  color: $white;
+  background-color: $danger;
+  padding: 0.125rem;
+
+  .error-message-text {
+    width: 100%;
+    flex-shrink: 1;
+    line-height: 1.2;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .close-btn {
+    position: relative;
+    flex-shrink: 0;
+    color: $white;
+    font-size: 6 * $ss;
+    height: 1.2 * 6 * $ss;
+    line-height: 1.2 * 6 * $ss;
+    overflow: visible;
+    text-align: center;
+
+    &:before {
+      content: "";
+      position: absolute;
+      display: block;
+      top: 0;
+      bottom: 0;
+      right: 100%;
+      z-index: 10;
+      background: linear-gradient(to right, transparent 0%, $danger 95%, $danger 100%);
+      width: 20 * $ss;
+    }
+  }
+}
+
+.grid {
+  position: relative;
+  width: 100%;
+  flex-shrink: 1;
+}
+
+.timeline-bar-wr {
+  position: relative;
+  height: 100%;
+  width: 15 * $ss;
+  flex-shrink: 0;
+  margin-left: 7.5 * $ss / 2;
+}
+
+.hide {
+  display: none !important;
+}
+
+.w-100 {
+  width: 100%;
+}

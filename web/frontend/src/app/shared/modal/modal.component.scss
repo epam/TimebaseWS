@@ -1,0 +1,12 @@
+@import "src/app/core/styles/variables";
+
+.modal-header {
+  .close {
+    padding: $ss * 5;
+    margin: -$ss * 5;
+  }
+}
+
+.modal-title {
+  padding-right: $ss * 11;
+}

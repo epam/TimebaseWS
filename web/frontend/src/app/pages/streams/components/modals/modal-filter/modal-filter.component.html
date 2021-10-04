@@ -1,0 +1,34 @@
+<app-modal>
+  <ng-container title>{{ title }}</ng-container>
+  <ng-container content>
+    <ng-multiselect-dropdown
+        *ngIf="isStream"
+        (onSelect)="onItemSelectSymbols($event)"
+        (onSelectAll)="onSelectAllSymbols($event)"
+        (onDeSelect)="onItemDeSelectSymbols($event)"
+        (onDeSelectAll)="onDeSelectAllSymbols($event)"
+        [(ngModel)]="selectedItemsSymbols"
+        placeholder="Symbols"
+        [settings]="dropdownSettingsSymbols"
+        [data]="dropdownListSymbols"
+    ></ng-multiselect-dropdown>
+    <ng-multiselect-dropdown
+        (onSelect)="onItemSelectTypes($event)"
+        (onSelectAll)="onSelectAllTypes($event)"
+        (onDeSelect)="onItemDeSelectTypes($event)"
+        (onDeSelectAll)="onDeSelectAllTypes($event)"
+        [(ngModel)]="selectedItemsTypes"
+        placeholder="Message Types"
+        [settings]="dropdownSettingsTypes"
+        [data]="dropdownListTypes"
+    ></ng-multiselect-dropdown>
+  </ng-container>
+  <ng-container footer>
+    <button [tooltip]="'buttons.clear' | translate" (click)="clear()" class="btn btn-default" type="button">
+      Clear
+    </button>
+    <button [tooltip]="'buttons.close' | translate" appModalHideBtn class="btn btn-default last" type="button">
+      {{closeBtnName}}
+    </button>
+  </ng-container>
+</app-modal>

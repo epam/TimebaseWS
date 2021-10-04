@@ -1,0 +1,37 @@
+<div class="details-stream-wrap full-height-page">
+  <as-split [direction]="'horizontal'">
+    <as-split-area [order]="1" [size]="75">
+      <div class="col-md-12 d-stream">
+        <ng-template [ngIf]="!!activeTab && !!(activeTab | async)">
+          <div class="col-md-12 stream-details">
+            
+            <div class="d-flex" [ngClass]="{'hide': (activeTab | async).schema || (activeTab | async).query}">
+              <app-filters-panel class="d-flex w-100" [hideTimePicker]="true"></app-filters-panel>
+            </div>
+            <div class="grid-wr" [ngClass]="{'hide-filters': (activeTab | async).schema ||  (activeTab | async).query}">
+              <ng-container *ngIf="(streamDetails | async).errorMessage">
+                <p class="error-message">
+                <span [title]="(streamDetails | async).errorMessage"
+                    class="error-message-text">{{(streamDetails | async).errorMessage}}</span>
+                  <button (click)="onHideErrorMessage()" [title]="'buttons.removeNotification' | translate"
+                      class="btn close-btn">X
+                  </button>
+                </p>
+              </ng-container>
+              
+              <app-monitor-log-grid class="h-100"></app-monitor-log-grid>
+            
+            </div>
+          </div>
+        </ng-template>
+      </div>
+    </as-split-area>
+    <as-split-area [order]="2" [size]="25" [visible]="!!((tabSettings$ | async).showMessageInfo || (tabSettings$ | async).showProps)">
+      <ng-template [ngIf]="!!((tabSettings$ | async).showMessageInfo)">
+        <app-message-info></app-message-info>
+      </ng-template>
+      <app-streams-props [class.hide]="!(tabSettings$ | async).showProps" (closedPropsEmit)="closedPropsEmit($event)"></app-streams-props>
+    </as-split-area>
+  </as-split>
+  <app-stream-right-toolbar></app-stream-right-toolbar>
+</div>

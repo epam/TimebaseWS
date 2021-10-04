@@ -1,0 +1,8 @@
+dependencies {
+    api project(":java:grafana-api")
+    api project(":java:grafana-api-impl")
+
+    implementation 'com.epam.deltix:containers'
+
+    testImplementation "junit:junit"
+}

@@ -1,0 +1,11 @@
+<app-modal>
+  <ng-container content>{{ message }}</ng-container>
+  <ng-container footer>
+    <button (click)="onSuccess()" class="btn btn-danger" type="button">
+      {{'buttons.yes' | translate}}
+    </button>
+    <button appModalHideBtn class="btn btn-default last" type="button">
+      {{'buttons.no' | translate}}
+    </button>
+  </ng-container>
+</app-modal>

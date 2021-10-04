@@ -1,0 +1,12 @@
+dependencies {
+    api project(":java:computations-api")
+    api 'com.epam.deltix:dfp'
+
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    compileOnly 'com.google.code.findbugs:jsr305'
+
+    implementation 'org.reflections:reflections'
+    implementation 'org.finos.timebase-ce:timebase-api'
+
+    testImplementation "junit:junit"
+}

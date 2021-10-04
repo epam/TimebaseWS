@@ -1,0 +1,25 @@
+<div #container class="wrapper">
+  <div class="row no-margin">
+    <as-split
+        storageKey="globalResizer"
+        [disabled]="resizerDisable$ | async"
+        [appSplitterSizes]="[14, 86]"
+        [fixSizes]="(resizerDisable$ | async) ? [50, null] : null"
+        [minSizes]="[220, 0]"
+        (appDragProgress)="onDragProgress()"
+        direction="horizontal"
+    >
+      <as-split-area>
+        <app-streams-list class="streams-list no-padding"></app-streams-list>
+      </as-split-area>
+      <as-split-area>
+        <div class="col-md-12 no-padding">
+          <div class="fluid-container">
+            <app-streams-tabs></app-streams-tabs>
+            <router-outlet style="display: none;"></router-outlet>
+          </div>
+        </div>
+      </as-split-area>
+    </as-split>
+  </div>
+</div>

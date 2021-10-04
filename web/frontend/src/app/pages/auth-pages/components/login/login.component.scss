@@ -1,0 +1,85 @@
+@import "~src/app/core/styles/variables";
+
+$border-radius: 15 * $ss;
+$padding-round: 20 * $ss;
+
+.login-widow-container{
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.login-widow {
+  position: relative;
+  display: block;
+  background: $nav-bg;
+  border-radius: $border-radius;
+  padding-top: 0;
+  box-sizing: content-box;
+}
+
+.window-footer{
+  width: 100%;
+  padding: 0 $padding-round;
+}
+
+.window-footer{
+  border-radius: 0 0 $border-radius $border-radius;
+  padding: 0 $padding-round $padding-round;
+
+  button {
+    width: 100%;
+    height: 20 * $ss !important;
+    font-size: 7.5 * $ss;
+    font-weight: normal;
+  }
+}
+
+.window-content{
+  padding: $padding-round $padding-round 0 $padding-round;
+}
+
+.controlWr{
+  margin-bottom: 6 * $ss;
+
+  .btn:not(.btn-from) {
+    margin-bottom: 0;
+    color: $white;
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  .control-label {
+    width: 100px;
+    line-height: 1.8125rem;
+    background-color: $btn-navy;
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  .input-control{
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+    text-align: left;
+    width: 230px;
+    font-weight: normal;
+    user-select: auto;
+    text-transform: none;
+    background: $input-bg !important;
+  }
+}
+
+app-logo {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100%);
+  margin-top: -10 * $ss;
+}
+
+.version {
+  text-align: center;
+  padding: 3 * $ss;
+  color: $btn-secondary;
+}

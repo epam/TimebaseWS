@@ -1,0 +1,82 @@
+@import "~src/app/core/styles/variables";
+
+$cursor-height: 3px;
+
+.timebar {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: calc(100% - (30px  + 30px));
+  background-color: $btn-secondary;
+  z-index: 0;
+}
+
+.timebar-thumb {
+  position: absolute;
+  display: block;
+  left: 0;
+  width: 100%;
+  background-color: $gray-400;
+  border: $ss/2 solid $gray-400;
+  z-index: 9;
+  pointer-events: none;
+}
+
+.timebar-cursor {
+  position: absolute;
+  display: block;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: $primary;
+  opacity: 0;
+  transition: opacity 1s;
+  height: $cursor-height;
+  z-index: 10;
+}
+
+.timebar-cursor-text {
+  position: absolute;
+  display: block;
+  bottom: 100%;
+  right: 0;
+  left: 100%;
+  top: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  padding-left: $ss;
+  padding-right: $ss;
+  background-color: $body-bg;
+  border: 1px solid $gray-400;
+  box-sizing: border-box;
+  font-size: 6*$ss;
+
+  &.is-rotated {
+    top: 100%;
+    left: 0;
+    bottom: auto;
+    right: auto;
+  }
+}
+
+.timebar-event-area {
+  position: absolute;
+  display: block;
+  top: ($cursor-height) / 2;
+  bottom: ($cursor-height) / 2;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  opacity: 0;
+
+  &:hover ~ .timebar-cursor {
+    opacity: 1;
+    .timebar-cursor-text{
+      left: auto;
+    }
+  }
+}
+
+.is-rotated {
+  transform: rotate(180deg);
+}

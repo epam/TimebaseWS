@@ -1,0 +1,117 @@
+<div class="cl-control-panel">
+  <button class="btn btn-sm btn-outline-success"
+      (click)="onAskToAdd()"
+      type="button"
+      [disabled]="(iSchemaItemsEdited | async).newClassAdding"
+  >{{'buttons.newClass' | translate}}</button>
+  <button
+      class="btn btn-sm btn-outline-warning"
+      (click)="onAskToAdd(true)"
+      type="button"
+      [disabled]="(iSchemaItemsEdited | async).newEnumAdding"
+  >{{'buttons.newEnum' | translate}}</button>
+  <div class="spacer"></div>
+  <button class="btn btn-sm btn-outline-danger d-flex justify-content-center align-items-center delete-selected-btn"
+      (click)="onAskDeleteSelected()"
+      [disabled]="!(selectedItem$ | async)"
+      [title]="'titles.removeSelectedItem' | translate"
+      type="button"
+  >{{'buttons.removeSelected' | translate}}</button>
+</div>
+
+
+<ng-template #modalTemplate>
+  <div class="modal-body">
+    {{requestMessage}}
+  </div>
+  <div class="modal-footer d-flex justify-content-end">
+    <button type="button" class="btn btn-danger pull-right" aria-label="Close" (click)="onDeleteSelected()">
+      <span aria-hidden="true">{{'buttons.remove' | translate}}</span>
+    </button>
+    <button type="button" class="btn btn-outline-light pull-right" aria-label="Close" (click)="deleteModalRef.hide()">
+      <span aria-hidden="true">{{'buttons.cancel' | translate}}</span>
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #modalNewItemTemplate>
+  <div class="modal-header">
+    <h4 class="modal-title pull-left">{{(askToAddInitialState.isEnum ? 'text.addNewEnum' : 'text.addNewClass') | translate}}</h4>
+  </div>
+  <div class="modal-body">
+    <form [formGroup]="nameForm" id="nameForm" class="form-horizontal props-form nameForm" (ngSubmit)="onAddClass(askToAddInitialState.isEnum)">
+      <ng-template [ngIf]="!askToAddInitialState.isEnum">
+        <div class="controlWr">
+          
+          <label class="btn control-label" for="parentNameSelector">
+            {{'forms.parenClass' | translate}}
+          </label>
+          <select
+              class="form-control"
+              id="parentNameSelector"
+              name="parentName"
+              formControlName="parentName">
+            <option [ngValue]="null"></option>
+            <option *ngFor="let opt of (classNames$ | async)" [ngValue]="opt">{{opt}}</option>
+          </select>
+        </div>
+      </ng-template>
+      
+      <div class="controlWr">
+        <label class="btn control-label" for="nameInput">
+          {{'forms.newName' | translate}}
+        </label>
+        <input class="btn input-control"
+            type="text"
+            id="nameInput"
+            name="name"
+            formControlName="name"
+        />
+      </div>
+      <span *ngIf="isNameForbidden()" class="alert alert-danger my-1 p-2 fadeInDown animated validation-error">
+        {{'forms.validators.nameExists' | translate}}
+      </span>
+      
+      <ng-template [ngIf]="!askToAddInitialState.isEnum">
+        <div class="controlWr">
+          <div class="form-group d-flex align-items-start controlWr">
+            <label class="form-control-label btn control-label" for="isUsedInput">
+              {{'forms.editTypeItem.isUsed' | translate}}
+            </label>
+            <div class="form-control-wr">
+              <div class="form-control-cb-wr">
+                <label class="form-control-cb">
+                  <input type="checkbox"
+                      id="isUsedInput"
+                      name="isUsed"
+                      formControlName="isUsed">
+                  <span class="form-control-cb-indicator"></span>
+                  <span class="form-control-cb-focus-indicator"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+      <div class="controlWr">
+        <label class="btn control-label" for="titleInput">
+          {{'forms.editTypeItem.title' | translate}}
+        </label>
+        <input class="btn input-control"
+            type="text"
+            id="titleInput"
+            name="title"
+            formControlName="title"
+        />
+      </div>
+    </form>
+  </div>
+  <div class="modal-footer d-flex justify-content-end">
+    <button [disabled]="nameForm.invalid || nameForm.pristine" type="submit" form="nameForm" class="btn btn-danger pull-right" aria-label="Close">
+      <span aria-hidden="true">{{'buttons.add' | translate}}</span>
+    </button>
+    <button type="button" class="btn btn-outline-light pull-right" aria-label="Close" (click)="newItemModalRef.hide()">
+      <span aria-hidden="true">{{'buttons.cancel' | translate}}</span>
+    </button>
+  </div>
+</ng-template>

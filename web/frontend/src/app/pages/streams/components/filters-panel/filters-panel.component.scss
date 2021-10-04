@@ -1,0 +1,148 @@
+@import "~src/app/core/styles/variables";
+
+::ng-deep {
+  deltix-ng-smart-date-time-picker [bsdatepicker] {
+    position: absolute;
+    display: block;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+}
+
+deltix-ng-smart-date-time-picker {
+  position: relative;
+  display: block;
+  margin-right: 2 * $ss;
+}
+
+.filtered {
+  background-color: $yellow;
+  border-color: $yellow;
+  box-shadow: $yellow-box-shadow;
+  color: $nav-bg;
+}
+
+.filtered:not(:disabled):not(.disabled):active:focus,
+.filtered:not(:disabled):not(.disabled).active:focus,
+.show > .filtered.dropdown-toggle:focus {
+  box-shadow: $yellow-active-box-shadow;
+  background-color: $yellow-active-bg;
+  border-color: $yellow-active-border-color;
+  color: $nav-bg;
+}
+
+.filterForm {
+  justify-content: flex-end;
+  flex-grow: 1;
+
+  &:first-child {
+    justify-content: flex-start;
+  }
+}
+
+.btn {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.controlWr:not(.last) {
+  margin: 0;
+  margin-right: 2 * $ss;
+}
+
+input.ng-invalid.ng-touched {
+  box-shadow: 0 0 $ss $red;
+}
+
+.controlWr {
+  display: inline-block;
+}
+
+.filterFormInputs {
+  margin-left: 2 * $ss;
+  margin-right: 4 * $ss;
+
+  &,
+  .form-component {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .form-component-label {
+    margin-bottom: 0;
+    margin-left: 2 * $ss;
+  }
+}
+
+.title {
+  margin-right: 5 * $ss;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+}
+
+.controlWr {
+  position: relative;
+  display: inline-block;
+}
+
+.bs-datepicker {
+  box-shadow: none;
+}
+
+.datepicker-inputWr {
+  margin-bottom: 8px;
+
+  .btn:not(.btn-from) {
+    margin-bottom: 0;
+    color: $white;
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+  }
+}
+
+.btns-panel {
+  margin-top: 8px;
+}
+
+.timePickerLabel {
+  line-height: 1.8125rem;
+  background-color: $btn-navy;
+  border-bottom-right-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.datepicker-input {
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+  text-align: left;
+  width: 230px;
+  font-weight: normal;
+  user-select: auto;
+}
+
+.no-display {
+  display: none;
+}
+
+.btn-from {
+  padding-right: 5px;
+  padding-left: 5px;
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+
+  &::before {
+    content: url("data:image/svg+xml; utf8, <svg style='color:white;' id='i-calendar' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='16' height='16' fill='none' stroke='currentcolor' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'><path d='M2 6 L2 30 30 30 30 6 Z M2 15 L30 15 M7 3 L7 9 M13 3 L13 9 M19 3 L19 9 M25 3 L25 9' /></svg>");
+    display: block;
+
+    width: auto;
+    height: auto;
+    margin: 4px 0 0 0;
+  }
+
+
+}

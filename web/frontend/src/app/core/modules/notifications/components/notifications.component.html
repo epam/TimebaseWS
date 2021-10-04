@@ -1,0 +1,47 @@
+<div class="notification alerts-wrapper">
+  <alert
+    *ngFor="let alert of (notificationsState | async).alerts; let i = index"
+    (onClosed)="onClosed(alert, i)"
+    [dismissible]="alert.dismissible"
+    [dismissOnTimeout]="alert.closeInterval"
+    type="danger">
+    <span [innerHtml]="alert.message"></span>
+  </alert>
+</div>
+<div class="notification warns-wrapper">
+  <alert
+    *ngFor="let warn of (notificationsState | async).warns; let i = index"
+    (onClosed)="onClosed(warn, i)"
+    [dismissible]="warn.dismissible"
+    [dismissOnTimeout]="warn.closeInterval"
+    type="warning">
+    <span [innerHtml]="warn.message"></span>
+  </alert>
+</div>
+<div class="notification notifications-wrapper">
+  <ng-template ngFor let-notification [ngForOf]="(notificationsState | async).notifications" let-i="index">
+    <alert
+      (onClosed)="onClosed(notification, i)"
+      [dismissible]="notification.dismissible"
+      [dismissOnTimeout]="notification.closeInterval"
+      [type]="notification.type"
+      #currentAlert>
+      <span *ngIf="!notification.requestDialogParams" [innerHtml]="notification.message"></span>
+      <div class="requestDialogContent" *ngIf="notification.requestDialogParams">
+        <p class="requestDialogText" [innerHtml]="notification.message"></p>
+        <div class="requestDialogButtons">
+          <button class="btn btn-sm btn-danger" type="button"
+            (click)="notification.requestDialogParams.closeActions.onSuccess();currentAlert.close();">
+            <span *ngIf="notification.requestDialogParams.buttonsTextLinks">{{notification.requestDialogParams.buttonsTextLinks.success | translate}}</span>
+            <span *ngIf="!notification.requestDialogParams.buttonsTextLinks">{{'buttons.ok' | translate}}</span>
+          </button>
+          <button (click)="notification.requestDialogParams.closeActions.onCancel();currentAlert.close()" class="btn btn-sm btn-outline-light" type="button">
+            <span *ngIf="notification.requestDialogParams.buttonsTextLinks">{{notification.requestDialogParams.buttonsTextLinks.cancel | translate}}</span>
+            <span *ngIf="!notification.requestDialogParams.buttonsTextLinks">{{'buttons.cancel' | translate}}</span>
+          </button>
+        </div>
+      </div>
+    </alert>
+  </ng-template>
+</div>
+

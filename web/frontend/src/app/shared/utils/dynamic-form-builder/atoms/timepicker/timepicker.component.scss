@@ -1,0 +1,15 @@
+@import '~src/app/pages/streams/components/filters-panel/filters-panel.component.scss';
+
+.datepicker-input {
+  position: relative;
+  flex-shrink: 1;
+  box-sizing: border-box;
+  width: 100%;
+  padding-right: 2*$ss;
+  padding-left: 2*$ss;
+}
+
+.btn-from {
+  position: relative;
+  flex-shrink: 0;
+}

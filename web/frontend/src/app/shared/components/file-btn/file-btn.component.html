@@ -1,0 +1,7 @@
+<label [ngClass]="classes || 'btn btn-primary'">
+  <ng-content></ng-content>
+  <input #inputEl [accept]="accept" (change)="onChange($event.target)" type="file"/>
+</label>
+<span>
+  {{ displayName }}
+</span>

@@ -1,0 +1,10 @@
+@import "~src/app/core/styles/variables";
+pre {
+  color: $white;
+  overflow: auto;
+  max-height: calc(100vh - 54.4px - 63px - 3.5rem - 32px);
+  max-width: 100%;
+  margin-bottom: 0;
+  box-sizing: border-box;
+  padding: 1rem;
+}

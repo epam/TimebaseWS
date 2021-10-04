@@ -1,0 +1,8 @@
+<div class="form-control-cb-wr">
+  <label class="container-ch" (click)="$event.stopImmediatePropagation(); $event.stopPropagation();">
+    <ng-template [ngIf]="typeItem && typeItem._props && !typeItem.isEnum && !typeItem.isAbstract">
+      <input type="checkbox" [checked]="typeItem._props._isUsed" (change)="onSetUsed($event, typeItem)">
+      <span class="checkmark"></span>
+    </ng-template>
+  </label>
+</div>

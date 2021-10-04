@@ -1,0 +1,66 @@
+@import "~node_modules/bootstrap/scss/functions";
+@import "~node_modules/bootstrap/scss/variables";
+@import "./fonts";
+// @import url('https://fonts.googleapis.com/css?family=Archivo+Narrow');
+// @import url('https://fonts.googleapis.com/css?family=Questrial');
+
+$ss: 0.125rem; //size-step
+$fs: $ss; //font-step
+
+$white: #fff;
+$body-bg: rgb(25, 32, 46); // #edeef0;
+$nav-bg: rgb(39, 56, 77); //#224b7a;
+$logo-bg: $nav-bg; // #4a76a8;
+$light-blue: #337ab7;
+$dark-blue: #27384d;
+$light-gray: #999;
+$selected-row-bg: #1b5c83;
+$link-hover: #0056b3;
+
+$logo-color: #b0c5ed;
+
+$font-color: $white; //#4a4e69;
+$nav-h-color: $white; // #8b8e9f;
+$nav-color: rgba(255, 255, 255, 0.75); // #cdced6;
+$nav-bg-active: $nav-bg; //#151829;
+$nav-color-active: #98b1c6; //#8069f2;
+$table-th: rgb(84, 171, 240);
+$input-bg-light: transparent; // #e9ecef;
+$btn-secondary: #6c757d;
+$input-color-dark: #495057;
+$input-border: #adadad;
+$blue: #007bff;
+
+$font-logo: "Roboto Medium", sans-serif;
+$font-text: "Roboto Regular", sans-serif;
+
+$fs-logo: 12.5 * $fs;
+$fs-title: 7.5 * $fs;
+$fs-sub-title: 7 * $fs;
+$fs-reg: 6.5 * $fs;
+$fs-reg-2: 6 * $fs;
+
+$yellow-box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.5);
+$yellow-active-box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.3);
+$yellow-active-bg: #d39e00;
+$yellow-active-border-color: #c69500;
+
+$input-bg: rgb(31, 82, 111);
+$btn-navy: rgb(78, 108, 149);
+$btn-control: rgb(31, 82, 111);
+$border-radius: 1.5 * $ss;
+$control-height: 14.5 * $ss;
+
+%input{
+  background-color: transparent;
+  color: $white;
+  border: 1px solid $gray-600;
+  box-sizing: border-box;
+  padding: 0;
+  padding-left: 3*$ss;
+  padding-right: 3*$ss;
+  width: 40*$ss;
+  box-shadow: none;
+  line-height: 21+8px;
+  border-radius: 0;
+}

@@ -1,0 +1,29 @@
+@import "~src/app/core/styles/variables";
+
+.symbols-list {
+  margin-bottom: 5 * $ss;
+}
+
+.border-around {
+  position: relative;
+  border: 1px solid $white;
+  box-sizing: border-box;
+  padding: $ss;
+  border-radius: 2 * $ss;
+  opacity: 0.9;
+}
+
+.border-bottom {
+  position: relative;
+  display: block;
+  padding-bottom: $ss;
+  margin-bottom: 4 * $ss;
+  border-bottom: 1px solid $white;
+}
+
+::ng-deep {
+  .time-bar-legend {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+  }
+}

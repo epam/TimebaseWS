@@ -1,0 +1,19 @@
+# EMBEDDED SERVER CONFIGURATION (ServerProperties)
+server:
+  port: 8099
+  compression:
+    enabled: true
+    mime-types: text/html,text/css,application/javascript,application/json
+timebase:
+  url: dxtick://localhost:5453
+  user:
+  password:
+  streams:
+    include:
+    exclude: \#$
+  qql: true
+oauth2:
+  enabled: false
+  checkTokenEndpointUrl: http://localhost:8100/oauth/check_token
+  clientId: timebase-web
+  clientSecret: qwfCVyb9rB

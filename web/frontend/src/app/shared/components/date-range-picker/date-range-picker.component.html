@@ -1,0 +1,12 @@
+<div class="date-range">
+  <app-btn-date-picker
+    [minDate]="minDate"
+    [maxDate]="endControl.value"
+    [formControl]="startControl"
+  ></app-btn-date-picker>
+  <app-btn-date-picker
+    [minDate]="startControl.value"
+    [maxDate]="maxDate"
+    [formControl]="endControl"
+  ></app-btn-date-picker>
+</div>

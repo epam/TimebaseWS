@@ -1,0 +1,19 @@
+.modal-title {
+  word-break: break-word;
+}
+
+.modal-dialog.scroll-content-modal {
+  @media (min-width: 0) {
+    max-width: none;
+  }
+
+  &, .modal-content, .modal-content > *, app-modal {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-body {
+    overflow-y: auto;
+  }
+}

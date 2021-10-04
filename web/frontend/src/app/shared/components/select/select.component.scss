@@ -1,0 +1,30 @@
+@import "~src/app/core/styles/variables";
+
+:host {
+  &:hover {
+    .select-display-value__inner {
+      background: #19435b;
+    }
+  }
+}
+
+select {
+  border: none;
+  outline: none;
+  scroll-behavior: smooth;
+  text-transform: none;
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.select-display-value {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+
+  &__inner {
+    transition: background-color 0.15s;
+    margin: 5px 20px 5px 10px;
+    background: #1f526f;
+  }
+}

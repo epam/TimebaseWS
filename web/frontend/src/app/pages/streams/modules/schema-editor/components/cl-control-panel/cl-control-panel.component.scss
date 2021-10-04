@@ -1,0 +1,44 @@
+@import "~src/app/core/styles/variables";
+@import "~src/app/shared/utils/dynamic-form-builder/dynamic-form-builder.module";
+
+.cl-control-panel {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 100%;
+  overflow-y: hidden;
+  overflow-x: auto;
+
+  & > * {
+    flex-shrink: 0;
+    margin-right: 4 * $ss;
+
+    &.btn {
+      padding: 0 4 * $ss;
+      height: 10 * $ss;
+      line-height: 10 * $ss;
+      font-size: 6 * $ss;
+
+      .btn-icon{
+        position: relative;
+        display: block;
+        height: 100%;
+        //width: 100%;
+      }
+    }
+
+    &.spacer {
+      flex-shrink: 1;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    &.delete-selected-btn {
+      padding: 0 2 * $ss;
+      margin: 0;
+    }
+  }
+}
+

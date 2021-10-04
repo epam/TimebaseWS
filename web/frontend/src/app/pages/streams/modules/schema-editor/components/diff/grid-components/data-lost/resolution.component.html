@@ -1,0 +1,22 @@
+
+<div class="d-flex flex-column justify-center align-items-center w-100 form-wr" *ngIf="ifDataError()">
+  <ng-template [ngIf]="ifDataLoss()">
+      <p class="cb-label-title">
+        {{'text.dataLostFieldText' | translate}}
+      </p>
+  </ng-template>
+
+  <ng-template [ngIf]="ifDefaultValueRequired()">
+      <p class="cb-label-title">
+        {{('text.' + data.resolution) | translate}}
+      </p>
+  </ng-template>
+
+  <ng-template [ngIf]="fields.length">
+    <app-dynamic-form-builder #formBuilder [fields]="fields" [(form)]="dataForm" (formChanged)="onFormChanged()"></app-dynamic-form-builder>
+  </ng-template>
+</div>
+
+<ng-template [ngIf]="data && !(data && data._props && data._props.hasErrors)">
+  {{('text.' + data.resolution) | translate}}
+</ng-template>

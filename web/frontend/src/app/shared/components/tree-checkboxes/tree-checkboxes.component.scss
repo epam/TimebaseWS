@@ -1,0 +1,96 @@
+@import "src/app/core/styles/variables";
+
+.tree {
+  &__branch {
+    padding-left: 14 * $ss;
+  }
+
+  &__branch {
+    display: none;
+  }
+
+  &__header {
+    display: flex;
+    margin-bottom: 5 * $ss;
+  }
+
+  &__expand-icon {
+    font-size: 7.5 * $fs;
+    font-weight: bold;
+    margin-right: 5 * $ss;
+    min-width: 9 * $ss;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: .5 * $ss solid;
+    height: 9 * $ss;
+    line-height: 9 * $ss;
+    cursor: pointer;
+  }
+
+  &__expand-icon::before {
+    display: block;
+    content: '+';
+    margin-top: -1.5 * $ss;
+  }
+}
+
+.open-item {
+  > .tree__branch {
+    display: block;
+  }
+
+  .tree__expand-icon::before {
+    content: '-';
+  }
+}
+
+.without-children {
+  > .tree__expand-icon {
+    visibility: hidden;
+  }
+
+  &.is-root:not(.global-filter-view) {
+    > .tree__expand-icon {
+      display: none;
+    }
+  }
+}
+
+.hidden-by-search {
+  display: none;
+}
+
+.container-ch {
+  padding-left: 14 * $ss;
+
+  .checkmark {
+    left: 0;
+  }
+
+  .checkmark.partial-checked::after {
+    display: block;
+    transform: none;
+    height: 3.5 * $ss;
+    border-right: none;
+    border-width: 0 0 $ss 0;
+  }
+}
+
+.global-filter {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5 * $ss;
+
+  .form-control-cb-wr {
+    height: 8 * $ss;
+    width: 8 * $ss;
+  }
+
+  .form-control {
+    margin-left: 5 * $ss;
+    height: 12 * $ss;
+    font-size: 6 * $ss;
+    padding: 2 * $ss;
+  }
+}

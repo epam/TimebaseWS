@@ -1,0 +1,156 @@
+@import "~src/app/core/styles/variables";
+
+$cursor-width: 15px;
+$cursor-border-radius: 50px;
+
+.time-bar {
+  position: relative;
+  display: block;
+  height: 15px;
+  background-color: #1f526f;
+  z-index: 0;
+  border-radius: 20px;
+
+  &__inner {
+    position: relative;
+    height: 100%;
+    margin: 0 $cursor-width / 2;
+  }
+}
+
+.time-bar-cursor, .time-bar-selector-cursor {
+  position: absolute;
+  display: block;
+  bottom: 0;
+  left: 0;
+  width: $cursor-width;
+  background-color: $white;
+  opacity: 1;
+  z-index: 10;
+  height: 15px;
+  border-radius: $cursor-border-radius;
+  margin-left: -$cursor-width / 2;
+}
+
+.time-bar-width {
+  position: absolute;
+  display: block;
+  bottom: 0;
+  left: 0;
+  width: $cursor-width;
+  background-color: $primary;
+  opacity: 1;
+  z-index: 9;
+  height: 15px;
+}
+
+.time-bar-selector-cursor {
+  display: flex;
+  justify-content: center;
+  flex-wrap: nowrap;
+  overflow: visible;
+  background-color: $white;
+  opacity: 0;
+  transition: opacity 1s;
+  z-index: 11;
+  margin-left: -$cursor-width / 2;
+}
+
+.time-bar-selector-cursor-text {
+  position: relative;
+  display: block;
+  bottom: 120%;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  padding: $ss;
+  background-color: $body-bg;
+  border: 1px solid $gray-400;
+  font-size: 6 * $ss;
+  line-height: 6 * $ss;
+  height: 0.75rem;
+  box-sizing: content-box;
+}
+
+.time-bar-move-area {
+  position: absolute;
+  display: block;
+  top: 0;
+  bottom: 0;
+  left: $cursor-width / 2;
+  right: $cursor-width / 2;
+  z-index: 1000;
+
+  &--left, &--right {
+    width: $cursor-width / 2;
+  }
+
+  &--filled {
+    background-color: $primary;
+  }
+
+  &--left {
+    left: 0;
+    right: auto;
+    border-top-left-radius: $cursor-border-radius;
+    border-bottom-left-radius: $cursor-border-radius;
+  }
+
+  &--right {
+    right: 0;
+    left: auto;
+    border-top-right-radius: $cursor-border-radius;
+    border-bottom-right-radius: $cursor-border-radius;
+  }
+}
+
+.time-bar {
+  &:hover .time-bar-selector-cursor {
+    opacity: 1;
+
+    .timebar-cursor-text {
+      left: auto;
+    }
+  }
+}
+
+
+///////////////////
+
+.time-inputs {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 5*$ss;
+}
+
+.timezone-inputWr {
+  width: 100%;
+
+  ng-multiselect-dropdown {
+    width: 100%;
+    flex-shrink: 1;
+  }
+}
+
+.controlWr {
+  position: relative;
+}
+
+.btns-panel {
+  margin-top: 8px;
+}
+
+.no-display {
+  display: none;
+}
+
+.truncate-time-bar-fill {
+  left: auto;
+  right: 0;
+}
+
+.move-transparent {
+  pointer-events: none;
+}

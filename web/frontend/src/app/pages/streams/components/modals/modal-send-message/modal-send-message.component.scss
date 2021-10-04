@@ -1,0 +1,260 @@
+@import '~src/app/core/styles/variables';
+
+.messageForms {
+  overflow: auto;
+  box-sizing: border-box;
+  width: 100%;
+  max-height: none;
+  height: calc(100vh - /*(0.8125rem * 1.5 + 1.6rem)*/54.4px - /*(2rem + 21px)*/63px - 3.5rem - 32px);
+  margin-bottom: 0;
+  padding: 1rem;
+  background-color: $nav-bg;
+}
+
+
+.editorWr {
+  box-sizing: border-box;
+  width: 100%;
+  height: calc(100vh - /*(0.8125rem * 1.5 + 1.6rem)*/54.4px - /*(2rem + 21px)*/63px - 3.5rem - 32px);
+  padding: 5 * $ss;
+  background-color: $nav-bg;
+
+  ngx-monaco-editor {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: calc(100% - 32px);
+  }
+}
+
+.editor-btn-wr {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin-bottom: 5 * $ss;
+}
+
+.modal-wr {
+  position: relative;
+  display: block;
+  width: 225 * $ss;
+
+  &.show-editor {
+    width: 75vw;
+  }
+
+  &.show-form {
+    .messageForms {
+      z-index: 2201;
+    }
+
+    .editorWr {
+      z-index: 2200;
+    }
+  }
+
+  &.show-editor {
+    .messageForms {
+      z-index: 2200;
+    }
+
+    .editorWr {
+      z-index: 2201;
+    }
+  }
+}
+
+.modal-title {
+  .stream-name {
+    white-space: nowrap;
+    word-break: keep-all;
+  }
+}
+
+.modal-body {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: calc(100vh - /*(0.8125rem * 1.5 + 1.6rem)*/54.4px - /*(2rem + 21px)*/63px - 3.5rem - 32px);
+
+  .messageForms,
+  .editorWr {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+}
+
+::ng-deep {
+  .commonMessageForm {
+    margin-bottom: 10 * $ss;
+  }
+
+  .commonMessageForm,
+  .bodyMessageForm {
+    position: relative;
+    width: 100%;
+
+    .form-control-wr {
+      position: relative;
+      display: block;
+      width: 100%;
+    }
+  }
+
+  .commonMessageForm {
+    //display: grid;
+    //grid-template-columns: 1fr 1fr 1fr;
+    //grid-gap: 5 * $ss;
+  }
+
+  .bodyMessageForm {
+    display: block;
+
+    .form-group-wr {
+      position: relative;
+
+      //display: grid;
+
+      width: 100%;
+      //grid-template-columns: 1fr 1fr 1fr;
+      //grid-gap: 5 * $ss;
+    }
+  }
+
+  .controlWr {
+    margin-bottom: 4 * $ss;
+
+    .btn-btn {
+      border-top-left-radius: 0;
+
+      //margin-left: 2 * $ss;
+      border-bottom-left-radius: 0;
+    }
+
+    .btn:not(.btn-btn) {
+      margin-bottom: 0;
+      color: $white;
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .control-label {
+      line-height: 1.8125rem;
+      flex-shrink: 0;
+      text-transform: none;
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+      background-color: $btn-navy;
+    }
+
+    .input-control {
+      font-weight: normal;
+      flex-shrink: 1;
+      width: 100%;
+      user-select: auto;
+      text-align: left;
+      text-transform: none;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      background: $input-bg !important;
+
+      &.ng-invalid.ng-touched {
+        border-color: $danger;
+      }
+
+      .SM-autocomplete,
+      .autocomplete-container,
+      .deltix-autocomplete .autocomplete-input {
+        line-height: inherit;
+
+        box-sizing: border-box;
+        height: 100%;
+        border: 0;
+      }
+    }
+
+    .form-control-cb-wr {
+      position: relative;
+      display: flex;
+      align-items: center;
+      flex-shrink: 1;
+      justify-content: flex-start;
+      box-sizing: border-box;
+      width: 100%;
+      padding: 0 8 * $ss;
+
+      .container-ch {
+        width: 9 * $ss;
+        height: 9 * $ss;
+      }
+    }
+  }
+
+
+  .btn-from {
+    padding-right: 5px;
+    padding-left: 5px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+
+    &::before {
+      display: block;
+      width: auto;
+      height: auto;
+      margin: 4px 0 0 0;
+
+      content: url('data:image/svg+xml; utf8, <svg style=\'color:white;\' id=\'i-calendar\' xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\' width=\'16\' height=\'16\' fill=\'none\' stroke=\'currentcolor\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\'><path d=\'M2 6 L2 30 30 30 30 6 Z M2 15 L30 15 M7 3 L7 9 M13 3 L13 9 M19 3 L19 9 M25 3 L25 9\' /></svg>');
+    }
+  }
+
+  .datepicker-input {
+    flex-shrink: 1;
+    width: 100%;
+
+    box-shadow: none;
+  }
+
+  .SM-autocomplete {
+    z-index: 1052;
+  }
+
+  .SM-autocomplete .autocomplete-dropdown-container {
+    //z-index: 1052;
+  }
+
+  .cdk-overlay-container {
+    //z-index: 1051;
+    //pointer-events: auto;
+  }
+
+  .erase-btn {
+    padding: 0 $ss;
+    border-color: $btn-navy;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+
+    .erase-icon {
+      fill: $btn-navy;
+    }
+
+    &:not([disabled]):hover {
+      background-color: $btn-navy;
+
+      .erase-icon {
+        fill: $white;
+      }
+    }
+  }
+}
+
+
+.form-state {
+  position: fixed;
+  z-index: 15000;
+  bottom: 0;
+  left: 0;
+  padding: 40px;
+  color: $white;
+  background-color: $body-bg;
+}

@@ -1,0 +1,22 @@
+<app-modal>
+  <ng-container title >{{'titles.changeName' | translate}} {{data.name}}</ng-container>
+  <form content [formGroup]="renameForm" id="renameForm" (ngSubmit)="onRenameSubmit()">
+    <div class="controlWr">
+      <label class="btn control-label" for="newName">
+        {{'forms.newName' | translate}}
+      </label>
+      <input class="btn input-control" type="text" id="newName" name="newName" formControlName="newName"/>
+    </div>
+  </form>
+  <ng-container footer >
+  <button
+    class="btn btn-info"
+    type="submit"
+    form="renameForm"
+    [disabled]="this.renameForm.invalid || this.renameForm.pristine"
+  >{{'buttons.rename' | translate}}</button>
+  <button appModalHideBtn class="btn btn-default last" type="button">
+    {{'buttons.cancel' | translate}}
+  </button>
+  </ng-container>
+</app-modal>

@@ -1,0 +1,317 @@
+{
+  "notification_messages": {
+    "network_error": "HTTP Request error",
+    "saved": "Saved",
+    "done": "Done",
+    "no_chart_data": "No chart data.",
+    "_no_chart_type": "Chart is not available for this stream.",
+    "same_datetime": "Start and end datetime are the same.",
+    "stream_purged_succeeded": "Stream purged succeeded",
+    "stream_truncated_succeeded": "Stream truncated succeeded",
+    "streamDeletedSucceeded": "Request to delete stream is send",
+    "spaceDeletedSucceeded": "Space will be deleted",
+    "streamRenameSucceeded": "Request to rename stream is send",
+    "spaceRenameSucceeded": "Space will be renamed",
+    "symbolRenameSucceeded": "Request to rename symbol is send",
+    "sendMessageSucceeded": "Message is sent",
+    "smallTimeRange": "You select too small time range. Time range should be more than {{range}}ms.",
+    "auth_error_notification": "Your auth token it invalid. You will redirect to login page after closing this notification.",
+    "onbeforeunloadMessage": "There are some necessary changes on page. Do you really want to drop changes and continue your action?",
+    "isAbstractActivateError": "Impossible to make this class abstract because It's used in next fields:<br> {{classListString}}",
+    "access_denied_page_text": "You have no access to this application.",
+    "access_denied": "You have no permission to use next API: <br>"
+  },
+  "titles": {
+    "truncateModal": "Truncate Stream",
+    "symbolsToTruncate": "Symbols To Truncate",
+    "toTime": "to Time",
+    "purgeModal": "Purge Stream",
+    "login": "Sign In",
+    "logout": "Sign Out",
+    "changeName": "Rename",
+    "describe": "Description of the stream: ",
+    "sendMessage": "Send message to the stream: ",
+    "msgDetails": "Stream Message Details",
+    "streamProps": "Stream Properties",
+    "versionPrefix": "v.",
+    "enums": "Enumerators",
+    "classes": "Classes",
+    "removeSelectedItem": "Remove Selected Item",
+    "access_denied": "Access denied",
+    "flow_path_home": "Home",
+    "search": "Search"
+  },
+  "forms": {
+    "login": {
+      "username": "Username",
+      "password": "Password"
+    },
+    "parenClass": "Parent class",
+    "newName": "Name",
+    "newValue": "Value",
+    "enterKey": "Stream key",
+    "fieldsList": {
+      "name": "Name",
+      "value": "Value",
+      "nullable": "Nullable",
+      "encoding": "Encoding",
+      "type": "Data type",
+      "elementType": "Array Type",
+      "types": {
+        "controlTitle": "Object types",
+        "selectAllText": "Select All",
+        "unSelectAllText": "UnSelect All"
+      },
+      "staticValue": "Static value",
+      "static": {
+        "title": "Field type",
+        "static": "Static",
+        "nonstatic": "Non-Static"
+      },
+      "title": "Title",
+      "validators": {
+        "allowedFieldNamePattern": "Name may start from alphabetic symbol. \nMay contain only alpha-numeric symbols, '$' and '_' ."
+      }
+    },
+    "resolution": {
+      "drop": "Drop Record",
+      "setVal": "New value",
+      "defVal": "Default value",
+      "val": "Value"
+    },
+    "editTypeItem": {
+      "name": "Name",
+      "isUsed": "Used",
+      "title": "Title"
+    },
+    "validators": {
+      "nameExists": "This name already exists",
+      "streamNameExists": "Stream with this name already exists",
+      "invalidPattern": "Incorrect field value",
+      "requiredField": "This field is required"
+    }
+  },
+  "buttons": {
+    "removeNotification": "Remove Notification",
+    "apply": "Apply changes",
+    "applyInBackground": "Apply changes in background mode",
+    "zoom_in": "Zoom in",
+    "zoom_out": "Zoom out",
+    "switch_to_pan_mode": "Switch to pan mode",
+    "switch_to_zoom_mode": "Switch to zoom mode",
+    "prev_range": "Previous range",
+    "next_range": "Next range",
+    "close": "Close",
+    "clear": "Clear",
+    "ok": "Ok",
+    "add": "Add",
+    "delete": "Delete",
+    "remove": "Remove",
+    "removeSelected": "Remove Selected",
+    "cancel": "Cancel",
+    "send": "Send",
+    "logo": "TimeBase",
+    "yes": "Yes",
+    "no": "No",
+    "hide_streams_list": "Collapse  streams list",
+    "open_streams_list": "Expand  streams list",
+    "collapse_all": "Collapse all",
+    "open_symbols": "Expand symbols",
+    "hide_symbols": "Collapse symbols",
+    "open_in_new_tab": "Open in new tab",
+    "show_spaces": "Show spaces",
+    "move_up_timebar": "Move up timebar",
+    "move_down_timebar": "Move down timebar",
+    "open_tabs_list": "Tabs list",
+    "open_properties": "Stream's properties",
+    "global_settings": "Global settings",
+    "toggle_datepicker": "Toggle datepicker",
+    "filters": "Symbols & types filters",
+    "clean_start_date": "Clean start date",
+    "apply_start_date": "Apply start date",
+    "send_query": "Send query",
+    "json_copy": "JSON copy",
+    "truncate": "Truncate",
+    "purge": "Purge",
+    "logout": "Sign out",
+    "login": "Sign In",
+    "rename": "Rename",
+    "copy_&_close": "Copy and close",
+    "editJSON": "Edit JSON Data >",
+    "saveJSON": "< Save JSON Data",
+    "newClass": "New Class",
+    "newEnum": "New Enum",
+    "exportToJSON": "Export to JSON",
+    "importFromJSON": "Import from JSON",
+    "hide_types": "Show/hide children",
+    "msgShowSimpleView": "Show simple view",
+    "msgShowJSONView": "Show JSON view",
+    "newValue": "New Value",
+    "newStaticField": "New Static Field",
+    "newNonStaticField": "New Non Static Field",
+    "schema_edit_mode": "Edit Schema",
+    "next": "Next",
+    "back": "Back",
+    "finish": "Finish",
+    "create": "Create",
+    "confirm": "Confirm",
+    "start_creating": "Start Creating",
+    "revert": "Revert"
+  },
+  "tooltips": {
+    "query_mode": "Query mode",
+    "truncate": "Truncate Stream",
+    "purge": "Purge Stream",
+    "deleteStream": "Delete Stream",
+    "deleteSpace": "Delete Space",
+    "editName": "Change name",
+    "describe": "Describe Stream",
+    "sendMessage": "Send message",
+    "export_toQSMSG_file": "Export to message file",
+    "export_toCSV": "Export to CSV",
+    "view_mode": "View Data",
+    "reverse_mode": "Reverse mode",
+    "live_mode": "Monitor",
+    "monitor_mode": "Inspector",
+    "chart_mode": "Chart mode",
+    "schema_mode": "Schema mode",
+    "create_stream": "Create new stream",
+    "flow": "Flow"
+  },
+  "contextMenu": {
+    "query": "Query",
+    "truncate": "Truncate",
+    "purge": "Purge",
+    "deleteStream": "Delete",
+    "deleteSpace": "Delete Space",
+    "editName": "Change name",
+    "describe": "Describe",
+    "sendMessage": "Send message",
+    "export_toQSMSG_file": "Export to QMSG",
+    "export_toCSV": "Export to CSV",
+    "view_mode": "View",
+    "reverse_mode": "Reverse View",
+    "live_mode": "Monitor",
+    "monitor_mode": "Inspector",
+    "chart_mode": "Chart",
+    "schema_mode": "Schema",
+    "create_stream": "Create new stream",
+    "importFromQMSG": "Import from QMSG",
+    "flow": "Flow"
+  },
+  "gridTitle": {
+    "fieldsList": {
+      "name": "Name",
+      "values": "Values",
+      "nullable": "Nullable",
+      "type": "Data Type",
+      "elementType": "Array Type",
+      "title": "Title",
+      "static": {
+        "title": "Field Type",
+        "static": "Static",
+        "nonstatic": "Non-static"
+      }
+    }
+  },
+  "text": {
+    "purge_explanation": "This operation deletes stream data that is earlier than a specified time.",
+    "truncate_explanation": "This operation will remove all data after the selected time.",
+    "streamsListEmpty": "Streams list is empty",
+    "deleteStreamRequest": "Delete stream",
+    "deleteSpaceRequest": "Delete space",
+    "removeENUMRequest": "Remove ENUM [{{name}}] ?",
+    "removeClassRequest": "Remove class [{{name}}] ?",
+    "removeClassWithChildsRequest": "Remove class [{{name}}] with all children?",
+    "removeFieldRequest": "Remove field [{{name}}]?",
+    "editEnumProps": "Edit enum properties",
+    "editClassProps": "Edit class properties",
+    "addNewClass": "Add new class",
+    "addNewEnum": "Add new enum",
+    "addNewField": "Add new field",
+    "addNewValue": "Add new value",
+    "onCreateStream": "Create stream",
+    "askToCreateStream": "Are you done all changes for new stream [{{streamName}}] and want to complete stream creation?",
+    "dataLostFieldText": "If existing value is out of bounds:",
+    "defaultValueRequiredFieldText": "Default value required. Set default value:",
+    "DataConvert": "Data will be converted",
+    "onChangeSchema": "Save changed schema.",
+    "askToSaveStreamSchema": "Are you done all changes for stream [{{streamName}}] schema and want to save changes?",
+    "streamCreated": "Stream created successfully",
+    "streamSchemaChanged": "Stream schema changed successfully",
+    "maxRows": "Max rows",
+    "loading": "Loading"
+  },
+  "exportToFile": {
+    "title": {
+      "CSV": "Export to CSV: {{stream.name}}",
+      "QSMSG": "Export to QSMSG: {{stream.name}}"
+    },
+    "config": {
+      "exportTo": "Export to",
+      "delimiters": "Delimiters",
+      "SINGLE_FILE": "one file",
+      "FILE_PER_SYMBOL": "file by symbol",
+      "FILE_PER_SPACE": "file by space",
+      "tab": "tab",
+      "comma": "comma",
+      "semicolon": "semicolon",
+      "pipe": "pipe"
+    },
+    "all": "All",
+    "export": "Export",
+    "headers": {
+      "dateRange": "Date range",
+      "symbols": "Symbols ({{summary}})",
+      "types": "Types ({{summary}})",
+      "config": "Config ({{summary}})"
+    }
+  },
+  "multiselectAutocomplete": {
+    "startTyping": "Start typing"
+  },
+  "qqlEditor": {
+    "paste": {
+      "title": "Paste",
+      "notSupported": "(not supported by browser)",
+      "denied": "Buffer access denied by browser"
+    }
+  },
+  "importFromFile": {
+    "title": {
+      "QSMSG": "Import from QSMSG"
+    },
+    "labels": {
+      "stream": "Stream",
+      "description": "Description",
+      "symbols": "Symbols",
+      "startTime": "Start time",
+      "endTime": "End time",
+      "setRange": "Set range",
+      "choseFile": "Chose file",
+      "file": "File"
+    },
+    "import": "Import"
+  },
+  "schemaEditor": {
+    "importFromJson": {
+      "jsonParseError": "Json parse error",
+      "dataError": "Error at position: ",
+      "confirm": "Replace current schema with new in editor?",
+      "unhandledError": "Import json is not valid, page was reloaded"
+    }
+  },
+  "gridMenu": {
+    "pin": "Pin column",
+    "pinLeft": "Pin left",
+    "pinRight": "Pin right",
+    "noPin": "No pin",
+    "autosizeThis": "Autosize this column",
+    "autosizeAll": "Autosize all columns",
+    "resetColumns": "Reset columns",
+    "copy": "Copy",
+    "copyWithHeaders": "Copy with headers",
+    "copyJSON": "Copy JSON",
+    "sendMessage": "Send message"
+  }
+}

@@ -1,0 +1,12 @@
+<div #displayValueEl class="select-display-value">
+  <div class="select-display-value__inner">
+    {{ displayValue }}
+  </div>
+</div>
+<select #selectEl
+        class="dropdown btn btn-control dropdown-toggle"
+        [name]="name"
+        [formControl]="control"
+        id="width">
+  <ng-content></ng-content>
+</select>

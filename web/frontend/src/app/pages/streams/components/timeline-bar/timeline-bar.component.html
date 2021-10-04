@@ -1,0 +1,39 @@
+<div class="arrow-timebar">
+  <a
+      [adaptivePosition]="false"
+      container="body"
+      placement="left"
+      [tooltip]="'buttons.move_up_timebar' | translate"
+      (click)="timebarTop()"
+  >
+    <svg id="i-chevron-top" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="30" height="30" fill="none"
+      stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+      <path d="M30 20 L16 8 2 20" />
+    </svg>
+  </a>
+</div>
+<div [class.is-rotated]="reverse" class="timebar">
+  <div (click)="onSetDate($event)" (mousemove)="onMouseMove($event)" class="timebar-event-area"></div>
+  <div [style.height.%]="barLengthPercent" class="timebar-thumb"></div>
+  <span #timebarCursor
+      (mousemove)="$event.stopPropagation()"
+      [style.top.px]="cursorTop"
+      class="timebar-cursor"
+  >
+    <span [class.is-rotated]="reverse" class="timebar-cursor-text">{{ timebarCursorTitleVisible }}</span>
+  </span>
+</div>
+<div class="arrow-timebar">
+  <a
+      [adaptivePosition]="false"
+      container="body"
+      placement="left"
+      [tooltip]="'buttons.move_down_timebar' | translate"
+      (click)="timebarBottom()"
+  >
+    <svg id="i-chevron-bottom" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="30" height="30" fill="none"
+      stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+      <path d="M30 12 L16 24 2 12" />
+    </svg>
+  </a>
+</div>

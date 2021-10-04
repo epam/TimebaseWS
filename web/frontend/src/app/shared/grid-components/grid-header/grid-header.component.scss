@@ -1,0 +1,44 @@
+@import "src/app/core/styles/variables";
+
+:host {
+  width: 100%;
+}
+
+.ag-cell-label-container {
+  &:hover, &.dropdown-open {
+    .columns-icon {
+      visibility: visible;
+    }
+  }
+
+  .columns-icon {
+    visibility: hidden;
+    cursor: pointer;
+  }
+}
+
+.pin-row {
+  display: flex;
+  align-items: center;
+}
+
+.column-check {
+  margin-right: 5 * $ss;
+  visibility: hidden;
+
+  &.active {
+    visibility: visible;
+  }
+
+  &:before {
+    content: '';
+    display: block;
+    height: 4 * $ss;
+    width: 2 * $ss;
+    border: $ss solid $white;
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg);
+  }
+}
+

@@ -1,0 +1,12 @@
+@import "../../../../../core/styles/variables";
+
+ng-multiselect-dropdown {
+  margin-bottom: 10px;
+  display: block;
+  font-size: $fs-reg;
+}
+
+app-modal {
+  display: block;
+  width: 40vw;
+}

@@ -1,0 +1,33 @@
+<enunciate xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="http://enunciate.webcohesion.com/schemas/enunciate-2.0.0.xsd">
+
+    <title>REST API</title>
+    <description>Timebase Web Gateway</description>
+    <contact>Contact email</contact>
+    <copyright>Deltix Inc., 2018</copyright>
+
+    <modules>
+        <enunciate slug="Timebase Web Gateway" version="v0"/>
+
+        <jaxrs groupBy="path">
+            <application path="/v0/api"/>
+        </jaxrs>
+
+        <jackson1 disabled="true"/>
+
+        <c-xml-client disabled="true"/>
+        <csharp-xml-client disabled="true"/>
+        <java-xml-client disabled="true"/>
+        <java-json-client disabled="true"/>
+        <gwt-json-overlay disabled="true"/>
+        <obj-c-xml-client disabled="true"/>
+        <php-xml-client disabled="true"/>
+        <php-json-client disabled="true"/>
+        <ruby-json-client disabled="true"/>
+        <idl disabled="true"/>
+        <swagger disabled="false"/>
+
+        <docs disableRestMountpoint="true" docsSubdir="api/v0/docs/rest"/>
+    </modules>
+
+</enunciate>

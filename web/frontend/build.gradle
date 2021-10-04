@@ -1,0 +1,36 @@
+apply plugin: 'com.moowork.node'
+apply plugin: 'java-library'
+
+repositories {
+  mavenCentral()
+  mavenLocal()
+}
+
+node {
+  version = '14.17.0'
+  yarnVersion = '1.22.4'
+  download = true
+}
+
+jar {
+  archiveBaseName.set('timebase-webadmin')
+}
+
+def resourceOutputDir = file("$buildDir/generated-resources")
+def outputDir = file("$resourceOutputDir/static")
+def srcDir = file("$projectDir/src")
+
+// Note: Actual task output dir is defined in angular-cli.json
+
+yarn_run_build {
+  inputs.dir srcDir
+  inputs.files fileTree('./') { include '*.json', '*.js' }
+
+  outputs.dir outputDir
+}
+
+sourceSets {
+  main {
+    output.dir resourceOutputDir, builtBy: yarn_run_build
+  }
+}

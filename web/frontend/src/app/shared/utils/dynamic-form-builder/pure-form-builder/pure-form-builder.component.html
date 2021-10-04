@@ -1,0 +1,5 @@
+<form [formGroup]="form" class="form-horizontal props-form">
+  <div *ngFor="let field of fields; trackBy: trackByName">
+    <app-field-builder [field]="field" [form]="form"></app-field-builder>
+  </div>
+</form>

@@ -1,0 +1,57 @@
+@import "../variables";
+
+ng-select.ng-select {
+  &.ng-select-opened > .ng-select-container, .ng-select-container {
+    background-color: transparent;
+    min-height: 15 * $ss;
+
+    input {
+      color: $white;
+      caret-color: $white;
+    }
+
+    .ng-spinner-loader {
+      display: none;
+    }
+  }
+}
+
+ng-dropdown-panel.ng-dropdown-panel {
+  &, & .ng-dropdown-panel-items .ng-option {
+    &, &.ng-option-selected {
+      background: $light-blue;
+      color: $white;
+    }
+
+    &, &.ng-option-marked {
+      background: $dark-blue;
+      color: $white;
+    }
+
+    &.ng-option-marked {
+      opacity: .8;
+    }
+
+    &.ng-option-marked, &.ng-option-selected.ng-option-marked {
+      background: $light-blue;
+      color: $white;
+    }
+  }
+}
+
+.text-ng-select.ng-select {
+  .ng-arrow-wrapper {
+    display: none;
+  }
+
+  .ng-clear-wrapper {
+    align-self: flex-start;
+    margin-top: 2 * $ss;
+
+    &:hover {
+      .ng-clear {
+        color: $light-gray;
+      }
+    }
+  }
+}

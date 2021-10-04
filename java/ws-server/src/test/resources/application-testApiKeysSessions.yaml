@@ -1,0 +1,104 @@
+# EMBEDDED SERVER CONFIGURATION (ServerProperties)
+server:
+  port: 8099
+  compression:
+    enabled: true
+    mime-types: text/html,text/css,application/javascript,application/json
+timebase:
+  url: dxtick://localhost:5453
+  user:
+  password:
+  streams:
+    include:
+    exclude: \#$
+  qql: true
+security:
+  authorization:
+    source: CONFIG # valid values: FILE, CONFIG
+  api-keys:
+    sessions:
+      enabled: true
+  api-keys-provider:
+    api-keys:
+      - name: TEST_SESSION_API_KEY
+        key: "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDq/Y/kEag9vPlfPu2dzFUeuPTZX94g85v/L3TxRvXHmR1IQtjOSPCtY4NmzeLb3rLwf0J2+X8HeC3Fva6oRVl5hora77cOTmLuTmEZe6oVxjFvdRsQqfcUlAqijViiPMlnDQZ/HsC6S7WLZyMwatdbBsFtnbT9fb3m4VDeakUVQwIDAQAB"
+        user: admin
+        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE] # Specify authorities for key, otherwise authorities will get from user
+  oauth2:
+    provider:
+      providerType: BUILT_IN_OAUTH # valid values: EXTERNAL_OAUTH, BUILT_IN_OAUTH, SSO
+      clientId: web
+      oauthServer: http://localhost:8099
+      getTokenEndpoint: /oauth/token
+      checkTokenEndpoint: /oauth/check
+    clientId: web
+    secret: $2a$10$1DWT60qCpc1bTJUNiV/C0u.Zw0L5Yq80OhZbsyA8LAKn7G/18q9za
+    authorizedGrantTypes:
+      - password
+      - refresh_token
+    users:
+      - username: admin
+        password: $2a$10$7M3W5JMk1wggimrbVegxWeeasqjrZUjNEiZTpMSYdId92409D2TSq
+        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
+      - username: test
+        password: $2a$10$3PL6X1Gn8VjRy4r0od9NLeZrO2YWpUjzozv3jOxU0/RMjsElzPQdu
+        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
+    scopes:
+      - trust
+    accessTokenValiditySeconds: 300 # 5 min
+    refreshTokenValiditySeconds: 86400 # one day
+    privateKey: |
+      -----BEGIN RSA PRIVATE KEY-----
+      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
+      -----END RSA PRIVATE KEY-----
+    publicKey: |
+      ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCkHJiQvXPk91zjp0IT+jvnwpOjf5oebMMVGNzDGZDPrnuW+bLWjiYUaE/dO1uyDZ4xbsu4c52mRyIln39Zifl1isq6scH/wYv6mgJFOfnTm5c10Og73DWl6TaKeL7Os7rvmtNDI+GmRi1NHYP9h/XM98hPgfVrUbrS3teXEV/GiSLBHFJhCxZOVRrXnFfw/mdDkwx3E6wYFOqO81BiuN4D+4e/+pjq7a5PRYp5GIu4rTYwQnILpJAnfCApcBt8LztEQ2WHGcFMF9c9AjhVnS1WTxucK7yrnafm0vwZJJxrKiZ0pRFkEjyBP49Brx0dtiFGHuuV51ctWjzjZZLDngUJgY/+RheBPpMTdEVrKba95gGqFYwHjYnoekOPVsZmuSr72G5JW8efBGtmlank8Ws82l8qa3t8Tb1zS+wxzGcE8m0w1/Sze5lC6A5fLpBQQyZFhGfwmBQ8lW363UgzVRhU581jSOmkhc3qx9ygJPvWE7tESPxskWfRMzGtR2UMPyhMJc7M8pIQ1WUnh8od1D70Wfeh+h5oMpXXciI5Nph7RVaBNG84IxqVj5+l1mPFbQwm5TcFdoDhsHOz43UFho1IyZ5uL+bQIzq2SEIaRaInl7UJHzv/O0OCFBsj4Z4WQnKjtKcSQR/ezC1Sl02j14DklvzCETEiGmBesRzOUIZo0w== deltix
+

@@ -1,0 +1,55 @@
+<div class="details-stream-wrap full-height-page">
+  <as-split
+      [useStorage]="false"
+      [appSplitterSizes]="[75, 25]"
+      [minSizes]="[586, 260]"
+      [parentWidthAddon]="59"
+      [direction]="'horizontal'"
+  >
+    <as-split-area [order]="1">
+      <div class="col-md-12 d-stream page-block-wrapper">
+        <ng-template [ngIf]="!!activeTab && !!(activeTab | async)">
+          <div class="col-md-12 page-block">
+            
+            <div class="d-flex" [ngClass]="{'hide': (activeTab | async).schema || (activeTab | async).query}">
+              <app-filters-panel class="d-flex w-100"></app-filters-panel>
+            </div>
+            <div class="grid-wr" [ngClass]="{'hide-filters': (activeTab | async).schema ||  (activeTab | async).query}">
+              <ng-container *ngIf="(streamDetails | async).errorMessage">
+                <p class="error-message">
+                <span [title]="(streamDetails | async).errorMessage"
+                    class="error-message-text">{{(streamDetails | async).errorMessage}}</span>
+                  <button (click)="onHideErrorMessage()" [title]="'buttons.removeNotification' | translate"
+                      class="btn close-btn">X
+                  </button>
+                </p>
+              </ng-container>
+              
+              <ng-container *ngIf="(activeTab | async).live">
+                <app-streams-grid-live class="h-100"></app-streams-grid-live>
+              </ng-container>
+              
+              <ng-container *ngIf="!(activeTab | async).live  && !(activeTab | async).schema
+            && !(activeTab | async).chart && !(activeTab | async).query">
+                <app-stream-view-reverse class="h-100"></app-stream-view-reverse>
+              
+              </ng-container>
+              
+              
+              <ng-container *ngIf="(activeTab | async).chart">
+                <app-chart class="h-100"></app-chart>
+              </ng-container>
+            </div>
+          </div>
+        </ng-template>
+      </div>
+    </as-split-area>
+    <as-split-area [order]="2" [visible]="!!((tabSettings$ | async).showMessageInfo || (tabSettings$ | async).showProps)">
+      <ng-template [ngIf]="!!((tabSettings$ | async).showMessageInfo)">
+        <app-message-info></app-message-info>
+      </ng-template>
+      <app-streams-props [ngClass]="{'hide': !((tabSettings$ | async).showProps)}" (closedPropsEmit)="closedPropsEmit($event)"></app-streams-props>
+    </as-split-area>
+  </as-split>
+  <app-stream-right-toolbar></app-stream-right-toolbar>
+</div>

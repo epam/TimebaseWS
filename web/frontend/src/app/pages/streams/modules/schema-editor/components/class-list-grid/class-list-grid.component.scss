@@ -1,0 +1,26 @@
+@import "~src/app/shared/utils/dynamic-form-builder/dynamic-form-builder.module";
+
+ag-grid-angular ::ng-deep {
+  .ag-cell-focus {
+    border-color: transparent !important;
+
+    &.ag-cell-last-left-pinned {
+      border-right-color: #424242 !important;
+    }
+  }
+
+  .type-edited.ag-row  {
+    border-color: $warning;
+    border-style: solid;
+    border-width: 1px;
+    border-left-width: 0;
+  }
+
+  .ag-pinned-left-cols-container {
+    .type-edited.ag-row  {
+      border-right-width: 0;
+      border-left-width: 1px;
+    }
+  }
+}
+

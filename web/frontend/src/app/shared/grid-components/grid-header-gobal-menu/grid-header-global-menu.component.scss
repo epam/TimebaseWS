@@ -1,0 +1,63 @@
+@import "src/app/core/styles/variables";
+
+.columns-icon {
+  cursor: pointer;
+}
+
+::ng-deep {
+  app-tree-checkboxes.columns-checkboxes {
+    display: block;
+    padding: 7 * $ss;
+    font-size: 6 * $ss;
+
+    .tree__header {
+      margin-bottom: 3 * $ss;
+      height: 10 * $ss;
+      align-items: center;
+    }
+
+    .tree__branch {
+      padding-left: 10 * $ss;
+    }
+
+    div.tree__expand-icon, .checkmark {
+      min-width: 8 * $ss;
+      height: 8 * $ss;
+      font-size: 6 * $ss;
+    }
+
+    div.tree__expand-icon {
+      margin-right: 3 * $ss;
+    }
+
+    .container-ch {
+      padding-left: 12 * $ss;
+
+      .checkmark {
+        height: 9 * $ss;
+      }
+
+      .checkmark::after {
+        left: 2 * $ss;
+        top: 1 * $ss;
+        height: 4 * $ss;
+        width: 3 * $ss;
+        border-width: 0 $ss $ss 0;
+      }
+
+      .partial-checked.checkmark::after {
+        top: 0.5 * $ss;
+      }
+    }
+
+    .global-filter {
+      position: sticky;
+      top: 0;
+      background: $input-bg;
+      margin: -8 * $ss -7 * $ss 0;
+      padding: 7 * $ss;
+      padding-bottom: 5 * $ss;
+      z-index: 1;
+    }
+  }
+}

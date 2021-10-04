@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SilentAuth</title>
+</head>
+<body>
+<script type="text/javascript">!function (n) {
+  var r = {};
+  
+  function i(t) {
+    if (r[t]) return r[t].exports;
+    var e = r[t] = {i: t, l: !1, exports: {}};
+    return n[t].call(e.exports, e, e.exports, i), e.l = !0, e.exports;
+  }
+  
+  i.m = n, i.c = r, i.d = function (t, e, n) {
+    i.o(t, e) || Object.defineProperty(t, e, {
+      enumerable: !0,
+      get: n,
+    });
+  }, i.r = function (t) {'undefined' != typeof Symbol && Symbol.toStringTag && Object.defineProperty(t, Symbol.toStringTag, {value: 'Module'}), Object.defineProperty(t, '__esModule', {value: !0});}, i.t = function (e, t) {
+    if (1 & t && (e = i(e)), 8 & t) return e;
+    if (4 & t && 'object' == typeof e && e && e.__esModule) return e;
+    var n = Object.create(null);
+    if (i.r(n), Object.defineProperty(n, 'default', {
+      enumerable: !0,
+      value: e,
+    }), 2 & t && 'string' != typeof e) for (var r in e) i.d(n, r, function (t) {return e[t];}.bind(null, r));
+    return n;
+  }, i.n = function (t) {
+    var e = t && t.__esModule ? function () {return t.default;} : function () {return t;};
+    return i.d(e, 'a', e), e;
+  }, i.o = function (t, e) {return Object.prototype.hasOwnProperty.call(t, e);}, i.p = '', i(i.s = 0);
+}([function (t, e, n) {t.exports = n(1);}, function (t, e, n) {
+  'use strict';
+  Object.defineProperty(e, '__esModule', {value: !0});
+  var i = n(2);
+  var r = function () {
+    var t = ('' === window.location.hash ? window.location.search : window.location.hash).substr(1),
+        e = new i.default(t), n = {};
+    e.forEach(function (t, e) {n[e] = t;});
+    var r = n.expires_in;
+    return null == r || isNaN(r) || (n.expires_in = +r), n;
+  }(), a = {type: 'authorization_response', response: r};
+  (window.opener ? window.opener : window.parent).postMessage(a, window.location.origin);
+}, function (t, e, n) {
+  'use strict';
+  n.r(e);
+  /*! (c) Andrea Giammarchi - ISC */
+  var v = {};
+  try {
+    !function (t, e) {
+      if (new t('q=%2B').get('q') !== e || new t({q: e}).get('q') !== e || new t([['q', e]]).get('q') !== e || 'q=%0A' !== new t('q=\n').toString() || 'q=+%26' !== new t({q: ' &'}).toString()) throw t;
+      v.URLSearchParams = t;
+    }(URLSearchParams, '+');
+  } catch (t) {
+    !function (t, a, s) {
+      var u = t.create, f = t.defineProperty, e = /[!'\(\)~]|%20|%00/g, n = /\+/g,
+          r = {'!': '%21', '\'': '%27', '(': '%28', ')': '%29', '~': '%7E', '%20': '+', '%00': '\0'}, i = {
+            append: function (t, e) {h(this._ungap, t, e);},
+            delete: function (t) {delete this._ungap[t];},
+            get: function (t) {return this.has(t) ? this._ungap[t][0] : null;},
+            getAll: function (t) {return this.has(t) ? this._ungap[t].slice(0) : [];},
+            has: function (t) {return t in this._ungap;},
+            set: function (t, e) {this._ungap[t] = [a(e)];},
+            forEach: function (e, n) {
+              var r = this;
+              for (var i in r._ungap) r._ungap[i].forEach(t, i);
+              
+              function t(t) {e.call(n, t, a(i), r);}
+            },
+            toJSON: function () {return {};},
+            toString: function () {
+              var t = [];
+              for (var e in this._ungap) for (var n = d(e), r = 0, i = this._ungap[e]; r < i.length; r++) t.push(n + '=' + d(i[r]));
+              return t.join('&');
+            },
+          };
+      for (var o in i) f(c.prototype, o, {configurable: !0, writable: !0, value: i[o]});
+      
+      function c(t) {
+        var e = u(null);
+        switch (f(this, '_ungap', {value: e}), !0) {
+          case!t:
+            break;
+          case'string' == typeof t:
+            '?' === t.charAt(0) && (t = t.slice(1));
+            for (var n = t.split('&'), r = 0, i = n.length; r < i; r++) {
+              var a = (o = n[r]).indexOf('=');
+              -1 < a ? h(e, p(o.slice(0, a)), p(o.slice(a + 1))) : o.length && h(e, p(o), '');
+            }
+            break;
+          case s(t):
+            for (r = 0, i = t.length; r < i; r++) {
+              var o;
+              h(e, (o = t[r])[0], o[1]);
+            }
+            break;
+          case'forEach' in t:
+            t.forEach(l, e);
+            break;
+          default:
+            for (var c in t) h(e, c, t[c]);
+        }
+      }
+      
+      function l(t, e) {h(this, e, t);}
+      
+      function h(t, e, n) {
+        var r = s(n) ? n.join(',') : n;
+        e in t ? t[e].push(r) : t[e] = [r];
+      }
+      
+      function p(t) {return decodeURIComponent(t.replace(n, ' '));}
+      
+      function d(t) {return encodeURIComponent(t).replace(e, g);}
+      
+      function g(t) {return r[t];}
+      
+      v.URLSearchParams = c;
+    }(Object, String, Array.isArray);
+  }
+  !function (h) {
+    var r = !1;
+    try {
+      r = !!Symbol.iterator;
+    } catch (t) {
+    }
+    
+    function t(t, e) {
+      var n = [];
+      return t.forEach(e, n), r ? n[Symbol.iterator]() : {
+        next: function () {
+          var t = n.shift();
+          return {done: void 0 === t, value: t};
+        },
+      };
+    }
+    
+    'forEach' in h || (h.forEach = function (n, r) {
+      var i = this, t = Object.create(null);
+      this.toString().replace(/=[\s\S]*?(?:&|$)/g, '=').split('=').forEach(function (e) {!e.length || e in t || (t[e] = i.getAll(e)).forEach(function (t) {n.call(r, t, e, i);});});
+    }), 'keys' in h || (h.keys = function () {return t(this, function (t, e) {this.push(e);});}), 'values' in h || (h.values = function () {return t(this, function (t, e) {this.push(t);});}), 'entries' in h || (h.entries = function () {return t(this, function (t, e) {this.push([e, t]);});}), !r || Symbol.iterator in h || (h[Symbol.iterator] = h.entries), 'sort' in h || (h.sort = function () {
+      for (var t, e, n, r = this.entries(), i = r.next(), a = i.done, o = [], c = Object.create(null); !a;) e = (n = i.value)[0], o.push(e), e in c || (c[e] = []), c[e].push(n[1]), a = (i = r.next()).done;
+      for (o.sort(), t = 0; t < o.length; t++) this.delete(o[t]);
+      for (t = 0; t < o.length; t++) e = o[t], this.append(e, c[e].shift());
+    }), function (c) {
+      var s = c.defineProperty, u = c.getOwnPropertyDescriptor, f = function (t) {
+            var e = t.append;
+            t.append = h.append, URLSearchParams.call(t, t._usp.search.slice(1)), t.append = e;
+          },
+          l = function (t, e) {if (!(t instanceof e)) throw new TypeError('\'searchParams\' accessed on an object that does not implement interface ' + e.name);},
+          t = function (e) {
+            var n, r, t = e.prototype, i = u(t, 'searchParams'), a = u(t, 'href'), o = u(t, 'search');
+            !i && o && o.set && (r = function (n) {
+              function r(t, e) {h.append.call(this, t, e), t = this.toString(), n.set.call(this._usp, t ? '?' + t : '');}
+              
+              function i(t) {h.delete.call(this, t), t = this.toString(), n.set.call(this._usp, t ? '?' + t : '');}
+              
+              function a(t, e) {h.set.call(this, t, e), t = this.toString(), n.set.call(this._usp, t ? '?' + t : '');}
+              
+              return function (t, e) {
+                return t.append = r, t.delete = i, t.set = a, s(t, '_usp', {
+                  configurable: !0,
+                  writable: !0,
+                  value: e,
+                });
+              };
+            }(o), n = function (t, e) {
+              return s(t, '_searchParams', {
+                configurable: !0,
+                writable: !0,
+                value: r(e, t),
+              }), e;
+            }, c.defineProperties(t, {
+              href: {
+                get: function () {return a.get.call(this);},
+                set: function (t) {
+                  var e = this._searchParams;
+                  a.set.call(this, t), e && f(e);
+                },
+              },
+              search: {
+                get: function () {return o.get.call(this);}, set: function (t) {
+                  var e = this._searchParams;
+                  o.set.call(this, t), e && f(e);
+                },
+              },
+              searchParams: {
+                get: function () {return l(this, e), this._searchParams || n(this, new URLSearchParams(this.search.slice(1)));},
+                set: function (t) {l(this, e), n(this, t);},
+              },
+            }));
+          };
+      try {
+        t(HTMLAnchorElement), /^function|object$/.test(typeof URL) && URL.prototype && t(URL);
+      } catch (t) {
+      }
+    }(Object);
+  }(v.URLSearchParams.prototype, Object), e.default = v.URLSearchParams;
+}]);</script>
+</body>
+</html>

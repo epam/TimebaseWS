@@ -1,0 +1,41 @@
+@import "src/app/core/styles/variables";
+
+.btn-from {
+  padding-right: 2.5 * $ss;
+  padding-left: 2.5 * $ss;
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+
+  &::before {
+    content: url("data:image/svg+xml; utf8, <svg style='color:white;' id='i-calendar' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='16' height='16' fill='none' stroke='currentcolor' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'><path d='M2 6 L2 30 30 30 30 6 Z M2 15 L30 15 M7 3 L7 9 M13 3 L13 9 M19 3 L19 9 M25 3 L25 9' /></svg>");
+    display: block;
+    width: auto;
+    height: auto;
+    margin: 2 * $ss 0 0 0;
+  }
+}
+
+.datepicker-inputWr {
+  margin-bottom: 4 * $ss;
+  display: flex;
+
+  .btn:not(.btn-from) {
+    margin-bottom: 0;
+    color: $white;
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+  }
+}
+
+.datepicker-input {
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+  text-align: left;
+  width: 115 * $ss;
+  font-weight: normal;
+  user-select: auto;
+}
+
+.bs-datepicker {
+  box-shadow: none;
+}

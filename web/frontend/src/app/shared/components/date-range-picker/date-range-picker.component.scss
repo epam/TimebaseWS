@@ -1,0 +1,10 @@
+@import "src/app/core/styles/variables";
+
+.date-range {
+  display: flex;
+  margin-bottom: 10 * $ss;
+
+  app-btn-date-picker:first-child {
+    margin-right: 10 * $ss;
+  }
+}

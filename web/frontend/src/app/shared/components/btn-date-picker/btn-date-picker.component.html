@@ -1,0 +1,18 @@
+<div class="controlWr datepicker-inputWr">
+  <input class="btn bs-datepicker datepicker-input"
+         [bsConfig]="bsConfig$ | async"
+         id="rangeFromInput"
+         type="text"
+         #dp="bsDatepicker"
+         bsDatepicker
+         [(appSafeDatePickerValue)]="value"
+         (appSafeDatePickerValueChange)="onDateChange($event)"
+         triggers="dblclick:click"
+  />
+  <button
+    class="btn btn-navy btn-from"
+    (click)="dp.toggle()"
+    [attr.aria-expanded]="dp.isOpen"
+    type="button"
+  ></button>
+</div>

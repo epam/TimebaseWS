@@ -1,0 +1,45 @@
+@import "~src/app/core/styles/variables";
+
+.form-array-wr {
+  position: relative;
+  padding: 5*$ss;
+  border: 1px solid $secondary;
+
+  &.ng-invalid.ng-dirty{
+    border-color: $danger;
+  }
+}
+
+.form-array-group {
+  position: relative;
+
+  display: flex;
+  justify-content: space-between;
+  &:not(:last-child){
+    border-bottom: 1px dotted $white;
+  }
+}
+
+.form-array-control {
+  position: relative;
+
+  display: block;
+  ::ng-deep{
+    .flex{display: block;}
+    .form-control-label{
+      width: 100%;
+    }
+  }
+}
+.btn-panel{
+  display: flex;
+
+  flex-direction: column-reverse;
+  justify-content: space-between;
+  padding-top: 5*$ss;
+  padding-bottom: 5*$ss;
+
+  .btn{
+    min-width: 14*$ss;
+  }
+}
