@@ -6,7 +6,7 @@ apply plugin: "com.webcohesion.enunciate"
 apply plugin: 'io.freefair.lombok'
 
 configurations.implementation {
-    exclude group: 'jakarta.annotation', module: 'jakarta.annotation-api' // GNU license,  why it's used in 'compile' dependencies?
+    exclude group: 'jakarta.annotation', module: 'jakarta.annotation-api' // GNU license, why it's used in 'compile' dependencies?
 }
 
 dependencies {
@@ -38,6 +38,8 @@ dependencies {
 
     implementation 'org.apache.commons:commons-lang3'
     implementation 'org.apache.commons:commons-compress'
+
+    implementation 'javax.annotation:javax.annotation-api'
 
     api 'com.epam.deltix:gflog-api'
     api 'com.epam.deltix:gflog-core'
