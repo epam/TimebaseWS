@@ -1,0 +1,63 @@
+
+/**
+ * Returns difference between number of commits from repo root to current head and to a specified commit.
+ * If the current HEAD is directly inherited from from the tag then returned number represents number of commits since tag.
+ * Otherwise the returned value has no special meaning.
+ */
+private Integer getCountOfCommitsSinceTag(tag) {
+    def gitOutput = new ByteArrayOutputStream()
+    try {
+        exec {
+            commandLine 'git', 'rev-list', '--count', tag
+            standardOutput = gitOutput
+            errorOutput = new ByteArrayOutputStream()
+        }
+    } catch (Exception ignore) {
+        logger.warn("WARN: Failed to find git tag: " + project.version)
+        return null;
+    }
+
+    def commitsFromRootToTag = gitOutput.toString()
+    gitOutput.reset()
+
+    exec {
+        commandLine 'git', 'rev-list', '--count', 'HEAD'
+        standardOutput = gitOutput
+    }
+
+    def commitsFromRootToHead = gitOutput.toString()
+    return Integer.parseInt(commitsFromRootToHead.replace("\n", "")) - Integer.parseInt(commitsFromRootToTag.replace("\n", ""))
+}
+
+private String getBuildTimestamp() {
+    def gitOutput = new ByteArrayOutputStream()
+    exec {
+        workingDir project.rootDir
+        commandLine 'git', 'log', '-1', '--date=iso8601', '--pretty=format:%cd'
+        standardOutput = gitOutput
+    }
+    return gitOutput.toString()
+}
+
+def currentJvm = org.gradle.internal.jvm.Jvm.current()
+
+private String getGitRevision() {
+    def gitOutput = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'rev-parse', '--short', 'HEAD'
+        standardOutput = gitOutput
+    }
+    return gitOutput.toString().replace("\n", "")
+}
+
+ext.revision = getGitRevision()
+ext.commitsAfterTag = getCountOfCommitsSinceTag(project.version) // Note: project version is expected to match existing tag name
+ext.commitTimestamp = getBuildTimestamp()
+
+println '======================================================================'
+println 'Current JVM              ' + currentJvm
+println 'Project version          ' + project.version
+println 'Revision                 ' + ext.revision
+println 'Commits after tag:       ' + ext.commitsAfterTag
+println 'Commit timestamp:        ' + ext.commitTimestamp
+println '======================================================================'
