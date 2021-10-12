@@ -4,7 +4,7 @@ TimeBase Web Administrator supports two types of authentication: built-in OAuth2
 
 ## Client Web Application Authentication Flow 
 
-![](/img/tb_auth.png)
+![](/img/tb_auth.svg)
 
 1. Authentication service provider identification check is made upon each application start.
 2. Browser local storage is checked to have a Refresh Token for the current user.
