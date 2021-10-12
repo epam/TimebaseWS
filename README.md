@@ -6,12 +6,9 @@
 
 **TimeBase Administrator** offers a simple and powerful web interface to manage and monitor data stored in TimeBase:
 
-* Create/Edit/View/Delete streams.
+* Create/Edit/View/Delete/Export/Import streams.
 * Monitor live data.
-* Query data.
-* Export/Import streams and data.
-
-![](img/web-admin2.png)
+* Query/Export/Import data.
 
 > Refer to [TimeBase Documentation](https://kb.timebase.info/admin.html).
 
@@ -24,7 +21,7 @@ TimeBase Administrator also serves as a **REST/WS gateway for TimeBase Server**.
 1. [Start TimeBase Server](https://kb.timebase.info/quick-start.html)
 2. Run Docker container with [TimeBase WS Server](https://hub.docker.com/r/epam/timebase-ws-server)
 
-```
+```bash
 docker run --rm -d \ 
     --name timebase-admin \ 
     -p 8099:8099 \ 
