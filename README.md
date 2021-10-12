@@ -1,4 +1,4 @@
-# Timebase Web Gateway and Timebase Administrator Project
+# TimeBase Web Gateway and Administrator
 
 ## Overview 
 
