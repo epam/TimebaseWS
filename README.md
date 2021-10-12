@@ -11,6 +11,8 @@
 * Query data.
 * Export/Import streams and data.
 
+![](img/web-admin2.png)
+
 > Refer to [TimeBase Documentation](https://kb.timebase.info/admin.html).
 
 TimeBase Administrator also serves as a **REST/WS gateway for TimeBase Server**. 
