@@ -132,44 +132,40 @@ Each Api Key is a pair: _ApiKey_ and _ApiSecret_. ApiKey is a name of the pair, 
 
 Provide two headers to send requests with API Keys:
 
-```bash
-X-Deltix-ApiKey: ApiKey
-X-Deltix-Signature: Base64EncodedString(HmacSHA384(Payload, ApiSecret)) - some payload, signed by ApiSecret with hmac sha384 algorithm
-
-here Payload = uppercase(HttpMethod) + lowercase(UrlPath) + QueryParameters + body
-where QueryParameters is separated by '&' lowercase(key)=value pairs, sorted alphabetically by key
 ```
-
-For example, to send:
-
-```bash
-Query = GET http://localhost:8099/api/v0/charting/bbo?startTime=2009-06-19T19:22:00.000Z&endTime=2009-06-19T19:25:00.000Z&symbols=AAPL&levels=1&maxPoints=6000&type=TRADES_BBO
+X-Deltix-ApiKey: # ApiKey
+X-Deltix-Signature: # signature
 ```
+where 
 
-First, calculate a signature:
+* `X-Deltix-ApiKey`: your ApiKey
+* `X-Deltix-Signature`: a payload, signed by ApiSecret with **hmac sha384** algorithm
+  + Base64EncodedString(HmacSHA384(Payload, ApiSecret)), where
+    * Payload = uppercase(HttpMethod) + lowercase(UrlPath) + QueryParameters + body, where
+      + `QueryParameters` is separated by `&` lowercase(key)=value pairs, sorted alphabetically by key
 
-```bash
-Query = GET http://localhost:8099/api/v0/charting/bbo?startTime=2009-06-19T19:22:00.000Z&endTime=2009-06-19T19:25:00.000Z&symbols=AAPL&levels=1&maxPoints=6000&type=TRADES_BBO
+**Example**
 
-ApiKey = TEST_API_KEY
-ApiSecret = TEST_API_SECRET
+To send query: `GET http://localhost:8099/api/v0/charting/bbo?startTime=2009-06-19T19:22:00.000Z&endTime=2009-06-19T19:25:00.000Z&symbols=AAPL&levels=1&maxPoints=6000&type=TRADES_BBO`
 
-Payload = GET/api/v0/charting/bboendtime=2009-06-19T19:25:00.000Z&levels=1&maxpoints=6000&starttime=2009-06-19T19:22:00.000Z&symbols=AAPL&type=TRADES_BBO
-Signature = 7amMhPgGq2mXo6twDUyDUlWAYJ9g+PyemZ1yIj6yhCnk4TS5viVi9DCGpaWX+GZz
-```
+1. Calculate a signature:
 
-Than, add two headers to the query and make a Send:
+* `ApiSecret` = your ApiSecret
+* `Payload` = `GET/api/v0/charting/bboendtime=2009-06-19T19:25:00.000Z&levels=1&maxpoints=6000&starttime=2009-06-19T19:22:00.000Z&symbols=AAPL&type=TRADES_BBO`
+* As a result, we calculate a `Signature = 7amMhPgGq2mXo6twDUyDUlWAYJ9g+PyemZ1yIj6yhCnk4TS5viVi9DCGpaWX+GZz`.
+
+2. Add two headers to the query and make a Send:
 
 ```bash
 GET http://localhost:8099/api/v0/charting/bbo?startTime=2009-06-19T19:22:00.000Z&endTime=2009-06-19T19:25:00.000Z&symbols=AAPL&levels=1&maxPoints=6000&type=TRADES_BBO
-X-Deltix-ApiKey: TEST_API_KEY
+X-Deltix-ApiKey: your ApiKey
 X-Deltix-Signature: 7amMhPgGq2mXo6twDUyDUlWAYJ9g+PyemZ1yIj6yhCnk4TS5viVi9DCGpaWX+GZz
 ```
 
-Example with body:
+**Example with Body**
 
-```bash
-Query: POST http://localhost:8099/api/v0/bars1min/goog/select
+```json
+POST http://localhost:8099/api/v0/bars1min/goog/select
 
 {
   "from":null,
@@ -180,12 +176,22 @@ Query: POST http://localhost:8099/api/v0/bars1min/goog/select
   "space":null,
   "types": ["deltix.timebase.api.messages.BarMessage"]
 }
+```
+Use: 
 
-ApiKey = TEST_API_KEY
-ApiSecret = TEST_API_SECRET
+* `ApiSecret` = your ApiSecret
+* `Payload` = POST/api/v0/bars1min/goog/select{"from":null,"to":null,"offset":0,"rows":1000,"reverse":false,"space":null,"types":["deltix.timebase.api.messages.BarMessage"]}
 
-Payload = POST/api/v0/bars1min/goog/select{"from":null,"to":null,"offset":0,"rows":1000,"reverse":false,"space":null,"types":["deltix.timebase.api.messages.BarMessage"]}
-Signature = DtMdHJ4vc0LYx9H0YB80dICiah10x/i1KFrJ+Ba+RyOw5wc+6WcXdxCHA3GFYrIe
+To calculate a Signature: 
+
+* `Signature` = DtMdHJ4vc0LYx9H0YB80dICiah10x/i1KFrJ+Ba+RyOw5wc+6WcXdxCHA3GFYrIe
+
+Pass two headers with POST request: 
+
+```bash
+POST http://localhost:8099/api/v0/bars1min/goog/select{"from":null,"to":null,"offset":0,"rows":1000,"reverse":false,"space":null,"types":["deltix.timebase.api.messages.BarMessage"]}
+X-Deltix-ApiKey: your ApiKey
+X-Deltix-Signature: DtMdHJ4vc0LYx9H0YB80dICiah10x/i1KFrJ+Ba+RyOw5wc+6WcXdxCHA3GFYrIe
 ```
 
 **Websockets Api Keys Support**
@@ -193,25 +199,29 @@ Signature = DtMdHJ4vc0LYx9H0YB80dICiah10x/i1KFrJ+Ba+RyOw5wc+6WcXdxCHA3GFYrIe
 Provide 3 STOMP headers to connect to WebGateway with websockets:
 
 ```bash
-X-Deltix-ApiKey: ApiKey
-X-Deltix-Payload: Some random string generated every connect by client (for example current timestamp)
-X-Deltix-Signature: Base64EncodedString(HmacSHA384(Payload, ApiSecret))
+X-Deltix-ApiKey
+X-Deltix-Payload
+X-Deltix-Signature
+``` 
+where 
 
-where Payload = "CONNECTX-Deltix-Payload=" + HeaderValue(X-Deltix-Payload) + "&X-Deltix-ApiKey=" + HeaderValue(X-Deltix-ApiKey)
-```
+* `ApiKey`: your ApiKey
+* `Payload` = "CONNECTX-Deltix-Payload=" + HeaderValue(X-Deltix-Payload) + "&X-Deltix-ApiKey=" + HeaderValue(X-Deltix-ApiKey)
+* `Signature`: Base64EncodedString(HmacSHA384(Payload, ApiSecret))
 
-Example:
+**Example**
+
+Take:
+
+* `ApiKey` = your ApiKey
+* `ApiSecret` = your ApiSecret
+* `Payload random generated` = 90dd333e-4858-4fba-a71b-12f958b36689
+* `Signature payload` = CONNECTX-Deltix-Payload=90dd333e-4858-4fba-a71b-12f958b36689&X-Deltix-ApiKey=TEST_API_KEY
+* `Signature` = nAoVRNtR+g8gKUG6/4hQbBbRy6A9KcqGfBjIx1gZCfwrGkvHBelJIpzosxelRRGF
+
+Connect a STOMP query:
 
 ```bash
-ApiKey = TEST_API_KEY
-ApiSecret = TEST_API_SECRET
-
-Payload random generated = 90dd333e-4858-4fba-a71b-12f958b36689
-Signature payload = CONNECTX-Deltix-Payload=90dd333e-4858-4fba-a71b-12f958b36689&X-Deltix-ApiKey=TEST_API_KEY
-Signature = nAoVRNtR+g8gKUG6/4hQbBbRy6A9KcqGfBjIx1gZCfwrGkvHBelJIpzosxelRRGF
-
-# Connect a STOMP query:
-
 CONNECT
 X-Deltix-ApiKey: TEST_API_KEY
 X-Deltix-Payload: 90dd333e-4858-4fba-a71b-12f958b36689
@@ -296,40 +306,40 @@ Session includes two steps:
 
 In this step the Client sends an attempt POST request to the Web server.
 
-```bash
-POST /api/v1/login/attempt
-
-# Request details:
-
-api_key_id [string] - API key identifier that is going to be used for creating the session.
-
-# Response details:
-
-session_id [string] - Unique session identifier generated by the server;
-challenge [string] - Random string generated by the server that is used for user validation, encoded as base64;
-dh_base [string] - String containing Diffie–Hellman public base, encoded as base64;
-dh_modulus [string] - String containing Diffie–Hellman public modulus, encoded as base64;
-ttl [string] - Number of milliseconds defining the time when session will be dropped if no confirmation comes.
 ```
+POST /api/v1/login/attempt
+```
+
+**Request details:**
+
+* `api_key_id` [string] - API key identifier that is going to be used for creating the session.
+
+**Response details:**
+
+* `session_id` [string] - Unique session identifier generated by the server;
+* `challenge` [string] - Random string generated by the server that is used for user validation, encoded as base64;
+* `dh_base` [string] - String containing Diffie–Hellman public base, encoded as base64;
+* `dh_modulus` [string] - String containing Diffie–Hellman public modulus, encoded as base64;
+* `ttl` [string] - Number of milliseconds defining the time when session will be dropped if no confirmation comes.
 
 **Login Confirmation**
 
 In this step the Client sends a confirmation POST request to the Web server.
 
-```bash
-POST /api/v1/login/confirm
-
-# Request details:
-
-session_id [string] - Unique session identifier generated by the server;
-signature [string] - String, containing a base54-encoded signature generated using SHA256withRSA of challenge string provided to the client during login attempt and a private key of the API key, which identifier was sent to the server during login attempt;
-dh_key [string] - String containing Diffie–Hellman key of the client, encoded as base64.
-
-# Response details:
-
-dh_key [string] - String containing client's Diffie–Hellman public key, encoded as base64;
-keepalive_timeout [string] - Inactivity period after which the session will be terminated by the server in milliseconds.
 ```
+POST /api/v1/login/confirm
+```
+
+**Request details:**
+
+* `session_id` [string] - Unique session identifier generated by the server;
+* `signature` [string] - String, containing a base54-encoded signature generated using SHA256withRSA of challenge string provided to the client during login attempt and a private `key` of the API key, which identifier was sent to the server during login attempt;
+* `dh_key` [string] - String containing Diffie–Hellman key of the client, encoded as base64.
+
+**Response details:**
+
+* `dh_key` [string] - String containing client's Diffie–Hellman public key, encoded as base64;
+* `keepalive_timeout` [string] - Inactivity period after which the session will be terminated by the server in milliseconds.
 
 **Using Session**
 
@@ -343,39 +353,33 @@ Include three headers in the request:
 
 Where signature is calculated as follows:
 
-```bash
 Signature = Base64EncodedString(HmacSHA384(Payload, SessionSecret)) - session secret, obtained during the login procedure;
-
-Payload = uppercase(HttpMethod) + lowercase(UrlPath) + QueryParameters + RequestHeaders + body
-where QueryParameters is separated by '&' lowercase(key)=value pairs, sorted alphabetically by key
-and RequestHeaders = X-Deltix-Nonce=...&X-Deltix-Session-Id=...
-```
+  + `Payload` = uppercase(HttpMethod) + lowercase(UrlPath) + QueryParameters + RequestHeaders + body
+    * where `QueryParameters` is separated by '&' lowercase(key)=value pairs, sorted alphabetically by key
+    * and `RequestHeaders` = X-Deltix-Nonce=...&X-Deltix-Session-Id=...
 
 **Websockets with Sessions**
 
 Provide 3 STOMP headers to connect to WebGateway with websockets:
 
 ```bash
-X-Deltix-Session-Id: # Your session id
-X-Deltix-Signature: Base64EncodedString(HmacSHA384(Payload, SessionSecret))
-X-Deltix-Nonce: # is a number called nonce. Each subsequent request within a single session must have nonce value greater than the previous request nonce value. If the request contains the same or lower nonce value than the previous request, such request will be rejected;
-
-where Payload = "CONNECTX-Deltix-Nonce=" + nonce + "&X-Deltix-Session-Id=" + sessionId
+X-Deltix-Session-Id
+X-Deltix-Signature
+X-Deltix-Nonce
 ```
+where
 
-Example:
+* `X-Deltix-Session-Id`: Your session id
+* `X-Deltix-Signature`: Base64EncodedString(HmacSHA384(Payload, SessionSecret))
+* `X-Deltix-Nonce`:a number called nonce. Each subsequent request within a single session must have nonce value greater than the previous request nonce value. If the request contains the same or lower nonce value than the previous request, such request will be rejected;
+* `Payload` = "CONNECTX-Deltix-Nonce=" + nonce + "&X-Deltix-Session-Id=" + sessionId
+
+**Example**
 
 ```bash
-SessionId = # session-id
-
-Signature payload = CONNECTX-Deltix-Nonce=1000&X-Deltix-Session-Id=session-id
-Signature = # SomeCalculatedSignature
-
-# Connect STOMP query:
-
 CONNECT
 X-Deltix-Session-Id: session-id
-X-Deltix-Signature: SomeCalculatedSignature
+X-Deltix-Signature: signature
 X-Deltix-Nonce: 1000
 heart-beat:0,0
 accept-version:1.1,1.2
