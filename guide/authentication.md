@@ -121,8 +121,8 @@ Add the following variables to TimeBase chart in TimeBase Web Admin section:
 
 The Api Keys library supports two flows of accessing API with API Keys:
 
-* Basic flow with ApiKey and ApiSecret (more simple, but less secure because the server must store API Secret).
-* Sessions-based flow.
+* [Basic flow](#basic-flow) with ApiKey and ApiSecret (more simple, but less secure because the server must store API Secret). [Samples](#client-samples).
+* [Sessions-based](#session-based-flow) flow. [Samples](#client-samples-1).
 
 ### Basic Flow
 
