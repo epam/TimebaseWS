@@ -357,12 +357,11 @@ Include three headers in the request:
  - `X-Deltix-Session-Id` - session identifier created during the login. This must be equal to the `session_id` returned by the login attempt;
  - `X-Deltix-Signature` - signature `string`.
 
-Where signature is calculated as follows:
-
-`Signature` = Base64EncodedString(HmacSHA384(Payload, SessionSecret)) - session secret, generated after the login procedure;
+Where `Signature` is calculated as follows Base64EncodedString(HmacSHA384(Payload, SessionSecret)), where
   + `Payload` = uppercase(HttpMethod) + lowercase(UrlPath) + QueryParameters + RequestHeaders + body
     * where `QueryParameters` is separated by '&' lowercase(key)=value pairs, sorted alphabetically by key
     * and `RequestHeaders` = X-Deltix-Nonce=...&X-Deltix-Session-Id=...
+  + `SessionSecret` generated after the login procedure.
 
 **Websockets with Sessions**
 
