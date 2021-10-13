@@ -1,5 +1,8 @@
 # TimeBase Web Administrator Authentication
 
+* [Web Authentication](#web-authentication) 
+* [API Keys](#api-keys) 
+
 ## Web Authentication 
 
 TimeBase Web Administrator supports two types of authentication: built-in OAuth2 & SSO. **One of those types must be enabled to run the application.**
