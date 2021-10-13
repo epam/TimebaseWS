@@ -297,8 +297,6 @@ request = http.get('http://localhost:8099/api/v0/streams', options, function(res
 
 When Api Keys library is configured to use sessions, server does not store any private (secret) keys. In this case, client and secret must perform a *login* procedure to create a *session* with a secret key shared only between the client and the server.
 
-**Creating Session**
-
 ![image](/img/api-key-session.png)
 
 Session includes two steps:
@@ -306,7 +304,7 @@ Session includes two steps:
 1. Login attempt;
 2. Login confirmation.
 
-**Login Attempt**
+#### Login Attempt
 
 In this step the Client sends an attempt POST request to the Web server.
 
@@ -326,7 +324,7 @@ POST /api/v1/login/attempt
 * `dh_modulus` [string] - String containing Diffie–Hellman public modulus, encoded as base64;
 * `ttl` [string] - Number of milliseconds defining the time when session will be dropped if no confirmation comes.
 
-**Login Confirmation**
+#### Login Confirmation
 
 In this step the Client sends a confirmation POST request to the Web server.
 
