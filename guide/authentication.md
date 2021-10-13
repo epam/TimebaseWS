@@ -141,18 +141,20 @@ where
 * `X-Deltix-ApiKey`: your ApiKey
 * `X-Deltix-Signature`: a payload, signed by ApiSecret with **hmac sha384** algorithm
   + Base64EncodedString(HmacSHA384(Payload, ApiSecret)), where
-    * Payload = uppercase(HttpMethod) + lowercase(UrlPath) + QueryParameters + body, where
-      + `QueryParameters` is separated by `&` lowercase(key)=value pairs, sorted alphabetically by key
+    * `Payload` = uppercase(HttpMethod) + lowercase(UrlPath) + QueryParameters + body, where
+      + `QueryParameters` is separated by `&` `lowercase(key)=value` pairs, sorted alphabetically by keys
 
 **Example**
 
-To send query: `GET http://localhost:8099/api/v0/charting/bbo?startTime=2009-06-19T19:22:00.000Z&endTime=2009-06-19T19:25:00.000Z&symbols=AAPL&levels=1&maxPoints=6000&type=TRADES_BBO`
+To send query: 
+
+`GET http://localhost:8099/api/v0/charting/bbo?startTime=2009-06-19T19:22:00.000Z&endTime=2009-06-19T19:25:00.000Z&symbols=AAPL&levels=1&maxPoints=6000&type=TRADES_BBO`
 
 1. Calculate a signature:
 
 * `ApiSecret` = your ApiSecret
 * `Payload` = `GET/api/v0/charting/bboendtime=2009-06-19T19:25:00.000Z&levels=1&maxpoints=6000&starttime=2009-06-19T19:22:00.000Z&symbols=AAPL&type=TRADES_BBO`
-* As a result, we calculate a `Signature = 7amMhPgGq2mXo6twDUyDUlWAYJ9g+PyemZ1yIj6yhCnk4TS5viVi9DCGpaWX+GZz`.
+* Use Base64EncodedString(HmacSHA384(Payload, ApiSecret)) to calculate a `Signature = 7amMhPgGq2mXo6twDUyDUlWAYJ9g+PyemZ1yIj6yhCnk4TS5viVi9DCGpaWX+GZz`.
 
 2. Add two headers to the query and make a Send:
 
@@ -182,9 +184,9 @@ Use:
 * `ApiSecret` = your ApiSecret
 * `Payload` = POST/api/v0/bars1min/goog/select{"from":null,"to":null,"offset":0,"rows":1000,"reverse":false,"space":null,"types":["deltix.timebase.api.messages.BarMessage"]}
 
-To calculate a Signature: 
+To calculate a Signature via Base64EncodedString(HmacSHA384(Payload, ApiSecret)): 
 
-* `Signature` = DtMdHJ4vc0LYx9H0YB80dICiah10x/i1KFrJ+Ba+RyOw5wc+6WcXdxCHA3GFYrIe
+* `Signature = DtMdHJ4vc0LYx9H0YB80dICiah10x/i1KFrJ+Ba+RyOw5wc+6WcXdxCHA3GFYrIe`
 
 Pass two headers with POST request: 
 
@@ -206,8 +208,10 @@ X-Deltix-Signature
 where 
 
 * `ApiKey`: your ApiKey
-* `Payload` = "CONNECTX-Deltix-Payload=" + HeaderValue(X-Deltix-Payload) + "&X-Deltix-ApiKey=" + HeaderValue(X-Deltix-ApiKey)
-* `Signature`: Base64EncodedString(HmacSHA384(Payload, ApiSecret))
+* `Payload`: random string
+* `Signature`: signature value calculated using Base64EncodedString(HmacSHA384(Signature payload, ApiSecret))
+  + `Signature payload`: CONNECTX-Deltix-Payload= + HeaderValue(X-Deltix-Payload) + "&X-Deltix-ApiKey=" + HeaderValue(X-Deltix-ApiKey)
+  + `ApiSecret`: your ApiSecret
 
 **Example**
 
@@ -215,15 +219,15 @@ Take:
 
 * `ApiKey` = your ApiKey
 * `ApiSecret` = your ApiSecret
-* `Payload random generated` = 90dd333e-4858-4fba-a71b-12f958b36689
-* `Signature payload` = CONNECTX-Deltix-Payload=90dd333e-4858-4fba-a71b-12f958b36689&X-Deltix-ApiKey=TEST_API_KEY
+* `Payload` (random string) = 90dd333e-4858-4fba-a71b-12f958b36689
+* `Signature payload` = CONNECTX-Deltix-Payload= 90dd333e-4858-4fba-a71b-12f958b36689&X-Deltix-ApiKey=yourApiKey
 * `Signature` = nAoVRNtR+g8gKUG6/4hQbBbRy6A9KcqGfBjIx1gZCfwrGkvHBelJIpzosxelRRGF
 
 Connect a STOMP query:
 
 ```bash
 CONNECT
-X-Deltix-ApiKey: TEST_API_KEY
+X-Deltix-ApiKey: your ApiKey
 X-Deltix-Payload: 90dd333e-4858-4fba-a71b-12f958b36689
 X-Deltix-Signature: nAoVRNtR+g8gKUG6/4hQbBbRy6A9KcqGfBjIx1gZCfwrGkvHBelJIpzosxelRRGF
 heart-beat:0,0
@@ -341,6 +345,8 @@ POST /api/v1/login/confirm
 * `dh_key` [string] - String containing client's Diffie–Hellman public key, encoded as base64;
 * `keepalive_timeout` [string] - Inactivity period after which the session will be terminated by the server in milliseconds.
 
+>  Upon the successful completion of this step, both the Client and the Server have enough data to generate **Session Secret** using Diffie–Hellman method. Session Secret is used for signing requests - see the following section.
+
 **Using Session**
 
 Each REST and Websocket CONNECT request must be signed using a session secret. Web server will compute the signature on such requests and, if the result is different from the signature provided, the request will be rejected.
@@ -353,7 +359,7 @@ Include three headers in the request:
 
 Where signature is calculated as follows:
 
-Signature = Base64EncodedString(HmacSHA384(Payload, SessionSecret)) - session secret, obtained during the login procedure;
+`Signature` = Base64EncodedString(HmacSHA384(Payload, SessionSecret)) - session secret, generated after the login procedure;
   + `Payload` = uppercase(HttpMethod) + lowercase(UrlPath) + QueryParameters + RequestHeaders + body
     * where `QueryParameters` is separated by '&' lowercase(key)=value pairs, sorted alphabetically by key
     * and `RequestHeaders` = X-Deltix-Nonce=...&X-Deltix-Session-Id=...
@@ -371,15 +377,16 @@ where
 
 * `X-Deltix-Session-Id`: Your session id
 * `X-Deltix-Signature`: Base64EncodedString(HmacSHA384(Payload, SessionSecret))
-* `X-Deltix-Nonce`:a number called nonce. Each subsequent request within a single session must have nonce value greater than the previous request nonce value. If the request contains the same or lower nonce value than the previous request, such request will be rejected;
-* `Payload` = "CONNECTX-Deltix-Nonce=" + nonce + "&X-Deltix-Session-Id=" + sessionId
+  + `Payload`: "CONNECTX-Deltix-Nonce=" + nonce + "&X-Deltix-Session-Id=" + sessionId
+  + `SessionSecret`: generated after the login procedure
+* `X-Deltix-Nonce`:a number called `nonce`. Each subsequent request within a single session must have `nonce` value greater than the previous request `nonce` value. If the request contains the same or lower `nonce` value than the previous request, such request will be rejected;
 
 **Example**
 
 ```bash
 CONNECT
-X-Deltix-Session-Id: session-id
-X-Deltix-Signature: signature
+X-Deltix-Session-Id: Your session id
+X-Deltix-Signature: Signature
 X-Deltix-Nonce: 1000
 heart-beat:0,0
 accept-version:1.1,1.2
