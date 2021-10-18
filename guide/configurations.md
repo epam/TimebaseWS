@@ -11,7 +11,7 @@ server:
     enabled: true
     mime-types: text/html,text/css,application/javascript,application/json
 timebase: # timebase settings definition
-  url: dxtick://localhost:8011 # connection URL
+  url: dxtick://localhost:8011 # TimeBase connection URL
   user: # user name, if UAC is enabled
   password: # user password, if UAC is enabled
   streams: # stream filter
