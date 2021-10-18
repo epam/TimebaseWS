@@ -22,12 +22,6 @@ docker run --rm -d \
     -p 8099:8099 \ 
     -e "JAVA_OPTS=-Dtimebase.url=dxtick://HOST_PORT" \
     epam/timebase-ws-server:latest
-
-# Enterprise edition example
-docker run --rm --detach \
-    --name timebase-admin \
-    -p 8099:8099 \
-    packages.deltixhub.com/quantserver.docker/timebase/ws-server:1.0.5
 ```
 
 
@@ -37,23 +31,6 @@ Use Docker Compose to deploy more than one instance of the Web Admin application
 
 
 ```yaml
-# Example of running TimeBase Admin in Docker Compose for Enterprise Edition 
-
-docker-compose.yml:
-
-  timebase-admin:
-    image: "packages.deltixhub.com/quantserver.docker/timebase/ws-server:1.0.5"
-    network_mode: host
-
-docker-compose.override.yml:
-
-  timebase-admin:
-    environment:
-      - JAVA_OPTS=-Dserver.port=8099 -Dtimebase.url=dxtick://localhost:8011
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8099/ping"]
-
-
 # Example of running TimeBase Admin in Docker Compose for Community Edition 
 
 docker-compose.yml:
