@@ -19,17 +19,18 @@ TimeBase Administrator also serves as a **REST/WS gateway for TimeBase Server**.
 ## How to Build
 
 ### Requirements
+
 * **[Oracle JDK 11](https://docs.oracle.com/javase/11/docs/technotes/guides/install/install_overview.html)** or **[Open JDK 11](https://adoptopenjdk.net/)**
-* **[Docker engine](https://docs.docker.com/engine/installation/)** (Optional) to build docker images locally
+* **[Docker engine](https://docs.docker.com/engine/installation/)** (Optional) to build Docker images locally
 
 1. Build project:
     ```./gradlew clean build```   
     
 2. Build docker image locally:
-    ``` ./gradlew dockerBuildImage```    
-    
-    
+    ``` ./gradlew dockerBuildImage```
+
 ## Quick Start 
+
 1. [Start TimeBase Server](https://kb.timebase.info/quick-start.html)
 2. Run Docker container with [TimeBase WS Server](https://hub.docker.com/r/epam/timebase-ws-server)
 
@@ -41,18 +42,19 @@ docker run --rm -d \
     epam/timebase-ws-server:latest
 ```
 or start server from command line
+
 ```
 ./gradlew bootRun
 ```
 
 ## Deployment 
 
-> Refer to [Deployment](https://github.com/epam/TimebaseWS/tree/intro/guide/deployment.md).
+> Refer to [Deployment](https://github.com/epam/TimebaseWS/tree/main/guide/deployment.md).
 
 ## Configuration 
 
-> Refer to [Configuration](https://github.com/epam/TimebaseWS/tree/intro/guide/configurations.md).
+> Refer to [Configuration](https://github.com/epam/TimebaseWS/tree/main/guide/configurations.md).
 
 ## Authentication 
 
-> Refer to [Authentication](https://github.com/epam/TimebaseWS/tree/intro/guide/authentication.md).
+> Refer to [Authentication](https://github.com/epam/TimebaseWS/tree/main/guide/authentication.md).
