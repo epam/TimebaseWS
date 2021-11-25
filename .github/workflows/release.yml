@@ -87,7 +87,7 @@ jobs:
           git push origin origin/workflow-$GITHUB_RUN_ID:$GITHUB_REF
 
   publish:
-    name: Release
+    name: Publish
     needs: release
     runs-on: ubuntu-latest
     steps:
@@ -116,7 +116,7 @@ jobs:
         with:
           java-version: 11
       - name: Publish docker
-        run: ./gradlew :java:ws-server:dockerPublishImageAll
+        run: ./gradlew :java:timebase-ws-server:dockerPublishImageAll
         env:
           DOCKER_REGISTRY_URL:      ${{ secrets.DOCKER_REGISTRY_URL }}
           DOCKER_REGISTRY_USERNAME:  ${{ secrets.DOCKER_HUB_USER }}
