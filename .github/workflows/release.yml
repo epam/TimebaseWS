@@ -92,6 +92,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Skip
+        run: |
+          echo $versionRelease
 
   publish-docker:
     name: Publish Dockers
