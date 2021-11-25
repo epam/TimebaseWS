@@ -1,11 +1,7 @@
 FROM alpine:3.14.2
 
 ENV LANG=C.UTF-8
-ENV DELTIX_HOME /timebase-server
-
 # Here we install GNU libc (aka glibc) and set C.UTF-8 locale as default.
-
-COPY timebase /timebase-server
 
 RUN apk add --no-cache openjdk11=11.0.11_p9-r0 && \
     ALPINE_GLIBC_BASE_URL="https://github.com/sgerrand/alpine-pkg-glibc/releases/download" && \
