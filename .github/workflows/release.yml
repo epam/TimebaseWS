@@ -98,7 +98,7 @@ jobs:
   publish-docker:
     name: Publish Dockers
     if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
-    needs: release
+    needs: publish
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -125,7 +125,7 @@ jobs:
   cleanup:
     name: Cleanup
     if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
-    needs: publish
+    needs: publish-docker
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
