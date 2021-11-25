@@ -107,7 +107,7 @@ jobs:
         with:
           java-version: 11
       - name: Publish docker
-        run: ./gradlew :java:timebase:server:dockerPublishImageAll :java:timebase:client:dockerPublishImageAll
+        run: ./gradlew :java:ws-server:dockerPublishImageAll
         env:
           DOCKER_REGISTRY_URL:      ${{ secrets.DOCKER_REGISTRY_URL }}
           DOCKER_REGISTRY_USERNAME:  ${{ secrets.DOCKER_HUB_USER }}

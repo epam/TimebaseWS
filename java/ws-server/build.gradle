@@ -1,6 +1,6 @@
 import org.springframework.boot.gradle.tasks.bundling.BootJar
 
-archivesBaseName = 'deltix-timebase-ws-server'
+//archivesBaseName = 'timebase-ws-server'
 
 apply plugin: "com.webcohesion.enunciate"
 apply plugin: 'io.freefair.lombok'
@@ -12,10 +12,10 @@ configurations.implementation {
 dependencies {
 
     implementation project(":web:frontend"),
-            project(":java:ws-messages"),
-            project(":java:grafana-api"),
-            project(":java:grafana-api-impl"),
-            project(":java:grafana-basicmath")
+            project(":java:timebase-ws-messages"),
+            project(":java:timebase-grafana-api"),
+            project(":java:timebase-grafana-api-impl"),
+            project(":java:timebase-grafana-basicmath")
 
     // Timebase Client
     implementation "org.finos.timebase-ce:timebase-client"

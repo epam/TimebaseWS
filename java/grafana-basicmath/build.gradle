@@ -1,6 +1,6 @@
 dependencies {
-    api project(":java:grafana-api")
-    api project(":java:grafana-api-impl")
+    api project(":java:timebase-grafana-api")
+    api project(":java:timebase-grafana-api-impl")
 
     implementation 'com.epam.deltix:containers'
 

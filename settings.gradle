@@ -19,9 +19,20 @@ pluginManagement {
     }
 }
 
-include 'java:ws-messages', 'java:ws-server',
+include 'java:ws-messages',
+        'java:ws-server',
         'java:computations-api',
-        'java:grafana-api', 'java:grafana-api-impl', 'java:grafana-basicmath',
+        'java:grafana-api',
+        'java:grafana-api-impl',
+        'java:grafana-basicmath',
         'web:frontend'
+
+
+project(':java:ws-messages').name = 'timebase-ws-messages'
+project(':java:ws-server').name = 'timebase-ws-server'
+project(':java:computations-api').name = 'timebase-computations-api'
+project(':java:grafana-api').name = 'timebase-grafana-api'
+project(':java:grafana-api-impl').name = 'timebase-grafana-api-impl'
+project(':java:grafana-basicmath').name = 'timebase-grafana-basicmath'
 
 rootProject.name = "deltix-timebase-web-gateway"

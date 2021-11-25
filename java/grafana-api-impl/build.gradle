@@ -1,5 +1,5 @@
 dependencies {
-    api project(":java:grafana-api")
+    api project(":java:timebase-grafana-api")
     implementation 'org.finos.timebase-ce:timebase-api'
     implementation 'com.epam.deltix:containers'
 

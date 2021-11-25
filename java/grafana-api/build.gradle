@@ -1,5 +1,5 @@
 dependencies {
-    api project(":java:computations-api")
+    api project(":java:timebase-computations-api")
     api 'com.epam.deltix:dfp'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
