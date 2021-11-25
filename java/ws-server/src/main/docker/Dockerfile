@@ -37,6 +37,7 @@ RUN apk add --no-cache openjdk11=11.0.11_p9-r0 && \
         "$ALPINE_GLIBC_BIN_PACKAGE_FILENAME" \
         "$ALPINE_GLIBC_I18N_PACKAGE_FILENAME" && \
     apk add musl=1.2.2-r3 && \
+    mkdir /opt/deltix/timebase/ws-server
 
 COPY ws-server /opt/deltix/timebase/ws-server
 
