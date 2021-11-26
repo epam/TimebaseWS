@@ -244,7 +244,7 @@ task    distribution(type: Zip, dependsOn: bootJar) {
 //}
 
 ext {
-    dockerImageName = 'timebase/ws-server'
+    dockerImageName = 'timebase-ws-server'
 }
 
 task prepareFilesForDocker(type: Copy, dependsOn: distribution) {
