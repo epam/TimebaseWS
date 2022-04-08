@@ -31,7 +31,7 @@ TimeBase Administrator also serves as a **REST/WS gateway for TimeBase Server**.
 
 ## Quick Start 
 
-1. [Start TimeBase Server](https://kb.timebase.info/quick-start.html)
+1. [Start TimeBase Server](https://kb.timebase.info/community/overview/quick-start)
 2. Run Docker container with [TimeBase WS Server](https://hub.docker.com/r/epam/timebase-ws-server)
 
 ```bash
