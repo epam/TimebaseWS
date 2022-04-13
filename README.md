@@ -36,7 +36,7 @@ TimeBase Administrator also serves as a **REST/WS gateway for TimeBase Server**.
 docker run --rm -d \ 
    -p 8011:8011 \ 
    --name=timebase-server \ 
-   -ulimit nofile=65536:65536 \ 
+   --ulimit nofile=65536:65536 \ 
    finos/timebase-ce-server:6.1
 ```
 2. Run Docker container with [TimeBase WS Server](https://hub.docker.com/r/epam/timebase-ws-server)
