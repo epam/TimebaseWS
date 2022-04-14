@@ -11,7 +11,7 @@ jobs:
   prepare:
     name: Prepare
     if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -39,7 +39,7 @@ jobs:
       fail-fast: false
       matrix:
         java: [ '11' ]
-        os: [ 'ubuntu-latest' ]
+        os: [ 'ubuntu-18.04']
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -70,7 +70,7 @@ jobs:
     name: Release
     if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -90,7 +90,7 @@ jobs:
     name: Publish Dockers
     if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -107,7 +107,7 @@ jobs:
         with:
           java-version: 11
       - name: Publish docker
-        run: ./gradlew :java:ws-server:dockerPublishImageAll
+        run: ./gradlew :java:timebase-ws-server:dockerPublishImageAll
         env:
           DOCKER_REGISTRY_URL:      ${{ secrets.DOCKER_REGISTRY_URL }}
           DOCKER_REGISTRY_USERNAME:  ${{ secrets.DOCKER_HUB_USER }}

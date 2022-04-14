@@ -251,7 +251,7 @@ task prepareFilesForDocker(type: Copy, dependsOn: distribution) {
     group 'docker'
     dependsOn ':build'
 
-    def zipFile = file("${rootDir}/distribution/deltix-timebase-ws-server-distribution.zip")
+    def zipFile = file("${rootDir}/distribution/timebase-ws-server-distribution.zip")
     def outputDir = file("${buildDir}/docker/ws-server")
 
     from zipTree(zipFile)
