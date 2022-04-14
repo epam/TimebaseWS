@@ -118,7 +118,6 @@ configure(javaProjects) {
             dependency 'commons-codec:commons-codec:1.13'
             dependency 'commons-io:commons-io:2.6'
 
-
             dependency 'com.google.guava:guava:30.1.1-jre'
             dependency 'com.google.code.gson:gson:2.8.2'
             dependency 'com.google.code.findbugs:jsr305:3.0.2'
@@ -131,6 +130,7 @@ configure(javaProjects) {
 
             dependency 'com.fasterxml.jackson.core:jackson-databind:2.10.5.1'
             dependency 'com.fasterxml.jackson.core:jackson-core:2.10.5'
+            dependency 'com.fasterxml.jackson.core:jackson-annotations:2.10.3'
 
             dependencySet(group: 'org.springframework', version: '5.2.3.RELEASE') {
                 entry 'spring-beans'
@@ -139,6 +139,7 @@ configure(javaProjects) {
                 entry 'spring-web'
                 entry 'spring-webmvc'
                 entry 'spring-messaging'
+                entry 'spring-aop'
                 entry 'spring-aop'
                 entry 'spring-expression'
             }
@@ -174,8 +175,6 @@ configure(javaProjects) {
             }
 
             dependency 'javax.annotation:javax.annotation-api:1.3.2'
-
-            dependency 'com.fasterxml.jackson.core:jackson-annotations:2.10.3'
 
             dependency 'org.reflections:reflections:0.9.11'
             dependency 'org.asynchttpclient:async-http-client:2.10.4'
