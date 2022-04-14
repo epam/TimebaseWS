@@ -44,7 +44,7 @@ jobs:
       - name: Build with gradle
         run: ./gradlew build checkLicense
       - name: Build docker
-        run: ./gradlew :java:ws-server:dockerBuildImageAll
+        run: ./gradlew :java:timebase-ws-server:dockerBuildImageAll
         env:
           DOCKER_REGISTRY_URL: ${{ secrets.DOCKER_REGISTRY_URL }}
           DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_HUB_USER }}
