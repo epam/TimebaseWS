@@ -26,8 +26,8 @@ apply from: "$rootDir/gradle/tools.gradle"
 
 ext {
     dockerImages = [
-            main   : 'src/main/docker/Dockerfile',
-            openjdk : 'src/main/docker/openjdk/Dockerfile',
+            main   : 'src/main/docker/Dockerfile'
+            //openjdk : 'src/main/docker/openjdk/Dockerfile',
     ]
 }
 
