@@ -1,5 +1,4 @@
 // v2.0
-// See the latest version here: https://gitlab.deltixhub.com/Deltix/Common/MultilingualPackage/blob/development/gradle/DockerSupport.gradle 
 
 /**
  * Adds docker support for the repository.
@@ -21,16 +20,16 @@
  * :SUBPROJECT:dockerPublishImage[flavor] - publish Docker image
  * :SUBPROJECT:dockerBuildImageAll - build Docker images for all flavors
  * :SUBPROJECT:dockerPublishImageAll - publish Docker images for all flavors
- * 
+ *
  * You can print debug information using this command line option:
  * -PdebugDockerBuild=true
  */
 
 import org.apache.tools.ant.filters.ReplaceTokens
 
-String DOCKER_REGISTRY_USERNAME=findProperty('ARTIFACTORY_USER') ?: System.getenv('ARTIFACTORY_USER') ?: "FakeProGetUser"
-String DOCKER_REGISTRY_PASSWORD=findProperty('ARTIFACTORY_PASS') ?: System.getenv('ARTIFACTORY_PASS') ?: "FakeProGetPass"
-String DOCKER_REGISTRY_URL=System.getenv('ARTIFACTORY_DOCKER_DEV_REPOSITORY') ?: 'artifactory.epam.com:6190'
+String DOCKER_REGISTRY_USERNAME=findProperty('DOCKER_REGISTRY_USERNAME') ?: System.getenv('DOCKER_REGISTRY_USERNAME') ?: "FakeProGetUser"
+String DOCKER_REGISTRY_PASSWORD=findProperty('DOCKER_REGISTRY_PASSWORD') ?: System.getenv('DOCKER_REGISTRY_PASSWORD') ?: "FakeProGetPass"
+String DOCKER_REGISTRY_URL=System.getenv('DOCKER_REGISTRY_URL') ?: "" // index.docker.io/v2/
 
 def dockerCommonPath = rootProject.properties['docker.dockerCommonPath']
 def dockerFullCommonPath = DOCKER_REGISTRY_URL + dockerCommonPath
@@ -70,8 +69,7 @@ ext.dockerFullTagVersion = dockerFullTagVersion
 def dockerShortTagVersion = dockerFullTagVersion.substring(0, version.lastIndexOf('.'))
 
 def defaultDockerImages = [
-        main   : 'src/main/docker/Dockerfile' // alpine
-        //openjdk: 'src/main/docker/openjdk/Dockerfile'
+        main   : 'src/main/docker/Dockerfile'
 ]
 
 task printDockerTagVersion {
@@ -210,10 +208,34 @@ allprojects {
                     group 'docker'
                     description 'Upload docker image to the repository'
 
+                    def stdout = new ByteArrayOutputStream()
+
                     dependsOn dockerBuildImageTask
 
                     workingDir rootDir
-                    commandLine "docker", "push", imageUrl
+                    commandLine "docker", "push", urlWithFullVersion
+                    standardOutput = stdout
+
+                    if (debugDockerBuild) {
+                        doFirst {
+                            println "Exec: " + commandLine
+                        }
+                        doLast {
+                            println "Output:\n$stdout";
+                        }
+                    }
+                }
+                dockerLogout.mustRunAfter dockerPublishImageTask
+                dockerPublishAllImagesTask.dependsOn dockerPublishImageTask
+
+                def dockerPublishShortVersionImageTask = tasks.create('dockerPublishShortVersionImage' + flavorTaskSuffix, Exec) {
+                    group 'docker'
+                    description 'Upload docker image to the repository'
+
+                    dependsOn dockerBuildImageTask
+
+                    workingDir rootDir
+                    commandLine "docker", "push", urlWithShortVersion
 
                     if (debugDockerBuild) {
                         doFirst {
@@ -221,8 +243,8 @@ allprojects {
                         }
                     }
                 }
-                dockerLogout.mustRunAfter dockerPublishImageTask
-                dockerPublishAllImagesTask.dependsOn dockerPublishImageTask
+                dockerLogout.mustRunAfter dockerPublishShortVersionImageTask
+                dockerPublishAllImagesTask.dependsOn dockerPublishShortVersionImageTask
             }
         }
     }
