@@ -1,8 +1,6 @@
 FROM alpine:3.15.4
 
 ENV LANG=C.UTF-8
-ENV DELTIX_HOME /timebase-server
-
 # Here we install GNU libc (aka glibc) and set C.UTF-8 locale as default.
 RUN apk add --no-cache openjdk11=11.0.14_p9-r0 && \
     ALPINE_GLIBC_BASE_URL="https://github.com/sgerrand/alpine-pkg-glibc/releases/download" && \
@@ -35,9 +33,9 @@ RUN apk add --no-cache openjdk11=11.0.14_p9-r0 && \
         "$ALPINE_GLIBC_I18N_PACKAGE_FILENAME" && \
     apk add musl=1.2.2-r7
 
-COPY ws-server /opt/deltix/timebase/ws-server
+COPY ws-server /ws-server
 
-WORKDIR /opt/deltix/timebase/ws-server
+WORKDIR /ws-server
 
 EXPOSE 8099
 ENTRYPOINT ["/bin/sh", "-c", "java ${JAVA_OPTS} -cp . -jar timebase-ws-server-*.jar"]

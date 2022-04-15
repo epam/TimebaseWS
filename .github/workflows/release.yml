@@ -86,6 +86,15 @@ jobs:
           git push origin $versionRelease
           git push origin origin/workflow-$GITHUB_RUN_ID:$GITHUB_REF
 
+  publish:
+    name: Publish
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip
+        run: |
+          echo $versionRelease
+
   publish-docker:
     name: Publish Dockers
     if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
@@ -116,7 +125,7 @@ jobs:
   cleanup:
     name: Cleanup
     if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
-    needs: publish
+    needs: publish-docker
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
