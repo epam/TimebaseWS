@@ -35,4 +35,6 @@ public class PeriodicityDef {
     @JsonProperty
     public Periodicity.Type type;
 
+    @JsonProperty
+    public long milliseconds;
 }

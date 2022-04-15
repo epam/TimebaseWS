@@ -213,7 +213,8 @@ allprojects {
                     dependsOn dockerBuildImageTask
 
                     workingDir rootDir
-                    commandLine "docker", "push", imageUrl
+
+                    commandLine "docker", "push", urlWithFullVersion
                     standardOutput = stdout
 
                     if (debugDockerBuild) {
@@ -227,6 +228,24 @@ allprojects {
                 }
                 dockerLogout.mustRunAfter dockerPublishImageTask
                 dockerPublishAllImagesTask.dependsOn dockerPublishImageTask
+
+                def dockerPublishShortVersionImageTask = tasks.create('dockerPublishShortVersionImage' + flavorTaskSuffix, Exec) {
+                    group 'docker'
+                    description 'Upload docker image to the repository'
+
+                    dependsOn dockerBuildImageTask
+
+                    workingDir rootDir
+                    commandLine "docker", "push", urlWithShortVersion
+
+                    if (debugDockerBuild) {
+                        doFirst {
+                            println "Exec: " + commandLine
+                        }
+                    }
+                }
+                dockerLogout.mustRunAfter dockerPublishShortVersionImageTask
+                dockerPublishAllImagesTask.dependsOn dockerPublishShortVersionImageTask
             }
         }
     }

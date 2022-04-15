@@ -31,15 +31,24 @@ TimeBase Administrator also serves as a **REST/WS gateway for TimeBase Server**.
 
 ## Quick Start 
 
-1. [Start TimeBase Server](https://kb.timebase.info/quick-start.html)
+1. [Start TimeBase Server](https://kb.timebase.info/community/overview/quick-start)
+```bash
+docker run --rm -d \ 
+   -p 8011:8011 \ 
+   --name=timebase-server \ 
+   --ulimit nofile=65536:65536 \ 
+   finos/timebase-ce-server:6.1
+```
 2. Run Docker container with [TimeBase WS Server](https://hub.docker.com/r/epam/timebase-ws-server)
 
 ```bash
 docker run --rm -d \ 
-    --name timebase-admin \ 
-    -p 8099:8099 \ 
-    -e "JAVA_OPTS=-Dtimebase.url=dxtick://HOST_PORT" \
-    epam/timebase-ws-server:latest
+   --name timebase-admin \
+    --link timebase-server:timebase \ 
+   -p 8099:8099 \ 
+   -e "JAVA_OPTS=-Dtimebase.url=dxtick://timebase:8011" \
+    --ulimit nofile=65536:65536 \
+   epam/timebase-ws-server:latest
 ```
 or start server from command line
 
