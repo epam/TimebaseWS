@@ -29,7 +29,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 
 String DOCKER_REGISTRY_USERNAME=findProperty('DOCKER_REGISTRY_USERNAME') ?: System.getenv('DOCKER_REGISTRY_USERNAME') ?: "FakeProGetUser"
 String DOCKER_REGISTRY_PASSWORD=findProperty('DOCKER_REGISTRY_PASSWORD') ?: System.getenv('DOCKER_REGISTRY_PASSWORD') ?: "FakeProGetPass"
-String DOCKER_REGISTRY_URL=System.getenv('DOCKER_REGISTRY_URL') ?: "" // index.docker.io/v2/
+String DOCKER_REGISTRY_URL=System.getenv('DOCKER_REGISTRY_URL') ?: ""
 
 def dockerCommonPath = rootProject.properties['docker.dockerCommonPath']
 def dockerFullCommonPath = DOCKER_REGISTRY_URL + dockerCommonPath
@@ -192,7 +192,7 @@ allprojects {
                     workingDir dockerDestDir
                     // You can change list of tags/branches to be created
                     // TODO: Make this a configuration option
-                    commandLine "docker", "build", "-t", urlWithShortVersion, "-t", urlWithFullVersion, "-f", dockerfileDest.toAbsolutePath().toString(), "--rm", "."
+                    commandLine "docker", "build", "-t", urlWithLatestTag, "-t", urlWithShortVersion, "-t", urlWithFullVersion, "-f", dockerfileDest.toAbsolutePath().toString(), "--rm", "."
 
                     if (debugDockerBuild) {
                         doFirst {
@@ -213,6 +213,7 @@ allprojects {
                     dependsOn dockerBuildImageTask
 
                     workingDir rootDir
+
                     commandLine "docker", "push", urlWithFullVersion
                     standardOutput = stdout
 
