@@ -48,7 +48,7 @@ docker run --rm -d \
    -p 8099:8099 \ 
    -e "JAVA_OPTS=-Dtimebase.url=dxtick://timebase:8011" \
     --ulimit nofile=65536:65536 \
-   epam/timebase-ws-server:latest
+   epam/timebase-ws-server:0.5
 ```
 or start server from command line
 
