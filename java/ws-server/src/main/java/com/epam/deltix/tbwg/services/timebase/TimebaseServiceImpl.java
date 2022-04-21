@@ -22,6 +22,7 @@ import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.pub.md.*;
 import com.epam.deltix.qsrv.hf.spi.conn.DisconnectEventListener;
 import com.epam.deltix.qsrv.hf.spi.conn.Disconnectable;
+import com.epam.deltix.qsrv.hf.tickdb.comm.client.TickDBClient;
 import com.epam.deltix.qsrv.hf.tickdb.pub.*;
 import com.epam.deltix.tbwg.settings.TimebaseSettings;
 import com.epam.deltix.tbwg.services.timebase.exc.UnknownStreamException;
@@ -143,9 +144,9 @@ public class TimebaseServiceImpl {
             LOGGER.info("Opening connection to TimeBase on %s.").with(url);
             db.open(timebaseSettings.isReadonly());
 
-            // TODO: VERSION5.5
-//            if (db instanceof TickDBClient)
-//                serverVersion = ((TickDBClient) db).getServerVersion();
+
+            if (db instanceof TickDBClient)
+                serverVersion = ((TickDBClient) db).getServerVersion();
 
             if (db instanceof Disconnectable)
                 ((Disconnectable) db).addDisconnectEventListener(new EventListener(db));
@@ -186,8 +187,7 @@ public class TimebaseServiceImpl {
     }
 
     public ClassSet         describeQuery(String query, SelectionOptions options) {
-        // TODO: VERSION5.5
-        throw new UnsupportedOperationException("Version 5.5 required");
+        return db.describeQuery(query, options);
     }
 
     public DXChannel[]      listChannels() {

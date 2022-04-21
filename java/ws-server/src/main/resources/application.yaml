@@ -20,7 +20,7 @@ timebase:
   currencies:
 grafana:
   pluginsPackages:
-    - epam.rtc.grafana
+    - com.epam.deltix.grafana
   enabled: true
   streams:
   include: .*
