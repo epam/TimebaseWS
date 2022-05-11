@@ -66,4 +66,9 @@ or start server from command line
 
 ## Authentication 
 
-> Refer to [Authentication](https://github.com/epam/TimebaseWS/tree/main/guide/authentication.md).
+> Refer to [Authentication](https://github.com/epam/TimebaseWS/tree/main/guide/authentication/auth-intro.md).
+
+## Authorization 
+
+> Refer to [Authorization](https://github.com/epam/TimebaseWS/tree/main/guide/authorization/authorization.md).
+
