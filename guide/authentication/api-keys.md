@@ -40,7 +40,7 @@ security:
 
 Configure in TimeBase Web Admin `application.yaml`. 
 
-Example when API keys are stored in application.yaml config:
+Example when API keys are stored in `application.yaml` config:
 
 ```yaml
 security:
@@ -57,7 +57,7 @@ security:
         user: api key user
 ```
 
-You can use external file to configure API keys:
+You can also use a JSON file to configure API keys:
 
 ```yaml
 security:
