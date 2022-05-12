@@ -14,7 +14,7 @@
 
 TimeBase Administrator also serves as a **REST/WS gateway for TimeBase Server**. 
 
-> Refer to [TimeBase REST/WS API reference](https://docs.deltixhub.com/timebase-api/).
+> Refer to [TimeBase REST/WS API reference](https://webadmin.timebase.info/api/v0/docs/index.html).
 
 ## How to Build
 
