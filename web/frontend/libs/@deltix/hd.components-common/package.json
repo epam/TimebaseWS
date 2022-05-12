@@ -6,7 +6,7 @@
   "typings": "./index.d.ts",
   "dependencies": {
     "pixi.js": "^6.2.2",
-    "@deltix/hd.components-utils": "4.18.0",
+    "@deltix/hd.components-utils": "file:./../hd.components-depth-chart",
     "globalthis": "^1.0.2"
   },
   "peerDependencies": {}

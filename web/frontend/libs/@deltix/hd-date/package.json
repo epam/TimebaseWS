@@ -15,10 +15,6 @@
     "doc-serve": "compodoc -p tsconfig.json --hideGenerator --disableSourceCode --disableInternal --disablePrivate --disableLifeCycleHooks -s -r 7086 -w",
     "perf-test": "ts-node --project ./tsconfig.perf.json ./benchmark/parse-string.ts"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://gitlab.deltixhub.com/Deltix/Common/Web/deltix-hd-date.git"
-  },
   "keywords": [
     "date"
   ],

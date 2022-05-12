@@ -8,7 +8,7 @@
     "big.js": "^6.1.1",
     "ramda": "^0.27.1",
     "redux": "^4.1.2",
-    "@deltix/decimal-utils": "^0.5.0",
+    "@deltix/decimal-utils": "file:./../decimal-utils",
     "redux-observable": "^1.2.0",
     "rxjs": "^6.6.3"
   },
