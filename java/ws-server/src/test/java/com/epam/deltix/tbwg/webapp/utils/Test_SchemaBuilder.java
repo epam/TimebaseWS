@@ -36,7 +36,7 @@ public class Test_SchemaBuilder {
 
     @Test
     public void test() throws Introspector.IntrospectionException {
-        Introspector it = Introspector.createMessageIntrospector();
+        Introspector it = Introspector.createEmptyMessageIntrospector();
         RecordClassDescriptor descriptor = it.introspectRecordClass(PackageHeader.class);
 
         RecordClassSet set = new RecordClassSet();
@@ -45,7 +45,6 @@ public class Test_SchemaBuilder {
         SchemaDef schema = SchemaBuilder.toSchemaDef(set, false);
 
         RecordClassSet result = SchemaBuilder.toClassSet(schema);
-
 
         // compare
 
