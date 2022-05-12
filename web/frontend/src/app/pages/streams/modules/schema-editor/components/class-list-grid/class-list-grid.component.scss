@@ -1,4 +1,4 @@
-@import "~src/app/shared/utils/dynamic-form-builder/dynamic-form-builder.module";
+@import '~src/app/shared/utils/dynamic-form-builder/dynamic-form-builder.module';
 
 ag-grid-angular ::ng-deep {
   .ag-cell-focus {
@@ -9,7 +9,7 @@ ag-grid-angular ::ng-deep {
     }
   }
 
-  .type-edited.ag-row  {
+  .type-edited.ag-row {
     border-color: $warning;
     border-style: solid;
     border-width: 1px;
@@ -17,10 +17,9 @@ ag-grid-angular ::ng-deep {
   }
 
   .ag-pinned-left-cols-container {
-    .type-edited.ag-row  {
+    .type-edited.ag-row {
       border-right-width: 0;
       border-left-width: 1px;
     }
   }
 }
-

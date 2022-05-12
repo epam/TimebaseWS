@@ -1,0 +1,16 @@
+
+dependencies {
+    implementation 'com.epam.deltix:timebase-messages'
+    implementation 'com.epam.deltix:dfp'
+
+    api 'com.epam.deltix:gflog-api'
+    api 'com.epam.deltix:gflog-core'
+    api 'com.epam.deltix:gflog-jul'
+
+    implementation 'com.epam.deltix:containers'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.7.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.7.1'
+    testImplementation 'org.mockito:mockito-core:4.0.0'
+}

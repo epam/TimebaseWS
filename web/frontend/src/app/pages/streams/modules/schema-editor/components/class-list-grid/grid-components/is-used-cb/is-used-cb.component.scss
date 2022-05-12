@@ -1,6 +1,6 @@
 @import '~src/app/core/styles/variables';
 
-.form-control-cb-wr{
+.form-control-cb-wr {
   position: absolute;
   display: flex;
   top: 0;
@@ -11,10 +11,14 @@
   justify-content: center;
 }
 
-.container-ch{
+.container-ch {
   position: relative;
   display: block;
   height: 9 * $ss;
   width: 9 * $ss;
   padding: 0;
+}
+
+.disabled {
+  cursor: default;
 }

@@ -1,9 +1,8 @@
-import { AppState }                           from '../../../../core/store';
-import { StreamDescribeModel }                from '../../models/stream.describe.model';
-import { StreamModel }                        from '../../models/stream.model';
-import { StreamsStateModel }                  from '../../models/streams.state.model';
-import { StreamsActions, StreamsActionTypes } from './streams.actions';
-
+import {AppState} from '../../../../core/store';
+import {StreamDescribeModel} from '../../models/stream.describe.model';
+import {StreamModel} from '../../models/stream.model';
+import {StreamsStateModel} from '../../models/streams.state.model';
+import {StreamsActions, StreamsActionTypes} from './streams.actions';
 
 export interface FeatureState extends AppState {
   streams: State;
@@ -41,7 +40,8 @@ const streamSorter = (stream1: StreamModel, stream2: StreamModel): number => {
 };
 
 export function reducer(state = initialState, action: StreamsActions): State {
-  let selectedStream, selectedStreamIndex/*, tabs: TabModel[], selectedTab: TabModel, selectedTabIndex: number*/;
+  let selectedStream,
+    selectedStreamIndex /*, tabs: TabModel[], selectedTab: TabModel, selectedTabIndex: number*/;
   switch (action.type) {
     case StreamsActionTypes.SET_STREAMS:
       return {
@@ -56,21 +56,27 @@ export function reducer(state = initialState, action: StreamsActions): State {
       };
 
     case StreamsActionTypes.DELETE_STREAM:
-      selectedStreamIndex = state.streams.findIndex(stream => stream.key === action.payload.streamKey);
+      selectedStreamIndex = state.streams.findIndex(
+        (stream) => stream.key === action.payload.streamKey,
+      );
       if (selectedStreamIndex > -1) {
         if (!action.payload.spaceName) {
           state.streams.splice(selectedStreamIndex, 1);
         } else if (state.streams[selectedStreamIndex]._spacesList) {
-          state.streams[selectedStreamIndex]._spacesList = state.streams[selectedStreamIndex]._spacesList.filter(space => space.name !== action.payload.spaceName);
+          state.streams[selectedStreamIndex]._spacesList = state.streams[
+            selectedStreamIndex
+          ]._spacesList.filter((space) => space.name !== action.payload.spaceName);
         }
       }
       return {
         ...state,
-        streams: [...state.streams]/*.sort(streamSorter)*/,
+        streams: [...state.streams] /*.sort(streamSorter)*/,
       };
 
     case StreamsActionTypes.RENAME_STREAM:
-      selectedStreamIndex = state.streams.findIndex(stream => stream.key === action.payload.streamId);
+      selectedStreamIndex = state.streams?.findIndex(
+        (stream) => stream.key === action.payload.streamId,
+      );
       if (selectedStreamIndex > -1) {
         if (!action.payload.spaceName) {
           state.streams[selectedStreamIndex] = {
@@ -79,7 +85,9 @@ export function reducer(state = initialState, action: StreamsActions): State {
             name: action.payload.newName,
           };
         } else if (state.streams[selectedStreamIndex]._spacesList) {
-          const SPACE_INDEX = state.streams[selectedStreamIndex]._spacesList.findIndex(space => space.name === action.payload.spaceName);
+          const SPACE_INDEX = state.streams[selectedStreamIndex]._spacesList.findIndex(
+            (space) => space.name === action.payload.spaceName,
+          );
           if (SPACE_INDEX > -1) {
             state.streams[selectedStreamIndex]._spacesList[SPACE_INDEX] = {
               ...state.streams[selectedStreamIndex]._spacesList[SPACE_INDEX],
@@ -90,17 +98,27 @@ export function reducer(state = initialState, action: StreamsActions): State {
       }
       return {
         ...state,
-        streams: [...state.streams].sort(streamSorter),
+        streams: [...(state.streams || [])].sort(streamSorter),
       };
 
     case StreamsActionTypes.RENAME_SYMBOL:
-      selectedStreamIndex = state.streams.findIndex(stream => stream.key === action.payload.streamId);
-      if (selectedStreamIndex > -1 &&
+      selectedStreamIndex = state.streams.findIndex(
+        (stream) => stream.key === action.payload.streamId,
+      );
+      if (
+        selectedStreamIndex > -1 &&
         state.streams[selectedStreamIndex]._symbolsList &&
-        state.streams[selectedStreamIndex]._symbolsList.length) {
-        const symbolIndex = state.streams[selectedStreamIndex]._symbolsList.findIndex(symbol => symbol === action.payload.oldSymbolName);
+        state.streams[selectedStreamIndex]._symbolsList.length
+      ) {
+        const symbolIndex = state.streams[selectedStreamIndex]._symbolsList.findIndex(
+          (symbol) => symbol === action.payload.oldSymbolName,
+        );
         if (symbolIndex > -1) {
-          state.streams[selectedStreamIndex]._symbolsList.splice(symbolIndex, 1, action.payload.newSymbolName);
+          state.streams[selectedStreamIndex]._symbolsList.splice(
+            symbolIndex,
+            1,
+            action.payload.newSymbolName,
+          );
           state.streams[selectedStreamIndex] = {
             ...state.streams[selectedStreamIndex],
             _symbolsList: [...state.streams[selectedStreamIndex]._symbolsList],
@@ -113,11 +131,13 @@ export function reducer(state = initialState, action: StreamsActions): State {
       };
 
     case StreamsActionTypes.SET_SYMBOLS:
-      selectedStream = state.streams.find(stream => stream.key === action.payload.streamKey);
+      selectedStream = state.streams.find((stream) => stream.key === action.payload.streamKey);
       const symbolList = action.payload.symbols.sort();
       if (selectedStream) {
         if (typeof action.payload.spaceName === 'string') {
-          const currentSpace = selectedStream._spacesList.find(space => space.name === action.payload.spaceName);
+          const currentSpace = selectedStream._spacesList.find(
+            (space) => space.name === action.payload.spaceName,
+          );
           if (currentSpace) {
             currentSpace._symbolsList = symbolList;
             currentSpace._shown = true;
@@ -135,7 +155,7 @@ export function reducer(state = initialState, action: StreamsActions): State {
       };
 
     case StreamsActionTypes.SET_SPACES:
-      selectedStream = state.streams.find(stream => stream.key === action.payload.streamKey);
+      selectedStream = state.streams.find((stream) => stream.key === action.payload.streamKey);
       if (selectedStream) {
         delete selectedStream._symbolsList;
         selectedStream._spacesList = [...action.payload.spaces];
@@ -146,13 +166,16 @@ export function reducer(state = initialState, action: StreamsActions): State {
         streams: [...state.streams],
       };
 
-
     case StreamsActionTypes.SET_STREAM_STATE:
-      selectedStreamIndex = state.streams.findIndex(stream => stream.key === action.payload.stream.key);
+      selectedStreamIndex = state.streams.findIndex(
+        (stream) => stream.key === action.payload.stream.key,
+      );
       if (selectedStreamIndex > -1) {
         const STREAM = state.streams[selectedStreamIndex];
         if (typeof action.payload.spaceName === 'string' && STREAM._spacesList) {
-          const CURRENT_SPACE_IDX = STREAM._spacesList.findIndex(space => space.name === action.payload.spaceName);
+          const CURRENT_SPACE_IDX = STREAM._spacesList.findIndex(
+            (space) => space.name === action.payload.spaceName,
+          );
           if (CURRENT_SPACE_IDX > -1) {
             STREAM._spacesList[CURRENT_SPACE_IDX] = {
               ...STREAM._spacesList[CURRENT_SPACE_IDX],

@@ -1,9 +1,10 @@
-import { Action }            from '@ngrx/store';
-import { NotificationModel } from '../models/notification.model';
+import {Action} from '@ngrx/store';
+import {NotificationModel} from '../models/notification.model';
 
 export enum NotificationsActionTypes {
   ADD_ALERT = '[Notifications] Add Alert',
   REMOVE_ALERT = '[Notifications] Remove Alert',
+  REMOVE_ALERT_BY_ALIAS = '[Notifications] Remove Alert By ALias',
 
   ADD_WARN = '[Notifications] Add Warn',
   REMOVE_WARN = '[Notifications] Remove Warn',
@@ -16,6 +17,12 @@ export class AddAlert implements Action {
   readonly type = NotificationsActionTypes.ADD_ALERT;
 
   constructor(public payload: NotificationModel) {}
+}
+
+export class RemoveAlertByAlias implements Action {
+  readonly type = NotificationsActionTypes.REMOVE_ALERT_BY_ALIAS;
+
+  constructor(public payload: string) {}
 }
 
 export class RemoveAlert implements Action {
@@ -48,9 +55,11 @@ export class RemoveNotification implements Action {
   constructor(public payload: number) {}
 }
 
-export type NotificationsActions = AddAlert |
-  RemoveAlert |
-  AddWarn |
-  RemoveWarn |
-  AddNotification |
-  RemoveNotification;
+export type NotificationsActions =
+  | AddAlert
+  | RemoveAlert
+  | RemoveAlertByAlias
+  | AddWarn
+  | RemoveWarn
+  | AddNotification
+  | RemoveNotification;

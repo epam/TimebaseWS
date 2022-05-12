@@ -1,4 +1,4 @@
-@import "~src/app/core/styles/variables";
+@import '~src/app/core/styles/variables';
 
 ::ng-deep {
   deltix-ng-smart-date-time-picker [bsdatepicker] {
@@ -15,13 +15,6 @@ deltix-ng-smart-date-time-picker {
   position: relative;
   display: block;
   margin-right: 2 * $ss;
-}
-
-.filtered {
-  background-color: $yellow;
-  border-color: $yellow;
-  box-shadow: $yellow-box-shadow;
-  color: $nav-bg;
 }
 
 .filtered:not(:disabled):not(.disabled):active:focus,
@@ -143,6 +136,4 @@ input.ng-invalid.ng-touched {
     height: auto;
     margin: 4px 0 0 0;
   }
-
-
 }

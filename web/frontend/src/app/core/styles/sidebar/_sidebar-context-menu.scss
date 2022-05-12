@@ -1,0 +1,29 @@
+@import 'src/app/core/styles/variables';
+
+.sidebar-context-menu {
+  .menu-separator {
+    margin: 0.25rem 0;
+    opacity: 0.4;
+    border-bottom: 1px solid $dark-blue;
+
+    &:hover {
+      border-bottom: 1px solid $dark-blue;
+    }
+  }
+
+  .dropdown-menu li {
+    .dropdown-item {
+      transition: none;
+
+      &:hover {
+        color: $white;
+        background: $blue;
+
+        a,
+        button.btn-link {
+          background: transparent;
+        }
+      }
+    }
+  }
+}

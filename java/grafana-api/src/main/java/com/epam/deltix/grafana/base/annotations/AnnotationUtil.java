@@ -18,8 +18,8 @@ package com.epam.deltix.grafana.base.annotations;
 
 import com.epam.deltix.dfp.Decimal;
 import com.epam.deltix.dfp.Decimal64Utils;
-import com.epam.deltix.util.lang.StringUtils;
 import com.epam.deltix.computations.data.base.ArgumentType;
+import com.epam.deltix.util.lang.StringUtils;
 
 import java.util.function.Predicate;
 
@@ -33,7 +33,6 @@ public class AnnotationUtil {
         }
         boolean min = !StringUtils.isEmpty(argument.min());
         boolean max = !StringUtils.isEmpty(argument.max());
-
         if (min && max) {
             return createMinMax(argument);
         } else if (min) {

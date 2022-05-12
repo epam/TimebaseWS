@@ -1,14 +1,23 @@
-import { AfterViewInit, Directive, HostBinding, OnDestroy, Optional } from '@angular/core';
-import { NavigationEnd, Router, RouterLinkWithHref } from '@angular/router';
-import { delay, filter, startWith, takeUntil, tap } from 'rxjs/operators';
-import { ReplaySubject } from 'rxjs';
-import * as Url from 'url';
+import {
+  AfterViewInit,
+  Directive,
+  HostBinding,
+  Input,
+  OnChanges,
+  OnDestroy,
+  Optional,
+  SimpleChanges,
+} from '@angular/core';
+import {NavigationEnd, Router, RouterLinkWithHref} from '@angular/router';
+import {ReplaySubject} from 'rxjs';
+import {delay, filter, startWith, takeUntil, tap} from 'rxjs/operators';
+import {StreamsNavigationService} from './streams-navigation.service';
 
 @Directive({
   selector: '[appStreamsNavigationActive]',
 })
-export class StreamsNavigationActiveDirective implements  AfterViewInit, OnDestroy {
-
+export class StreamsNavigationActiveDirective implements AfterViewInit, OnDestroy, OnChanges {
+  @Input() appStreamsNavigationActive: string;
   @HostBinding('class.active') private active: boolean;
   @HostBinding('class.router-link-disabled') private disabled: boolean;
 
@@ -17,34 +26,32 @@ export class StreamsNavigationActiveDirective implements  AfterViewInit, OnDestr
   constructor(
     @Optional() private routerLinkWithHref: RouterLinkWithHref,
     private router: Router,
-    ) { }
+    private streamsNavigationService: StreamsNavigationService,
+  ) {}
 
   ngAfterViewInit() {
-    this.router.events.pipe(
-      filter(e => e instanceof NavigationEnd),
-      startWith(null),
-      takeUntil(this.destroy$),
-      tap(() => this.checkActive()),
-      delay(0),
-    ).subscribe(() => this.checkActive());
-  }
-
-  private checkActive() {
-    const [routerUrl, routerParams] = this.parseUrl(this.router.routerState.snapshot.url);
-    const [itemUrl, itemParams] = this.parseUrl(this.routerLinkWithHref.href);
-    this.disabled = this.routerLinkWithHref['commands'].length === 0;
-    this.active = routerUrl.startsWith(`${itemUrl}/`) && JSON.stringify(routerParams) === JSON.stringify(itemParams);
-  }
-
-  private parseUrl(urlString: string): [string, object] {
-    const [url, paramsString] = urlString.split('?');
-    const params = {};
-    new URLSearchParams(paramsString).forEach((value, key) => params[key] = value);
-    return [url, params];
+    this.router.events
+      .pipe(
+        filter((e) => e instanceof NavigationEnd),
+        startWith(null),
+        takeUntil(this.destroy$),
+        tap(() => this.checkActive()),
+        delay(0),
+      )
+      .subscribe(() => this.checkActive());
   }
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    this.checkActive();
+  }
+
+  private checkActive() {
+    this.active = this.streamsNavigationService.urlIsActive(this.routerLinkWithHref.href);
+    this.disabled = this.routerLinkWithHref['commands'].length === 0;
   }
 }

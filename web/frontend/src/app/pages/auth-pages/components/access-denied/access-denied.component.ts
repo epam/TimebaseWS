@@ -1,7 +1,7 @@
-import { Component, OnInit } from '@angular/core';
-import { Store }             from '@ngrx/store';
-import { AppState }          from '../../../../core/store';
-import * as AuthActions      from '../../../../core/store/auth/auth.actions';
+import {Component, OnInit} from '@angular/core';
+import {Store} from '@ngrx/store';
+import {AppState} from '../../../../core/store';
+import * as AuthActions from '../../../../core/store/auth/auth.actions';
 
 @Component({
   selector: 'app-access-denied',
@@ -9,14 +9,9 @@ import * as AuthActions      from '../../../../core/store/auth/auth.actions';
   styleUrls: ['./access-denied.component.scss'],
 })
 export class AccessDeniedComponent implements OnInit {
+  constructor(private appStore: Store<AppState>) {}
 
-  constructor(
-    private appStore: Store<AppState>,
-  ) { }
-
-  ngOnInit() {
-  }
-
+  ngOnInit() {}
 
   public onLogout(): void {
     this.appStore.dispatch(new AuthActions.LogOut());

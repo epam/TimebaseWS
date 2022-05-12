@@ -1,20 +1,22 @@
-<div class="ag-cell-label-container" [class.dropdown-open]="dropdownOpen">
+<div [class.dropdown-open]="dropdownOpen" class="ag-cell-label-container">
   <div>
-    <i *ngIf="displayName && !(disableColumns$ | async)"
+    <i
         (click)="onDropDownToggle($event)"
-        class="ag-icon ag-icon-menu columns-icon"
-    ></i>
+        *ngIf="displayName && !(disableColumns$ | async)"
+        class="ag-icon ag-icon-menu columns-icon"></i>
   </div>
   <div class="ag-header-cell-label">
     {{ displayName }}
   </div>
 </div>
 
-<context-menu menuClass="grid-context-menu" #contextMenu>
-  <ng-template contextMenuItem [subMenu]="pinSubMenu">
-    <div (mouseenter)="mouseOnPinItem(true)" (mouseleave)="mouseOnPinItem(false)">{{ 'gridMenu.pin' | translate }}</div>
+<context-menu #contextMenu menuClass="grid-context-menu">
+  <ng-template [subMenu]="pinSubMenu" contextMenuItem>
+    <div (mouseenter)="mouseOnPinItem(true)" (mouseleave)="mouseOnPinItem(false)">
+      {{ 'gridMenu.pin' | translate }}
+    </div>
   </ng-template>
-  <context-menu menuClass="grid-context-menu grid-column-pin-submenu" #pinSubMenu>
+  <context-menu #pinSubMenu menuClass="grid-context-menu grid-column-pin-submenu">
     <ng-template (execute)="pin('left')" contextMenuItem>
       <div class="pin-row">
         <div [class.active]="pinned === 'left'" class="column-check"></div>
@@ -34,15 +36,15 @@
       </div>
     </ng-template>
   </context-menu>
-  <ng-template passive="true" divider="true" contextMenuItem></ng-template>
+  <ng-template contextMenuItem divider="true" passive="true"></ng-template>
   <ng-container *ngFor="let menuItem of columnMenuItems">
     <ng-container *ngIf="menuItem">
       <ng-template (execute)="executeMenuItem(menuItem)" contextMenuItem>
         {{ menuItem.name }}
       </ng-template>
     </ng-container>
-    <ng-container *ngIf="!menuItem" >
-      <ng-template divider="true" contextMenuItem></ng-template>
+    <ng-container *ngIf="!menuItem">
+      <ng-template contextMenuItem divider="true"></ng-template>
     </ng-container>
   </ng-container>
 </context-menu>

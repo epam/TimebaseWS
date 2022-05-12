@@ -1,7 +1,6 @@
-import { AppInfoModel }               from '../../../shared/models/app.info.model';
-import { AppActions, AppActionTypes } from './app.actions';
-import { AppSettingsModel }           from '../../../shared/models/app.settings.model';
-
+import {AppInfoModel} from '../../../shared/models/app.info.model';
+import {AppSettingsModel} from '../../../shared/models/app.settings.model';
+import {AppActions, AppActionTypes} from './app.actions';
 
 export interface State {
   app_init: boolean;
@@ -41,25 +40,25 @@ export const initialState: State = {
 
 export function reducer(state = initialState, action: AppActions): State {
   switch (action.type) {
-    case (AppActionTypes.INIT_APP):
+    case AppActionTypes.INIT_APP:
       return {
         ...state,
         app_init: true,
       };
 
-    case (AppActionTypes.SET_TITLE):
+    case AppActionTypes.SET_TITLE:
       return {
         ...state,
         appTitle: action.payload,
       };
 
-    case (AppActionTypes.SET_APP_INFO):
+    case AppActionTypes.SET_APP_INFO:
       return {
         ...state,
         appInfo: action.payload.info,
       };
 
-    case (AppActionTypes.SET_APP_SETTINGS):
+    case AppActionTypes.SET_APP_SETTINGS:
       return {
         ...state,
         settings: {
@@ -69,26 +68,25 @@ export function reducer(state = initialState, action: AppActions): State {
         },
       };
 
-
-    case (AppActionTypes.SET_CURRENCIES):
+    case AppActionTypes.SET_CURRENCIES:
       return {
         ...state,
         currencies: action.payload.currencies,
       };
 
-    case (AppActionTypes.CHANGE_DOC_VISIBILITY):
+    case AppActionTypes.CHANGE_DOC_VISIBILITY:
       return {
         ...state,
         app_is_visible: action.payload.visible,
       };
 
-    case (AppActionTypes.PREVENT_HTTP_REQUESTS):
+    case AppActionTypes.PREVENT_HTTP_REQUESTS:
       return {
         ...state,
         preventRequests: true,
       };
 
-    case (AppActionTypes.ALLOW_HTTP_REQUESTS):
+    case AppActionTypes.ALLOW_HTTP_REQUESTS:
       return {
         ...state,
         preventRequests: false,

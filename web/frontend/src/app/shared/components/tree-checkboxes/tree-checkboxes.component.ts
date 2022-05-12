@@ -1,8 +1,16 @@
-import { Component, forwardRef, Input, OnChanges, OnDestroy, OnInit, SimpleChanges } from '@angular/core';
-import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR }                      from '@angular/forms';
-import { ReplaySubject }                                                             from 'rxjs';
-import { takeUntil }                                                                 from 'rxjs/operators';
-import { TreeItem }                                                                  from './tree-item';
+import {
+  Component,
+  forwardRef,
+  Input,
+  OnChanges,
+  OnDestroy,
+  OnInit,
+  SimpleChanges,
+} from '@angular/core';
+import {ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR} from '@angular/forms';
+import {ReplaySubject} from 'rxjs';
+import {takeUntil} from 'rxjs/operators';
+import {TreeItem} from './tree-item';
 
 @Component({
   selector: 'app-tree-checkboxes',
@@ -17,61 +25,59 @@ import { TreeItem }                                                             
   ],
 })
 export class TreeCheckboxesComponent implements OnInit, OnDestroy, OnChanges, ControlValueAccessor {
-  
   @Input() tree: TreeItem[];
   @Input() globalFilter: boolean;
-  
-  selected: { [index: string]: boolean } = {};
+
+  selected: {[index: string]: boolean} = {};
   filterControl = new FormControl();
   globalState: Partial<TreeItem>;
-  
+  openState: {[index: string]: boolean} = {};
+
   private destroy$ = new ReplaySubject(1);
-  
+
   ngOnChanges(changes: SimpleChanges) {
+    this.tree = JSON.parse(JSON.stringify(this.tree));
     this.recursive(this.tree, (item, prev) => {
       item.parent = prev;
+      if (this.openState[item.id] !== undefined) {
+        item.showChildren = this.openState[item.id];
+      }
       return item;
     });
     this.updateValue();
   }
-  
+
   ngOnInit(): void {
-    this.filterControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(search => {
-      const searchVal = search.toLowerCase();
-      this.recursive(this.tree, item => {
-        const match = item.name.toLowerCase().includes(searchVal);
-        item.hiddenBySearch = !match;
-        if (match) {
-          this.forParents(item, parent => parent.hiddenBySearch = false);
-        }
-      });
+    this.filterControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((search) => {
+      this.updateValue();
     });
   }
-  
+
   registerOnChange(fn: (value: string[]) => void): void {
     this.onChange = fn;
   }
-  
+
   registerOnTouched(fn: () => void): void {
     this.onTouched = fn;
   }
-  
+
   writeValue(values: string[]): void {
     this.selected = {};
-    (values || []).forEach(value => this.selected[value] = true);
+    (values || []).forEach((value) => (this.selected[value] = true));
     this.updateValue();
   }
-  
+
   toggleItemShowChildren(item: TreeItem) {
     item.showChildren = !item.showChildren;
+    this.openState[item.id] = item.showChildren;
     this.checkGlobalState();
   }
-  
+
   toggleItem(item: Partial<TreeItem>, isGlobal = false) {
     this.onTouched();
     item.partialChecked = false;
     item.checked = !item.checked;
-    this.recursive(isGlobal ? this.tree : item.children, child => {
+    this.recursive(isGlobal ? this.tree : item.children, (child) => {
       child.checked = item.checked;
       child.partialChecked = false;
     });
@@ -79,12 +85,20 @@ export class TreeCheckboxesComponent implements OnInit, OnDestroy, OnChanges, Co
     this.checkGlobalState();
     this.emitChanges();
   }
-  
+
   globalExpand() {
     this.globalState.showChildren = !this.globalState.showChildren;
-    this.tree.forEach(item => item.showChildren = this.globalState.showChildren);
+    this.tree.forEach((item) => {
+      item.showChildren = this.globalState.showChildren;
+      this.openState[item.id] = this.globalState.showChildren;
+    });
   }
-  
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   private emitChanges() {
     const values = [];
     this.recursive(this.tree, (item, prev) => {
@@ -94,75 +108,83 @@ export class TreeCheckboxesComponent implements OnInit, OnDestroy, OnChanges, Co
     });
     this.onChange(values);
   }
-  
+
   private updateValue() {
-    this.recursive(this.tree, item => {
+    const searchVal = this.filterControl.value?.toLowerCase();
+    this.recursive(this.tree, (item) => {
       item.checked = this.selected[item.id];
       if (!item.children?.length) {
         this.checkParents(item);
       }
+
+      if (!searchVal) {
+        item.hiddenBySearch = false;
+      } else {
+        const match = item.name.toLowerCase().includes(searchVal);
+        item.hiddenBySearch = !match;
+        if (match) {
+          this.forParents(item, (parent) => (parent.hiddenBySearch = false));
+        }
+      }
     });
     this.checkGlobalState();
   }
-  
+
   private checkGlobalState() {
     const checkedState = this.getCheckedState(this.tree);
     this.globalState = {
       checked: checkedState?.checked,
       partialChecked: checkedState?.partialChecked,
-      showChildren: !this.tree.some(item => !item.showChildren),
+      showChildren: !this.tree?.some((item) => !item.showChildren),
     };
   }
-  
+
   private forParents(item: TreeItem, callback: (item: TreeItem) => void) {
     if (!item) {
       return;
     }
-    
+
     callback(item);
     this.forParents(item.parent, callback);
   }
-  
+
   private checkParents(item: TreeItem) {
-    this.forParents(item, parent => {
+    this.forParents(item, (parent) => {
       const checkedState = this.getCheckedState(parent.children);
-  
+
       if (checkedState) {
         parent.checked = checkedState.checked;
         parent.partialChecked = checkedState.partialChecked;
       }
     });
   }
-  
-  private getCheckedState(items: TreeItem[]): {checked: boolean, partialChecked: boolean} {
+
+  private getCheckedState(items: TreeItem[]): {checked: boolean; partialChecked: boolean} {
     if (!items?.length) {
       return null;
     }
-    
-    const checkedLength = items.filter(child => child.checked).length;
+
+    const checkedLength = items.filter((child) => child.checked).length;
     return {
       checked: checkedLength === items.length,
       partialChecked: checkedLength && checkedLength !== items.length,
     };
   }
-  
-  private recursive(items: TreeItem[], beforeChildren: (item: TreeItem, prev) => unknown, prev = null) {
-    items?.forEach(item => {
+
+  private recursive(
+    items: TreeItem[],
+    beforeChildren: (item: TreeItem, prev) => unknown,
+    prev = null,
+  ) {
+    items?.forEach((item) => {
       const previous = beforeChildren(item, prev);
       if (item.children?.length) {
         this.recursive(item.children, beforeChildren, previous);
       }
     });
   }
-  
-  private onChange(value: string[]) {
-  }
-  
-  private onTouched() {
-  }
-  
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
+
+  private onChange(value: string[]) {}
+
+  private onTouched() {}
 }

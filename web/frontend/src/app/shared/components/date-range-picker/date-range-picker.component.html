@@ -1,12 +1,18 @@
 <div class="date-range">
   <app-btn-date-picker
-    [minDate]="minDate"
-    [maxDate]="endControl.value"
-    [formControl]="startControl"
+      (valueChange)="onStartValueChanged($event)"
+      [formControl]="startControl"
+      [maxDate]="endControl.value"
+      [minDate]="minDate"
+      [clearBtn]="clearBtn"
+      [timeZone]="selectedTimezone$ | async"
   ></app-btn-date-picker>
   <app-btn-date-picker
-    [minDate]="startControl.value"
-    [maxDate]="maxDate"
-    [formControl]="endControl"
+      (valueChange)="onEndValueChanged($event)"
+      [formControl]="endControl"
+      [maxDate]="maxDate"
+      [minDate]="startControl.value"
+      [timeZone]="selectedTimezone$ | async"
+      [clearBtn]="clearBtn"
   ></app-btn-date-picker>
 </div>

@@ -16,7 +16,9 @@
  */
 package com.epam.deltix.computations.data.base.numeric;
 
-import com.epam.deltix.dfp.*;
+import com.epam.deltix.dfp.Decimal;
+import com.epam.deltix.dfp.Decimal64;
+import com.epam.deltix.dfp.Decimal64Utils;
 
 public interface DecimalValueInfo extends NumberValueInfo {
 

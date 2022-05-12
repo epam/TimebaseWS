@@ -1,0 +1,21 @@
+@import '../variables';
+
+.dropdown-menu.common-dropdown {
+  padding: 0;
+  max-height: calc(100vh - #{75 * $ss});
+  overflow: auto;
+
+  .dropdown-item {
+    padding: 7px 5 * $ss;
+
+    &:hover {
+      background-color: $blue;
+      color: $white;
+    }
+
+    a {
+      display: block;
+      font-size: 13px;
+    }
+  }
+}

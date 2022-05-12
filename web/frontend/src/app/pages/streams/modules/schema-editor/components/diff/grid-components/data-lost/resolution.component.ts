@@ -1,18 +1,18 @@
-import { Component, OnDestroy, ViewChild } from '@angular/core';
-import { FormBuilder, FormGroup }          from '@angular/forms';
-import { select, Store }                   from '@ngrx/store';
-import { TranslateService }                from '@ngx-translate/core';
-import { ICellRendererAngularComp }        from 'ag-grid-angular';
-import { ICellRendererParams }             from 'ag-grid-community';
-import { Subject }                         from 'rxjs';
-import { take, takeUntil, withLatestFrom } from 'rxjs/operators';
-import { AppState }                        from '../../../../../../../../core/store';
-import { SchemaClassTypeModel }            from '../../../../../../../../shared/models/schema.class.type.model';
-import { DynamicFormBuilderComponent }     from '../../../../../../../../shared/utils/dynamic-form-builder/dynamic-form-builder.component';
-import { FieldModel }                      from '../../../../../../../../shared/utils/dynamic-form-builder/field-builder/field-model';
-import { AddChangedValues }                from '../../../../store/schema-editor.actions';
-import { getDDTypesNames, getEnums }       from '../../../../store/schema-editor.selectors';
-import { GridRowDataModel }                from '../../grid/grid.component';
+import {Component, OnDestroy, ViewChild} from '@angular/core';
+import {FormBuilder, FormGroup} from '@angular/forms';
+import {select, Store} from '@ngrx/store';
+import {TranslateService} from '@ngx-translate/core';
+import {ICellRendererAngularComp} from 'ag-grid-angular';
+import {ICellRendererParams} from 'ag-grid-community';
+import {Subject} from 'rxjs';
+import {take, takeUntil, withLatestFrom} from 'rxjs/operators';
+import {AppState} from '../../../../../../../../core/store';
+import {SchemaClassTypeModel} from '../../../../../../../../shared/models/schema.class.type.model';
+import {DynamicFormBuilderComponent} from '../../../../../../../../shared/utils/dynamic-form-builder/dynamic-form-builder.component';
+import {FieldModel} from '../../../../../../../../shared/utils/dynamic-form-builder/field-builder/field-model';
+import {AddChangedValues} from '../../../../store/schema-editor.actions';
+import {getDDTypesNames, getEnums} from '../../../../store/schema-editor.selectors';
+import {GridRowDataModel} from '../../grid/grid.component';
 
 @Component({
   selector: 'app-diff-grid-resolution',
@@ -20,7 +20,6 @@ import { GridRowDataModel }                from '../../grid/grid.component';
   styleUrls: ['./resolution.component.scss'],
 })
 export class ResolutionComponent implements ICellRendererAngularComp, OnDestroy {
-  private destroy$ = new Subject();
   public inputState: {
     available: boolean;
     value?: null;
@@ -28,19 +27,20 @@ export class ResolutionComponent implements ICellRendererAngularComp, OnDestroy 
     available: false,
   };
   public data: GridRowDataModel;
-
-  @ViewChild('formBuilder', {
-    read: DynamicFormBuilderComponent,
-  }) private formBuilder: DynamicFormBuilderComponent;
   public dataForm: FormGroup;
   public fields: FieldModel[] = [];
   public isNewForm: boolean;
   public defaultValueForm: FormGroup;
+  private destroy$ = new Subject();
+  @ViewChild('formBuilder', {
+    read: DynamicFormBuilderComponent,
+  })
+  private formBuilder: DynamicFormBuilderComponent;
   private last_field_data;
 
   private storeData: {
     enums: SchemaClassTypeModel[];
-    messages: { [key: string]: string };
+    messages: {[key: string]: string};
     typesNames: string[];
   };
 
@@ -48,7 +48,7 @@ export class ResolutionComponent implements ICellRendererAngularComp, OnDestroy 
     private appStore: Store<AppState>,
     private fb: FormBuilder,
     private translate: TranslateService,
-  ) { }
+  ) {}
 
   agInit(params: ICellRendererParams): void {
     this.data = params.data;
@@ -68,7 +68,89 @@ export class ResolutionComponent implements ICellRendererAngularComp, OnDestroy 
         };
         this.generateForm();
       });
+  }
 
+  public onFormChanged() {
+    if (this.isNewForm) {
+      this.isNewForm = false;
+      return;
+    }
+    const FORM_VALUE = this.dataForm.value;
+    const REBUILD = this.ifNeedToRebuildForm(FORM_VALUE);
+    if (REBUILD) {
+      this.last_field_data = FORM_VALUE;
+      this.rebuildForm(FORM_VALUE);
+    }
+    if (this.dataForm && this.dataForm.valid) {
+      this.onSetNewVal();
+    }
+  }
+
+  public ifDataLoss() {
+    return this.ifDataError() && this.data.resolution === 'DataLoss';
+  }
+
+  public ifDataError() {
+    return this.data && this.data._props && this.data._props.hasErrors;
+  }
+
+  public ifDefaultValueRequired() {
+    return this.ifDataError() && this.data._props.defaultValueRequired && !this.ifDataLoss();
+  }
+
+  public getCBName(data) {
+    return (data.groupName + data.name).replace('.', '_');
+  }
+
+  public onSetCBValue(event, ifSetValue?) {
+    if (!ifSetValue) {
+      this.appStore.dispatch(
+        AddChangedValues({
+          groupName: this.data.groupName,
+          name: this.data.name,
+          value: null,
+        }),
+      );
+      this.dataForm.reset({
+        newValCB: false,
+        newValInput: {
+          value: null,
+          disabled: true,
+        },
+      });
+    } else {
+      this.dataForm.get('newValInput').enable();
+    }
+  }
+
+  public onSetNewVal() {
+    const FORM_VALUE = this.dataForm.value;
+    if (this.ifDataLoss()) {
+      this.appStore.dispatch(
+        AddChangedValues({
+          groupName: this.data.groupName,
+          name: this.data.name,
+          value: !FORM_VALUE.drop ? FORM_VALUE.setVal : undefined,
+        }),
+      );
+    } else if (this.ifDefaultValueRequired()) {
+      this.appStore.dispatch(
+        AddChangedValues({
+          groupName: this.data.groupName,
+          name: this.data.name,
+          value: FORM_VALUE.setVal,
+        }),
+      );
+    }
+  }
+
+  refresh(params: any): boolean {
+    return false;
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next(true);
+    this.destroy$.complete();
   }
 
   private generateForm(formValues?) {
@@ -91,11 +173,9 @@ export class ResolutionComponent implements ICellRendererAngularComp, OnDestroy 
         drop: formValues ? formValues.drop : true,
         setVal: '',
       };
-
     }
     if (this.ifDefaultValueRequired()) {
       this.fields = [this.getInputControl()];
-
     }
   }
 
@@ -103,13 +183,17 @@ export class ResolutionComponent implements ICellRendererAngularComp, OnDestroy 
     const CONTROL: FieldModel = {
         type: 'text',
         name: 'setVal',
-        label: this.ifDataLoss() ? this.storeData.messages.setVal : this.ifDefaultValueRequired() ? this.storeData.messages.defVal : this.storeData.messages.val,
+        label: this.ifDataLoss()
+          ? this.storeData.messages.setVal
+          : this.ifDefaultValueRequired()
+          ? this.storeData.messages.defVal
+          : this.storeData.messages.val,
         value: '',
         required: false,
         default: '',
       },
       CURRENT_TYPE_NAME = this.data._props.dataType.name,
-      CURRENT_ENUM = this.storeData.enums.find(_enum => (_enum.name === CURRENT_TYPE_NAME));
+      CURRENT_ENUM = this.storeData.enums.find((_enum) => _enum.name === CURRENT_TYPE_NAME);
 
     if (disabled) {
       CONTROL.disabled = disabled;
@@ -122,10 +206,14 @@ export class ResolutionComponent implements ICellRendererAngularComp, OnDestroy 
       case 'BOOLEAN':
         CONTROL.type = 'dropdown';
         CONTROL.values = [
-          ...(this.data && this.data._props && this.data._props.nullable ? [{
-            value: null,
-            label: 'null',
-          }] : []),
+          ...(this.data && this.data._props && this.data._props.nullable
+            ? [
+                {
+                  value: null,
+                  label: 'null',
+                },
+              ]
+            : []),
           {
             value: true,
             label: 'true',
@@ -133,7 +221,8 @@ export class ResolutionComponent implements ICellRendererAngularComp, OnDestroy 
           {
             value: false,
             label: 'false',
-          }];
+          },
+        ];
 
         break;
       case 'CHAR': //
@@ -158,14 +247,19 @@ export class ResolutionComponent implements ICellRendererAngularComp, OnDestroy 
         if (CURRENT_ENUM) {
           CONTROL.type = 'dropdown';
           CONTROL.values = [
-            ...(this.data && this.data._props && this.data._props.nullable ? [{
-              value: null,
-              label: 'null',
-            }] : []),
-            ...CURRENT_ENUM.fields.map(field => ({
+            ...(this.data && this.data._props && this.data._props.nullable
+              ? [
+                  {
+                    value: null,
+                    label: 'null',
+                  },
+                ]
+              : []),
+            ...CURRENT_ENUM.fields.map((field) => ({
               value: field.name,
               label: field.name,
-            }))];
+            })),
+          ];
         }
         break;
     }
@@ -178,22 +272,6 @@ export class ResolutionComponent implements ICellRendererAngularComp, OnDestroy 
     }
 
     return CONTROL;
-  }
-
-  public onFormChanged() {
-    if (this.isNewForm) {
-      this.isNewForm = false;
-      return;
-    }
-    const FORM_VALUE = this.dataForm.value;
-    const REBUILD = this.ifNeedToRebuildForm(FORM_VALUE);
-    if (REBUILD) {
-      this.last_field_data = FORM_VALUE;
-      this.rebuildForm(FORM_VALUE);
-    }
-    if (this.dataForm && this.dataForm.valid) {
-      this.onSetNewVal();
-    }
   }
 
   private rebuildForm(formValue) {
@@ -216,66 +294,4 @@ export class ResolutionComponent implements ICellRendererAngularComp, OnDestroy 
     }
     return false;
   }
-
-  public ifDataLoss() {
-    return this.ifDataError() && this.data.resolution === 'DataLoss';
-  }
-
-  public ifDataError() {
-    return this.data && this.data._props && this.data._props.hasErrors;
-  }
-
-  public ifDefaultValueRequired() {
-    return this.ifDataError() && this.data._props.defaultValueRequired && !this.ifDataLoss();
-  }
-
-  public getCBName(data) {
-    return (data.groupName + data.name).replace('.', '_');
-  }
-
-  public onSetCBValue(event, ifSetValue?) {
-    if (!ifSetValue) {
-      this.appStore.dispatch(AddChangedValues({
-        groupName: this.data.groupName,
-        name: this.data.name,
-        value: null,
-      }));
-      this.dataForm.reset({
-        newValCB: false,
-        newValInput: {
-          value: null,
-          disabled: true,
-        },
-      });
-    } else {
-      this.dataForm.get('newValInput').enable();
-    }
-  }
-
-  public onSetNewVal() {
-    const FORM_VALUE = this.dataForm.value;
-    if (this.ifDataLoss()) {
-      this.appStore.dispatch(AddChangedValues({
-        groupName: this.data.groupName,
-        name: this.data.name,
-        value: !FORM_VALUE.drop ? FORM_VALUE.setVal : undefined,
-      }));
-    } else if (this.ifDefaultValueRequired()) {
-      this.appStore.dispatch(AddChangedValues({
-        groupName: this.data.groupName,
-        name: this.data.name,
-        value: FORM_VALUE.setVal,
-      }));
-    }
-  }
-
-  refresh(params: any): boolean {
-    return false;
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next(true);
-    this.destroy$.complete();
-  }
-
 }

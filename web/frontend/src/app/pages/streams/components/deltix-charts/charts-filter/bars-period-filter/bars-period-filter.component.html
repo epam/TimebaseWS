@@ -1,0 +1,12 @@
+<deltix-ng-autocomplete
+    *ngIf="values$ | async as values"
+    (changeInput)="onChangeInput($event)"
+    (keydown.enter)="apply()"
+    (selectItem)="apply($event)"
+    [formControl]="control"
+    [free]="true"
+    [values]="values"
+    (focusout)="onFocusOut()"
+    [cssClass]="cssClass"
+    required="true"
+></deltix-ng-autocomplete>

@@ -1,0 +1,18 @@
+{
+  "name": "@deltix/hd.components-order-grid-common",
+  "version": "4.18.0",
+  "main": "./index.umd.js",
+  "module": "./index.esm.js",
+  "typings": "./index.d.ts",
+  "dependencies": {
+    "@deltix/hd.components-common": "4.18.0",
+    "big.js": "^6.1.1",
+    "@deltix/hd.components-order-book": "4.18.0",
+    "@deltix/hd.components-utils": "4.18.0",
+    "redux": "^4.1.2",
+    "rxjs": "^6.6.3",
+    "redux-observable": "^1.2.0",
+    "@deltix/decimal-utils": "^0.5.0"
+  },
+  "peerDependencies": {}
+}

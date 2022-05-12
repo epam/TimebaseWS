@@ -1,0 +1,16 @@
+{
+  "name": "@deltix/hd.components-trade-history-common",
+  "version": "4.18.0",
+  "main": "./index.umd.js",
+  "module": "./index.esm.js",
+  "typings": "./index.d.ts",
+  "dependencies": {
+    "@deltix/hd.components-order-book": "4.18.0",
+    "big.js": "^6.1.1",
+    "@deltix/decimal-utils": "^0.5.0",
+    "@deltix/hd.components-utils": "4.18.0",
+    "redux": "^4.1.2",
+    "rxjs": "^6.6.3"
+  },
+  "peerDependencies": {}
+}

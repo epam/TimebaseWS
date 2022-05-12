@@ -1,28 +1,44 @@
 <div class="login-widow-container d-flex justify-content-center align-items-center">
   <section *ngIf="showForm$ | async" class="login-widow">
-    <app-logo [height]="50" ></app-logo>
+    <app-logo [height]="50"></app-logo>
     <div class="window-content">
-      <form class="form-horizontal" id="loginForm" (submit)="login()">
+      <form (submit)="login()" class="form-horizontal" id="loginForm">
         <div class="controlWr">
           <label class="btn control-label" for="usernameInput">
-            {{'forms.login.username' | translate}}
+            {{ 'forms.login.username' | translate }}
           </label>
-          <input class="btn input-control" type="text" id="usernameInput" name="username" [(ngModel)]="username" #usernameInput />
+          <input
+              #usernameInput
+              [(ngModel)]="username"
+              class="btn input-control"
+              id="usernameInput"
+              name="username"
+              type="text" />
         </div>
         <div class="controlWr">
           <label class="btn control-label" for="passwordInput">
-            {{'forms.login.password' | translate}}
+            {{ 'forms.login.password' | translate }}
           </label>
-          <input class="btn input-control" type="password" id="passwordInput" name="password" [(ngModel)]="password" #passwordInput />
+          <input
+              #passwordInput
+              [(ngModel)]="password"
+              class="btn input-control"
+              id="passwordInput"
+              name="password"
+              type="password" />
         </div>
       </form>
     </div>
     <footer class="window-footer">
-      <button class="btn btn-primary btn-round" type="submit" form="loginForm" [disabled]="!isValid()">
+      <button
+          [disabled]="!isValid()"
+          class="btn btn-primary btn-round"
+          form="loginForm"
+          type="submit">
         <span class="glyphicon glyphicon-log-in"></span>
-        <span class="button-text">{{'buttons.login' | translate}}</span>
+        <span class="button-text">{{ 'buttons.login' | translate }}</span>
       </button>
     </footer>
-    <div *ngIf="version$ | async as version" class="version" >{{ version }}</div>
+    <div *ngIf="version$ | async as version" class="version">{{ version }}</div>
   </section>
 </div>

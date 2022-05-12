@@ -1,7 +1,7 @@
-import { Action }                                           from '@ngrx/store';
-import { AuthProviderModel }                                from '../../../models/auth-provider.model';
-import { CustomTokenResponseModel }                         from '../../../models/customToken-response.model';
-import { AuthorizationServiceConfiguration, TokenResponse } from '@openid/appauth';
+import {Action} from '@ngrx/store';
+import {AuthorizationServiceConfiguration, TokenResponse} from '@openid/appauth';
+import {AuthProviderModel} from '../../../models/auth-provider.model';
+import {CustomTokenResponseModel} from '../../../models/customToken-response.model';
 
 export enum AuthActionTypes {
   GET_AUTH_PROVIDER_INFO = '[Auth] Get Auth Provider Info',
@@ -33,15 +33,16 @@ export class GetAuthProviderInfo implements Action {
 export class SetAuthProviderSettings implements Action {
   readonly type = AuthActionTypes.SET_AUTH_PROVIDER_SETTINGS;
 
-  constructor(public payload: {
-    settings: AuthProviderModel,
-  }) {}
+  constructor(
+    public payload: {
+      settings: AuthProviderModel;
+    },
+  ) {}
 }
 
 export class StartAuthProcess implements Action {
   readonly type = AuthActionTypes.START_AUTH_PROCESS;
 }
-
 
 export abstract class SsoConfigDependentAction implements Action {
   public readonly type: string;
@@ -55,9 +56,11 @@ export class SilentUpdateToken implements Action {
 export class LoadSSOConfiguration extends SsoConfigDependentAction {
   readonly type = AuthActionTypes.LOAD_SSO_CONFIGURATION;
 
-  constructor(public payload: {
-    provider: string,
-  }) {
+  constructor(
+    public payload: {
+      provider: string;
+    },
+  ) {
     super();
   }
 }
@@ -65,10 +68,11 @@ export class LoadSSOConfiguration extends SsoConfigDependentAction {
 export class SaveSSOConfig implements Action {
   readonly type = AuthActionTypes.SAVE_SSO_CONFIG;
 
-  constructor(public payload: {
-    configuration: AuthorizationServiceConfiguration,
-  }) {
-  }
+  constructor(
+    public payload: {
+      configuration: AuthorizationServiceConfiguration;
+    },
+  ) {}
 }
 
 export class SilentUpdateSSOToken extends SsoConfigDependentAction {
@@ -79,7 +83,7 @@ export class SilentUpdateSSOToken extends SsoConfigDependentAction {
   }
 }
 
-export class RedirectToAuthProvider extends SsoConfigDependentAction/* implements Action*/ {
+export class RedirectToAuthProvider extends SsoConfigDependentAction /* implements Action*/ {
   readonly type = AuthActionTypes.REDIRECT_TO_AUTH_PROVIDER;
 
   constructor() {
@@ -114,18 +118,22 @@ export class InitialiseToken implements Action {
 export class TryLogIn implements Action {
   readonly type = AuthActionTypes.TRY_LOGIN;
 
-  constructor(public payload: {
-    password: string,
-    username: string,
-  }) {}
+  constructor(
+    public payload: {
+      password: string;
+      username: string;
+    },
+  ) {}
 }
 
 export class LogIn implements Action {
   readonly type = AuthActionTypes.LOGIN;
 
-  constructor(public payload: {
-    tokenResponse: TokenResponse | CustomTokenResponseModel,
-  }) {}
+  constructor(
+    public payload: {
+      tokenResponse: TokenResponse | CustomTokenResponseModel;
+    },
+  ) {}
 }
 
 export class LogOut implements Action {
@@ -133,19 +141,18 @@ export class LogOut implements Action {
 }
 
 export type AuthActions =
-  GetAuthProviderInfo |
-  SetAuthProviderSettings |
-  StartAuthProcess |
-  SilentUpdateToken |
-  SilentUpdateSSOToken |
-  SilentUpdateCustomToken |
-  InitialiseToken |
+  | GetAuthProviderInfo
+  | SetAuthProviderSettings
+  | StartAuthProcess
+  | SilentUpdateToken
+  | SilentUpdateSSOToken
+  | SilentUpdateCustomToken
+  | InitialiseToken
   // SetAccessToken |
-  LoadSSOConfiguration |
-  SaveSSOConfig |
-  RedirectToAuthProvider |
-  ProcessSingInRedirect |
-  TryLogIn |
-  LogIn |
-  LogOut
-  ;
+  | LoadSSOConfiguration
+  | SaveSSOConfig
+  | RedirectToAuthProvider
+  | ProcessSingInRedirect
+  | TryLogIn
+  | LogIn
+  | LogOut;

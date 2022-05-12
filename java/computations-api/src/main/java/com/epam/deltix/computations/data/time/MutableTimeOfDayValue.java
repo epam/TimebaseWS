@@ -16,7 +16,7 @@
  */
 package com.epam.deltix.computations.data.time;
 
-import com.epam.deltix.util.annotations.TimeOfDay;
+import com.epam.deltix.computations.data.base.annotations.TimeOfDay;
 import com.epam.deltix.computations.data.base.time.MutableTimeOfDayValueInfo;
 
 public class MutableTimeOfDayValue implements MutableTimeOfDayValueInfo {

@@ -1,74 +1,69 @@
-import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
-import { Router }                                   from '@angular/router';
-import { select, Store }                            from '@ngrx/store';
-import { TranslateService }                         from '@ngx-translate/core';
-import { BsModalRef, BsModalService }               from 'ngx-bootstrap';
-import { ContextMenuComponent, ContextMenuService } from 'ngx-contextmenu';
-import { PerfectScrollbarConfigInterface }          from 'ngx-perfect-scrollbar';
-import { Observable, Subject }                      from 'rxjs';
-import { filter, map, take, takeUntil }             from 'rxjs/operators';
-import { AppState }                                 from '../../../../core/store';
-import { getAppInfo }                               from '../../../../core/store/app/app.selectors';
-import { AppInfoModel }                             from '../../../../shared/models/app.info.model';
-import { GlobalResizeService }                      from '../../../../shared/services/global-resize.service';
-import { appRoute }                                 from '../../../../shared/utils/routes.names';
-import { uniqueName }                               from '../../../../shared/utils/validators';
-import { SpaceModel, StreamModel }                  from '../../models/stream.model';
-
+import {CdkVirtualScrollViewport} from '@angular/cdk/scrolling';
+import {ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {FormBuilder, FormControl} from '@angular/forms';
+import {Router} from '@angular/router';
+import {select, Store} from '@ngrx/store';
+import {StorageMap} from '@ngx-pwa/local-storage';
+import {TranslateService} from '@ngx-translate/core';
+import {BsModalService} from 'ngx-bootstrap/modal';
+import {TooltipDirective} from 'ngx-bootstrap/tooltip';
+import {ContextMenuService} from 'ngx-contextmenu';
+import {Observable, Subject} from 'rxjs';
+import {
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  map,
+  mapTo,
+  switchMap,
+  take,
+  takeUntil,
+  tap,
+} from 'rxjs/operators';
+import {AppState} from '../../../../core/store';
+import {getAppInfo} from '../../../../core/store/app/app.selectors';
+import {AppInfoModel} from '../../../../shared/models/app.info.model';
+import {MenuItem, MenuItemType} from '../../../../shared/models/menu-item';
+import {GlobalResizeService} from '../../../../shared/services/global-resize.service';
+import {MenuItemsService} from '../../../../shared/services/menu-items.service';
+import {PermissionsService} from '../../../../shared/services/permissions.service';
+import {StreamModel} from '../../models/stream.model';
+import {StreamsStateModel} from '../../models/streams.state.model';
+import {StreamRenameService} from '../../services/stream-rename.service';
+import {StreamUpdatesService} from '../../services/stream-updates.service';
 import * as StreamsActions from '../../store/streams-list/streams.actions';
 import * as fromStreams from '../../store/streams-list/streams.reducer';
-import { getStreamsList, streamsListStateSelector } from '../../store/streams-list/streams.selectors';
-import { getActiveOrFirstTab } from '../../store/streams-tabs/streams-tabs.selectors';
-import { ModalDescribeComponent } from '../modals/modal-describe/modal-describe.component';
-import { ModalPurgeComponent } from '../modals/modal-purge/modal-purge.component';
-import { ModalRenameComponent } from '../modals/modal-rename/modal-rename.component';
-import { ModalSendMessageComponent } from '../modals/modal-send-message/modal-send-message.component';
-import { ModalTruncateComponent } from '../modals/modal-truncate/modal-truncate.component';
-import { ModalExportFileComponent } from '../modals/modal-export-file/modal-export-file.component';
-import { ExportFilterFormat } from '../../../../shared/models/export-filter';
-import { ModalImportFileComponent } from '../modals/modal-import-file/modal-import-file.component';
+import {getActiveOrFirstTab} from '../../store/streams-tabs/streams-tabs.selectors';
+import {StreamsNavigationService} from '../../streams-navigation/streams-navigation.service';
+import {CreateStreamModalComponent} from '../modals/create-stream-modal/create-stream-modal.component';
+import {ModalImportFileComponent} from '../modals/modal-import-file/modal-import-file.component';
 
 @Component({
   selector: 'app-streams-list',
   templateUrl: './streams-list.component.html',
   styleUrls: ['./streams-list.component.scss'],
-  // changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class StreamsListComponent implements OnInit, OnDestroy, AfterViewInit {
-  // @ViewChild(ContextMenuComponent, {static: true}) public basicMenu: ContextMenuComponent;
-  @ViewChild('modalTemplate', { static: true }) modalTemplate;
+export class StreamsListComponent implements OnInit, OnDestroy {
+  @ViewChild('modalTemplate', {static: true}) modalTemplate;
+  @ViewChild('createStreamModalTemplate', {static: true}) createStreamModalTemplate;
+  @ViewChild(CdkVirtualScrollViewport, {static: true}) virtualScroll: CdkVirtualScrollViewport;
 
-  public createStreamModalRef: BsModalRef;
-  public createStreamForm: FormGroup;
-  @ViewChild('createStreamModalTemplate', { static: true }) createStreamModalTemplate;
-
-
-  @ViewChild('listMenu', { static: true }) public listMenu: ContextMenuComponent;
-  @ViewChild('streamsMenu', { static: true }) public streamsMenu: ContextMenuComponent;
-
-  public deleteModalRef: BsModalRef;
-  public deleteModalData: { stream: StreamModel, space?: SpaceModel };
-  public activeTabType: string;
-
-  public appRoute = appRoute;
-  public menusmall = false;
-  public streams: StreamModel[];
-  public showClear: boolean;
-  private expandArray = [];
-  public openedSymbolsListStream: StreamModel;
-  public streamsState: Observable<fromStreams.State>;
-  public appInfo: Observable<AppInfoModel>;
-  public loader: boolean;
-  public loaderInit: boolean;
-  public config: PerfectScrollbarConfigInterface = {};
+  activeTabType: string;
+  menuSmall = false;
+  streams: StreamModel[];
+  showClear: boolean;
+  openedSymbolsListStream: StreamModel;
+  appInfo: Observable<AppInfoModel>;
+  menuLoaded = false;
+  searchControl = new FormControl('');
+  showSpaces: boolean;
+  menu: MenuItem[];
+  flatMenu: MenuItem[];
+  isWriter$: Observable<boolean>;
+  @ViewChild('showSpacesBtn', {read: TooltipDirective}) private showSpacesBtn: TooltipDirective;
   private destroy$ = new Subject<any>();
-  public searchForm: FormGroup;
-  public streamsListOptionsForm: FormGroup;
-  private bsModalRef: BsModalRef;
 
   constructor(
-    private streamsStore: Store<fromStreams.FeatureState>,
     private contextMenuService: ContextMenuService,
     private modalService: BsModalService,
     private fb: FormBuilder,
@@ -76,165 +71,168 @@ export class StreamsListComponent implements OnInit, OnDestroy, AfterViewInit {
     private appStore: Store<AppState>,
     private router: Router,
     private globalResizeService: GlobalResizeService,
-  ) {
-  }
+    private menuItemsService: MenuItemsService,
+    private cdRef: ChangeDetectorRef,
+    private storage: StorageMap,
+    private streamUpdatesService: StreamUpdatesService,
+    private streamsStore: Store<fromStreams.FeatureState>,
+    private spaceRenameService: StreamRenameService,
+    private permissionsService: PermissionsService,
+    private streamsNavigationService: StreamsNavigationService,
+  ) {}
 
   ngOnInit() {
-    this.menusmall = !JSON.parse(localStorage.getItem('toggleMenu'));
-    this.toggleMenu();
     this.streamsStore.dispatch(new StreamsActions.GetStreams({}));
     this.streamsStore.dispatch(new StreamsActions.AddStreamStatesSubscription());
-    this.streamsState = this.streamsStore.pipe(select(streamsListStateSelector));
-    this.loaderInit = true;
+    this.isWriter$ = this.permissionsService.isWriter();
+
     this.appInfo = this.appStore.pipe(select(getAppInfo));
-
-    if (!this.streamsListOptionsForm) {
-      this.streamsListOptionsForm = this.fb.group({
-        'openNewTab': new FormControl(),
-        'showSpaces': new FormControl(),
-      });
-    }
-
     this.appStore
-      .pipe(
-        select(getActiveOrFirstTab),
-        // filter((activeTab: TabModel) => !!(activeTab && activeTab.type)),
-        takeUntil(this.destroy$),
-      )
-      .subscribe(activeTab => {
-        if (activeTab && activeTab.type) {
-          this.activeTabType = activeTab.type;
-        } else {
-          this.activeTabType = null;
-        }
+      .pipe(select(getActiveOrFirstTab), takeUntil(this.destroy$))
+      .subscribe((activeTab) => {
+        this.activeTabType = activeTab?.type || null;
       });
 
-    this.streamsState.pipe(
-      map(data => data.streams),
-      takeUntil(this.destroy$),
-    ).subscribe((streams) => {
-      if (!this.searchForm) {
-        this.searchForm = this.fb.group({
-          'search': new FormControl(),
-        });
-      }
+    this.searchControl.valueChanges
+      .pipe(
+        takeUntil(this.destroy$),
+        debounceTime(300),
+        map((value) => value?.trim()),
+        distinctUntilChanged(),
+        switchMap((value) => this.updateStorageItem('search', value)),
+        switchMap(() => this.freshMenu()),
+      )
+      .subscribe();
 
+    this.getStorage()
+      .pipe(
+        tap((storage) => {
+          this.menuSmall = !storage.menuSmall;
+          this.toggleMenu();
+          this.showSpaces = storage.showSpaces;
+          this.searchControl.patchValue(storage.search);
+          this.cdRef.detectChanges();
+        }),
+        switchMap(() => this.freshMenu()),
+        catchError(() => {
+          return this.updatePath(() => []).pipe(switchMap(() => this.freshMenu()));
+        }),
+      )
+      .subscribe(() => this.scrollToActiveMenu());
 
-      if (streams && streams.length) {
-        this.loaderInit = false;
-        this.streams = [...streams];
-        if (this.streams.find(stream => stream._shown)) {
-          this.loader = false;
+    this.streamUpdatesService
+      .onUpdates()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((event: StreamsStateModel) => {
+        if (event.renamed.length) {
+          event.renamed.forEach((data) => this.onStreamRenamed(data.oldName, data.newName));
         }
-        this.expandArray = this.streams.filter(stream => stream._shown);
-      } else if (streams && !streams.length) {
-        this.loaderInit = false;
-        this.loader = false;
-      }
-    });
-    const openNewTab = JSON.parse(localStorage.getItem('openNewTab'));
-    if (openNewTab) {
-      this.streamsListOptionsForm.get('openNewTab').setValue(openNewTab);
-      this.streamsStore.dispatch(new StreamsActions.SetNavigationState({ _openNewTab: openNewTab }));
-    }
-    const showSpaces = JSON.parse(localStorage.getItem('showSpaces'));
-    if (showSpaces) {
-      this.streamsListOptionsForm.get('showSpaces').setValue(showSpaces);
-      this.streamsStore.dispatch(new StreamsActions.SetNavigationState({ _showSpaces: showSpaces }));
-    }
+
+        if (event.added.length) {
+          this.onStreamAdded();
+        }
+
+        if (event.deleted.length) {
+          this.onStreamDeleted(event.deleted as string[]);
+        }
+
+        if (event.changed.length) {
+          this.onStreamChanged();
+        }
+
+        this.menuItemsService.clearCache();
+      });
+
+    this.spaceRenameService
+      .onSpaceRenamed()
+      .pipe(
+        takeUntil(this.destroy$),
+        switchMap(({streamId, oldName, newName}) => {
+          let spacePath = null;
+          const oldNameEncoded = encodeURIComponent(oldName);
+          const newNameEncoded = encodeURIComponent(newName);
+
+          this.recursiveMenu((item, path) => {
+            if (
+              item.meta.stream?.id === streamId &&
+              item.type === MenuItemType.space &&
+              item.id === oldName
+            ) {
+              item.id = item.name = newName;
+              spacePath = path;
+            }
+          });
+
+          this.addMeta();
+          this.makeFlatMenu();
+
+          const newPath =
+            spacePath.substr(0, spacePath.length - oldNameEncoded.length) + newNameEncoded;
+          return this.updatePath((paths) =>
+            paths.map((path) =>
+              path.startsWith(spacePath) ? newPath + path.substr(spacePath.length) : path,
+            ),
+          );
+        }),
+      )
+      .subscribe(() => this.cdRef.detectChanges());
   }
 
-  private forbiddenNames() {
-    return uniqueName(
-      this.appStore.pipe(
-        select(getStreamsList),
-        take(1),
-        map(streams => streams.map(stream => stream.key)),
-      ),
+  freshMenu(cache = true): Observable<null> {
+    this.recursiveMenu((item) => {
+      item.children = [];
+    });
+
+    return this.getStoragePaths().pipe(
+      switchMap((paths) => this.getItems(paths.concat(['/']), cache)),
+      take(1),
+      tap((menuItem) => {
+        this.menu = menuItem.children;
+        this.menuLoaded = true;
+        this.addMeta();
+        this.makeFlatMenu();
+        this.cdRef.detectChanges();
+      }),
+      mapTo(null),
     );
   }
 
-  public ifCreateStreamFormError() {
-    const CONTROL = this.createStreamForm.get('key');
-    return CONTROL && CONTROL.invalid && !CONTROL.pristine;
-  }
+  toggleMenuItem(menuItem: MenuItem, path: string[]) {
+    const open = !menuItem.children.length;
+    const fullPath = path.concat(menuItem.id).map((path) => encodeURIComponent(path));
+    const pathString = `/${fullPath.join('/')}`;
 
-  public ifCreateStreamFormKeyForbidden() {
-    return this.createStreamForm.get('key').hasError('nameIsForbidden');
-  }
-
-  getChilds(event: MouseEvent, stream: StreamModel, space?: SpaceModel) {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    event.stopPropagation();
-
-    this.getChildsHandler(stream, space);
-  }
-
-  getChildsHandler(stream: StreamModel, space?: SpaceModel) {
-    this.onCloseContextMenu();
-    const searchInputVal = this.searchForm.get('search').value;
-    const spacesViewMode = this.streamsListOptionsForm.get('showSpaces').value;
-    
-    const object = space || stream;
-    let objectHasViewData;
-    
-    if (space) {
-      objectHasViewData = !!space?._symbolsList?.length;
-    } else {
-      objectHasViewData = !!(!spacesViewMode && stream._symbolsList?.length) ||
-      !!(spacesViewMode && stream._spacesList?.length);
-    }
-
-    const toggleDropdown = (state: boolean) => {
-      this.streamsStore.dispatch(new StreamsActions.SetStreamState({
-        ...(space ? { spaceName: space.name } : {}),
-        stream: stream, props: { _shown: state },
-      }));
-    };
-    
-    if (object._shown) {
-      toggleDropdown(false);
+    if (!open) {
+      menuItem.original.children = [];
+      this.updatePath((paths) => paths.filter((path) => !path.startsWith(pathString))).subscribe();
+      this.addMeta();
+      this.makeFlatMenu();
       return;
     }
 
-    if (objectHasViewData) {
-      toggleDropdown(true);
-      return;
-    }
+    this.updatePath((paths) => {
+      paths.push(pathString);
+      return paths;
+    }).subscribe();
 
-    this.loader = true;
-
-    if (space) {
-      // Get symbols for space
-      this.streamsStore.dispatch(new StreamsActions.GetSymbols({
-        streamKey: stream.key,
-        spaceName: space.name,
-        ...(searchInputVal?.length ? { props: { _filter: searchInputVal } } : {}),
-      }));
-    } else if (spacesViewMode) {
-      // Get spaces for stream
-      this.streamsStore.dispatch(new StreamsActions.GetSpaces({
-        streamKey: stream.key,
-        props: { _filter: searchInputVal },
-      }));
-    } else {
-      // Get symbols for stream
-      this.streamsStore.dispatch(new StreamsActions.GetSymbols({
-        streamKey: stream.key,
-        ...(searchInputVal?.length ? { props: { _filter: searchInputVal } } : {}),
-      }));
-    }
-
-    this.expandArray = [];
+    this.getItems([pathString]).subscribe((responseItem) => {
+      let item = responseItem;
+      fullPath.forEach((part) => {
+        item = item?.children.find((child) => encodeURIComponent(child.id) === part);
+      });
+      menuItem.original.children = item?.children || [];
+      this.addMeta();
+      this.makeFlatMenu();
+      this.cdRef.detectChanges();
+    });
   }
 
   toggleMenu() {
-    this.menusmall = !this.menusmall;
-    localStorage.setItem('toggleMenu', JSON.stringify(this.menusmall));
-    this.globalResizeService.collapse(this.menusmall);
+    this.menuSmall = !this.menuSmall;
+    this.updateStorageItem('menuSmall', this.menuSmall).subscribe();
+    this.globalResizeService.collapse(this.menuSmall);
     const body = document.getElementsByTagName('body')[0];
-    if (this.menusmall) {
+    if (this.menuSmall) {
       body.classList.add('body-menu-small');
     } else {
       body.classList.remove('body-menu-small');
@@ -242,296 +240,263 @@ export class StreamsListComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   collapseAll() {
-    this.streamsState
-      .pipe(
-        filter(state => !!(state.streams && state.streams.length)),
-        take(1),
-        takeUntil(this.destroy$),
-      )
-      .subscribe(state => {
-        state.streams.forEach(stream => {
-          if (stream._shown) {
-            this.streamsStore.dispatch(new StreamsActions.SetStreamState({
-              stream: stream,
-              props: {
-                _shown: false,
-              },
-            }));
-          }
-        });
-      });
-  }
-
-  streamsTrack(index: number, item: StreamModel) {
-    return item.key; // or item.id
-  }
-
-  symbolsTrack(index, item) {
-    return item; // or item.id
-  }
-
-  spacesTrack(index, item) {
-    return item.name; // or item.id
-  }
-
-  onShowContextMenu($event) {
-    // debugger;
-    this.contextMenuService.show.next({
-      // Optional - if unspecified, all context menu components will open
-      contextMenu: this.streamsMenu,
-      event: $event,
-      item: undefined,
-      // item: streamProps,
+    this.recursiveMenu((item) => {
+      item.children = [];
     });
-
-    $event.preventDefault();
-    $event.stopImmediatePropagation();
-    $event.stopPropagation();
+    this.updatePath(() => []).subscribe();
+    this.addMeta();
+    this.makeFlatMenu();
+    this.cdRef.detectChanges();
   }
 
   onCloseContextMenu() {
-    this.contextMenuService.closeAllContextMenus({
-      eventType: 'cancel',
-    });
-  }
-
-  changeOpenNewTab() {
-    const openNewTab = this.streamsListOptionsForm.get('openNewTab').value;
-    this.streamsStore.dispatch(new StreamsActions.SetNavigationState({ _openNewTab: openNewTab }));
-    localStorage.setItem('openNewTab', JSON.stringify(openNewTab));
-  }
-
-  changeShowSpaces() {
-    const showSpaces = this.streamsListOptionsForm.get('showSpaces').value;
-    this.streamsStore.dispatch(new StreamsActions.SetNavigationState({ _showSpaces: showSpaces }));
-    localStorage.setItem('showSpaces', JSON.stringify(showSpaces));
-    this.streamsState
-      .pipe(
-        filter(state => !!(state.streams && state.streams.length)),
-        take(1),
-        takeUntil(this.destroy$),
-      )
-      .subscribe(state => {
-        state.streams.forEach(stream => {
-          if (stream._shown) {
-            this.getChildsHandler({
-              key: stream.key,
-              name: stream.name,
-              symbols: stream.symbols,
-              _active: stream._active,
-              _shown: false,
-            });
-          }
-        });
-      });
-  }
-
-  onSearch(event: any) {
-    if (event.keyCode === 13) {
-      this.getStreamsSearch();
-    }
-  }
-
-  getStreamsSearch() {
-    this.streamsStore.dispatch(new StreamsActions.GetStreams({
-      props: {
-        _filter: this.searchForm.get('search').value,
-        _spaces: this.streamsListOptionsForm.get('showSpaces').value
-      },
-    }));
-  }
-
-  onChangeSearch() {
-    this.showClear = !!this.searchForm.get('search').value.length;
+    this.contextMenuService.closeAllContextMenus({eventType: 'cancel'});
   }
 
   onClearSearch() {
-    this.searchForm.get('search').setValue('');
-    this.showClear = !!this.searchForm.get('search').value.length;
-    this.streamsStore.dispatch(new StreamsActions.GetStreams({}));
-  }
-
-  public checkRootSpace(space: SpaceModel) {
-    return space && typeof space.name === 'string' && !space.name.length;
-  }
-
-  public onShowTruncateModal(item: { stream: StreamModel }) {
-    if (!item?.stream?.key) return;
-
-    this.onCloseContextMenu();
-    this.translate.get('titles')
-      .pipe(
-        take(1),
-        takeUntil(this.destroy$),
-      )
-      .subscribe((/*messages*/) => {
-        const initialState = {
-          stream: item.stream,
-        };
-        
-        this.bsModalRef = this.modalService.show(ModalTruncateComponent, {
-          initialState: initialState,
-          ignoreBackdropClick: true,
-        });
-
-      });
-  }
-
-  public onShowPurgeModal(item: { stream: StreamModel }) {
-    if (!(item && item.stream && item.stream.key)) return;
-
-    const initialState = {
-      stream: item.stream,
-    };
-    this.onCloseContextMenu();
-    this.bsModalRef = this.modalService.show(ModalPurgeComponent, {
-      initialState: initialState,
-      ignoreBackdropClick: true,
-    });
-
-  }
-
-  public onShowSendMessage(item: { stream: StreamModel }) {
-    if (!(item && item.stream && item.stream.key)) return;
-
-    const initialState = {
-      stream: item.stream,
-    };
-    this.onCloseContextMenu();
-    this.bsModalRef = this.modalService.show(ModalSendMessageComponent, {
-      initialState: initialState,
-      ignoreBackdropClick: true,
-      class: 'modal-message',
-    });
-
-  }
-
-  public onAskToDeleteStream(item: { stream: StreamModel }) {
-    if (!(item && item.stream && item.stream.key)) return;
-    this.onCloseContextMenu();
-
-    this.deleteModalData = item;
-    this.deleteModalRef = this.modalService.show(this.modalTemplate, {
-      class: 'modal-small',
-    });
-  }
-
-  public onShowEditNameModal(item: { stream: StreamModel, symbol?: string, space?: SpaceModel }) {
-    if (!(item && item.stream && item.stream.key)) return;
-    this.onCloseContextMenu();
-
-    const initialState = {
-      data: item,
-    };
-
-    this.deleteModalData = item;
-    this.deleteModalRef = this.modalService.show(ModalRenameComponent, {
-      // class: 'bg-dark modal-small',
-      initialState: initialState,
-      ignoreBackdropClick: true,
-    });
-  }
-
-  public onShowDescribe(item: { stream: StreamModel }) {
-    if (!(item && item.stream && item.stream.key)) return;
-    this.onCloseContextMenu();
-
-    const initialState = {
-      stream: item.stream,
-    };
-
-    this.deleteModalData = item;
-    this.deleteModalRef = this.modalService.show(ModalDescribeComponent, {
-      // class: 'bg-dark modal-small',
-      initialState: initialState,
-      ignoreBackdropClick: true,
-    });
-  }
-
-  public onDeleteStream(deleteModalData) {
-    const stream = deleteModalData.stream as StreamModel;
-    if (!(stream && stream.key)) return;
-    this.appStore.dispatch(new StreamsActions.AskToDeleteStream({
-      streamKey: stream.key,
-      ...(deleteModalData.space ? { spaceName: deleteModalData.space.name } : {}),
-    }));
-    this.deleteModalRef.hide();
+    this.searchControl.setValue('');
   }
 
   ngOnDestroy(): void {
-    this.streamsStore.dispatch(new StreamsActions.StopStreamStatesSubscription());
     this.destroy$.next(true);
     this.destroy$.complete();
-    // document.removeEventListener('click', this.onCloseContextMenu.bind(this));
   }
 
-  ngAfterViewInit(): void {
-    // document.addEventListener('click', this.onCloseContextMenu.bind(this));
-  }
-
-  public onAskToCreateStream() {
-
-    this.createStreamForm = this.fb.group({
-      key: new FormControl(null,
-        {
-          validators: [Validators.required],
-          asyncValidators: [this.forbiddenNames()],
-        },
-      ),
-    });
-
-    this.modalService.onShow
-      .pipe(
-        take(1),
-        takeUntil(this.destroy$),
-      )
-      .subscribe(() => {
-        setTimeout(() => {
-          const input = window.document.getElementById('keyInput');
-          if (input) {
-            input.focus();
-          }
-        }, 300);
-      });
-    this.createStreamModalRef = this.modalService.show(this.createStreamModalTemplate, {
+  onAskToCreateStream() {
+    this.modalService.show(CreateStreamModalComponent, {
       class: 'modal-small',
       ignoreBackdropClick: true,
     });
-
-    this.onCloseContextMenu();
-  }
-
-  public onCreateStream() {
-    if (this.createStreamForm.invalid) return;
-    this.createStreamModalRef.hide();
-    this.router.navigate([appRoute, 'stream', 'stream-create', this.createStreamForm.get('key').value]);
-  }
-
-  public get openInNewTab(): boolean {
-    return this.streamsListOptionsForm.get('openNewTab').value;
-  }
-
-  onExportCsv(stream: StreamModel) {
-    this.exportToFile(stream, ExportFilterFormat.CSV);
-  }
-
-  onExportQSMSGFile(item: { stream: StreamModel }) {
-    this.exportToFile(item.stream, ExportFilterFormat.QSMSG);
   }
 
   onImportFromQMSG() {
     this.modalService.show(ModalImportFileComponent, {
       class: 'scroll-content-modal',
+      ignoreBackdropClick: true,
     });
     this.onCloseContextMenu();
   }
 
-  private exportToFile(stream: StreamModel, exportFormat: ExportFilterFormat) {
-    this.modalService.show(ModalExportFileComponent, {
-      initialState: { stream, exportFormat },
-      class: 'scroll-content-modal',
+  toggleSpaces() {
+    this.showSpaces = !this.showSpaces;
+    this.updateStorageItem('showSpaces', this.showSpaces).subscribe();
+
+    this.updatePath((paths) => {
+      this.recursiveMenu((item, itemPath) => {
+        if (!item.children.length) {
+          return false;
+        }
+
+        if (!this.showSpaces && item.type === MenuItemType.space) {
+          paths = paths.map((path) => {
+            if (!path.startsWith(itemPath)) {
+              return path;
+            }
+
+            const streamLength = item.id.length + 1;
+            const streamIdStart = itemPath.length - streamLength;
+            return path.substr(0, streamIdStart) + path.substr(itemPath.length);
+          });
+        }
+      });
+
+      return [...new Set(paths)];
+    })
+      .pipe(
+        switchMap(() => this.freshMenu()),
+        switchMap(() =>
+          this.updatePath((paths) =>
+            paths.filter((path) => this.recursiveMenu((item, itemPath) => itemPath === path)),
+          ),
+        ),
+      )
+      .subscribe();
+  }
+
+  private scrollToActiveMenu() {
+    const activeItemIndex = this.flatMenu.findIndex((item) => {
+      const url = this.streamsNavigationService.url(item, this.activeTabType);
+      if (!url) {
+        return false;
+      }
+      let urlString = `/${url
+        .filter((u) => u !== '/')
+        .map((u) => encodeURIComponent(u))
+        .join('/')}`;
+
+      const params = this.streamsNavigationService.params(item, this.activeTabType);
+      if (!params.space) {
+        delete params.space;
+      }
+      const paramsString = new URLSearchParams(params).toString();
+      if (paramsString) {
+        urlString += `?${paramsString}`;
+      }
+
+      return this.streamsNavigationService.urlIsActive(urlString);
     });
-    this.onCloseContextMenu();
+
+    if (activeItemIndex > -1) {
+      const elementsInViewPort = this.virtualScroll.getViewportSize() / 22;
+      this.virtualScroll.scrollToIndex(Math.max(0, activeItemIndex - elementsInViewPort / 2));
+    }
+  }
+
+  private getItems(paths: string[], cache = true): Observable<MenuItem> {
+    return this.menuItemsService.getItems(
+      paths,
+      this.showSpaces,
+      this.searchControl.value?.trim(),
+      cache,
+    );
+  }
+
+  private onStreamRenamed(oldName: string, newName: string) {
+    this.recursiveMenu((item, path) => {
+      if (item.type === MenuItemType.stream && item.id === oldName) {
+        item.id = newName;
+        const newPath = `/${encodeURIComponent(newName)}`;
+        this.updatePath((paths) => {
+          return paths.map((p) => (p.startsWith(path) ? `${newPath}${p.substr(path.length)}` : p));
+        })
+          .pipe(
+            switchMap(() => this.getItems(['/'], false)),
+            take(1),
+          )
+          .subscribe((rootMenu) => {
+            const newStream = rootMenu.children.find((item) => item.id === newName);
+            item.name = newStream.name;
+            this.cdRef.detectChanges();
+          });
+      }
+    });
+  }
+
+  private makeFlatMenu(items: MenuItem[] = null, path: string[] = [], level = 0) {
+    if (!items) {
+      this.flatMenu = [];
+    }
+
+    (items || this.menu).forEach((item) => {
+      this.flatMenu.push({...item, path, level, original: item});
+      this.makeFlatMenu(item.children, path.concat(item.id), level + 1);
+    });
+  }
+
+  private onStreamAdded() {
+    this.getItems(['/'], false)
+      .pipe(take(1))
+      .subscribe((rootMenu) => {
+        this.menu = rootMenu.children.map((item) => ({
+          ...item,
+          children: this.menu.find((_item) => _item.id === item.id)?.children || item.children,
+        }));
+        this.addMeta();
+        this.makeFlatMenu();
+        this.cdRef.detectChanges();
+      });
+  }
+
+  private onStreamDeleted(ids: string[]) {
+    this.menu.forEach((item, index) => {
+      if (ids.includes(item.id)) {
+        this.updatePath((paths) =>
+          paths.filter((path) => path.startsWith(`/${encodeURIComponent(item.id)}`)),
+        ).subscribe();
+        this.menu.splice(index, 1);
+      }
+    });
+    this.addMeta();
+    this.makeFlatMenu();
+    this.cdRef.detectChanges();
+  }
+
+  private onStreamChanged() {
+    this.freshMenu(false).subscribe();
+  }
+
+  private recursiveMenu(
+    callback: (item: MenuItem, path: string) => boolean | void,
+    items: MenuItem[] = null,
+    path: string = '',
+  ): MenuItem {
+    items = items || this.menu;
+    return items?.find((item) => {
+      const itemPath = `${path}/${encodeURIComponent(item.id)}`;
+      const inChildren = this.recursiveMenu(callback, item.children || [], itemPath);
+      if (inChildren) {
+        return inChildren;
+      }
+      return callback(item, itemPath);
+    });
+  }
+
+  private updatePath(callback: (paths: string[]) => string[]): Observable<void> {
+    return this.getStoragePaths().pipe(
+      switchMap((storePaths) => {
+        const paths = callback(storePaths);
+        return this.updateStorageItem('paths', paths);
+      }),
+      take(1),
+    );
+  }
+
+  private getStoragePaths(): Observable<string[]> {
+    return this.getStorage().pipe(map((leftMenu: {paths?: string[]}) => leftMenu.paths || []));
+  }
+
+  private getStorage(): Observable<{
+    paths?: string[];
+    menuSmall?: boolean;
+    showSpaces?: boolean;
+    search?: string;
+  }> {
+    return this.storage.get('leftMenu').pipe(
+      take(1),
+      map((data) => data || {}),
+    );
+  }
+
+  private updateStorageItem(key: string, value: unknown): Observable<void> {
+    return this.getStorage().pipe(
+      switchMap((storage) => {
+        storage[key] = value;
+        return this.storage.set('leftMenu', storage);
+      }),
+      take(1),
+    );
+  }
+
+  private addMeta(
+    items: MenuItem[] = null,
+    stream = null,
+    space = null,
+    symbol = null,
+    chartType = null,
+  ) {
+    const targetItems = items || this.menu;
+    targetItems.forEach((item) => {
+      if (item.type === MenuItemType.stream) {
+        stream = item;
+        chartType = item.chartType;
+      }
+
+      if (item.type === MenuItemType.space) {
+        space = item;
+      }
+
+      if (item.type === MenuItemType.identity) {
+        symbol = item.id;
+      }
+
+      item.meta = {
+        stream,
+        space,
+        symbol,
+        chartType,
+      };
+
+      this.addMeta(item.children, stream, space, symbol, chartType);
+    });
   }
 }
-

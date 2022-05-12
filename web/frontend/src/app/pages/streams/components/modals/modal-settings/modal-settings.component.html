@@ -1,45 +1,53 @@
 <app-modal>
-  <ng-container title >{{ title }}</ng-container>
-  <ng-container content >
+  <ng-container title>{{ title }}</ng-container>
+  <ng-container content>
     <div class="row">
       <div class="col-md-6">
         <ng-multiselect-dropdown
-          (onSelect)="globalSettingsFilter()"
-          (onDeSelect)="globalSettingsFilter()"
-          [(ngModel)]="selectedDateFormat"
-          placeholder="Date Format"
-          [settings]="dropdownSettingsDateFormat"
-          [data]="dropdownListDateFormats"
-        ></ng-multiselect-dropdown>
+            (onDeSelect)="globalSettingsFilter()"
+            (onSelect)="globalSettingsFilter()"
+            [(ngModel)]="selectedDateFormat"
+            [settings]="dropdownSettingsDateFormat"
+            [data]="dropdownListDateFormats"
+            appMultiselectNormalize
+            placeholder="Date Format"></ng-multiselect-dropdown>
       </div>
       <div class="col-md-6">
         <ng-multiselect-dropdown
-          (onSelect)="globalSettingsFilter()"
-          (onDeSelect)="globalSettingsFilter()"
-          [(ngModel)]="selectedTimeFormat"
-          placeholder="Time Format"
-          [settings]="dropdownSettingsTimeFormat"
-          [data]="dropdownListTimeFormats"
-        ></ng-multiselect-dropdown>
+            (onDeSelect)="globalSettingsFilter()"
+            (onSelect)="globalSettingsFilter()"
+            [(ngModel)]="selectedTimeFormat"
+            [settings]="dropdownSettingsTimeFormat"
+            [data]="dropdownListTimeFormats"
+            appMultiselectNormalize
+            placeholder="Time Format"></ng-multiselect-dropdown>
       </div>
       <div class="col-md-12">
         <ng-multiselect-dropdown
-          (onSelect)="globalSettingsFilter()"
-          (onDeSelect)="globalSettingsFilter()"
-          [(ngModel)]="selectedTimeZone"
-          placeholder="Timezone"
-          [settings]="dropdownSettingsTimeZone"
-          [data]="dropdownListTimeZones"
-        >
+            (onDeSelect)="globalSettingsFilter()"
+            (onSelect)="globalSettingsFilter()"
+            [(ngModel)]="selectedTimeZone"
+            [settings]="dropdownSettingsTimeZone"
+            [data]="dropdownListTimeZones"
+            appMultiselectNormalize
+            placeholder="Timezone">
         </ng-multiselect-dropdown>
       </div>
     </div>
   </ng-container>
-  <ng-container footer >
-    <button (click)="clear()" [tooltip]="'buttons.clear' | translate" class="btn btn-default" type="button">
+  <ng-container footer>
+    <button
+        (click)="clear()"
+        [tooltip]="'buttons.clear' | translate"
+        class="btn btn-default"
+        type="button">
       Clear
     </button>
-    <button appModalHideBtn [tooltip]="'buttons.close' | translate" class="btn btn-default last" type="button">
+    <button
+        [tooltip]="'buttons.close' | translate"
+        appModalHideBtn
+        class="btn btn-default last"
+        type="button">
       {{ closeBtnName }}
     </button>
   </ng-container>

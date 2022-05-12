@@ -1,4 +1,4 @@
-import { FieldTypeModel } from '../../../../../shared/models/schema.class.type.model';
+import {FieldTypeModel} from '../../../../../shared/models/schema.class.type.model';
 
 export class SeFormPreferencesService {
   static defaultPreferType: FieldTypeModel = {
@@ -6,6 +6,6 @@ export class SeFormPreferencesService {
     encoding: 'DECIMAL64',
     nullable: true,
   };
-  
+
   static preferType: FieldTypeModel = SeFormPreferencesService.defaultPreferType;
 }

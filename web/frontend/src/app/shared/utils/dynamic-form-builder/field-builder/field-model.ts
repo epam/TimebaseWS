@@ -1,10 +1,26 @@
 // import { ConnectorAttrElemType } from '../../helpers/connectors.helpers';
 
-import { AsyncValidatorFn, FormControl, ValidatorFn } from '@angular/forms';
-import { Observable }                                 from 'rxjs';
+import {AsyncValidatorFn, FormControl, ValidatorFn} from '@angular/forms';
+import {Observable} from 'rxjs';
 
 export class FieldModel {
-  type: 'text' | 'number' | 'password' | 'array' | 'object' | 'dropdown' | 'multiselect' | 'checkbox' | 'radio' | 'file' | 'datetimepicker';
+  type:
+    | 'text'
+    | 'binary'
+    | 'number'
+    | 'password'
+    | 'array'
+    | 'object'
+    | 'dropdown'
+    | 'select'
+    | 'multiselect'
+    | 'checkbox'
+    | 'radio'
+    | 'file'
+    | 'datetimepicker'
+    | 'btn-timepicker'
+    | 'json'
+    | 'autocomplete';
   name: string;
   label: string;
   value?: any;
@@ -26,6 +42,5 @@ export class FieldModel {
     getAsyncValidators?: () => AsyncValidatorFn | AsyncValidatorFn[] | null;
     getErrorsText: (control: FormControl | null) => Observable<string>;
   };
-  _controlSpecOptions?: { [key: string]: any };
+  _controlSpecOptions?: {[key: string]: any};
 }
-

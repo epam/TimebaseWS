@@ -1,0 +1,33 @@
+[
+  {
+    "name": "testStream[testSymbol]",
+    "lines": {
+      "BARS": {
+        "aggregationSizeMs": 604800000,
+        "newWindowSizeMs": 0,
+        "points": [
+          {
+            "time": 1617580800000,
+            "open": "23.16",
+            "close": "23.86",
+            "low": "22.395",
+            "high": "24.225",
+            "volume": "126204514"
+          },
+          {
+            "time": 1618185600000,
+            "open": "24.46",
+            "close": "23.54",
+            "low": "22.63",
+            "high": "24.85",
+            "volume": "142463182"
+          }
+        ]
+      }
+    },
+    "effectiveWindow": {
+      "start": "2021-03-29T00:00:00.001Z",
+      "end": "2021-04-12T00:00:00.000Z"
+    }
+  }
+]

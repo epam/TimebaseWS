@@ -1,11 +1,20 @@
-import { Component, OnDestroy, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-import { BsModalRef } from 'ngx-bootstrap/modal';
-import { select, Store } from '@ngrx/store';
-import { takeUntil, filter } from 'rxjs/operators';
-import { Subject }             from 'rxjs';
-import { getActiveTabFilters } from '../../../store/streams-tabs/streams-tabs.selectors';
-import { FilterModel } from '../../../models/filter.model';
-import { AppState }    from '../../../../../core/store';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  OnDestroy,
+  OnInit,
+} from '@angular/core';
+import {FormControl} from '@angular/forms';
+import {ActivatedRoute} from '@angular/router';
+import {select, Store} from '@ngrx/store';
+import {BsModalRef} from 'ngx-bootstrap/modal';
+import {merge, Observable, Subject} from 'rxjs';
+import {filter, takeUntil, map} from 'rxjs/operators';
+import {AppState} from '../../../../../core/store';
+import {SymbolsService} from '../../../../../shared/services/symbols.service';
+import {FilterModel} from '../../../models/filter.model';
+import {getActiveTabFilters} from '../../../store/streams-tabs/streams-tabs.selectors';
 
 @Component({
   selector: 'app-modal-filter',
@@ -14,53 +23,40 @@ import { AppState }    from '../../../../../core/store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ModalFilterComponent implements OnInit, OnDestroy {
-
   title: string;
   closeBtnName: string;
   types: any[] = [];
   symbols: any[] = [];
   dropdownListTypes = [];
-  selectedItemsTypes = [];
-  dropdownSettingsTypes = {};
-  dropdownListSymbols = [];
-  selectedItemsSymbols = [];
-  dropdownSettingsSymbols = {};
+  dropdownListSymbols$: Observable<{id: string; name: string}[]>;
   onFilter: any;
   onClear: any;
   isStream: boolean;
-  
+  symbolsControl = new FormControl([]);
+  typesControl = new FormControl([]);
+  stream: string;
+  symbol: string;
+  space: string;
+
   private destroy$ = new Subject();
 
-  constructor(public bsModalRef: BsModalRef,
+  constructor(
+    public bsModalRef: BsModalRef,
     private appStore: Store<AppState>,
     private cdr: ChangeDetectorRef,
-  ) { }
+    private symbolsService: SymbolsService,
+  ) {}
 
   ngOnInit() {
-    this.dropdownListTypes = [...this.types];
-    this.dropdownListSymbols = [...this.symbols].map(item => {
-      return { name: item };
-    });
+    this.dropdownListTypes = this.types.map((t) => ({name: t.name, id: t.name}));
 
-    this.dropdownSettingsTypes = {
-      singleSelection: false,
-      idField: 'name',
-      textField: 'name',
-      selectAllText: 'Select All',
-      unSelectAllText: 'UnSelect All',
-      itemsShowLimit: 10,
-      allowSearchFilter: true,
-    };
+    this.dropdownListSymbols$ = this.symbolsService
+      .getSymbols(this.stream, this.space)
+      .pipe(map((symbols) => symbols.map((s) => ({name: s, id: s}))));
 
-    this.dropdownSettingsSymbols = {
-      singleSelection: false,
-      idField: 'name',
-      textField: 'name',
-      selectAllText: 'Select All',
-      unSelectAllText: 'UnSelect All',
-      itemsShowLimit: 10,
-      allowSearchFilter: true,
-    };
+    merge(this.symbolsControl.valueChanges, this.typesControl.valueChanges)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.symbolsTypesFilter());
 
     this.appStore
       .pipe(
@@ -69,77 +65,30 @@ export class ModalFilterComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$),
       )
       .subscribe((filter: FilterModel) => {
-        if (filter.filter_symbols && filter.filter_symbols.length) {
-          this.selectedItemsSymbols = [...filter.filter_symbols];
-        } else {
-          this.selectedItemsSymbols = [];
-        }
-        if (filter.filter_types && filter.filter_types.length) {
-          this.selectedItemsTypes = [...filter.filter_types];
-        } else {
-          this.selectedItemsTypes = [];
-        }
+        this.symbolsControl.patchValue(
+          filter.filter_symbols?.map((s) => ({name: s, id: s})) || [],
+          {
+            emitEvent: false,
+          },
+        );
+        this.typesControl.patchValue(filter.filter_types?.map((s) => ({name: s, id: s})) || [], {
+          emitEvent: false,
+        });
       });
-  }
-
-
-  onItemSelectTypes(item: any) {
-    this.symbolsTypesFilter();
-  }
-
-  onItemDeSelectTypes(item: any) {
-    this.symbolsTypesFilter();
-  }
-
-  onSelectAllTypes(items: any) {
-    this.symbolsTypesFilter();
-  }
-
-  onDeSelectAllTypes(items: any) {
-    this.symbolsTypesFilter();
-  }
-
-  onItemSelectSymbols(item: any) {
-    this.symbolsTypesFilter();
-  }
-
-  onItemDeSelectSymbols(item: any) {
-    this.symbolsTypesFilter();
-  }
-
-  onSelectAllSymbols(items: any) {
-    this.symbolsTypesFilter();
-  }
-
-  onDeSelectAllSymbols(items: any) {
-    this.symbolsTypesFilter();
   }
 
   symbolsTypesFilter() {
     setTimeout(() => {
-
-      let filter_symbols = [];
-      let filter_types = [];
-      if (this.selectedItemsSymbols && this.selectedItemsSymbols.length) {
-        filter_symbols = this.selectedItemsSymbols.map(item => {
-          return item['name'] || item;
-        });
-      }
-      if (this.selectedItemsTypes && this.selectedItemsTypes.length) {
-        filter_types = this.selectedItemsTypes.map(item => {
-          return item['name'] || item;
-        });
-      }
       this.onFilter({
-        filter_symbols: filter_symbols,
-        filter_types: filter_types,
+        filter_symbols: this.symbolsControl.value?.map((item) => item.id) || [],
+        filter_types: this.typesControl.value?.map((item) => item.id) || [],
       });
     }, 350);
   }
 
   clear() {
-    this.selectedItemsSymbols = [];
-    this.selectedItemsTypes = [];
+    this.symbolsControl.patchValue([]);
+    this.typesControl.patchValue([]);
     this.cdr.detectChanges();
     this.onClear();
   }
@@ -148,5 +97,4 @@ export class ModalFilterComponent implements OnInit, OnDestroy {
     this.destroy$.next(true);
     this.destroy$.complete();
   }
-
 }

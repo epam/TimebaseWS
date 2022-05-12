@@ -38,7 +38,7 @@ public class Multiply extends BinaryOperator {
     }
 
     public Multiply(Arguments arguments) {
-        this(arguments.getString(BinaryOperator.FIELD1), arguments.getString(BinaryOperator.FIELD2), arguments.getResultField());
+        this(arguments.getString(FIELD1), arguments.getString(FIELD2), arguments.getResultField());
     }
 
 }

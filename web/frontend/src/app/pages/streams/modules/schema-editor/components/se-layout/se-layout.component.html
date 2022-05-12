@@ -1,134 +1,151 @@
-<div class="details-stream-wrap full-height-page" [ngClass]="{'newStream': currentTab && currentTab.streamCreate}">
+<div
+    [ngClass]="{ newStream: currentTab && currentTab.streamCreate }"
+    class="details-stream-wrap full-height-page">
   <ng-template [ngIf]="(streamDetails | async).errorMessage">
     <p class="error-message">
-                <span
-                  [title]="(streamDetails | async).errorMessage"
-                  class="error-message-text"
-                >
-                  {{(streamDetails | async).errorMessage}}
-                </span>
+      <span [title]="(streamDetails | async).errorMessage" class="error-message-text">
+        {{ (streamDetails | async).errorMessage }}
+      </span>
       <button
-        (click)="onHideErrorMessage()"
-        [title]="'buttons.removeNotification' | translate"
-        class="btn close-btn"
-      >X</button>
+          (click)="onHideErrorMessage()"
+          [title]="'buttons.removeNotification' | translate"
+          class="btn close-btn">
+        X
+      </button>
     </p>
   </ng-template>
   <as-split
+      (dragEnd)="onAreaSizeChange($event)"
+      *ngIf="showClassListGrid$ | async"
       [appSplitterSizes]="[50, 50]"
       [minSizes]="[340, 470]"
-      (dragEnd)="onAreaSizeChange($event)"
-      [storageKey]="'schemaEditor' + (activeTab | async).id"
-      direction="horizontal"
-      *ngIf="showClassListGrid$ | async"
-  >
+      [storageKey]="'schemaEditor' + (activeTab | async)?.id"
+      direction="horizontal">
     <as-split-area [order]="1">
       <div class="col-md-12 class-list-section">
         <div class="class-list-wr">
-          <app-cl-control-panel></app-cl-control-panel>
+          <app-cl-control-panel *ngIf="isWriter$ | async"></app-cl-control-panel>
           <app-class-list-grid class="types-list-grid"></app-class-list-grid>
-          <app-cl-bottom-panel></app-cl-bottom-panel>
+          <app-cl-bottom-panel *ngIf="isWriter$ | async"></app-cl-bottom-panel>
         </div>
       </div>
     </as-split-area>
     <as-split-area [order]="2">
       <div class="col-md-12 class-detailsWr">
         <as-split [direction]="'vertical'">
-          <ng-template [ngIf]="(selectedSchemaItem$ | async)">
+          <ng-template [ngIf]="selectedSchemaItem$ | async">
             <as-split-area [order]="3" [size]="50">
               <div class="class-details top-right-corner">
-                <app-fl-control-panel></app-fl-control-panel>
+                <app-fl-control-panel *ngIf="isWriter$ | async"></app-fl-control-panel>
                 <app-fields-list></app-fields-list>
               </div>
             </as-split-area>
             <as-split-area [order]="4" [size]="50">
               <div class="class-details bottom-right-corner">
-                <app-field-properties></app-field-properties>
+                <app-field-properties>
+                  <ng-container *ngIf="!(getSchemaDiff$ | async)" save-btn>
+                    <button
+                        (click)="onAskToCreateStream()"
+                        *ngIf="(isSchemaEdited$ | async) && currentTab?.streamCreate"
+                        [disabled]="hasSchemaError$ | async"
+                        [ngClass]="createStreamBtnClass$ | async"
+                        class="btn save-btn"
+                        type="button">
+                      {{ 'buttons.create' | translate }} >
+                    </button>
+                    <button
+                        (click)="onAskChanges()"
+                        *ngIf="(isSchemaEdited$ | async) && currentTab && !currentTab.streamCreate"
+                        [disabled]="hasSchemaError$ | async"
+                        class="btn save-btn btn-success"
+                        type="button">
+                      {{ 'buttons.next' | translate }} >
+                    </button>
+                  </ng-container>
+                </app-field-properties>
               </div>
             </as-split-area>
           </ng-template>
           <ng-template [ngIf]="!(selectedSchemaItem$ | async)">
             <as-split-area [order]="4" [size]="50">
-              <div class="class-details bottom-right-corner">
-              </div>
+              <div class="class-details bottom-right-corner"></div>
             </as-split-area>
           </ng-template>
         </as-split>
       </div>
     </as-split-area>
   </as-split>
-  <ng-template [ngIf]="(getSchemaDiff$ | async)">
-    <div class="col-md-12 diff-view">
-      <div class="class-details">
-        <app-diff-layout></app-diff-layout>
-      </div>
+  <div *ngIf="getSchemaDiff$ | async" class="col-md-12 diff-view">
+    <div class="class-details">
+      <app-diff-layout></app-diff-layout>
     </div>
-  </ng-template>
-  <ng-container *ngIf="!(getSchemaDiff$ | async); else schemaDiffBtns">
-    <ng-template [ngIf]="(isSchemaEdited$ | async) && currentTab && currentTab.streamCreate">
-      <button type="button" (click)="onAskToCreateStream()"
-          class="btn send-schema-btn" [ngClass]="createStreamBtnClass$ | async"
-          [disabled]="hasSchemaError$ | async">
-        {{'buttons.create' | translate}} >
-      </button>
-    </ng-template>
-    <button
-        *ngIf="(isSchemaEdited$ | async) && currentTab && !currentTab.streamCreate"
-        type="button"
-        (click)="onAskChanges()"
-        class="btn send-schema-btn btn-success"
-        [disabled]="hasSchemaError$ | async">
-      {{'buttons.next' | translate}} >
+  </div>
+  
+  <div *ngIf="getSchemaDiff$ | async" class="send-schema-btn send-schema-btn-wr no-padding-right">
+    <button (click)="onBackToEditor()" class="btn btn btn-primary" type="button">
+      < {{ 'buttons.back' | translate }}
     </button>
-  </ng-container>
-  <ng-template #schemaDiffBtns>
-    <div class="send-schema-btn send-schema-btn-wr no-padding-right">
-      <button type="button" (click)="onBackToEditor()"
-          class="btn btn btn-primary">
-        < {{'buttons.back' | translate}}
-      </button>
-      <button type="button" (click)="onAskSaveChanges()"
-          class="btn btn btn-success">
-        {{'buttons.finish' | translate}} >
-      </button>
-    </div>
-  </ng-template>
+    <button (click)="onAskSaveChanges()" class="btn btn btn-success" type="button">
+      {{ 'buttons.finish' | translate }} >
+    </button>
+  </div>
 </div>
-
 
 <ng-template #modalTemplate>
   <div class="modal-header">
-    <h4 class="modal-title pull-left">{{'text.onCreateStream' | translate}}</h4>
+    <h4 class="modal-title pull-left">{{ 'text.onCreateStream' | translate }}</h4>
   </div>
   <div class="modal-body">
-    {{'text.askToCreateStream' | translate:{streamName: streamName} }}
+    {{ 'text.askToCreateStream' | translate: {streamName: streamName} }}
   </div>
   <div class="modal-footer d-flex justify-content-end">
-    <button type="button" class="btn btn-success pull-right" aria-label="Close" (click)="onCreateStream()">
-      <span aria-hidden="true">{{'buttons.create' | translate}}</span>
+    <button
+        (click)="onCreateStream()"
+        aria-label="Close"
+        class="btn btn-success pull-right"
+        type="button">
+      <span aria-hidden="true">{{ 'buttons.create' | translate }}</span>
     </button>
-    <button type="button" class="btn btn-outline-light pull-right" aria-label="Close" (click)="newItemModalRef.hide()">
-      <span aria-hidden="true">{{'buttons.cancel' | translate}}</span>
+    <button
+        (click)="newItemModalRef.hide()"
+        aria-label="Close"
+        class="btn btn-outline-light pull-right"
+        type="button">
+      <span aria-hidden="true">{{ 'buttons.cancel' | translate }}</span>
     </button>
   </div>
 </ng-template>
 
 <ng-template #saveSchemaChangesModalTemplate>
   <div class="modal-header">
-    <h4 class="modal-title pull-left">{{'text.onChangeSchema' | translate}}</h4>
+    <h4 class="modal-title pull-left">{{ 'text.onChangeSchema' | translate }}</h4>
   </div>
   <div class="modal-body">
-    {{'text.askToSaveStreamSchema' | translate:{streamName: streamName} }}
+    {{ 'text.askToSaveStreamSchema' | translate: {streamName: streamName} }}
   </div>
   <div class="modal-footer d-flex justify-content-end">
-    <button type="button" class="btn btn-success pull-right" aria-label="Close" [disabled]="ifSaveChangesDisabledButtons()" (click)="onSaveChanges()">
-      <span aria-hidden="true">{{'buttons.apply' | translate}}</span>
+    <button
+        (click)="onSaveChanges()"
+        [disabled]="ifSaveChangesDisabledButtons()"
+        aria-label="Close"
+        class="btn btn-success pull-right"
+        type="button">
+      <span aria-hidden="true">{{ 'buttons.apply' | translate }}</span>
     </button>
-    <button type="button" class="btn btn-success pull-right" aria-label="Close" [disabled]="ifSaveChangesDisabledButtons()" (click)="onSaveChanges(true)">
-      <span aria-hidden="true">{{'buttons.applyInBackground' | translate}}</span>
+    <button
+        (click)="onSaveChanges(true)"
+        [disabled]="ifSaveChangesDisabledButtons()"
+        aria-label="Close"
+        class="btn btn-success pull-right"
+        type="button">
+      <span aria-hidden="true">{{ 'buttons.applyInBackground' | translate }}</span>
     </button>
-    <button type="button" class="btn btn-outline-light pull-right" aria-label="Close" (click)="saveChangesModalRef.hide()">
-      <span aria-hidden="true">{{'buttons.cancel' | translate}}</span>
+    <button
+        (click)="saveChangesModalRef.hide()"
+        aria-label="Close"
+        class="btn btn-outline-light pull-right"
+        type="button">
+      <span aria-hidden="true">{{ 'buttons.cancel' | translate }}</span>
     </button>
   </div>
 </ng-template>

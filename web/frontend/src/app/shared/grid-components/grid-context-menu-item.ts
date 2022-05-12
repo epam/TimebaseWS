@@ -1,4 +1,4 @@
-import { Column, ColumnApi } from 'ag-grid-community';
+import {Column, ColumnApi} from 'ag-grid-community';
 
 export class GridContextMenuItem<T> {
   data: (event: T) => GridContextMenuItemData;

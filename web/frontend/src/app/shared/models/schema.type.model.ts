@@ -1,4 +1,4 @@
-import { FieldTypeModel } from './schema.class.type.model';
+import {FieldTypeModel} from './schema.class.type.model';
 
 export interface SchemaTypeModel {
   name: string;
@@ -7,6 +7,7 @@ export interface SchemaTypeModel {
   nullable?: boolean;
   fields?: SchemaTypeModel[];
   hide?: boolean;
+  parent?: string;
 }
 
 export interface SchemaAllTypeModel {
@@ -16,3 +17,11 @@ export interface SchemaAllTypeModel {
   title: string;
   fields: SchemaTypeModel[];
 }
+
+export type SchemaTypesMap = Map<
+  string,
+  {
+    fields: Set<string>;
+    parent: string;
+  }
+>;

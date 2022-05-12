@@ -1,4 +1,4 @@
-@import "src/app/core/styles/variables";
+@import 'src/app/core/styles/variables';
 
 .tree {
   &__branch {
@@ -22,7 +22,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: .5 * $ss solid;
+    border: 0.5 * $ss solid;
     height: 9 * $ss;
     line-height: 9 * $ss;
     cursor: pointer;

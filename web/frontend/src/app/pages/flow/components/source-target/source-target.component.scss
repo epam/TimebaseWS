@@ -1,0 +1,18 @@
+@import 'src/app/core/styles/variables';
+
+.sourceInfo {
+  padding: 0 2 * $ss;
+}
+
+.subSectionTitle {
+  flex-shrink: 0;
+  width: 10%;
+}
+
+.subSectionName {
+  overflow: hidden;
+  flex-shrink: 1;
+  width: 100%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

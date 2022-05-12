@@ -20,7 +20,6 @@ export const getLastStreamDescribe = createSelector(
   (list: ListState) => list.lasStreamDescribe,
 );
 
-
 // export const streamsListTabsSelector = createSelector(
 //   streamsListStateSelector,
 //   (state: StreamsListState) => state.tabs,

@@ -1,6 +1,5 @@
 import IEditorOptions = monaco.editor.IEditorOptions;
 
-
 export interface MonacoEditorOptions extends IEditorOptions {
   theme: string;
   language: string;

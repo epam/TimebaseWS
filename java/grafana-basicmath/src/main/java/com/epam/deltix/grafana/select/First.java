@@ -16,16 +16,16 @@
  */
 package com.epam.deltix.grafana.select;
 
-import com.epam.deltix.computations.data.base.*;
-import com.epam.deltix.grafana.model.fields.Field;
 import com.epam.deltix.computations.data.MutableGenericRecordImpl;
 import com.epam.deltix.computations.data.MutableGenericValueFactory;
+import com.epam.deltix.computations.data.base.*;
 import com.epam.deltix.grafana.TimeSaver;
 import com.epam.deltix.grafana.base.Aggregation;
 import com.epam.deltix.grafana.base.annotations.FieldArgument;
 import com.epam.deltix.grafana.base.annotations.GrafanaAggregation;
 import com.epam.deltix.grafana.base.annotations.GrafanaValueType;
 import com.epam.deltix.grafana.base.annotations.ReturnField;
+import com.epam.deltix.grafana.model.fields.Field;
 import com.epam.deltix.grafana.model.fields.FieldType;
 import com.epam.deltix.grafana.model.fields.MutableField;
 

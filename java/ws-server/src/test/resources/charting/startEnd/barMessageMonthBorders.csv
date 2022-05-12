@@ -1,0 +1,6 @@
+symbol,timestamp,DacMessage.entitlementId,MarketMessage.originalTimestamp,MarketMessage.currencyCode,MarketMessage.sequenceNumber,MarketMessage.sourceId,BarMessage.exchangeId,BarMessage.close,BarMessage.open,BarMessage.high,BarMessage.low,BarMessage.volume,BloombergHistoricalBar.NUM_TRADES,BloombergHistoricalBar.TURNOVER
+ACU US Equity,2021-09-04T00:00:00.000Z,AgEGUgEAAJpM,2021-09-03 04:00:00.0,999,,,,40.68,40.13,41.96,39.7001,30419.0,637,1239609.0
+ACU US Equity,2021-10-30T00:00:00.000Z,AgEGUgEAAJpM,2021-10-29 04:00:00.0,999,,,,37.0,37.42,37.42,35.55,51494.0,1122,1876307.0
+ACU US Equity,2021-11-27T00:00:00.000Z,AgEGUgEAAJpM,2021-11-26 05:00:00.0,999,,,,32.99,36.26,36.918,32.3,34644.0,750,1199962.0
+ACU US Equity,2021-12-10T00:00:00.000Z,AgEGUgEAAJpM,2021-12-10 04:00:00.0,999,,,,42.7,43.6,44.24,40.98,124668.0,3246,5256067.0
+ACU US Equity,2022-01-17T00:00:00.000Z,AgEGUgEAAJpM,2022-01-17 04:00:00.0,999,,,,42.34,41.98,43.9746,41.2892,107447.0,2127,4573926.0

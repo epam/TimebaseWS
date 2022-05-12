@@ -1,28 +1,34 @@
-<i *ngIf="!(disableColumns$ | async)" class="ag-icon ag-icon-menu columns-icon" (click)="showContextMenu($event)"></i>
+<i
+    (click)="showContextMenu($event)"
+    *ngIf="!(disableColumns$ | async)"
+    class="ag-icon ag-icon-menu columns-icon"></i>
 <context-menu #columnsMenu menuClass="grid-columns-context-menu fix-height">
-  <ng-template passive="true" contextMenuItem>
+  <ng-template contextMenuItem passive="true">
     <app-tree-checkboxes
-        [globalFilter]="true"
         [formControl]="columnsControl"
-        class="columns-checkboxes"
+        [globalFilter]="true"
         [tree]="columnsTree"
-    ></app-tree-checkboxes>
+        class="columns-checkboxes"></app-tree-checkboxes>
   </ng-template>
 </context-menu>
 
-<context-menu menuClass="grid-context-menu" #cellMenu  >
-  <ng-template (execute)="copy($event.item)" contextMenuItem >
-   {{ 'gridMenu.copy' | translate }}
+<context-menu #cellMenu menuClass="grid-context-menu">
+  <ng-template (execute)="copy($event.item)" contextMenuItem>
+    {{ 'gridMenu.copy' | translate }}
   </ng-template>
-  <ng-template (execute)="copyWithHeaders($event.item)" contextMenuItem >
+  <ng-template (execute)="copyWithHeaders($event.item)" contextMenuItem>
     {{ 'gridMenu.copyWithHeaders' | translate }}
   </ng-template>
-  <ng-template [enabled]="copyJsonEnabled" (execute)="copyJSON($event.item)" contextMenuItem >
+  <ng-template (execute)="copyJSON($event.item)" [enabled]="copyJsonEnabled" contextMenuItem>
     {{ 'gridMenu.copyJSON' | translate }}
   </ng-template>
-  <ng-template *ngIf="cellMenuItems?.length" passive="true" divider="true" contextMenuItem></ng-template>
-  <ng-container *ngFor="let menuItem of cellMenuItems" >
-    <ng-template (execute)="executeMenuItem(menuItem)" contextMenuItem >
+  <ng-template
+      *ngIf="cellMenuItems?.length"
+      contextMenuItem
+      divider="true"
+      passive="true"></ng-template>
+  <ng-container *ngFor="let menuItem of cellMenuItems">
+    <ng-template (execute)="executeMenuItem(menuItem)" contextMenuItem>
       {{ menuItem.name }}
     </ng-template>
   </ng-container>

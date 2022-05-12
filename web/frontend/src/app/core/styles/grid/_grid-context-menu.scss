@@ -1,7 +1,6 @@
-@import "src/app/core/styles/variables";
+@import 'src/app/core/styles/variables';
 
 .grid-columns-context-menu {
-
   &.fix-height {
     overflow-y: auto;
     max-height: calc(100vh / 2);
@@ -15,8 +14,10 @@
   .dropdown-item {
     color: unset;
 
-    &:hover, &:focus {
-      &, .dropdown-item {
+    &:hover,
+    &:focus {
+      &,
+      .dropdown-item {
         background-color: transparent;
       }
     }
@@ -41,7 +42,8 @@
         background-color: transparent;
       }
 
-      &, &.passive {
+      &,
+      &.passive {
         color: $white;
         padding: 2 * $ss 7 * $ss;
         cursor: pointer;

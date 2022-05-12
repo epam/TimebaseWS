@@ -1,0 +1,29 @@
+{
+  "name": "@deltix/hd.components-order-grid",
+  "version": "4.18.0",
+  "main": "./index.umd.js",
+  "module": "./index.esm.js",
+  "typings": "./index.d.ts",
+  "dependencies": {
+    "@deltix/hd.components-common": "4.18.0",
+    "@deltix/hd.components-di": "4.18.0",
+    "@deltix/hd.components-multi-app": "4.18.0",
+    "@deltix/hd.components-order-book": "4.18.0",
+    "react": "17.0.2",
+    "redux-observable": "^1.2.0",
+    "rxjs": "^6.6.3",
+    "@deltix/hd.components-order-grid-common": "4.18.0",
+    "@deltix/hd.components-utils": "4.18.0",
+    "redux": "^4.1.2",
+    "big.js": "^6.1.1",
+    "@deltix/decimal-utils": "^0.5.0",
+    "@deltix/logger": "^0.0.5",
+    "@inlet/react-pixi": "^6.6.5",
+    "fast-deep-equal": "^3.1.3",
+    "pixi.js": "^6.2.2",
+    "react-redux": "7.2.6",
+    "ramda": "^0.27.1",
+    "reselect": "^4.1.5"
+  },
+  "peerDependencies": {}
+}

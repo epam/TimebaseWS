@@ -1,0 +1,40 @@
+{
+  "/api/v0/": {
+    "target":  {
+      "host": "webadmin55.staging.deltixhub.io",
+      "protocol": "https:",
+      "port": 443
+    },
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/oauth": {
+    "target":  {
+      "host": "webadmin55.staging.deltixhub.io",
+      "protocol": "https:",
+      "port": 443
+    },
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/websocket": {
+    "target":  {
+      "host": "webadmin55.staging.deltixhub.io",
+      "protocol": "https:",
+      "port": 443
+    },
+    "changeOrigin": true,
+    "secure": false,
+    "ws": true
+  },
+  "/stomp": {
+    "target":  {
+      "host": "webadmin55.staging.deltixhub.io",
+      "protocol": "https:",
+      "port": 443
+    },
+    "changeOrigin": true,
+    "secure": false,
+    "ws": true
+  }
+}

@@ -1,0 +1,370 @@
+<context-menu menuClass="sidebar-context-menu">
+  <ng-container *ngIf="item">
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item>
+        <a
+            (click)="closeContextMenu()"
+            [queryParams]="newTabQueryParams"
+            [routerLink]="item | streamsNavigationUrl: activeTabType">
+          <svg
+              data-name="Layer 1"
+              fill="currentColor"
+              height="16"
+              viewBox="0 0 512 512"
+              width="16"
+              xmlns="http://www.w3.org/2000/svg">
+            <path
+                d="M421.24,269.93h30V429.84a48.72,48.72,0,0,1-48.66,48.66H82.77a48.72,48.72,0,0,1-48.66-48.66V110A48.72,48.72,0,0,1,82.77,61.37H242.68v30H82.77A18.68,18.68,0,0,0,64.11,110V429.84A18.68,18.68,0,0,0,82.77,448.5H402.58a18.68,18.68,0,0,0,18.66-18.66Zm-69-236.43v30h74.4L249.5,240.68l21.21,21.21L447.89,84.71v74.4h30V33.5Z" />
+          </svg>
+          {{ 'buttons.open_in_new_tab' | translate }}
+        </a>
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item
+          [link]="
+          item?.meta.symbol
+            ? ['symbol', 'view', item.meta.stream.id, item.meta.symbol]
+            : ['stream', 'view', item.meta.stream.id]
+        "
+          [queryParams]="queryParams">
+        <svg
+            fill="none"
+            height="16"
+            id="i-book"
+            stroke="currentcolor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 32 32"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg">
+          <path
+              d="M16 7 C16 7 9 1 2 6 L2 28 C9 23 16 28 16 28 16 28 23 23 30 28 L30 6 C23 1 16 7 16 7 Z M16 7 L16 28" />
+        </svg>
+        {{ 'contextMenu.view_mode' | translate }}
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item
+          [link]="
+          item?.meta.symbol
+            ? ['symbol', 'reverse', item.meta.stream.id, item.meta.symbol]
+            : ['stream', 'reverse', item.meta.stream.id]
+        "
+          [queryParams]="queryParams">
+        <svg
+            fill="none"
+            height="16"
+            id="i-reply"
+            stroke="currentcolor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 32 32"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 6 L3 14 10 22 M3 14 L18 14 C26 14 30 18 30 26" />
+        </svg>
+        {{ 'contextMenu.reverse_mode' | translate }}
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item
+          [link]="
+          item && item.meta.symbol
+            ? ['symbol', 'live', item.meta.stream.id, item.meta.symbol]
+            : ['stream', 'live', item.meta.stream.id]
+        "
+          [queryParams]="queryParams">
+        <svg
+            fill="currentcolor"
+            height="16"
+            id="i-clock-live"
+            stroke="none"
+            viewBox="0 0 24 24"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg">
+          <path
+              d="M15.1,19.37l1,1.74c-0.96,0.44-2.01,0.73-3.1,0.84v-2.02C13.74,19.84,14.44,19.65,15.1,19.37z M4.07,13H2.05 c0.11,1.1,0.4,2.14,0.84,3.1l1.74-1C4.35,14.44,4.16,13.74,4.07,13z M15.1,4.63l1-1.74C15.14,2.45,14.1,2.16,13,2.05v2.02 C13.74,4.16,14.44,4.35,15.1,4.63z M19.93,11h2.02c-0.11-1.1-0.4-2.14-0.84-3.1l-1.74,1C19.65,9.56,19.84,10.26,19.93,11z M8.9,19.37l-1,1.74c0.96,0.44,2.01,0.73,3.1,0.84v-2.02C10.26,19.84,9.56,19.65,8.9,19.37z M11,4.07V2.05 c-1.1,0.11-2.14,0.4-3.1,0.84l1,1.74C9.56,4.35,10.26,4.16,11,4.07z M18.36,7.17l1.74-1.01c-0.63-0.87-1.4-1.64-2.27-2.27 l-1.01,1.74C17.41,6.08,17.92,6.59,18.36,7.17z M4.63,8.9l-1.74-1C2.45,8.86,2.16,9.9,2.05,11h2.02C4.16,10.26,4.35,9.56,4.63,8.9z M19.93,13c-0.09,0.74-0.28,1.44-0.56,2.1l1.74,1c0.44-0.96,0.73-2.01,0.84-3.1H19.93z M16.83,18.36l1.01,1.74 c0.87-0.63,1.64-1.4,2.27-2.27l-1.74-1.01C17.92,17.41,17.41,17.92,16.83,18.36z M7.17,5.64L6.17,3.89 C5.29,4.53,4.53,5.29,3.9,6.17l1.74,1.01C6.08,6.59,6.59,6.08,7.17,5.64z M5.64,16.83L3.9,17.83c0.63,0.87,1.4,1.64,2.27,2.27 l1.01-1.74C6.59,17.92,6.08,17.41,5.64,16.83z M13,7h-2v5.41l4.29,4.29l1.41-1.41L13,11.59V7z" />
+        </svg>
+        {{ 'contextMenu.live_mode' | translate }}
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item
+          [link]="
+          item.meta?.symbol
+            ? ['symbol', 'monitor', item.meta.stream.id, item.meta.symbol]
+            : ['stream', 'monitor', item.meta.stream.id]
+        "
+          [queryParams]="queryParams">
+        <svg
+            fill="none"
+            height="16"
+            id="i-clock"
+            stroke="currentcolor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 32 32"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="16" r="14" />
+          <path d="M16 8 L16 16 20 20" />
+        </svg>
+        {{ 'contextMenu.monitor_mode' | translate }}
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item
+          [class.disabled]="!item.meta.chartType?.length"
+          [class.hidden]="!(item?.meta.stream?.id && item?.meta.symbol)"
+          [link]="
+          item.meta.chartType.length
+            ? ['symbol', 'chart', item.meta.stream.id, item.meta.symbol]
+            : null
+        "
+          [queryParams]="queryParams"
+          [tooltipTranslate]="
+          !item.meta.chartType?.length ? 'notification_messages._no_chart_type' : null
+        ">
+        <svg
+            fill="none"
+            height="16"
+            id="i-activity"
+            stroke="currentcolor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 32 32"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 16 L11 16 14 29 18 3 21 16 28 16" />
+        </svg>
+        {{ 'contextMenu.chart_mode' | translate }}
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item
+          [class.disabled]="!hasPricesL2Chart"
+          [class.hidden]="!(item?.meta.stream?.id && item?.meta.symbol)"
+          [link]="hasPricesL2Chart ? ['order-book'] : null"
+          [queryParams]="queryParams | objectMerge: { stream: item.meta.stream.id, symbol: item.meta.symbol }
+        "
+          [tooltipTranslate]="!hasPricesL2Chart ? 'contextMenu.noOrderBook' : null">
+        <svg
+            fill="none"
+            height="15"
+            viewBox="0 0 15 15"
+            width="15"
+            xmlns="http://www.w3.org/2000/svg">
+          <path
+              d="m.5 0v14.5h14v-14.5m-14 4.5h2v1h2v3h2v3h1v3-2h2v-2h2v-3h1v-2h2"
+              stroke="currentColor" />
+        </svg>
+        {{ 'contextMenu.orderBook' | translate }}
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item
+          [class.hidden]="!(item && !item.meta.symbol) || item.meta.space"
+          [link]="['stream', 'schema-edit', item.id]"
+          [queryParams]="queryParams">
+        <svg
+            fill="none"
+            height="16"
+            id="i-fullscreen-exit"
+            stroke="currentcolor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 32 32"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 12 L12 12 12 4 M20 4 L20 12 28 12 M4 20 L12 20 12 28 M28 20 L20 20 20 28" />
+          <path
+              d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+        </svg>
+        {{ 'buttons.schema_edit_mode' | translate }}
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item>
+        <app-query-btn (click)="closeContextMenu()"></app-query-btn>
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <span
+          [class.hidden]="isRootSpace || (!(isWriter$ | async) && isNotStreamOrSpace)"
+          class="menu-separator"></span>
+    </ng-template>
+    <ng-template *ngIf="isWriter$ | async" contextMenuItem passive="true">
+      <app-sidebar-context-menu-item
+          [class.hidden]="!(item && !item.meta.symbol) || item.meta.space">
+        <button (click)="showTruncateModal()" class="btn btn-link schema-view" type="button">
+          <svg
+              fill="none"
+              height="16"
+              id="i-fullscreen-exit"
+              stroke="currentcolor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1"
+              viewBox="0 0 32 32"
+              width="16"
+              xmlns="http://www.w3.org/2000/svg">
+            <path
+                d="M9.64 7.64c.23-.5.36-1.05.36-1.64 0-2.21-1.79-4-4-4S2 3.79 2 6s1.79 4 4 4c.59 0 1.14-.13 1.64-.36L10 12l-2.36 2.36C7.14 14.13 6.59 14 6 14c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4c0-.59-.13-1.14-.36-1.64L12 14l7 7h3v-1L9.64 7.64zM6 8c-1.1 0-2-.89-2-2s.9-2 2-2 2 .89 2 2-.9 2-2 2zm0 12c-1.1 0-2-.89-2-2s.9-2 2-2 2 .89 2 2-.9 2-2 2zm6-7.5c-.28 0-.5-.22-.5-.5s.22-.5.5-.5.5.22.5.5-.22.5-.5.5zM19 3l-6 6 2 2 7-7V3z" />
+          </svg>
+          {{ 'contextMenu.truncate' | translate }}
+        </button>
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template *ngIf="isWriter$ | async" contextMenuItem passive="true">
+      <app-sidebar-context-menu-item [class.hidden]="isNotStreamOrSpace">
+        <button (click)="showPurgeModal()" class="btn btn-link schema-view" type="button">
+          <svg
+              fill="none"
+              height="16"
+              id="i-fullscreen-exit"
+              stroke="currentcolor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 32 32"
+              width="16"
+              xmlns="http://www.w3.org/2000/svg">
+            <path
+                d="M19.81 14.99l1.19-.92-1.43-1.43-1.19.92 1.43 1.43zm-.45-4.72L21 9l-9-7-2.91 2.27 7.87 7.88 2.4-1.88zM3.27 1L2 2.27l4.22 4.22L3 9l1.63 1.27L12 16l2.1-1.63 1.43 1.43L12 18.54l-7.37-5.73L3 14.07l9 7 4.95-3.85L20.73 21 22 19.73 3.27 1z" />
+          </svg>
+          {{ 'contextMenu.purge' | translate }}
+        </button>
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template *ngIf="isWriter$ | async" contextMenuItem passive="true">
+      <app-sidebar-context-menu-item [class.hidden]="isNotStream || isRootSpace">
+        <button (click)="confirmDeleteStream()" class="btn btn-link schema-view" type="button">
+          <svg
+              fill="none"
+              height="16"
+              id="i-fullscreen-exit"
+              stroke="currentcolor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 32 32"
+              width="16"
+              xmlns="http://www.w3.org/2000/svg">
+            <path
+                d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+          </svg>
+          {{ (item.meta.space ? 'tooltips.deleteSpace' : 'tooltips.deleteStream') | translate }}
+        </button>
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template *ngIf="isWriter$ | async" contextMenuItem passive="true">
+      <app-sidebar-context-menu-item [class.hidden]="isRootSpace">
+        <button (click)="showEditNameModal()" class="btn btn-link schema-view" type="button">
+          <svg
+              fill="none"
+              height="16"
+              id="i-fullscreen-exit"
+              stroke="currentcolor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 32 32"
+              width="16"
+              xmlns="http://www.w3.org/2000/svg">
+            <path
+                d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+          </svg>
+          {{ 'contextMenu.editName' | translate }}
+        </button>
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item [class.hidden]="isNotStreamOrSpace">
+        <button (click)="showDescribe()" class="btn btn-link schema-view" type="button">
+          <svg
+              fill="none"
+              height="16"
+              id="i-fullscreen-exit"
+              stroke="currentcolor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 32 32"
+              width="16"
+              xmlns="http://www.w3.org/2000/svg">
+            <path
+                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+          </svg>
+          {{ 'contextMenu.describe' | translate }}
+        </button>
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template *ngIf="isWriter$ | async" contextMenuItem passive="true">
+      <app-sidebar-context-menu-item [class.hidden]="isNotStreamOrSpace">
+        <button (click)="showSendMessage()" class="btn btn-link schema-view" type="button">
+          <svg
+              fill="none"
+              height="16"
+              id="i-fullscreen-exit"
+              stroke="currentcolor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 32 32"
+              width="16"
+              xmlns="http://www.w3.org/2000/svg">
+            <path
+                d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" />
+          </svg>
+          {{ 'contextMenu.sendMessage' | translate }}
+        </button>
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <span [ngClass]="{ 'schema-view hidden': isNotStreamOrSpace }" class="menu-separator"></span>
+    </ng-template>
+    
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item [class.hidden]="isNotStreamOrSpace">
+        <button (click)="exportQSMSGFile()" class="btn btn-link schema-view" type="button">
+          <ng-container *ngTemplateOutlet="downloadIcon"></ng-container>
+          {{ 'contextMenu.export_toQSMSG_file' | translate }}
+        </button>
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item [class.hidden]="item.meta.symbol || item.meta.space">
+        <button (click)="exportCsv()" class="btn btn-link" type="button">
+          <ng-container *ngTemplateOutlet="downloadIcon"></ng-container>
+          {{ 'contextMenu.export_toCSV' | translate }}
+        </button>
+      </app-sidebar-context-menu-item>
+    </ng-template>
+  </ng-container>
+</context-menu>
+
+<ng-template #deleteStreamMessage>
+  {{ (item.meta.space ? 'text.deleteSpaceRequest' : 'text.deleteStreamRequest') | translate }}
+  <span class="text-danger">{{ item.meta.space ? item.meta.space.id : item.id }}</span> ?
+</ng-template>
+<ng-template #downloadIcon>
+  <svg
+      fill="none"
+      height="16"
+      id="i-fullscreen-exit"
+      stroke="currentcolor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 32 32"
+      width="16"
+      xmlns="http://www.w3.org/2000/svg">
+    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+  </svg>
+</ng-template>

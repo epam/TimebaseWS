@@ -18,6 +18,7 @@ package com.epam.deltix.computations.data;
 
 import com.epam.deltix.computations.data.base.GenericValueInfo;
 import com.epam.deltix.computations.data.base.MutableGenericValueFactoryBase;
+import com.epam.deltix.computations.data.base.MutableGenericValueInfo;
 import com.epam.deltix.computations.data.base.complex.*;
 import com.epam.deltix.computations.data.base.numeric.*;
 import com.epam.deltix.computations.data.base.text.AlphanumericValueInfo;

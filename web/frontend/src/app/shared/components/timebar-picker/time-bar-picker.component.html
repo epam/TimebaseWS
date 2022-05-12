@@ -4,36 +4,35 @@
       <div
           (click)="onSetDate($event, 0)"
           (mousemove)="onMouseMove($event, 0)"
-          class="time-bar-move-area time-bar-move-area--left"
           [class.time-bar-move-area--filled]="method == 'purge'"
-      ></div>
+          class="time-bar-move-area time-bar-move-area--left"></div>
       <div
           (click)="onSetDate($event, 100)"
           (mousemove)="onMouseMove($event, 100)"
-          class="time-bar-move-area time-bar-move-area--right"
           [class.time-bar-move-area--filled]="method == 'truncate'"
-      ></div>
-      <div #eventArea (click)="onSetDate($event)" (mousemove)="onMouseMove($event)" class="time-bar-move-area">
+          class="time-bar-move-area time-bar-move-area--right"></div>
+      <div
+          #eventArea
+          (click)="onSetDate($event)"
+          (mousemove)="onMouseMove($event)"
+          class="time-bar-move-area">
         <span [style.left.%]="cursorLeft" class="time-bar-cursor move-transparent"></span>
         <span [style.left.%]="selectorCursorLeft" class="time-bar-selector-cursor move-transparent">
-        <span class="time-bar-selector-cursor-text">{{ selectorCursorTitle }}</span>
-      </span>
+          <span class="time-bar-selector-cursor-text">{{ selectorCursorTitle }}</span>
+        </span>
         <span
             *ngIf="method == 'purge'"
             [style.width.%]="cursorLeft"
-            class="time-bar-width move-transparent"
-        ></span>
+            class="time-bar-width move-transparent"></span>
         <span
             *ngIf="method == 'truncate'"
             [style.width.%]="100 - cursorLeft"
-            class="time-bar-width truncate-time-bar-fill move-transparent"
-        ></span>
+            class="time-bar-width truncate-time-bar-fill move-transparent"></span>
       </div>
-      
     </div>
     <div class="time-bar-legend d-flex w-100 justify-content-between">
-      <span class="time-bar-start">{{startDate_title}}</span>
-      <span class="time-bar-end">{{endDate_title}}</span>
+      <span class="time-bar-start">{{ startDate_title }}</span>
+      <span class="time-bar-end">{{ endDate_title }}</span>
     </div>
   </div>
   <div class="time-inputs">
@@ -41,24 +40,22 @@
       <span class="font-weight-bold w-100">Date:</span>
     </div>
     <app-btn-date-picker
-        [minDate]="startDate"
-        [maxDate]="endDate"
-        [value]="visibleSelectedDate"
-        [timeZone]="datePickerTimeZone"
         (valueChange)="onValueChange($event)"
-    ></app-btn-date-picker>
+        [maxDate]="endDate"
+        [minDate]="startDate"
+        [timeZone]="datePickerTimeZone"
+        [value]="visibleSelectedDate"></app-btn-date-picker>
     <div class="w-100">
       <span class="font-weight-bold w-100">Timezone:</span>
     </div>
     <div class="controlWr datepicker-inputWr timezone-inputWr d-flex align-content-stretch">
       <ng-multiselect-dropdown
-          (onSelect)="onTimeZoneSelected()"
           (onDeSelect)="onTimeZoneDeSelected()"
+          (onSelect)="onTimeZoneSelected()"
           [(ngModel)]="selectedTimeZone"
-          placeholder="Timezone"
           [settings]="dropdownSettingsTimeZone"
           [data]="dropdownListTimeZones"
-      >
+          placeholder="Timezone">
       </ng-multiselect-dropdown>
     </div>
   </div>

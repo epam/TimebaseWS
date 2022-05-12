@@ -1,11 +1,16 @@
-<app-modal>
-  <ng-container content>{{ message }}</ng-container>
+<app-modal [withoutHeader]="withoutHeader">
+  <ng-container content>
+    <ng-container *ngIf="messageTpl">
+      <ng-container *ngTemplateOutlet="messageTpl"></ng-container>
+    </ng-container>
+    <ng-container *ngIf="!messageTpl">{{ message }}</ng-container>
+  </ng-container>
   <ng-container footer>
     <button (click)="onSuccess()" class="btn btn-danger" type="button">
-      {{'buttons.yes' | translate}}
+      {{ btns.yes | translate }}
     </button>
     <button appModalHideBtn class="btn btn-default last" type="button">
-      {{'buttons.no' | translate}}
+      {{ btns.no | translate }}
     </button>
   </ng-container>
 </app-modal>

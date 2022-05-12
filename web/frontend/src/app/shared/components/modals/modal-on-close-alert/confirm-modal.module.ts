@@ -1,22 +1,14 @@
-import { NgModule } from '@angular/core';
-import { ConfirmModalComponent } from './confirm-modal.component';
-import { SimpleModalModule } from '../../../modal/simple-modal.module';
-import { TooltipModule } from 'ngx-bootstrap';
-import { TranslateModule } from '@ngx-translate/core';
-
+import {CommonModule} from '@angular/common';
+import {NgModule} from '@angular/core';
+import {TranslateModule} from '@ngx-translate/core';
+import {TooltipModule} from 'ngx-bootstrap/tooltip';
+import {SimpleModalModule} from '../../../modal/simple-modal.module';
+import {ConfirmModalComponent} from './confirm-modal.component';
 
 @NgModule({
   declarations: [ConfirmModalComponent],
-  exports: [
-    ConfirmModalComponent,
-  ],
-  entryComponents: [
-    ConfirmModalComponent,
-  ],
-  imports: [
-    SimpleModalModule,
-    TooltipModule,
-    TranslateModule,
-  ],
+  exports: [ConfirmModalComponent],
+  entryComponents: [ConfirmModalComponent],
+  imports: [SimpleModalModule, TooltipModule, TranslateModule, CommonModule],
 })
-export class ConfirmModalModule { }
+export class ConfirmModalModule {}

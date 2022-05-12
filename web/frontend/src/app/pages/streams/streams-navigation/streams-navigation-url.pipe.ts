@@ -1,30 +1,15 @@
-import { Pipe, PipeTransform } from '@angular/core';
-import { StreamModel } from '../models/stream.model';
-import { appRoute } from '../../../shared/utils/routes.names';
+import {Pipe, PipeTransform} from '@angular/core';
+import {MenuItem, MenuItemType} from '../../../shared/models/menu-item';
+import {appRoute} from '../../../shared/utils/routes.names';
+import {StreamsNavigationService} from './streams-navigation.service';
 
 @Pipe({
   name: 'streamsNavigationUrl',
 })
 export class StreamsNavigationUrlPipe implements PipeTransform {
+  constructor(private streamsNavigationService: StreamsNavigationService) {}
 
-  transform(stream: StreamModel, activeTabType: string, openInNewTab: boolean, symbol?: string): any {
-    if (this.disableUrl(activeTabType, symbol)) {
-      return null;
-    }
-
-    const openDefault = !activeTabType || openInNewTab || activeTabType === 'query';
-
-    return [
-      '/',
-      appRoute,
-      (symbol ? 'symbol' : 'stream'),
-      openDefault ? 'view' : activeTabType,
-      stream.key,
-      symbol,
-    ].filter(Boolean);
-  }
-
-  private disableUrl(activeTabType: string, symbol: string) {
-    return symbol ? ['schema', 'schema-edit'].includes(activeTabType) : activeTabType === 'chart';
+  transform(item: MenuItem, activeTabType: string): any {
+    return this.streamsNavigationService.url(item, activeTabType);
   }
 }

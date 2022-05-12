@@ -1,4 +1,4 @@
-@import "~src/app/core/styles/variables";
+@import '~src/app/core/styles/variables';
 
 :host {
   &:hover {
@@ -25,6 +25,6 @@ select {
   &__inner {
     transition: background-color 0.15s;
     margin: 5px 20px 5px 10px;
-    background: #1f526f;
+    background: $bg-blue;
   }
 }

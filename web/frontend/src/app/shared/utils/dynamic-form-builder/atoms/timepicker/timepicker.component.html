@@ -1,15 +1,20 @@
-<div [formGroup]="form"
-  #dp="bsDatepicker" triggers="dblclick:click" bsDatepicker (bsValueChange)="onValueChange($event)" [bsConfig]="bsConfig" [(bsValue)]="visibleSelectedDate"
-  class="d-flex">
+<div
+    #dp="bsDatepicker"
+    (bsValueChange)="onValueChange($event)"
+    [(bsValue)]="visibleSelectedDate"
+    [bsConfig]="bsConfig"
+    [formGroup]="form"
+    bsDatepicker
+    class="d-flex"
+    triggers="dblclick:click">
   <input
-    type="text"
-    class="btn bs-datepicker datepicker-input"
-    (input)="onInput()"
-    [id]="(field.parentName || '') + field.name"
-    [name]="field.name"
-    [formControlName]="field.name"
-    [attr.tabindex]="field.readonly ? -1 : null">
-
-  <button class="btn btn-navy btn-from"
-    (click)="dpToggle($event)" type="button"></button>
+      (input)="onInput()"
+      [attr.tabindex]="field.readonly ? -1 : null"
+      [formControlName]="field.name"
+      [id]="(field.parentName || '') + field.name"
+      [name]="field.name"
+      class="btn bs-datepicker datepicker-input"
+      type="text" />
+  
+  <button (click)="dpToggle($event)" class="btn btn-navy btn-from" type="button"></button>
 </div>

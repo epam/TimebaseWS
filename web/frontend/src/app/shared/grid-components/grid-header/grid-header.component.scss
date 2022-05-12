@@ -1,11 +1,12 @@
-@import "src/app/core/styles/variables";
+@import 'src/app/core/styles/variables';
 
 :host {
   width: 100%;
 }
 
 .ag-cell-label-container {
-  &:hover, &.dropdown-open {
+  &:hover,
+  &.dropdown-open {
     .columns-icon {
       visibility: visible;
     }
@@ -41,4 +42,3 @@
     transform: rotate(45deg);
   }
 }
-

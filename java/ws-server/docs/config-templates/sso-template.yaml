@@ -1,0 +1,38 @@
+# template for SSO
+server:
+  port: 8099
+  compression:
+    enabled: true
+    mime-types: text/html,text/css,application/javascript,application/json
+spring:
+  mvc:
+    async:
+      request-timeout: 3600000 # 60 * 60 * 1000 = 1 hour
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://hydra-config.stage.shiftmarketsdev.com/
+timebase:
+  url: dxtick://localhost:8011
+  readonly: false
+  flushPeriodMs: 500
+  user:
+  password:
+  streams:
+    include:
+    exclude: \#$
+  currencies:
+grafana:
+  streams:
+  include: .*
+  exclude:
+security:
+  oauth2:
+    provider:
+      providerType: SSO
+      name: hydra
+      clientId: ember_monitor
+      validateIssuer: false
+      userInfo:
+        enable: true

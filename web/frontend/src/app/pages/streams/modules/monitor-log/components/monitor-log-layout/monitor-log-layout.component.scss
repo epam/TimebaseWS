@@ -1,4 +1,4 @@
-@import "~src/app/core/styles/variables";
+@import '~src/app/core/styles/variables';
 
 .details-stream-wrap {
   display: flex;
@@ -31,6 +31,7 @@
   left: 7.5 * $ss;
   display: flex;
   flex-direction: column;
+
   &.hide-filters {
     top: 1rem;
   }
@@ -66,7 +67,7 @@
     text-align: center;
 
     &:before {
-      content: "";
+      content: '';
       position: absolute;
       display: block;
       top: 0;
@@ -90,7 +91,7 @@
   height: 100%;
   width: 15 * $ss;
   flex-shrink: 0;
-  margin-left: 7.5 * $ss / 2;
+  margin-left: 7.5 * $ss * 0.5;
 }
 
 .hide {

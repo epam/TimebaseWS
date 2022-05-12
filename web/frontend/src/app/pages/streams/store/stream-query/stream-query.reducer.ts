@@ -1,6 +1,6 @@
-import { StreamQueryActions, StreamQueryActionTypes } from './stream-query.actions';
-import { AppState }                                   from '../../../../core/store';
-import { StreamDetailsModel }                         from '../../models/stream.details.model';
+import {AppState} from '../../../../core/store';
+import {StreamDetailsModel} from '../../models/stream.details.model';
+import {StreamQueryActions, StreamQueryActionTypes} from './stream-query.actions';
 
 export interface FeatureState extends AppState {
   streamQuery: State;
@@ -16,7 +16,6 @@ export const initialState: State = {
 
 export function reducer(state = initialState, action: StreamQueryActions): State {
   switch (action.type) {
-
     case StreamQueryActionTypes.SET_STREAMS_QUERY:
       return {
         ...state,

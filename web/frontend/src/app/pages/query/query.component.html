@@ -1,35 +1,95 @@
 <div class="col-md-12 full-height-page">
-  <as-split (appDragProgress)="onDragProgress()" direction="horizontal">
-    <as-split-area [size]="75" >
+  <as-split
+      [appSplitterSizes]="[75, 25]"
+      [minSizes]="[586, 260]"
+      [parentWidthAddon]="62"
+      [useStorage]="false"
+      direction="horizontal">
+    <as-split-area>
       <as-split
-          class="vertical-split"
-          [class.show-details]="showDetails$ | async"
           (dragEnd)="onDragEnd($event)"
-          (appDragProgress)="onDragProgress()"
-          direction="vertical"
-      >
+          [class.show-details]="showDetails$ | async"
+          class="vertical-split"
+          direction="vertical">
         <as-split-area [size]="editorSize$ | async">
-          <form [formGroup]="form" (submit)="onSubmit()">
+          <form (submit)="onSubmit()" [formGroup]="form">
             <div class="query-tools">
-              <button
-                  [disabled]="sendBtnDisabled$ | async"
-                  class="btn btn-info"
-                  [tooltip]="sendBtnText$ | async"
-                  placement="right"
-              >
-                {{ sendBtnText$ | async }}
-              </button>
-              <div class="query-tools__rows">
-                <label for="rows">{{ 'text.maxRows' | translate }}:</label>
-                <input appNumbersOnly maxlength="6" id="rows" class="form-control" formControlName="rows">
+              <div class="btn-group" dropdown>
+                <button
+                    [disabled]="sendBtnDisabled$ | async"
+                    [tooltip]="sendBtnText$ | async"
+                    class="btn btn-info send-btn"
+                    placement="right">
+                  {{ sendBtnText$ | async }}
+                </button>
+                <button
+                    [class.disabled]="sendBtnDisabled$ | async"
+                    class="btn btn-info dropdown-button dropdown-toggle dropdown-button--separate"
+                    dropdownToggle
+                    type="button"></button>
+                <ul *dropdownMenu class="dropdown-menu common-dropdown">
+                  <ng-container *ngFor="let type of gridTypesArray">
+                    <li *ngIf="(gridType$ | async) !== type" class="dropdown-item">
+                      <a (click)="onSubmit(type)">{{ 'qqlEditor.buttons.' + type | translate }}</a>
+                    </li>
+                  </ng-container>
+                </ul>
+              </div>
+              <div container="body" dropdown>
+                <button
+                    [class.disabled]="!(lastQueries$ | async)?.length"
+                    class="btn btn-info dropdown-button"
+                    dropdownToggle
+                    type="button">
+                  {{ 'qqlEditor.recentQueries' | translate }}
+                </button>
+                <ul *dropdownMenu class="dropdown-menu common-dropdown query-dropdown">
+                  <li *ngFor="let query of lastQueries$ | async" class="dropdown-item">
+                    <a (click)="insertRecentQuery(query)">
+                      <div class="streams">
+                        <span *ngFor="let stream of query.streams">{{ stream }}</span>
+                      </div>
+                      <div
+                          [adaptivePosition]="false"
+                          [tooltip]="query.query"
+                          class="query"
+                          container="body"
+                          containerClass="common-dropdown query-dropdown-tooltip">
+                        {{ query.query }}
+                      </div>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+              <div class="btn-group export-btn" dropdown>
+                <button
+                    [disabled]="exportBtnDisabled$ | async"
+                    [tooltip]="exportBtnText$ | async"
+                    class="btn btn-info"
+                    type="button"
+                    (click)="export()"
+                    placement="right">
+                  {{ exportBtnText$ | async }}
+                </button>
+                <button
+                    [class.disabled]="exportBtnDisabled$ | async"
+                    class="btn btn-info dropdown-button dropdown-toggle dropdown-button--separate"
+                    dropdownToggle
+                    type="button"></button>
+                <ul *dropdownMenu class="dropdown-menu common-dropdown">
+                  <ng-container *ngFor="let type of exportTypesArray">
+                    <li *ngIf="(exportType$ | async) !== type" class="dropdown-item">
+                      <a (click)="export(type)">{{ 'qqlEditor.buttons.export.' + type | translate }}</a>
+                    </li>
+                  </ng-container>
+                </ul>
               </div>
             </div>
             <div #editorWrapper class="editor-wrapper">
               <ngx-monaco-editor
-                  formControlName="query"
                   (onInit)="onInit($event)"
                   [options]="editorOptions"
-              ></ngx-monaco-editor>
+                  formControlName="query"></ngx-monaco-editor>
             </div>
           </form>
         </as-split-area>
@@ -41,17 +101,24 @@
             <div *ngIf="loading$ | async" class="loaderWr display-block">
               <div class="loader display-block">{{ 'text.loading' | translate }}...</div>
             </div>
-            <ag-grid-angular
-                [class.hidden]="!showGrid || queryError"
-                [gridOptions]="gridOptions$ | async"
-                class="ag-theme-balham-dark"
-            ></ag-grid-angular>
+            <div [class.hidden]="!showGrid || queryError" class="grid">
+              <ag-grid-angular
+                  [class.hidden]="showLiveGrid$ | async"
+                  [gridOptions]="gridOptions$ | async"
+                  class="ag-theme-balham-dark"></ag-grid-angular>
+              <app-live-grid
+                  *ngIf="showLiveGrid$ | async"
+                  [filters]="gridLiveFilters"
+                  [schemaData]="rawSchema"
+                  [tabName]="liveGridName$ | async"></app-live-grid>
+            </div>
           </div>
         </as-split-area>
       </as-split>
     </as-split-area>
-    <as-split-area [size]="25" [visible]="showDetails$ | async">
-      <app-message-info *ngIf="showDetails$ | async"></app-message-info>
+    <as-split-area>
+      <app-right-area [showOrderBook]="false"></app-right-area>
     </as-split-area>
   </as-split>
+  <app-right-toolbar #rightToolBar [showProperties]="false" ></app-right-toolbar>
 </div>

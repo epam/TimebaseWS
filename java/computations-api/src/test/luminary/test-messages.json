@@ -1,0 +1,10 @@
+{
+  "Sources": [
+    {
+      "Directory": "."
+    }
+  ],
+  "References": [
+    "DeltixTimebaseApiMessages.json"
+  ]
+}

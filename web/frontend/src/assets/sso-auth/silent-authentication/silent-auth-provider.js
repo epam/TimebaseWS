@@ -1,15 +1,18 @@
 'use strict';
-var __assign = (this && this.__assign) || function () {
-  __assign = Object.assign || function (t) {
-    for (var s, i = 1, n = arguments.length; i < n; i++) {
-      s = arguments[i];
-      for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-        t[p] = s[p];
-    }
-    return t;
+var __assign =
+  (this && this.__assign) ||
+  function () {
+    __assign =
+      Object.assign ||
+      function (t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+          s = arguments[i];
+          for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+        }
+        return t;
+      };
+    return __assign.apply(this, arguments);
   };
-  return __assign.apply(this, arguments);
-};
 Object.defineProperty(exports, '__esModule', {value: true});
 var appauth_1 = require('@openid/appauth');
 var nonce_utils_1 = require('../utils/nonce.utils');
@@ -37,7 +40,7 @@ var SilentAuthProvider = (function () {
       this.timeout = params.timeout;
     }
   }
-  
+
   Object.defineProperty(SilentAuthProvider.prototype, 'authorizationEndPointUrl', {
     get: function () {
       return this.authorizationServiceConfig.authorizationEndpoint;
@@ -70,7 +73,9 @@ var SilentAuthProvider = (function () {
     };
     parameters = __assign({}, parameters, this.extraAuthParams);
     var paramsStr = Object.keys(parameters)
-      .map(function (key) { return encodeURIComponent(key) + '=' + encodeURIComponent(parameters[key]); })
+      .map(function (key) {
+        return encodeURIComponent(key) + '=' + encodeURIComponent(parameters[key]);
+      })
       .join('&');
     return this.authorizationEndPointUrl + '?' + paramsStr;
   };
@@ -127,7 +132,8 @@ var SilentAuthProvider = (function () {
       refresh_token: undefined,
     });
     var tokenHandler = new appauth_1.BaseTokenRequestHandler(this.requestor);
-    tokenHandler.performTokenRequest(this.authorizationServiceConfig, tokenRequest)
+    tokenHandler
+      .performTokenRequest(this.authorizationServiceConfig, tokenRequest)
       .then(this.callback)
       .catch(this.failureCallback);
   };
@@ -139,5 +145,5 @@ var SilentAuthProvider = (function () {
     }
   };
   return SilentAuthProvider;
-}());
+})();
 exports.SilentAuthProvider = SilentAuthProvider;

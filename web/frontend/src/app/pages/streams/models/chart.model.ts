@@ -3,23 +3,30 @@ export interface ChartModel {
     end: string;
     start: string;
   };
-  lines: {[key: string]: ChartRawLine};
+  lines: ChartRowLines;
   name: string;
+}
+
+export interface ChartRowLines {
+  [key: string]: ChartRawLine;
 }
 
 export interface ChartRawLine {
   aggregationSizeMs: number;
   newWindowSizeMs: number;
-  points: {
-    time: number;
-    value: string;
-    high?: string;
-    low?: string;
-    close?: string;
-    open?: string;
-    askPrice?: string;
-    bidPrice?: string;
-  }[];
+  points: ChartPointModel[];
+}
+
+export interface ChartPointModel {
+  time: number;
+  value: number | string;
+  high?: number | string;
+  low?: number | string;
+  close?: number | string;
+  open?: number | string;
+  width?: number;
+  askPrice?: number | string;
+  bidPrice?: number | string;
 }
 
 export type ChartData = [
@@ -34,4 +41,5 @@ export type ChartData = [
 export enum ChartTypes {
   BARS = 'BARS',
   TRADES_BBO = 'TRADES_BBO',
+  PRICES_L2 = 'PRICES_L2',
 }

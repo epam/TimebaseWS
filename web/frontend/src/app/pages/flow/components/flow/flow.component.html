@@ -1,0 +1,49 @@
+<div class="col-md-12 full-height-page">
+  <div class="page-block">
+    <div class="filters">
+      <div class="filters-left" #filterPanel>
+        <app-flow-filter></app-flow-filter>
+      </div>
+  
+      <button (click)="resetLayout()" class="btn btn-outline-primary btn-round">
+        Reset Layout
+      </button>
+    </div>
+    
+    <div class="page-divider" #pageDivider></div>
+  
+    <div class="flow-header-control d-flex w-100 flex-shrink-1">
+      <app-flow-breadcrumbs
+          (breadCrumbClicked)="breadCrumbClicked($event)"
+          [path]="this.path"></app-flow-breadcrumbs>
+    </div>
+    <ng-template [ngIf]="!renderVars.resetLayout">
+      <div #vizceralRef class="vizceralWr" [style.top]="vizceralTopPosition + 'px'">
+        <vizceral
+            (matchesFound)="matchesFound()"
+            (nodeContextSizeChanged)="nodeContextSizeChanged()"
+            (objectHighlighted)="objectHighlighted($event)"
+            (viewChanged)="viewChanged($event)"
+            (viewUpdated)="viewUpdated($event)"
+            *ngIf="traffic$ | async as traffic"
+            [allowDraggingOfNodes]="true"
+            [initialSize]="initialSize"
+            [objectToHighlight]="objectToHighlight"
+            [showLabels]="true"
+            [traffic]="traffic"
+            [view]="path">
+        </vizceral>
+      </div>
+    </ng-template>
+    <section *ngIf="selectedNodeView$ | async as selectedNodeView" class="dragBoundary">
+      <app-connection-details
+          *ngIf="selectedNodeView.type === 'connection'"
+          [isParent]="true"
+          class="panContainer"></app-connection-details>
+      <app-node-details
+          *ngIf="selectedNodeView.type === 'node'"
+          [isParent]="true"
+          class="panContainer"></app-node-details>
+    </section>
+  </div>
+</div>

@@ -1,18 +1,10 @@
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { SplitterSizesDirective } from './splitter-sizes.directive';
-
-
+import {CommonModule} from '@angular/common';
+import {NgModule} from '@angular/core';
+import {SplitterSizesDirective} from './splitter-sizes.directive';
 
 @NgModule({
-  declarations: [
-    SplitterSizesDirective,
-  ],
-  imports: [
-    CommonModule,
-  ],
-  exports: [
-    SplitterSizesDirective,
-  ],
+  declarations: [SplitterSizesDirective],
+  imports: [CommonModule],
+  exports: [SplitterSizesDirective],
 })
-export class SplitterSizesModule { }
+export class SplitterSizesModule {}

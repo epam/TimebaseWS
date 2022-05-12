@@ -1,0 +1,55 @@
+{
+  "name": "@deltix/hd-date",
+  "version": "2.0.2",
+  "description": "",
+  "main": "./dist/bundle/hd-date.module.umd.js",
+  "module": "./dist/hd-date.js",
+  "typings": "./dist/hd-date.d.ts",
+  "scripts": {
+    "lint": "tslint --config tslint.json './src/ts/**/*.ts'",
+    "test": "yarn lint && karma start --single-run",
+    "test-dev": "karma start",
+    "start": "yarn server",
+    "build": "gulp default && rollup -c",
+    "doc": "compodoc -p tsconfig.json --hideGenerator --disableSourceCode --disableInternal --disablePrivate --disableLifeCycleHooks",
+    "doc-serve": "compodoc -p tsconfig.json --hideGenerator --disableSourceCode --disableInternal --disablePrivate --disableLifeCycleHooks -s -r 7086 -w",
+    "perf-test": "ts-node --project ./tsconfig.perf.json ./benchmark/parse-string.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.deltixhub.com/Deltix/Common/Web/deltix-hd-date.git"
+  },
+  "keywords": [
+    "date"
+  ],
+  "author": "Deltix",
+  "license": "ISC",
+  "devDependencies": {
+    "@compodoc/compodoc": "1.1.5",
+    "@types/core-js": "2.5.0",
+    "@types/jasmine": "2.8.9",
+    "@types/node": "10.11.4",
+    "awesome-typescript-loader": "5.2.1",
+    "benchmark": "2.1.4",
+    "core-js": "2.5.7",
+    "gulp": "4.0.2",
+    "gulp-sourcemaps": "1.9.3",
+    "gulp-typescript": "3.1.3",
+    "jasmine-core": "3.2.1",
+    "karma": "3.0.0",
+    "karma-jasmine": "1.1.2",
+    "karma-phantomjs-launcher": "1.0.4",
+    "karma-typescript-preprocessor": "0.4.0",
+    "karma-webpack": "3.0.5",
+    "natives": "1.1.6",
+    "phantomjs-prebuilt": "^2.1.16",
+    "rollup": "0.66.4",
+    "ts-node": "7.0.1",
+    "tslint": "5.12.0",
+    "typescript": "3.1.1",
+    "url-loader": "1.1.1",
+    "webpack": "4.20.2",
+    "intl": "^1.2.5",
+    "karma-intl-shim": "^1.0.3"
+  }
+}

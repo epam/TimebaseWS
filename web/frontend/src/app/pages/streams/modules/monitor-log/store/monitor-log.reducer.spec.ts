@@ -1,4 +1,4 @@
-import { reducer, initialState } from './monitor-log.reducer';
+import {initialState, reducer} from './monitor-log.reducer';
 
 describe('MonitorLog Reducer', () => {
   describe('an unknown action', () => {

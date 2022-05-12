@@ -15,11 +15,11 @@ import {
   FormGroup,
   ValidatorFn,
   Validators,
-}                                                                                             from '@angular/forms';
-import { Subject }                                                                            from 'rxjs';
-import { isArray }                                                                            from 'rxjs/internal-compatibility';
-import { takeUntil }                                                                          from 'rxjs/operators';
-import { FieldModel }                                                                         from './field-builder/field-model';
+} from '@angular/forms';
+import {Subject} from 'rxjs';
+import {isArray} from 'rxjs/internal-compatibility';
+import {takeUntil} from 'rxjs/operators';
+import {FieldModel} from './field-builder/field-model';
 
 export const PATH_SEPARATOR = '.';
 
@@ -28,7 +28,10 @@ export const PATH_SEPARATOR = '.';
   template: `
     <form [formGroup]="form" class="form-horizontal props-form">
       <div *ngFor="let field of fieldsInfo">
-        <app-field-builder [field]="field" [form]="form"></app-field-builder>
+        <app-field-builder
+          [alignLabels]="alignLabels"
+          [field]="field"
+          [form]="form"></app-field-builder>
       </div>
     </form>
   `,
@@ -38,10 +41,13 @@ export const PATH_SEPARATOR = '.';
 export class DynamicFormBuilderComponent implements OnInit, OnDestroy {
   public fieldsInfo: any[] = [];
   @Input() form: FormGroup;
+  @Input() alignLabels = true;
   @Output() formChange = new EventEmitter();
   @Output() formChanged = new EventEmitter();
   private destroy$ = new Subject();
   private destroyForm$ = new Subject();
+
+  constructor(private cdRef: ChangeDetectorRef) {}
 
   @Input()
   set fields(fields: any[]) {
@@ -56,7 +62,75 @@ export class DynamicFormBuilderComponent implements OnInit, OnDestroy {
     this.fieldsInfo = [...fields];
   }
 
-  constructor(private cdRef: ChangeDetectorRef) {
+  public updateView(control: AbstractControl) {
+    this.cdRef.detectChanges();
+
+    if (!control) {
+      return;
+    }
+
+    control.updateValueAndValidity();
+  }
+
+  public getControl(pathAndNameString: string): FormControl {
+    const {groupPath, controlName} = this.parseFormControlPathAndName(pathAndNameString);
+    const CURRENT_GROUP = this.getFormGroup(groupPath);
+    if (!CURRENT_GROUP.get(controlName)) {
+      console.warn(`There is no control with path [${pathAndNameString}] in current form`);
+      return null;
+    }
+    return CURRENT_GROUP.get(controlName) as FormControl;
+  }
+
+  public addControl(pathAndNameString: string, field: FieldModel, index: number = -1) {
+    const {groupPath, controlName} = this.parseFormControlPathAndName(pathAndNameString);
+    const CURRENT_FORM_GROUP = this.getFormGroup(groupPath),
+      CURRENT_FIELD_GROUP = this.getFieldGroup(groupPath);
+    if (CURRENT_FORM_GROUP && CURRENT_FIELD_GROUP && CURRENT_FIELD_GROUP.length) {
+      CURRENT_FORM_GROUP.addControl(controlName, this.createFormControl(field));
+      CURRENT_FIELD_GROUP.splice(index, 0, field);
+      this.updateView(CURRENT_FORM_GROUP.get(controlName));
+    }
+  }
+
+  public removeControl(pathAndNameString: string): number | null {
+    const {groupPath, controlName} = this.parseFormControlPathAndName(pathAndNameString);
+    const CURRENT_GROUP = this.getFormGroup(groupPath),
+      CURRENT_FIELD_GROUP = this.getFieldGroup(groupPath),
+      CURRENT_FIELD_INDEX = CURRENT_FIELD_GROUP.findIndex(
+        (group_field) => group_field.name === controlName,
+      );
+    if (!CURRENT_GROUP.get(controlName)) {
+      return null;
+    }
+    if (CURRENT_FIELD_INDEX) {
+      CURRENT_GROUP.removeControl(controlName);
+      CURRENT_FIELD_GROUP.splice(CURRENT_FIELD_INDEX, 1);
+      return CURRENT_FIELD_INDEX;
+    }
+    return null;
+  }
+
+  public replaceControl(pathAndNameString: string, field: FieldModel) {
+    const NEW_INDEX = this.removeControl(pathAndNameString);
+    this.addControl(pathAndNameString, field, NEW_INDEX);
+  }
+
+  public onFormChange() {
+    this.formChanged.emit(this.form.value);
+  }
+
+  public tracker(index, field) {
+    return index;
+  }
+
+  ngOnInit() {
+    this.initForm(this.fieldsInfo);
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next(true);
+    this.destroy$.complete();
   }
 
   private initForm(fields: FieldModel[]) {
@@ -64,14 +138,11 @@ export class DynamicFormBuilderComponent implements OnInit, OnDestroy {
     this.formChange.emit(this.form);
 
     this.form.valueChanges
-      .pipe(
-        takeUntil(this.destroyForm$),
-        takeUntil(this.destroy$),
-      )
+      .pipe(takeUntil(this.destroyForm$), takeUntil(this.destroy$))
       .subscribe(this.onFormChange.bind(this));
   }
 
-  private formGenerator(_fields: FieldModel[]): { [key: string]: AbstractControl; } {
+  private formGenerator(_fields: FieldModel[]): {[key: string]: AbstractControl} {
     const CONTROLS: {
       [key: string]: AbstractControl;
     } = {};
@@ -90,63 +161,11 @@ export class DynamicFormBuilderComponent implements OnInit, OnDestroy {
     }
   }
 
-  public updateView(control: AbstractControl) {
-    this.cdRef.detectChanges();
-    
-    if (!control) {
-      return;
-    }
-    
-    control.updateValueAndValidity();
-  }
-
-  public getControl(pathAndNameString: string): FormControl {
-    const {groupPath, controlName} = this.parseFormControlPathAndName(pathAndNameString);
-    const CURRENT_GROUP = this.getFormGroup(groupPath);
-    if (!CURRENT_GROUP.get(controlName)) {
-      console.warn(`There is no control with path [${pathAndNameString}] in current form`);
-      return null;
-    }
-    return (CURRENT_GROUP.get(controlName) as FormControl);
-  }
-
-  public addControl(pathAndNameString: string, field: FieldModel, index: number = -1) {
-    const {groupPath, controlName} = this.parseFormControlPathAndName(pathAndNameString);
-    const CURRENT_FORM_GROUP = this.getFormGroup(groupPath),
-      CURRENT_FIELD_GROUP = this.getFieldGroup(groupPath);
-    if (CURRENT_FORM_GROUP && CURRENT_FIELD_GROUP && CURRENT_FIELD_GROUP.length) {
-      CURRENT_FORM_GROUP.addControl(controlName, this.createFormControl(field));
-      CURRENT_FIELD_GROUP.splice(index, 0, field);
-      this.updateView(CURRENT_FORM_GROUP.get(controlName));
-    }
-  }
-
-  public removeControl(pathAndNameString: string): number | null {
-    const {groupPath, controlName} = this.parseFormControlPathAndName(pathAndNameString);
-    const CURRENT_GROUP = this.getFormGroup(groupPath),
-      CURRENT_FIELD_GROUP = this.getFieldGroup(groupPath),
-      CURRENT_FIELD_INDEX = CURRENT_FIELD_GROUP.findIndex(group_field => group_field.name === controlName);
-    if (!CURRENT_GROUP.get(controlName)) {
-      return null;
-    }
-    if (CURRENT_FIELD_INDEX) {
-      CURRENT_GROUP.removeControl(controlName);
-      CURRENT_FIELD_GROUP.splice(CURRENT_FIELD_INDEX, 1);
-      return CURRENT_FIELD_INDEX;
-    }
-    return null;
-  }
-
-  public replaceControl(pathAndNameString: string, field: FieldModel) {
-    const NEW_INDEX = this.removeControl(pathAndNameString);
-    this.addControl(pathAndNameString, field, NEW_INDEX);
-  }
-
   private getFormGroup(groupPath: string[]): FormGroup {
     let currentGroup = this.form;
-    groupPath.every(groupName => {
+    groupPath.every((groupName) => {
       if (currentGroup.get(groupName) instanceof FormGroup) {
-        currentGroup = (currentGroup.get(groupName) as FormGroup);
+        currentGroup = currentGroup.get(groupName) as FormGroup;
         return true;
       } else {
         return false;
@@ -157,9 +176,14 @@ export class DynamicFormBuilderComponent implements OnInit, OnDestroy {
 
   private getFieldGroup(groupPath: string[]): FieldModel[] {
     let currentGroup = this.fieldsInfo;
-    groupPath.every(groupName => {
-      const GROUP_INDEX = currentGroup.findIndex(field => field.name === groupName);
-      if (currentGroup[GROUP_INDEX] && currentGroup[GROUP_INDEX].childFields && isArray(currentGroup[GROUP_INDEX].childFields) && currentGroup[GROUP_INDEX].childFields.length) {
+    groupPath.every((groupName) => {
+      const GROUP_INDEX = currentGroup.findIndex((field) => field.name === groupName);
+      if (
+        currentGroup[GROUP_INDEX] &&
+        currentGroup[GROUP_INDEX].childFields &&
+        isArray(currentGroup[GROUP_INDEX].childFields) &&
+        currentGroup[GROUP_INDEX].childFields.length
+      ) {
         currentGroup = currentGroup[GROUP_INDEX].childFields;
         return true;
       } else {
@@ -169,7 +193,10 @@ export class DynamicFormBuilderComponent implements OnInit, OnDestroy {
     return currentGroup;
   }
 
-  private parseFormControlPathAndName(pathAndNameString: string): { groupPath: string[], controlName: string } {
+  private parseFormControlPathAndName(pathAndNameString: string): {
+    groupPath: string[];
+    controlName: string;
+  } {
     if (!(pathAndNameString && typeof pathAndNameString === 'string' && pathAndNameString.length)) {
       return {
         controlName: null,
@@ -182,7 +209,7 @@ export class DynamicFormBuilderComponent implements OnInit, OnDestroy {
   }
 
   private getValue(field: FieldModel) {
-    let controlValue = (field.value !== null) ? field.value : field.type === 'checkbox' ? false : '';
+    let controlValue = field.value !== null ? field.value : field.type === 'checkbox' ? false : '';
     if (field.disabled) {
       controlValue = {
         value: controlValue,
@@ -192,7 +219,9 @@ export class DynamicFormBuilderComponent implements OnInit, OnDestroy {
     return controlValue;
   }
 
-  private getValidators(field: FieldModel): ValidatorFn | ValidatorFn[] | AbstractControlOptions | null {
+  private getValidators(
+    field: FieldModel,
+  ): ValidatorFn | ValidatorFn[] | AbstractControlOptions | null {
     if (field.validators) {
       const VALIDATORS_OPTS: AbstractControlOptions = {};
       if (field.validators.getValidators) {
@@ -204,23 +233,5 @@ export class DynamicFormBuilderComponent implements OnInit, OnDestroy {
       return VALIDATORS_OPTS;
     }
     return field.required && field.type !== 'checkbox' ? Validators.required : null;
-  }
-
-  public onFormChange() {
-    this.formChanged.emit(this.form.value);
-  }
-
-  public tracker(index, field) {
-    return index;
-  }
-
-
-  ngOnInit() {
-    this.initForm(this.fieldsInfo);
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next(true);
-    this.destroy$.complete();
   }
 }

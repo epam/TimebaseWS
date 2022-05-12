@@ -18,8 +18,8 @@ package com.epam.deltix.grafana.model.fields;
 
 
 import com.epam.deltix.grafana.model.color.FieldColor;
-import com.epam.deltix.grafana.model.mappings.ValueMapping;
 import com.epam.deltix.grafana.model.thresholds.ThresholdsConfig;
+import com.epam.deltix.grafana.model.mappings.ValueMapping;
 
 import javax.annotation.Nullable;
 import java.util.List;

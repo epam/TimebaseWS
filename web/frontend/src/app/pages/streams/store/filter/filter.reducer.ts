@@ -1,12 +1,11 @@
-import { FilterActions, FilterActionTypes } from './filter.actions';
-
+import {FilterActions, FilterActionTypes} from './filter.actions';
 
 export interface State {
-  'from': string;
+  from: string;
 }
 
 export const initialState: State = {
-  'from': null,
+  from: null,
 };
 
 export function reducer(state = initialState, action: FilterActions): State {
@@ -14,7 +13,7 @@ export function reducer(state = initialState, action: FilterActions): State {
     case FilterActionTypes.SET_FILTER:
       return {
         //  'from': action.payload.filter.from,
-        'from': null,
+        from: null,
         ...action.payload.filter,
       };
 
@@ -25,14 +24,14 @@ export function reducer(state = initialState, action: FilterActions): State {
       };
 
     case FilterActionTypes.REMOVE_FILTER:
-      const currentFilter = { ...state };
+      const currentFilter = {...state};
       delete currentFilter[action.payload.filterName];
       return currentFilter;
 
     case FilterActionTypes.CLEAN_FILTER:
       return {
         ...state,
-        'from': null,
+        from: null,
       };
 
     case FilterActionTypes.RESET_STATE:
@@ -45,4 +44,3 @@ export function reducer(state = initialState, action: FilterActions): State {
       return state;
   }
 }
-

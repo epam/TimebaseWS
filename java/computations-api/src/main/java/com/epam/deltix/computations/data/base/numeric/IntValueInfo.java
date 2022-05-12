@@ -16,6 +16,7 @@
  */
 package com.epam.deltix.computations.data.base.numeric;
 
+import com.epam.deltix.computations.data.base.GenericValueInfo;
 import com.epam.deltix.dfp.Decimal64Utils;
 
 public interface IntValueInfo extends NumberValueInfo {
@@ -29,26 +30,26 @@ public interface IntValueInfo extends NumberValueInfo {
 
     @Override
     default long longValue() {
-        return isNull() ? LONG_NULL: intValue();
+        return isNull() ? GenericValueInfo.LONG_NULL: intValue();
     }
 
     @Override
     default float floatValue() {
-        return isNull() ? FLOAT_NULL: intValue();
+        return isNull() ? GenericValueInfo.FLOAT_NULL: intValue();
     }
 
     @Override
     default double doubleValue() {
-        return isNull() ? DOUBLE_NULL: intValue();
+        return isNull() ? GenericValueInfo.DOUBLE_NULL: intValue();
     }
 
     @Override
     default long decimalValue() {
-        return isNull() ? DECIMAL_NULL: Decimal64Utils.fromInt(intValue());
+        return isNull() ? GenericValueInfo.DECIMAL_NULL: Decimal64Utils.fromInt(intValue());
     }
 
     @Override
     default boolean isNull() {
-        return intValue() == INT_NULL;
+        return intValue() == GenericValueInfo.INT_NULL;
     }
 }

@@ -1,0 +1,27 @@
+<button
+    *ngIf="showProperties"
+    (click)="toggleProps()"
+    [adaptivePosition]="false"
+    [class.active]="showPropsActive$ | async"
+    [placement]="tooltipPlacement"
+    [tooltip]="showPropsTooltip$ | async | translate"
+    class="navigation-btn"
+    container="body">
+  <i>
+    i
+  </i>
+</button>
+<button
+    *ngIf="showMessage"
+    [class.active]="showMessageInfoActive$ | async"
+    (click)="toggleMessageInfo()"
+    class="navigation-btn"
+    [adaptivePosition]="false"
+    [tooltip]="showMessageTooltip$ | async | translate"
+    [placement]="tooltipPlacement"
+    container="body"
+>
+  <i>
+    m
+  </i>
+</button>

@@ -1,18 +1,21 @@
-<div class="modal-header">
+<div *ngIf="!withoutHeader" class="modal-header">
   <h4 class="modal-title pull-left">
-    <ng-content select="[title]" ></ng-content>
+    <ng-content select="[title]"></ng-content>
   </h4>
-  <button appModalHideBtn
-          aria-label="Close"
-          [tooltip]="'buttons.close' | translate"
-          container="body"
-          class="close pull-right"
-          type="button"
-  ><span aria-hidden="true">&times;</span></button>
+  <button
+      [tooltip]="'buttons.close' | translate"
+      *ngIf="!withoutCloseBtn"
+      appModalHideBtn
+      aria-label="Close"
+      class="close pull-right"
+      container="body"
+      type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
 </div>
 <div class="modal-body">
-  <ng-content select="[content]" ></ng-content>
+  <ng-content select="[content]"></ng-content>
 </div>
-<div class="modal-footer">
-  <ng-content select="[footer]" ></ng-content>
+<div *ngIf="!withoutFooter" class="modal-footer">
+  <ng-content select="[footer]"></ng-content>
 </div>

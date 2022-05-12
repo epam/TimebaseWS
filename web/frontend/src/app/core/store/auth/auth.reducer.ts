@@ -1,8 +1,7 @@
-import { AuthProviderModel }                                from '../../../models/auth-provider.model';
-import { AuthorizationServiceConfiguration, TokenResponse } from '@openid/appauth';
-import { AuthActions, AuthActionTypes }                     from './auth.actions';
-import { CustomTokenResponseModel }                         from '../../../models/customToken-response.model';
-
+import {AuthorizationServiceConfiguration, TokenResponse} from '@openid/appauth';
+import {AuthProviderModel} from '../../../models/auth-provider.model';
+import {CustomTokenResponseModel} from '../../../models/customToken-response.model';
+import {AuthActions, AuthActionTypes} from './auth.actions';
 
 export const authFeatureKey = 'auth';
 
@@ -24,7 +23,6 @@ export const initialState: State = {
 
 export function reducer(state = initialState, action: AuthActions): State {
   switch (action.type) {
-
     case AuthActionTypes.SET_AUTH_PROVIDER_SETTINGS:
       return {
         ...state,
@@ -41,11 +39,13 @@ export function reducer(state = initialState, action: AuthActions): State {
       };
 
     case AuthActionTypes.SILENT_UPDATE_TOKEN:
-      const clearedToken = state.providerSettings.custom_provider ? {
-        customTokenResponse: null,
-      } : {
-        SSOTokenResponse: null,
-      };
+      const clearedToken = state.providerSettings.custom_provider
+        ? {
+            customTokenResponse: null,
+          }
+        : {
+            SSOTokenResponse: null,
+          };
       return {
         ...state,
         ...clearedToken,
@@ -64,16 +64,17 @@ export function reducer(state = initialState, action: AuthActions): State {
       };
 
     case AuthActionTypes.LOGIN:
-      const tokenResp = state.providerSettings.custom_provider ? {
-        customTokenResponse: action.payload.tokenResponse as CustomTokenResponseModel,
-      } : {
-        SSOTokenResponse: action.payload.tokenResponse as TokenResponse,
-      };
+      const tokenResp = state.providerSettings.custom_provider
+        ? {
+            customTokenResponse: action.payload.tokenResponse as CustomTokenResponseModel,
+          }
+        : {
+            SSOTokenResponse: action.payload.tokenResponse as TokenResponse,
+          };
       return {
         ...state,
         ...tokenResp,
       };
-
 
     default:
       return state;

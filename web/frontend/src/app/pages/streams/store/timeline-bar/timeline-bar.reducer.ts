@@ -1,6 +1,5 @@
-import { HdDate }                                     from '@assets/hd-date/hd-date';
-import { TimelineBarActions, TimelineBarActionTypes } from './timeline-bar.actions';
-
+import {HdDate} from '@assets/hd-date/hd-date';
+import {TimelineBarActions, TimelineBarActionTypes} from './timeline-bar.actions';
 
 export interface State {
   top: string;
@@ -11,7 +10,6 @@ export interface State {
   lastLoadedDate: HdDate;
 }
 
-
 export const initialState: State = {
   top: '0',
   bottom: '100%',
@@ -21,21 +19,31 @@ export const initialState: State = {
   lastLoadedDate: null, // new HdDate(startDate.toISOString()),
 };
 
-function getThumbTopPosition(startDate: HdDate, endDate: HdDate, firstLoadedDate: HdDate, top: string): string {
+function getThumbTopPosition(
+  startDate: HdDate,
+  endDate: HdDate,
+  firstLoadedDate: HdDate,
+  top: string,
+): string {
   if (startDate && endDate && firstLoadedDate) {
     const barSize = endDate.getEpochMillis() - startDate.getEpochMillis(),
       firstLoadedDateTopPos = firstLoadedDate.getEpochMillis() - startDate.getEpochMillis();
-    return (firstLoadedDateTopPos / barSize * 100) + '%';
+    return (firstLoadedDateTopPos / barSize) * 100 + '%';
   }
   if (!firstLoadedDate) return '0';
   return top;
 }
 
-function getThumbBottomPosition(startDate: HdDate, endDate: HdDate, lastLoadedDate: HdDate, bottom: string): string {
+function getThumbBottomPosition(
+  startDate: HdDate,
+  endDate: HdDate,
+  lastLoadedDate: HdDate,
+  bottom: string,
+): string {
   if (startDate && endDate && lastLoadedDate) {
     const barSize = endDate.getEpochMillis() - startDate.getEpochMillis(),
       lastLoadedDateTopPos = lastLoadedDate.getEpochMillis() - startDate.getEpochMillis();
-    return ((1 - (lastLoadedDateTopPos / barSize)) * 100) + '%';
+    return (1 - lastLoadedDateTopPos / barSize) * 100 + '%';
   }
   if (!lastLoadedDate) return '100%';
   return bottom;
@@ -70,8 +78,18 @@ export function reducer(state = initialState, action: TimelineBarActions): State
         lastLoadedDate: null,
       };
     case TimelineBarActionTypes.RECALCULATE_THUMB_POSITIONS:
-      const topPosition = getThumbTopPosition(state.startDate, state.endDate, state.firstLoadedDate, state.top),
-        bottomPosition = getThumbBottomPosition(state.startDate, state.endDate, state.lastLoadedDate, state.bottom);
+      const topPosition = getThumbTopPosition(
+          state.startDate,
+          state.endDate,
+          state.firstLoadedDate,
+          state.top,
+        ),
+        bottomPosition = getThumbBottomPosition(
+          state.startDate,
+          state.endDate,
+          state.lastLoadedDate,
+          state.bottom,
+        );
       return {
         ...state,
         top: topPosition,

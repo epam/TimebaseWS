@@ -1,4 +1,4 @@
-.editor-container[data-mode-id="qql"] {
+.editor-container[data-mode-id='qql'] {
   .monaco-action-bar {
     .actions-container {
       .action-item.disabled,
@@ -13,7 +13,7 @@
     .monaco-action-bar {
       .actions-container {
         .action-item:nth-child(6) {
-          opacity: .5;
+          opacity: 0.5;
           pointer-events: none;
         }
       }

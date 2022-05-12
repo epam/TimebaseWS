@@ -17,16 +17,16 @@
 package com.epam.deltix.grafana.stats;
 
 import com.epam.deltix.computations.data.base.*;
-import com.epam.deltix.grafana.TimeSaver;
 import com.epam.deltix.grafana.base.annotations.*;
-import com.epam.deltix.grafana.model.fields.Field;
+import com.epam.deltix.grafana.data.NumericField;
 import com.epam.deltix.util.collections.generated.ObjectArrayList;
 import com.epam.deltix.computations.base.exc.RecordValidationException;
 import com.epam.deltix.computations.data.MutableGenericRecordImpl;
 import com.epam.deltix.computations.data.numeric.MutableDoubleValue;
+import com.epam.deltix.grafana.TimeSaver;
 import com.epam.deltix.grafana.base.Aggregation;
 
-import com.epam.deltix.grafana.data.NumericField;
+import com.epam.deltix.grafana.model.fields.Field;
 import com.epam.deltix.grafana.util.AvlTreeWrapper;
 
 import java.util.Collection;

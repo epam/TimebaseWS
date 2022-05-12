@@ -1,0 +1,10 @@
+<ul class="breadcrumbs-list">
+  <li class="breadcrumbs-item">
+    <button (click)="onClick()" class="btn btn-link" type="button">
+      {{ 'titles.flow_path_home' | translate }}
+    </button>
+  </li>
+  <li *ngFor="let path of displayedPath; let i = index" class="breadcrumbs-item">
+    <button (click)="onClick(i)" class="btn btn-link" type="button">{{ path }}</button>
+  </li>
+</ul>

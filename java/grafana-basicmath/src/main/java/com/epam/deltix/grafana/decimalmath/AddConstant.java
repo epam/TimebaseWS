@@ -16,9 +16,9 @@
  */
 package com.epam.deltix.grafana.decimalmath;
 
+import com.epam.deltix.grafana.base.annotations.*;
 import com.epam.deltix.dfp.Decimal;
 import com.epam.deltix.dfp.Decimal64Utils;
-import com.epam.deltix.grafana.base.annotations.*;
 import com.epam.deltix.computations.data.base.ArgumentType;
 import com.epam.deltix.computations.data.base.Arguments;
 import com.epam.deltix.computations.data.base.ValueType;

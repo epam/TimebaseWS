@@ -1,29 +1,38 @@
-import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, Optional, ViewChild } from '@angular/core';
-import { FormControl }                                                                      from '@angular/forms';
-import { StorageMap }                               from '@ngx-pwa/local-storage';
-import { IHeaderAngularComp }                       from 'ag-grid-angular';
 import {
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  Optional,
+  ViewChild,
+} from '@angular/core';
+import {FormControl} from '@angular/forms';
+import {StorageMap} from '@ngx-pwa/local-storage';
+import {IHeaderAngularComp} from 'ag-grid-angular';
+import {
+  CellContextMenuEvent,
   ColumnApi,
   IHeaderParams,
   OriginalColumnGroup,
-  CellContextMenuEvent,
-}                                                   from 'ag-grid-community';
-import { ContextMenuComponent, ContextMenuService }  from 'ngx-contextmenu';
-import { fromEvent, Observable, of, Subject, timer } from 'rxjs';
+} from 'ag-grid-community';
+import {ContextMenuComponent} from 'ngx-contextmenu';
+import {fromEvent, Observable, of, Subject, timer} from 'rxjs';
 import {
   distinctUntilChanged,
   filter,
-  map, skip,
+  map,
+  skip,
   startWith,
-  switchMap,
   take,
   takeUntil,
   tap,
-}                                                    from 'rxjs/operators';
-import { TreeItem }                from '../../components/tree-checkboxes/tree-item';
-import { copyToClipboard }         from '../../utils/copy';
-import { GridContextMenuItemData } from '../grid-context-menu-item';
-import { GridContextMenuService }  from '../grid-context-menu.service';
+} from 'rxjs/operators';
+import {TreeItem} from '../../components/tree-checkboxes/tree-item';
+import {ContextMenuControlService} from '../../services/context-menu-control.service';
+import {copyToClipboard} from '../../utils/copy';
+import {GridContextMenuItemData} from '../grid-context-menu-item';
+import {GridContextMenuService} from '../grid-context-menu.service';
 
 @Component({
   selector: 'app-grid-header-global-menu',
@@ -31,17 +40,14 @@ import { GridContextMenuService }  from '../grid-context-menu.service';
   styleUrls: ['./grid-header-global-menu.component.scss'],
 })
 export class GridHeaderGlobalMenuComponent implements OnInit, OnDestroy, IHeaderAngularComp {
-
-  @ViewChild('columnsMenu', {read: ContextMenuComponent}) private columnsMenu: ContextMenuComponent;
-  @ViewChild('cellMenu', {read: ContextMenuComponent}) private cellMenu: ContextMenuComponent;
-
   columnsTree: TreeItem[];
   columnsControl = new FormControl([]);
   cellMenuItems: GridContextMenuItemData[];
   copyJsonEnabled: boolean;
-  cellMenuOpened = false;
   disableColumns$: Observable<boolean>;
-
+  @ViewChild('columnsMenu', {read: ContextMenuComponent})
+  private columnsMenu: ContextMenuComponent;
+  @ViewChild('cellMenu', {read: ContextMenuComponent}) private cellMenu: ContextMenuComponent;
   private columnApi: ColumnApi;
   private rootColumns = new Set<string>();
   private columnsById = new Map<string, TreeItem>();
@@ -50,73 +56,123 @@ export class GridHeaderGlobalMenuComponent implements OnInit, OnDestroy, IHeader
 
   constructor(
     private storage: StorageMap,
-    private context: ContextMenuService,
+    private contextMenuControlService: ContextMenuControlService,
     private elementRef: ElementRef,
     private cdRef: ChangeDetectorRef,
     @Optional() private gridContextMenuService: GridContextMenuService,
-  ) { }
+  ) {}
 
   ngOnInit(): void {
     this.disableColumns$ = this.gridContextMenuService?.onDisableColumns() || of(false);
-    this.columnsControl.valueChanges.pipe(
-      distinctUntilChanged((p, c) => JSON.stringify(p) === JSON.stringify(c)),
-      skip(1),
-      takeUntil(this.destroy$),
-      map(data => {
-        this.updatingFromControl = true;
-        GridContextMenuService.viaContextMenu(() => this.setColumnsSize(data));
-      }),
-    ).subscribe(() => this.updatingFromControl = false);
+    this.columnsControl.valueChanges
+      .pipe(
+        distinctUntilChanged((p, c) => JSON.stringify(p) === JSON.stringify(c)),
+        skip(1),
+        takeUntil(this.destroy$),
+        map((data) => {
+          this.updatingFromControl = true;
+          GridContextMenuService.viaContextMenu(() => this.setColumnsSize(data));
+        }),
+      )
+      .subscribe(() => (this.updatingFromControl = false));
   }
 
   agInit(params: IHeaderParams): void {
     this.columnApi = params.columnApi;
-    fromEvent(params.api, 'columnVisible').pipe(
-      startWith(null),
-      takeUntil(this.destroy$),
-      filter(() => !this.updatingFromControl),
-    ).subscribe(() => {
-      this.buildTree();
-      this.updateSelected();
-    });
-    
-    fromEvent(params.api, 'cellContextMenu').pipe(
-      takeUntil(this.destroy$),
-    ).subscribe((rowEvent: CellContextMenuEvent) => this.showCellContextMenu(rowEvent));
-  
-    fromEvent(params.api, 'bodyScroll').pipe(
-      takeUntil(this.destroy$),
-      filter(() => this.cellMenuOpened),
-    ).subscribe(() => this.context.closeAllContextMenus(null));
-    
-    fromEvent(this.elementRef.nativeElement.parentElement.querySelector('.ag-body-viewport'), 'contextmenu').pipe(
-      takeUntil(this.destroy$),
-    ).subscribe((event: MouseEvent) => {
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-      event.preventDefault();
-    });
+    fromEvent(params.api, 'columnVisible')
+      .pipe(
+        startWith(null),
+        takeUntil(this.destroy$),
+        filter(() => !this.updatingFromControl),
+      )
+      .subscribe(() => {
+        this.buildTree();
+        this.updateSelected();
+      });
+
+    fromEvent(params.api, 'cellContextMenu')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((rowEvent: CellContextMenuEvent) => this.showCellContextMenu(rowEvent));
+
+    fromEvent(params.api, 'bodyScroll')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.contextMenuControlService.closeMenu('cell-menu'));
+
+    fromEvent(
+      this.elementRef.nativeElement.parentElement.querySelector('.ag-body-viewport'),
+      'contextmenu',
+    )
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((event: MouseEvent) => {
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        event.preventDefault();
+      });
   }
-  
+
+  showContextMenu(event: MouseEvent) {
+    this.contextMenuControlService.show(
+      {
+        contextMenu: this.columnsMenu,
+        event: event,
+        item: undefined,
+      },
+      'all-columns-menu',
+    );
+  }
+
+  copy(cellEvent: CellContextMenuEvent) {
+    copyToClipboard(cellEvent.value).pipe(take(1)).subscribe();
+  }
+
+  copyWithHeaders(cellEvent: CellContextMenuEvent) {
+    copyToClipboard(`${cellEvent.colDef.headerName}: ${cellEvent.value}`).pipe(take(1)).subscribe();
+  }
+
+  copyJSON(cellEvent: CellContextMenuEvent) {
+    const data = cellEvent.node.data;
+    delete data.original;
+    copyToClipboard(JSON.stringify(data)).pipe(take(1)).subscribe();
+  }
+
+  executeMenuItem(item: GridContextMenuItemData) {
+    item.action();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   private setColumnsSize(data: string[]) {
+    const updates = {visible: [], invisible: []};
     this.columnApi.getAllColumns().forEach((col, index) => {
       if (index === 0) {
         return;
       }
-    
+
       const oldVisible = col.isVisible();
       const newVisible = data.includes(col.getColId());
       if (oldVisible !== newVisible) {
-        this.columnApi.setColumnVisible(col.getColId(), newVisible);
-        if (newVisible) {
-          timer().subscribe(() => this.columnApi.autoSizeColumn(col.getColId()));
-        }
+        updates[newVisible ? 'visible' : 'invisible'].push(col.getColId());
       }
     });
+
+    Object.keys(updates).forEach((key) => {
+      const cols = updates[key];
+      if (cols.length) {
+        this.columnApi.setColumnsVisible(cols, key === 'visible');
+      }
+    });
+
+    timer().subscribe(() => this.columnApi.autoSizeColumns(updates.visible));
   }
-  
+
   private updateSelected() {
-    const selected = this.columnApi.getAllColumns().filter(col => col.isVisible()).map(col => col.getColId());
+    const selected = this.columnApi
+      .getAllColumns()
+      .filter((col) => col.isVisible())
+      .map((col) => col.getColId());
     this.columnsControl.patchValue(selected);
   }
 
@@ -130,24 +186,34 @@ export class GridHeaderGlobalMenuComponent implements OnInit, OnDestroy, IHeader
 
     const getTreeItems = (ids: Set<string>) => {
       const result = [];
-      ids?.forEach(rootColId => {
+      ids?.forEach((rootColId) => {
         const item = this.columnsById.get(rootColId);
         if (!item.name) {
           return;
         }
 
-        result.push({...item, children: getTreeItems(columnsChildren.get(rootColId)), showChildren: true});
+        result.push({
+          ...item,
+          children: getTreeItems(columnsChildren.get(rootColId)),
+          showChildren: true,
+        });
       });
 
       return result;
     };
 
     const registerColGroup = (group: OriginalColumnGroup) => {
-      this.columnsById.set(group.getId(), {name: group.getColGroupDef().headerName, id: group.getId()});
+      this.columnsById.set(group.getId(), {
+        name: group.getColGroupDef().headerName,
+        id: group.getId(),
+      });
     };
 
-    this.columnApi.getAllColumns().forEach(column => {
-      this.columnsById.set(column.getColId(), {name: column.getColDef().headerName, id: column.getColId()});
+    this.columnApi.getAllColumns().forEach((column) => {
+      this.columnsById.set(column.getColId(), {
+        name: column.getColDef().headerName,
+        id: column.getColId(),
+      });
       let parent = column.getOriginalParent();
       if (!parent?.getColGroupDef().headerName) {
         this.rootColumns.add(column.getColId());
@@ -169,55 +235,23 @@ export class GridHeaderGlobalMenuComponent implements OnInit, OnDestroy, IHeader
     this.columnsTree = getTreeItems(this.rootColumns);
   }
 
-  showContextMenu(event: MouseEvent) {
-    this.context.show.next({
-      contextMenu: this.columnsMenu,
-      event: event,
-      item: undefined,
-    });
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    event.preventDefault();
-  }
-  
-  copy(cellEvent: CellContextMenuEvent) {
-    copyToClipboard(cellEvent.value).pipe(take(1)).subscribe();
-  }
-  
-  copyWithHeaders(cellEvent: CellContextMenuEvent) {
-    copyToClipboard(`${cellEvent.colDef.headerName}: ${cellEvent.value}`).pipe(take(1)).subscribe();
-  }
-  
-  copyJSON(cellEvent: CellContextMenuEvent) {
-    const type = cellEvent.node.data.$type.replace(/\./g, '-');
-    copyToClipboard(JSON.stringify(cellEvent.node.data[type])).pipe(take(1)).subscribe();
-  }
-  
-  executeMenuItem(item: GridContextMenuItemData) {
-    item.action();
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-  
   private showCellContextMenu(cellEvent: CellContextMenuEvent) {
-    this.cellMenuOpened = true;
-    (this.gridContextMenuService?.onCellMenuItems() || of([])).pipe(
-      take(1),
-      tap(items => this.cellMenuItems = items.map(item => item.data(cellEvent))),
-      switchMap(() => {
+    (this.gridContextMenuService?.onCellMenuItems() || of([]))
+      .pipe(
+        take(1),
+        tap((items) => (this.cellMenuItems = items.map((item) => item.data(cellEvent)))),
+      )
+      .subscribe(() => {
         this.copyJsonEnabled = !!cellEvent.node?.data?.$type;
         this.cdRef.detectChanges();
-        this.context.show.next({
-          contextMenu: this.cellMenu,
-          event: cellEvent.event as MouseEvent,
-          item: cellEvent,
-        });
-        
-        return this.context.close.pipe(take(1));
-      }),
-    ).subscribe(() => this.cellMenuOpened = false);
+        this.contextMenuControlService.show(
+          {
+            contextMenu: this.cellMenu,
+            event: cellEvent.event as MouseEvent,
+            item: cellEvent,
+          },
+          'cell-menu',
+        );
+      });
   }
 }

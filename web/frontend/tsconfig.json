@@ -9,8 +9,9 @@
     "module": "es2020",
     "moduleResolution": "node",
     "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
     "importHelpers": true,
-    "target": "es2015",
+    "target": "es2017",
     "typeRoots": [
       "node_modules/@types"
     ],
@@ -20,9 +21,27 @@
       "es2020.string"
     ],
     "paths": {
+      "mini-signals": [
+        "node_modules/mini-signals/index.js"
+      ],
       "@assets/*": [
         "./src/assets/*"
-      ]
+      ],
+      "@deltix/hd.components-depth-chart": ["libs/@deltix/hd.components-depth-chart"],
+      "@deltix/hd.components-everchart": ["libs/@deltix/hd.components-everchart"],
+      "@deltix/hd.components-multi-app": ["libs/@deltix/hd.components-multi-app"],
+      "@deltix/hd.components-order-book": ["libs/@deltix/hd.components-order-book"],
+      "@deltix/hd.components-order-grid": ["libs/@deltix/hd.components-order-grid"],
+      "@deltix/hd.components-worker": ["libs/@deltix/hd.components-worker"],
+      "@deltix/ng-autocomplete": ["libs/@deltix/ng-autocomplete"],
+      "@deltix/ngx-vizceral": ["libs/@deltix/ngx-vizceral"],
+      "@deltix/vizceral": ["libs/@deltix/vizceral"],
     }
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": false,
+    "strictTemplates": false
   }
 }

@@ -1,9 +1,9 @@
-@import "~src/app/core/styles/variables";
+@import '~src/app/core/styles/variables';
 
 $border-radius: 15 * $ss;
 $padding-round: 20 * $ss;
 
-.login-widow-container{
+.login-widow-container {
   position: relative;
   display: block;
   width: 100%;
@@ -19,12 +19,12 @@ $padding-round: 20 * $ss;
   box-sizing: content-box;
 }
 
-.window-footer{
+.window-footer {
   width: 100%;
   padding: 0 $padding-round;
 }
 
-.window-footer{
+.window-footer {
   border-radius: 0 0 $border-radius $border-radius;
   padding: 0 $padding-round $padding-round;
 
@@ -36,11 +36,11 @@ $padding-round: 20 * $ss;
   }
 }
 
-.window-content{
+.window-content {
   padding: $padding-round $padding-round 0 $padding-round;
 }
 
-.controlWr{
+.controlWr {
   margin-bottom: 6 * $ss;
 
   .btn:not(.btn-from) {
@@ -58,7 +58,7 @@ $padding-round: 20 * $ss;
     border-top-right-radius: 0;
   }
 
-  .input-control{
+  .input-control {
     border-bottom-left-radius: 0;
     border-top-left-radius: 0;
     text-align: left;

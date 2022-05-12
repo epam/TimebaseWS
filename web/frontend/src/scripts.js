@@ -7,10 +7,7 @@ let file = path.resolve(
 let content = fs.readFileSync(file, 'utf-8');
 fs.writeFileSync(
   file,
-  content.replace(
-    /(import \{ IDateComparatorFunc \} from \"\.\/dateFilter\";)/g,
-    '// $1',
-  ),
+  content.replace(/(import \{ IDateComparatorFunc \} from \"\.\/dateFilter\";)/g, '// $1'),
   'utf-8',
 );
 

@@ -16,8 +16,8 @@
  */
 package com.epam.deltix.grafana.decimalmath;
 
-import com.epam.deltix.dfp.Decimal;
 import com.epam.deltix.containers.generated.LongLongToLongFunction;
+import com.epam.deltix.dfp.Decimal;
 import com.epam.deltix.util.collections.generated.ObjectArrayList;
 import com.epam.deltix.computations.data.MutableGenericRecordImpl;
 import com.epam.deltix.computations.data.base.GenericRecord;

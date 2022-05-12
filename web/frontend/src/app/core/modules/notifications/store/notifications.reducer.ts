@@ -1,7 +1,6 @@
-import { AppState }          from '../../../store';
-import { NotificationModel } from '../models/notification.model';
-import { NotificationsActions, NotificationsActionTypes } from './notifications.actions';
-
+import {AppState} from '../../../store';
+import {NotificationModel} from '../models/notification.model';
+import {NotificationsActions, NotificationsActionTypes} from './notifications.actions';
 
 export interface FeatureState extends AppState {
   notifications: State;
@@ -21,7 +20,7 @@ export const initialState: State = {
 
 export function reducer(state = initialState, action: NotificationsActions): State {
   switch (action.type) {
-    case (NotificationsActionTypes.ADD_ALERT):
+    case NotificationsActionTypes.ADD_ALERT:
       return {
         ...state,
         alerts: [
@@ -32,7 +31,7 @@ export function reducer(state = initialState, action: NotificationsActions): Sta
           ...state.alerts,
         ],
       };
-    case (NotificationsActionTypes.ADD_WARN):
+    case NotificationsActionTypes.ADD_WARN:
       return {
         ...state,
         warns: [
@@ -43,37 +42,37 @@ export function reducer(state = initialState, action: NotificationsActions): Sta
           ...state.warns,
         ],
       };
-    case (NotificationsActionTypes.ADD_NOTIFICATION):
+    case NotificationsActionTypes.ADD_NOTIFICATION:
       return {
         ...state,
-        notifications: [
-          new NotificationModel(action.payload),
-          ...state.notifications,
-        ],
+        notifications: [new NotificationModel(action.payload), ...state.notifications],
       };
-    case (NotificationsActionTypes.REMOVE_ALERT):
+    case NotificationsActionTypes.REMOVE_ALERT:
       state.alerts.splice(action.payload, 1);
       return {
         ...state,
-        alerts: [
-          ...state.alerts,
-        ],
+        alerts: [...state.alerts],
       };
-    case (NotificationsActionTypes.REMOVE_WARN):
+    case NotificationsActionTypes.REMOVE_ALERT_BY_ALIAS:
+      state.alerts.splice(
+        state.alerts.findIndex((alert) => alert.alias === action.payload),
+        1,
+      );
+      return {
+        ...state,
+        alerts: [...state.alerts],
+      };
+    case NotificationsActionTypes.REMOVE_WARN:
       state.warns.splice(action.payload, 1);
       return {
         ...state,
-        warns: [
-          ...state.warns,
-        ],
+        warns: [...state.warns],
       };
-    case (NotificationsActionTypes.REMOVE_NOTIFICATION):
+    case NotificationsActionTypes.REMOVE_NOTIFICATION:
       state.notifications.splice(action.payload, 1);
       return {
         ...state,
-        notifications: [
-          ...state.notifications,
-        ],
+        notifications: [...state.notifications],
       };
     default:
       return state;

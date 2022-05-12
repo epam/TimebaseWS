@@ -5,16 +5,18 @@ export class NotificationModel {
   public dismissible?: boolean;
   public closeAction?: () => void;
   public requestDialogParams?: {
-    closeIntervalType?: 'success' | 'cancel',
+    closeIntervalType?: 'success' | 'cancel';
     closeActions: {
-      onSuccess: () => void,
-      onCancel?: () => void,
-    },
+      onSuccess: () => void;
+      onCancel?: () => void;
+    };
     buttonsTextLinks?: {
-      success: string,
-      cancel: string,
-    },
+      success: string;
+      cancel: string;
+    };
   };
+
+  public alias?: string;
 
   constructor(notification: NotificationModel) {
     Object.assign(this, notification || {});
@@ -22,6 +24,7 @@ export class NotificationModel {
     this.dismissible = notification.dismissible || false;
     if (notification.closeAction) this.closeAction = notification.closeAction;
     if (notification.closeInterval) this.closeInterval = notification.closeInterval;
-    if (notification.requestDialogParams && !notification.requestDialogParams.closeActions.onCancel) this.requestDialogParams.closeActions.onCancel = () => {};
+    if (notification.requestDialogParams && !notification.requestDialogParams.closeActions.onCancel)
+      this.requestDialogParams.closeActions.onCancel = () => {};
   }
 }

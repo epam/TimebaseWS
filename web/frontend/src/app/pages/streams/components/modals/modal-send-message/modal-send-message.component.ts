@@ -1,24 +1,36 @@
-import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit }       from '@angular/core';
-import { AbstractControl, FormBuilder, FormGroup, Validators }           from '@angular/forms';
-import { HdDate }                                                        from '@assets/hd-date/hd-date';
-import { select, Store }                                                 from '@ngrx/store';
-import { BsModalRef }                                                    from 'ngx-bootstrap/modal';
-import { Subject }                                                       from 'rxjs';
-import { distinctUntilChanged, filter, map, switchMap, take, takeUntil } from 'rxjs/operators';
-import { AppState }                                                      from '../../../../../core/store';
-import { fromUtc, toUtc }                                                from '../../../../../shared/locale.timezone';
-import { SchemaClassTypeModel }                                          from '../../../../../shared/models/schema.class.type.model';
+import {AfterViewInit, Component, OnDestroy, OnInit} from '@angular/core';
+import {FormBuilder, FormControl, FormGroup, Validators} from '@angular/forms';
+import {Store} from '@ngrx/store';
+import {TranslateService} from '@ngx-translate/core';
+import {BsModalRef} from 'ngx-bootstrap/modal';
+import {BehaviorSubject, combineLatest, Observable, of, Subject} from 'rxjs';
 import {
-  dateToUTC,
-  hdDateTZ,
-}                                                                        from '../../../../../shared/utils/timezone.utils';
-import { StreamDetailsModel }                                            from '../../../models/stream.details.model';
-import { StreamModel }                                                   from '../../../models/stream.model';
-import { SchemaDataService, SimpleColumnModel }                          from '../../../services/schema-data.service';
-import { SendMessagePopupService }                                       from '../../../services/send-message-popup.service';
-import { getStreamGlobalFilters }                                        from '../../../store/stream-details/stream-details.selectors';
-import * as StreamsActions
-                                                                         from '../../../store/streams-list/streams.actions';
+  debounceTime,
+  distinctUntilChanged,
+  map,
+  shareReplay,
+  switchMap,
+  take,
+  takeUntil,
+  tap,
+  startWith,
+} from 'rxjs/operators';
+import {AppState} from '../../../../../core/store';
+import {formatHDate} from '../../../../../shared/locale.timezone';
+import {MenuItem} from '../../../../../shared/models/menu-item';
+import {SchemaAllTypeModel, SchemaTypeModel} from '../../../../../shared/models/schema.type.model';
+import {GlobalFiltersService} from '../../../../../shared/services/global-filters.service';
+import {SchemaService} from '../../../../../shared/services/schema.service';
+import {SendMessageService} from '../../../../../shared/services/send-message.service';
+import {SymbolsService} from '../../../../../shared/services/symbols.service';
+import {FieldModel} from '../../../../../shared/utils/dynamic-form-builder/field-builder/field-model';
+import * as NotificationsActions from '../../../../../core/modules/notifications/store/notifications.actions';
+
+enum WriteMode {
+  append = 'APPEND',
+  insert = 'INSERT',
+  truncate = 'TRUNCATE',
+}
 
 @Component({
   selector: 'app-modal-send-message',
@@ -26,413 +38,422 @@ import * as StreamsActions
   styleUrls: ['./modal-send-message.component.scss'],
 })
 export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestroy {
-
-  public renameForm: FormGroup;
-  public stream: StreamModel;
-  private destroy$ = new Subject();
-  private timestamp: string;
-  public commonMessageForm: FormGroup;
-  public messageForm: FormGroup;
-  private messageFormDestroy$: Subject<boolean> = new Subject();
-  private commonMessageFormdDestroy$: Subject<boolean> = new Subject();
-  public showEditor = false;
-  public simpleConfig: SimpleColumnModel[];
-  public commonSimpleConfig: SimpleColumnModel[];
-  private allConfig: SchemaClassTypeModel[];
-  public formData?: any;
-  public editorData;
-  public editorOptions = {
-    theme: 'vs-dark', language: 'json', automaticLayout: true,
+  stream: {id: string; name: string} | MenuItem;
+  formData: any;
+  editorOptions = {
+    theme: 'vs-dark',
+    language: 'json',
+    lineNumbers: 'off',
+    minimap: {
+      enabled: false,
+    },
   };
-  public editor;
+  viewControl = new FormControl('form');
+  writeModeControl = new FormControl(WriteMode.append);
+  writeModes = [WriteMode.append, WriteMode.insert, WriteMode.truncate];
+  views = ['form', 'json'];
+  editJsonField$ = new BehaviorSubject<FieldModel>(null);
+  jsonFieldControl = new FormControl();
+  jsonViewControl = new FormControl();
+  fields$: Observable<FieldModel[]>;
+  formGroup: FormGroup;
+  confirmTime: string;
 
-  private filterTimezone;
+  private destroy$ = new Subject();
+  private schema$: Observable<{types: SchemaTypeModel[]; all: SchemaAllTypeModel[]}>;
+  private symbols$: Observable<string[]>;
+  private symbolEnd$: Observable<string>;
 
   constructor(
-    public bsModalRef: BsModalRef,
-    private appStore: Store<AppState>,
-    private schemaDataService: SchemaDataService,
-    private sendMessagePopupService: SendMessagePopupService,
     private fb: FormBuilder,
-    private elRef: ElementRef,
-  ) { }
+    private schemaService: SchemaService,
+    private globalFiltersService: GlobalFiltersService,
+    private appStore: Store<AppState>,
+    private symbolsService: SymbolsService,
+    private sendMessageService: SendMessageService,
+    private translateService: TranslateService,
+    private bsModalRef: BsModalRef,
+  ) {}
 
   ngOnInit(): void {
-    if (this.stream) {
-      this.schemaDataService
-        .getSchema(this.stream.key)
-        .pipe(
-          switchMap(([allConfig, simpleConfig]: [SchemaClassTypeModel[], SimpleColumnModel[]]) => {
-            this.allConfig = allConfig;
-            return this.schemaDataService
-              .getSymbols(this.stream.key)
-              .pipe(
-                map((symbols: string[]) => ([simpleConfig, symbols])),
+    this.formGroup = this.fb.group({
+      symbol: this.formData?.symbol,
+      $type: this.formData?.$type,
+      timestamp: this.formData?.timestamp,
+    });
+
+    this.schema$ = this.schemaService.getSchema(this.stream.id).pipe(shareReplay(1));
+    this.symbols$ = this.symbolsService.getSymbols(this.stream.id).pipe(shareReplay(1));
+
+    this.initialCommonValues().subscribe(({symbol, $type, timestamp}) =>
+      this.formGroup.patchValue({
+        symbol,
+        $type,
+        timestamp,
+      }),
+    );
+
+    const typeChange$ = this.formGroup.valueChanges.pipe(
+      distinctUntilChanged((v1, v2) => v1.$type === v2.$type),
+    );
+    this.fields$ = combineLatest([this.schema$, this.symbols$, typeChange$]).pipe(
+      debounceTime(0),
+      map(([schema, symbols, formData]) => {
+        const commonFields: FieldModel[] = [
+          {
+            type: 'autocomplete',
+            name: 'symbol',
+            label: 'Symbol',
+            required: true,
+            values: symbols,
+          },
+          {
+            type: 'dropdown',
+            name: '$type',
+            label: 'Type',
+            required: true,
+            values: schema.types.map((t) => t.name),
+          },
+          {
+            type: 'btn-timepicker',
+            name: 'timestamp',
+            label: 'Timestamp',
+            required: true,
+          },
+        ];
+
+        this.formGroup.get('symbol').setValidators(this.fieldValidator(commonFields[0]));
+        this.formGroup.get('$type').setValidators(this.fieldValidator(commonFields[1]));
+        this.formGroup.get('timestamp').setValidators(this.fieldValidator(commonFields[2]));
+
+        const typeFields: FieldModel[] = schema.types
+          .find((t) => t.name === formData.$type)
+          .fields.map((f) => {
+            const typeBindField = schema.all.find((t) => t.name === f.type.name);
+            const types = {
+              TIMESTAMP: 'btn-timepicker',
+              BOOLEAN: 'select',
+              BINARY: 'binary',
+              ARRAY: 'json',
+              OBJECT: 'json',
+            };
+            let values = null;
+            if (f.type.name === 'BOOLEAN') {
+              values = [
+                {key: true, title: 'true'},
+                {key: false, title: 'false'},
+              ];
+
+              if (f.type.nullable) {
+                values.unshift({key: null, title: 'null'});
+              }
+            }
+
+            if (typeBindField) {
+              values = typeBindField.fields.map((f) => f.name);
+            }
+            return {
+              type: typeBindField ? 'dropdown' : types[f.type.name] || 'text',
+              name: f.name,
+              label: f.title,
+              required: !f.type.nullable,
+              values,
+            };
+          });
+
+        const type = formData.$type.replace(/\./gi, '-');
+
+        Object.keys(this.formGroup.controls).forEach((key) => {
+          if (!['symbol', '$type', 'timestamp'].includes(key)) {
+            const tf = typeFields.find((tf) => tf.name === key);
+            if (!tf) {
+              this.formGroup.removeControl(key);
+            } else {
+              const control = this.formGroup.get(key);
+              control.setValidators(this.fieldValidator(tf));
+              control.patchValue(this.formData?.[type]?.[tf.name]);
+            }
+          }
+        });
+
+        typeFields.forEach((tf) => {
+          if (!this.formGroup.get(tf.name)) {
+            this.formGroup.addControl(
+              tf.name,
+              new FormControl(this.formData?.[type]?.[tf.name], this.fieldValidator(tf)),
+            );
+          }
+        });
+
+        const allFields = [...commonFields, ...typeFields];
+
+        this.updateDropDowns(allFields);
+
+        return allFields;
+      }),
+      shareReplay(1),
+    );
+
+    combineLatest([this.fields$, this.formGroup.valueChanges])
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(([fields, value]) => {
+        fields.forEach((f) => {
+          if (f.type === 'binary') {
+            if (typeof value[f.name] === 'string') {
+              this.formGroup.get(f.name).patchValue(
+                value[f.name].split(',').map((v) => {
+                  const num = Number(v);
+                  return !v.length || isNaN(num) ? v : num;
+                }),
+                {emitEvent: false},
               );
-          }),
-          take(1),
-          takeUntil(this.destroy$),
-        )
-        .subscribe(([simpleConfig, symbols]: [SimpleColumnModel[], string[]]) => {
-          this.commonSimpleConfig = [
-            {
-              headerName: 'Symbol',
-              field: 'symbol',
-              headerTooltip: 'Symbol',
-              required: true,
-              controlType: 'autocomplete',
-              controlCollection: symbols.map((symbol): {
-                key: string,
-                title: string,
-              } => {
-                return {
-                  key: symbol,
-                  title: symbol,
-                };
-              }),
-            },
-            {
-              headerName: 'Type',
-              field: '$type',
-              headerTooltip: 'Type',
-              required: true,
-              controlType: 'select',
-              controlCollection: this.get$TypeCollection(simpleConfig),
-              changeEvent: (value: string) => {
-
-                if (value) {
-                  const key = this.commonMessageForm.get('$type').value;
-                  const S_CONFIG = simpleConfig.find(config => config.field === key);
-
-                  this.messageForm = this.generateForm([this.addPackageTypes(S_CONFIG)], this.messageFormDestroy$);
-                }
-                if (this.formData) {
-                  const {symbol, timestamp, $type, ...messageFormData} = this.formData;
-                  this.messageForm.reset(messageFormData/*[value]*/);
-                }
-              },
-            },
-            {
-              headerName: 'Timestamp',
-              field: 'timestamp',
-              headerTooltip: 'Timestamp',
-              required: false,
-              // dataType: 'TIMESTAMP',
-              controlType: 'dateTime',
-            },
-          ];
-          this.simpleConfig = simpleConfig;
-          this.commonMessageForm = this.generateForm(this.commonSimpleConfig, this.commonMessageFormdDestroy$);
-          const $TYPE_FIELD = this.commonSimpleConfig.find(config => config.field === '$type');
-          const SYMBOL_FIELD = this.commonSimpleConfig.find(config => config.field === 'symbol');
-
-          if (this.commonMessageForm.get('$type')) {
-            this.commonMessageForm.get('$type').setValue($TYPE_FIELD.controlCollection.length && $TYPE_FIELD.controlCollection[0] ? $TYPE_FIELD.controlCollection[0].key : null);
-          }
-          if (this.commonMessageForm.get('symbol')) {
-            this.commonMessageForm.get('symbol').setValue(SYMBOL_FIELD.controlCollection.length && SYMBOL_FIELD.controlCollection[0] ? SYMBOL_FIELD.controlCollection[0].key : null);
-          }
-
-          // let TIMESTAMP;
-          if (this.formData) {
-            this.setFormData(this.formData);
-          } else {
-            if (this.commonMessageForm.get('$type') && $TYPE_FIELD.controlCollection.length && $TYPE_FIELD.controlCollection[0]) {
-              const key = $TYPE_FIELD.controlCollection[0].key,
-                S_CONFIG = simpleConfig.find(config => config.field === key);
-              this.messageForm = this.generateForm([this.addPackageTypes(S_CONFIG)], this.messageFormDestroy$);
             }
           }
+        });
+      });
 
+    this.symbolEnd$ = this.formGroup.valueChanges.pipe(
+      startWith(this.formGroup.value),
+      map((value) => value.symbol),
+      distinctUntilChanged(),
+      switchMap((symbol) => this.symbolsService.getProps(this.stream.id, symbol)),
+      map(({props}) => props.symbolRange.end),
+      shareReplay(1),
+    );
 
-          this.appStore
-            .pipe(
-              select(getStreamGlobalFilters),
-              filter(global_filter => !!global_filter),
-              takeUntil(this.destroy$),
-              distinctUntilChanged(),
-            )
-            .subscribe(action => {
-              if (action.filter_timezone && action.filter_timezone.length) {
-                this.filterTimezone = action.filter_timezone[0];
-              } else {
-                this.filterTimezone = null;
-              }
-              let UTCTIME, TIME;
-              if (this.timestamp) {
-                TIME = new Date(this.timestamp).toISOString();
-                UTCTIME = new HdDate(TIME);
-              } else {
-                // TIME = new Date(CONTROL.value).toISOString();
-                UTCTIME = new HdDate();
-              }
-              TIME = this.checkFilterTimezoneDate(UTCTIME);
-              this.commonMessageForm.get('timestamp').setValue(TIME);
-            });
+    this.viewControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((view) => {
+      if (view === 'json') {
+        const formData = this.formGroup.getRawValue();
+        const typeValues = {};
+        Object.keys(formData).forEach((key) => {
+          if (!['$type', 'symbol', 'timestamp'].includes(key)) {
+            typeValues[key] = formData[key] || null;
+          }
         });
 
-    }
-  }
-
-  private addPackageTypes(config: SimpleColumnModel): SimpleColumnModel {
-    if (this.allConfig && config.children && config.children.length) {
-      for (const CHILD of config.children) {
-        const CHILD_TYPE = this.allConfig.find(type => type.name === CHILD.dataType);
-        if (CHILD_TYPE && CHILD_TYPE && CHILD_TYPE.isEnum) {
-          CHILD.controlType = 'select';
-          CHILD.controlCollection = CHILD_TYPE.fields.map(field => ({key: field.name, title: field.title}));
-        }
-      }
-    }
-    return config;
-  }
-
-  private setFormData(data) {
-    let key;
-    const simpleConfig = this.simpleConfig;
-    const {symbol, timestamp, $type, ...messageFormData} = data;
-    this.timestamp = timestamp;
-    this.commonMessageForm.reset({symbol, $type: $type.replace(/\./g, '-'), timestamp});
-    if (this.commonMessageForm.get('$type') && this.commonMessageForm.get('$type').value) {
-      key = this.commonMessageForm.get('$type').value;
-    } else {
-      key = (this.commonSimpleConfig.find(config => config.field === '$type')).controlCollection[0].key;
-    }
-    const S_CONFIG = simpleConfig.find(config => config.field === key);
-    this.messageForm = this.generateForm([this.addPackageTypes(S_CONFIG)], this.messageFormDestroy$);
-    this.messageForm.reset(messageFormData);
-
-  }
-
-  private get$TypeCollection(simpleConfig: SimpleColumnModel[]): {
-    key: string,
-    title: string,
-  }[] {
-    return Object.values(simpleConfig).map(entry => ({
-      key: entry.field,
-      title: entry.headerName,
-    }));
-  }
-
-  private generateForm(simpleConfig: SimpleColumnModel[], subject?: Subject<boolean>): FormGroup {
-    const FORM_GROUP = {};
-    simpleConfig.forEach(config => {
-      if (!config.children) {
-        if (config.controlType === 'select') {
-          FORM_GROUP[config.field.replace(/\./g, '-')] = [config.controlCollection[0], config.required ? [Validators.required] : []];
-        } else {
-          FORM_GROUP[config.field.replace(/\./g, '-')] = [null, config.required ? [Validators.required] : []];
-        }
-      } else {
-        FORM_GROUP[config.field.replace(/\./g, '-')] = this.generateForm(config.children);
+        const type = formData.$type.replace(/\./gi, '-');
+        this.jsonViewControl.patchValue(
+          JSON.stringify(
+            {
+              [type]: typeValues,
+              symbol: formData.symbol,
+              $type: formData.$type,
+              timestamp: formData.timestamp,
+            },
+            null,
+            '\t',
+          ),
+          {emitEvent: false},
+        );
       }
     });
-    const FORM = this.fb.group({...FORM_GROUP});
 
-    if (subject) {
-      subject.next(true);
-      subject.complete();
-      subject = new Subject<boolean>();
-      FORM.valueChanges
-        .pipe(
-          takeUntil(subject),
-          takeUntil(this.destroy$),
-        )
-        .subscribe((/*value*/) => {
-          this.convertDateData(simpleConfig, FORM);
-        });
-    }
-    return FORM;
-  }
-
-  private convertDateData(simpleConfig: SimpleColumnModel[], formGroup: AbstractControl) {
-    if (!formGroup) return;
-    simpleConfig.forEach(config => {
-      if (config.children && config.children.length) {
-        this.convertDateData(config.children, formGroup.get(config.field.replace(/\./g, '-')));
-      } else {
-        if (config.controlType === 'dateTime') {
-          const CONTROL = formGroup.get(config.field);
-          if (CONTROL) {
-            const VALUE = CONTROL.value;
-            if (typeof VALUE === 'string') {
-              let UTCTIME, TIME;
-              if (VALUE) {
-                TIME = (new Date(VALUE)).toISOString();
-                UTCTIME = new HdDate(TIME);
-                TIME = this.checkFilterTimezoneDate(UTCTIME);
-                CONTROL.setValue(TIME);
-              }
-            }
-          }
-        }
-      }
-    });
-  }
-
-  private convertToMSG({symbol, timestamp, $type, ...messages}) {
-    let data: StreamDetailsModel;
-    const CONVERTED_DATA = Object.keys(messages)
-      .filter(key => {
-        const message = messages[key];
-        let allow = false;
-        for (const i in message) {
-          if (!allow && message.hasOwnProperty(i)) {
-            if (message[i] !== null) {
-              allow = true;
-            }
-          } else {
-            break;
-          }
-        }
-        return allow;
-      })
-      .map((key: string) => {
-        const msg = {};
-        Object.keys(messages[key]).forEach(msg_prop_key => {
-          if (messages[key][msg_prop_key] !== null) {
-            msg[msg_prop_key] = messages[key][msg_prop_key];
-          }
-        });
-        return {
-          $type: key.replace(/-/g, '.'),
-          symbol: symbol,
-          timestamp: timestamp,
-          ...msg,
+    this.jsonViewControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((value) => {
+      try {
+        const data = JSON.parse(value);
+        this.formGroup.setErrors(null);
+        const update = {
+          $type: data.$type,
+          symbol: data.symbol,
+          timestamp: data.timestamp,
+          ...data[data.$type.replace(/\./gi, '-')],
         };
-      });
-    if (CONVERTED_DATA && CONVERTED_DATA.length) {
-      data = CONVERTED_DATA[0];
-    } else {
-      data = new StreamDetailsModel({});
-      if ($type) data.$type = $type;
-      if (symbol) data.symbol = symbol;
-      if (timestamp) data.timestamp = timestamp;
-    }
-    return data;
-  }
 
-
-  private checkFilterTimezoneDate(date: any) {
-    let DATE;
-    if (this.filterTimezone && date) {
-      const dateTimeZone = hdDateTZ(date, this.filterTimezone.name);
-      DATE = new Date(toUtc(dateTimeZone).getEpochMillis());
-    } else {
-      DATE = new Date(fromUtc(date).getEpochMillis());
-    }
-    return DATE;
-
-  }
-
-  private getFormValue(ignoreValidation?: boolean) {
-    const VALUE = {
-      ...this.messageForm.value,
-      ...this.commonMessageForm.value,
-    };
-    if (!VALUE ||
-      (this.messageForm.invalid && !ignoreValidation) ||
-      (this.commonMessageForm.invalid && !ignoreValidation)
-    ) {
-      return;
-    } else if (!ignoreValidation) {
-      this.messageForm.markAllAsTouched();
-      this.commonMessageForm.markAllAsTouched();
-    }
-
-    if (VALUE.timestamp) {
-      if (this.filterTimezone) {
-        VALUE.timestamp = (dateToUTC(VALUE.timestamp, this.filterTimezone.name)).toISOString();
-      } else {
-        VALUE.timestamp = VALUE.timestamp.toISOString();
+        this.formGroup.patchValue(update);
+        this.formGroup.updateValueAndValidity();
+      } catch (e) {
+        this.formGroup.setErrors({jsonViewError: true});
       }
-    }
-    return VALUE;
+    });
   }
 
-  public onMessageFormSubmit() {
-
-    const CONVERTED_DATA = [this.convertToMSG(this.getFormValue())];
-    this.appStore.dispatch(new StreamsActions.SendMessage({
-      streamId: this.stream.key,
-      messages: CONVERTED_DATA,
-    }));
-  }
-
-  ngAfterViewInit(): void {
-    this.sendMessagePopupService.showEditor$
+  onRevert() {
+    this.initialCommonValues()
       .pipe(
-        takeUntil(this.destroy$),
+        tap(({symbol, $type, timestamp}) => {
+          let update = {};
+          const formType = $type.replace(/\./gi, '-');
+          Object.keys(this.formGroup.getRawValue()).forEach((key) => (update[key] = null));
+          update = {...update, symbol, $type, timestamp, ...(this.formData?.[formType] || {})};
+          this.formGroup.patchValue(update);
+        }),
+        switchMap(() => this.fields$.pipe(take(1))),
       )
-      .subscribe(data => {
-        this.showEditor = true;
-        this.editorData = JSON.stringify(data);
+      .subscribe((fields) => this.updateDropDowns(fields));
+  }
 
-        setTimeout(() => {
-          if (this.editor && this.editor.getAction) this.editor.getAction('editor.action.formatDocument').run();
-        }, 100);
+  onEditJson(field: FieldModel) {
+    this.jsonFieldControl.setValidators([this.jsonControlValidator(field.required)]);
+    this.jsonFieldControl.patchValue(
+      JSON.stringify(this.formGroup.get(field.name).value || null, null, '\t'),
+    );
+    this.editJsonField$.next(field);
+  }
+
+  onSubmit() {
+    combineLatest([this.needTruncateConfirm(), this.globalFiltersService.getFilters()])
+      .pipe(take(1))
+      .subscribe(([needConfirm, filters]) => {
+        this.confirmTime = needConfirm
+          ? formatHDate(
+              new Date(this.formGroup.get('timestamp').value).toISOString(),
+              filters.dateFormat,
+              filters.timeFormat,
+              filters.timezone,
+            )
+          : null;
+
+        if (!needConfirm) {
+          this.save();
+        }
       });
-
-    const bsModalBackdrop = this.getParentByTag(this.elRef.nativeElement, 'modal-container');
-    if (bsModalBackdrop) {
-      bsModalBackdrop.addEventListener('click', () => {
-        this.clickListener();
-      });
-    }
   }
 
-  clickListener() {
-    document.dispatchEvent((new Event('close_autocomplete')));
+  saveJson(field: FieldModel) {
+    this.formGroup.get(field.name).patchValue(JSON.parse(this.jsonFieldControl.value));
+    this.jsonFieldControl.setValidators(null);
+    this.jsonFieldControl.patchValue(null);
+    this.editJsonField$.next(null);
   }
 
-  onEditorInit(editor) {
-    this.editor = editor;
+  cancelJsonEdit(field: FieldModel) {
+    this.jsonFieldControl.patchValue(null);
+    this.editJsonField$.next(null);
   }
 
-  public onCloseEditor() {
-    try {
-      this.sendMessagePopupService.onEditorIsClosed(JSON.parse(this.editorData || 'null'));
-    } catch (err) {
-      return;
-    }
-    this.showEditor = false;
-  }
-
-  public onShowEditor() {
-    const VALUE = this.getFormValue(true);
-    this.sendMessagePopupService.onShowEditor(VALUE);
-    this.sendMessagePopupService.closeEditor$
-      .pipe(
-        take(1),
-        takeUntil(this.destroy$),
-      )
-      .subscribe(data => this.setFormValue(data));
-  }
-
-  private setFormValue(data) {
-    this.setFormData(data);
-  }
+  ngAfterViewInit(): void {}
 
   ngOnDestroy(): void {
     this.destroy$.next(true);
     this.destroy$.complete();
-
-    const bsModalBackdrop = this.getParentByTag(this.elRef.nativeElement, 'modal-container');
-    if (bsModalBackdrop) {
-      bsModalBackdrop.removeEventListener('click', this.clickListener);
-    }
   }
 
-  private getParentByTag(htmlEl: HTMLElement, tagName: string) {
-    const PARENT = htmlEl.parentElement;
-    if (PARENT && PARENT.tagName.toLocaleLowerCase() !== tagName.toLocaleLowerCase()) {
-      return this.getParentByTag(PARENT, tagName);
-    } else if (PARENT && PARENT.tagName.toLocaleLowerCase() === tagName.toLocaleLowerCase()) {
-      return PARENT;
-    } else if (htmlEl && htmlEl.tagName.toLocaleLowerCase() === tagName.toLocaleLowerCase()) {
-      return htmlEl;
-    }
-    return null;
+  cancelSave() {
+    this.confirmTime = null;
   }
 
+  save() {
+    const form = this.formGroup.getRawValue();
+    const writeMode = this.writeModeControl.value;
+
+    this.sendMessageService
+      .sendMessage(this.stream.id, [JSON.parse(JSON.stringify(form))], writeMode)
+      .pipe(switchMap(() => this.translateService.get('notification_messages')))
+      .subscribe((messages) => {
+        this.appStore.dispatch(
+          new NotificationsActions.AddNotification({
+            message: messages.sendMessageSucceeded,
+            dismissible: true,
+            closeInterval: 2000,
+            type: 'success',
+          }),
+        );
+
+        this.bsModalRef.hide();
+      });
+  }
+
+  private jsonControlValidator(required = false) {
+    return (control) => {
+      try {
+        const data = JSON.parse(control.value);
+        return required && !data ? {required: true} : null;
+      } catch (e) {
+        return {invalidJson: true};
+      }
+    };
+  }
+
+  private initialCommonValues(): Observable<{symbol: string; $type: string; timestamp: string}> {
+    return combineLatest([this.schema$, this.symbols$]).pipe(
+      take(1),
+      map(([schema, symbols]) => ({
+        symbol: this.formData?.symbol || symbols[0],
+        $type: this.formData?.$type || schema.types[0].name,
+        timestamp: this.formData?.timestamp,
+      })),
+    );
+  }
+
+  private updateDropDowns(fields: FieldModel[]) {
+    fields.forEach((f) => {
+      if (['dropdown', 'select'].includes(f.type) && !this.formGroup.get(f.name).value) {
+        const val = f.values[0] && typeof f.values[0] === 'object' ? f.values[0].key : f.values[0];
+        this.formGroup.get(f.name).patchValue(val);
+      }
+    });
+  }
+
+  private fieldValidator(field: FieldModel) {
+    if (field.type === 'json') {
+      return (control) => (!field.required || control.value ? null : {required: true});
+    }
+
+    if (field.type === 'dropdown') {
+      return [
+        field.required ? Validators.required : null,
+        (control) => {
+          return field.values.includes(control.value) ? null : {wrongValue: true};
+        },
+      ].filter(Boolean);
+    }
+
+    if (field.type === 'binary') {
+      return [
+        field.required ? Validators.required : null,
+        (control) => {
+          if (!control.value) {
+            return;
+          }
+
+          const isString = typeof control.value === 'string';
+          const string = isString ? control.value : control.value.join(',');
+          let array = isString ? control.value.split(',') : control.value;
+          array = array.map((v) => Number(v)).filter((v) => !isNaN(v));
+
+          return array.join(',') === string ? null : {wrongValue: true};
+        },
+      ].filter(Boolean);
+    }
+
+    if (field.type === 'btn-timepicker') {
+      return [
+        field.required ? Validators.required : null,
+        (control) => {
+          if (!control.value) {
+            return null;
+          }
+
+          if (typeof control.value === 'string') {
+            return /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z)/.test(
+              control.value,
+            )
+              ? null
+              : {notFormat: true};
+          }
+
+          if (control.value?.getTime && control.value?.getTime() !== undefined) {
+            return null;
+          }
+
+          return {notDate: true};
+        },
+      ].filter(Boolean);
+    }
+    return field.required ? Validators.required : null;
+  }
+
+  private needTruncateConfirm(): Observable<boolean> {
+    if (this.writeModeControl.value !== WriteMode.truncate) {
+      return of(false);
+    }
+
+    const timestampControl = this.formGroup.get('timestamp');
+    if (timestampControl.invalid) {
+      return of(false);
+    }
+
+    const timestamp = new Date(timestampControl.value);
+    return this.symbolEnd$.pipe(map((end) => new Date(end) > timestamp));
+  }
 }

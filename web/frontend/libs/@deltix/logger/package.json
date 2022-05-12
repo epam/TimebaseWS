@@ -1,0 +1,42 @@
+{
+  "name": "@deltix/logger",
+  "version": "0.0.5",
+  "repository": "git@gitlab.deltixhub.com:Deltix/Common/Web/logger.git",
+  "author": "Aliaksei Kryvasheyeu <aliaksei_kryvasheyeu@epam.com>",
+  "license": "MIT",
+  "typings": "dist/esm/index.d.ts",
+  "main": "dist/umd/index.js",
+  "module": "dist/esm/index.js",
+  "es2015": "dist/es2015/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    }
+  },
+  "scripts": {
+    "start": "webpack serve --config webpack/webpack.config.dev.js",
+    "prebuild": "rimraf dist",
+    "build": "yarn build:es2015 && yarn build:esm && yarn build:cjs && yarn build:umd",
+    "build:es2015": "tsc --module es2015 --target es2015 --outDir dist/es2015",
+    "build:esm": "tsc --module es2015 --target es5 --outDir dist/esm --declaration",
+    "build:cjs": "tsc --module commonjs --target es5 --outDir dist/cjs",
+    "build:umd": "rollup dist/esm/index.js --format umd --name Logger --sourceMap --file dist/umd/index.js",
+    "deltix-publish": "deltix-publish"
+  },
+  "devDependencies": {
+    "@deltix/publish": "^1.1.0",
+    "@types/globalthis": "^1.0.1",
+    "html-webpack-plugin": "^5.3.2",
+    "rollup": "^2.56.3",
+    "ts-loader": "^9.2.5",
+    "typescript": "^4.3.5",
+    "webpack": "^5.51.1",
+    "webpack-cli": "^4.8.0",
+    "webpack-dev-server": "^4.0.0",
+    "webpack-merge": "^5.8.0"
+  },
+  "dependencies": {
+    "globalthis": "^1.0.2"
+  }
+}

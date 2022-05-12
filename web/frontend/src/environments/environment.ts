@@ -7,6 +7,7 @@ import { config } from '../app.config';
 export const environment = {
   production: false,
   config: config,
+  debug: true,
 };
 
 /*

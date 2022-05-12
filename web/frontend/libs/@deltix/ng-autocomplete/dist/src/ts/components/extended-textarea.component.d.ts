@@ -1,0 +1,41 @@
+import { ElementRef, EventEmitter, OnChanges, OnDestroy, OnInit } from '@angular/core';
+import { ControlValueAccessor } from '@angular/forms';
+import { AutocompleteBase } from './autocomplete-base';
+export declare class ExtendedTextareaComponent extends AutocompleteBase implements OnInit, ControlValueAccessor, OnDestroy, OnChanges {
+    protected values: Array<any>;
+    protected highlight: boolean;
+    disabled: boolean;
+    placeholder: string;
+    literal: string;
+    protected descriptionGetter: (value: any, highlightFunc: (str: string) => string) => string | HTMLElement;
+    protected stripTags: boolean;
+    protected allowSelectFirst: boolean;
+    cssClass: string;
+    spellcheck: boolean;
+    protected changeInput: EventEmitter<string>;
+    protected showDropdownChange: EventEmitter<boolean>;
+    protected selectedValues: Array<any>;
+    protected separator: string;
+    protected currentInput: string;
+    protected cursorPosition: number;
+    protected dropdownContainer: ElementRef;
+    constructor(element: ElementRef);
+    writeValue(obj: any): void;
+    onBlur(event: Event): void;
+    onPaste(event: ClipboardEvent): void;
+    onKeyUp(event: KeyboardEvent): void;
+    select(item: any, event: Event): void;
+    onKeyDown(event: KeyboardEvent): void;
+    onClick(event: MouseEvent): void;
+    protected initInputElement(): void;
+    protected getTitleForItem(item: any): string;
+    onInput(event: KeyboardEvent): void;
+    protected updateCursorPos(): void;
+    protected getInputPos(cursorPos: number): {
+        left: number;
+        length: number;
+    };
+    protected hasInput(): boolean;
+    onFocus(event: Event): void;
+    protected prepareInput(str: string): string;
+}

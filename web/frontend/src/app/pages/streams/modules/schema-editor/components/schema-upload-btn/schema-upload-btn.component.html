@@ -1,3 +1,6 @@
-<app-file-btn accept="application/JSON" classes="btn btn-sm btn-outline-warning" [formControl]="control" >
-  {{'buttons.importFromJSON' | translate}}
+<app-file-btn
+    [formControl]="control"
+    accept="application/JSON"
+    classes="btn btn-sm btn-outline-warning">
+  {{ 'buttons.importFromJSON' | translate }}
 </app-file-btn>

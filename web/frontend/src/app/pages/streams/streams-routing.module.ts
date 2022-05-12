@@ -1,19 +1,36 @@
-import { NgModule }                                   from '@angular/core';
-import { RouterModule, Routes }                       from '@angular/router';
-import { TabsRouterProxyComponent }                   from '../../shared/components/tabs-router-proxy/tabs-router-proxy.component';
-import { appRoute, streamRouteName, symbolRouteName } from '../../shared/utils/routes.names';
-import { ActiveTabGuard }                             from '../guards/active-tab.guard';
-import { QueryComponent }                             from '../query/query.component';
-import { StreamDetailsComponent }                     from './components/stream-details/stream-details.component';
-import { StreamsLayoutComponent }                     from './components/streams-layout/streams-layout.component';
-import { CheckShowingOnCloseAlertGuard }              from './services/guards/check.showing.onclose.alert.guard';
-
+import {NgModule} from '@angular/core';
+import {RouterModule, Routes} from '@angular/router';
+import {TabsRouterProxyComponent} from '../../shared/components/tabs-router-proxy/tabs-router-proxy.component';
+import {appRoute, streamRouteName, symbolRouteName} from '../../shared/utils/routes.names';
+import {FlowComponent} from '../flow/components/flow/flow.component';
+import {ActiveTabGuard} from '../guards/active-tab.guard';
+import {OrderBookPageComponent} from '../order-book/order-book-page/order-book-page.component';
+import {QueryComponent} from '../query/query.component';
+import {ChartsLayoutComponent} from './components/deltix-charts/charts-layout/charts-layout.component';
+import {StreamDetailsComponent} from './components/stream-details/stream-details.component';
+import {StreamsLayoutComponent} from './components/streams-layout/streams-layout.component';
+import {CheckShowingOnCloseAlertGuard} from './services/guards/check.showing.onclose.alert.guard';
 
 const routes: Routes = [
   {
     path: '',
     component: StreamsLayoutComponent,
     children: [
+      {
+        path: 'order-book',
+        component: TabsRouterProxyComponent,
+        data: {
+          orderBook: true,
+        },
+      },
+      {
+        path: 'order-book/:id',
+        component: OrderBookPageComponent,
+        data: {
+          orderBook: true,
+        },
+        canActivate: [ActiveTabGuard],
+      },
       {
         path: 'query',
         component: TabsRouterProxyComponent,
@@ -35,6 +52,15 @@ const routes: Routes = [
         data: {
           flow: true,
         },
+      },
+      {
+        path: 'flow/:id',
+        loadChildren: () => import('../flow/flow.module').then((m) => m.FlowModule),
+        component: FlowComponent,
+        data: {
+          flow: true,
+        },
+        canActivate: [ActiveTabGuard],
       },
       {
         path: streamRouteName,
@@ -74,17 +100,17 @@ const routes: Routes = [
             },
           },
           {
-            path: 'chart/:stream',
-            component: TabsRouterProxyComponent,
-            data: {
-              chart: true,
-            },
-          },
-          {
             path: 'flow/:stream',
             component: TabsRouterProxyComponent,
             data: {
               flow: true,
+            },
+          },
+          {
+            path: 'chart/:stream',
+            component: TabsRouterProxyComponent,
+            data: {
+              chart: true,
             },
           },
           {
@@ -110,24 +136,44 @@ const routes: Routes = [
             data: {
               live: true,
             },
+            canActivate: [ActiveTabGuard],
           },
           {
             path: 'monitor/:stream/:id',
-            loadChildren: () => import('./modules/monitor-log/monitor-log.module').then(m => m.MonitorLogModule),
+            canActivate: [ActiveTabGuard],
+            loadChildren: () =>
+              import('./modules/monitor-log/monitor-log.module').then((m) => m.MonitorLogModule),
           },
           {
             path: 'stream-create/:stream/:id',
-            loadChildren: () => import('./modules/schema-editor/schema-editor.module').then(m => m.SchemaEditorModule),
+            canActivate: [ActiveTabGuard],
+            loadChildren: () =>
+              import('./modules/schema-editor/schema-editor.module').then(
+                (m) => m.SchemaEditorModule,
+              ),
           },
           {
             path: 'schema-edit/:stream/:id',
-            loadChildren: () => import('./modules/schema-editor/schema-editor.module').then(m => m.SchemaEditorModule),
+            canActivate: [ActiveTabGuard],
+            loadChildren: () =>
+              import('./modules/schema-editor/schema-editor.module').then(
+                (m) => m.SchemaEditorModule,
+              ),
           },
           {
             path: 'reverse/:stream/:id',
             component: StreamDetailsComponent,
             data: {
               reverse: true,
+            },
+            canActivate: [ActiveTabGuard],
+          },
+          {
+            path: 'chart/:stream/:id',
+            component: ChartsLayoutComponent,
+            canActivate: [ActiveTabGuard],
+            data: {
+              chart: true,
             },
           },
           {
@@ -136,6 +182,7 @@ const routes: Routes = [
             data: {
               view: true,
             },
+            canActivate: [ActiveTabGuard],
           },
 
           /* common */
@@ -147,6 +194,7 @@ const routes: Routes = [
           {
             path: ':stream/:id',
             component: StreamDetailsComponent,
+            canActivate: [ActiveTabGuard],
           },
         ],
       },
@@ -158,7 +206,6 @@ const routes: Routes = [
             pathMatch: 'full',
             redirectTo: appRoute,
           },
-
 
           /* proxy */
           {
@@ -204,27 +251,41 @@ const routes: Routes = [
             data: {
               live: true,
             },
+            canActivate: [ActiveTabGuard],
           },
           {
             path: 'monitor/:stream/:symbol/:id',
-            loadChildren: () => import('./modules/monitor-log/monitor-log.module').then(m => m.MonitorLogModule),
+            canActivate: [ActiveTabGuard],
+            loadChildren: () =>
+              import('./modules/monitor-log/monitor-log.module').then((m) => m.MonitorLogModule),
           },
           {
             path: 'reverse/:stream/:symbol/:id',
             component: StreamDetailsComponent,
+            canActivate: [ActiveTabGuard],
             data: {
               reverse: true,
             },
           },
           {
             path: 'schema/:stream/:symbol/:id',
+            canActivate: [ActiveTabGuard],
             component: StreamDetailsComponent,
             data: {
               schema: true,
             },
           },
           {
+            path: 'chart/:stream/:symbol/:id',
+            component: ChartsLayoutComponent,
+            canActivate: [ActiveTabGuard],
+            data: {
+              chart: true,
+            },
+          },
+          {
             path: 'view/:stream/:symbol/:id',
+            canActivate: [ActiveTabGuard],
             component: StreamDetailsComponent,
             data: {
               view: true,
@@ -239,13 +300,13 @@ const routes: Routes = [
           },
           {
             path: ':stream/:symbol/:id',
+            canActivate: [ActiveTabGuard],
             component: StreamDetailsComponent,
           },
         ],
       },
     ],
   },
-
 ];
 
 @NgModule({
@@ -253,5 +314,4 @@ const routes: Routes = [
   providers: [CheckShowingOnCloseAlertGuard],
   exports: [RouterModule],
 })
-export class StreamsRoutingModule {
-}
+export class StreamsRoutingModule {}

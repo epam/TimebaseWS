@@ -1,0 +1,33 @@
+[
+  {
+    "name": "testStream[BTC/USD]",
+    "lines": {
+      "BARS": {
+        "aggregationSizeMs": 1800000,
+        "newWindowSizeMs": 0,
+        "points": [
+          {
+            "time": 1641817800000,
+            "open": "41569.5",
+            "close": "41470.5",
+            "low": "41323.5",
+            "high": "41608.5",
+            "volume": "0"
+          },
+          {
+            "time": 1641819600000,
+            "open": "41470.5",
+            "close": "40973.5",
+            "low": "40956",
+            "high": "41500.5",
+            "volume": "0"
+          }
+        ]
+      }
+    },
+    "effectiveWindow": {
+      "start": "2022-01-10T12:00:00.001Z",
+      "end": "2022-01-10T13:00:00.000Z"
+    }
+  }
+]

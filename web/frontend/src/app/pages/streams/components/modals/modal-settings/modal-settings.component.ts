@@ -1,14 +1,20 @@
-import { Component, OnDestroy, OnInit, ChangeDetectionStrategy } from '@angular/core';
-import { BsModalRef } from 'ngx-bootstrap/modal';
-import { select, Store } from '@ngrx/store';
-import { takeUntil } from 'rxjs/operators';
-import { Subject }                                    from 'rxjs';
-import { dateFormatsSupported, timeFormatsSupported } from '../../../../../shared/locale.timezone';
-import { AppState }                                   from '../../../../../core/store';
-import * as fromStreamDetails                         from '../../../store/stream-details/stream-details.reducer';
-import { getTimeZoneTitle, getTimeZones }             from '../../../../../shared/utils/timezone.utils';
-import { TimeZone }                                   from '../../../../../shared/models/timezone.model';
-import { streamsDetailsStateSelector } from '../../../store/stream-details/stream-details.selectors';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  OnDestroy,
+  OnInit,
+} from '@angular/core';
+import {Store} from '@ngrx/store';
+import {BsModalRef} from 'ngx-bootstrap/modal';
+import {Subject} from 'rxjs';
+import {takeUntil} from 'rxjs/operators';
+import {AppState} from '../../../../../core/store';
+import {dateFormatsSupported, timeFormatsSupported} from '../../../../../shared/locale.timezone';
+import {TimeZone} from '../../../../../shared/models/timezone.model';
+import {GlobalFiltersService} from '../../../../../shared/services/global-filters.service';
+import {getTimeZones, getTimeZoneTitle} from '../../../../../shared/utils/timezone.utils';
+import * as fromStreamDetails from '../../../store/stream-details/stream-details.reducer';
 
 @Component({
   selector: 'app-modal-settings',
@@ -17,7 +23,6 @@ import { streamsDetailsStateSelector } from '../../../store/stream-details/strea
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ModalSettingsComponent implements OnInit, OnDestroy {
-
   public title: string;
   public stream: string;
   public closeBtnName: string;
@@ -30,26 +35,26 @@ export class ModalSettingsComponent implements OnInit, OnDestroy {
   public dropdownListTimeZones = [];
   public selectedTimeZone = [];
   public dropdownSettingsTimeZone = {};
-  public onFilter: any;
-  public onClear: any;
-  private destroy$ = new Subject();
 
+  private destroy$ = new Subject();
 
   constructor(
     public bsModalRef: BsModalRef,
     private appStore: Store<AppState>,
     private streamDetailsStore: Store<fromStreamDetails.FeatureState>,
-  ) { }
+    private globalFiltersService: GlobalFiltersService,
+    private cdRef: ChangeDetectorRef,
+  ) {}
 
   ngOnInit() {
-    this.dropdownListDateFormats = [...dateFormatsSupported].map(item => {
-      return { name: item };
+    this.dropdownListDateFormats = [...dateFormatsSupported].map((item) => {
+      return {name: item};
     });
-    this.dropdownListTimeFormats = [...timeFormatsSupported].map(item => {
-      return { name: item };
+    this.dropdownListTimeFormats = [...timeFormatsSupported].map((item) => {
+      return {name: item};
     });
-    this.dropdownListTimeZones = getTimeZones().map(item => {
-      return { nameTitle: this.getTimeZoneName(item), name: item.name, offset: item.offset };
+    this.dropdownListTimeZones = getTimeZones().map((item) => {
+      return {nameTitle: this.getTimeZoneName(item), name: item.name, offset: item.offset};
     });
     this.dropdownSettingsDateFormat = {
       singleSelection: true,
@@ -69,32 +74,16 @@ export class ModalSettingsComponent implements OnInit, OnDestroy {
       textField: 'nameTitle',
       allowSearchFilter: true,
     };
-    
-    this.streamDetailsStore
-      .pipe(
-        select(streamsDetailsStateSelector),
-        takeUntil(this.destroy$),
-      )
-      .subscribe((state => {
-        if (state.global_filter?.filter_date_format?.length) {
-          this.selectedDateFormat = state.global_filter.filter_date_format.map(item => ({ name: item }));
-        } else {
-          this.selectedDateFormat = [];
-        }
-        if (state.global_filter?.filter_time_format?.length) {
-          this.selectedTimeFormat = state.global_filter.filter_time_format.map(item => ({ name: item }));
-        } else {
-          this.selectedTimeFormat = [];
-        }
-        if (state.global_filter?.filter_timezone?.length) {
-          this.selectedTimeZone = state.global_filter.filter_timezone;
-        } else {
-          this.selectedTimeZone = [this.dropdownListTimeZones.find(timezone => timezone.name === Intl.DateTimeFormat().resolvedOptions().timeZone)];
-          this.globalSettingsFilter();
-        }
-      }
-      ));
 
+    this.globalFiltersService
+      .getFilters()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((filters) => {
+        this.selectedDateFormat = filters.dateFormat.map((item) => ({name: item}));
+        this.selectedTimeFormat = filters.timeFormat.map((item) => ({name: item}));
+        this.selectedTimeZone = filters.timezone;
+        this.cdRef.detectChanges();
+      });
   }
 
   getTimeZoneName(item: TimeZone) {
@@ -104,34 +93,33 @@ export class ModalSettingsComponent implements OnInit, OnDestroy {
   globalSettingsFilter() {
     let filter_date_format = [];
     let filter_time_format = [];
+
     if (this.selectedDateFormat?.length) {
-      filter_date_format = [... this.selectedDateFormat.map(item => item['name'])];
+      filter_date_format = [...this.selectedDateFormat.map((item) => item['name'])];
     }
     if (this.selectedTimeFormat?.length) {
-      filter_time_format = [... this.selectedTimeFormat.map(item => item['name'])];
+      filter_time_format = [...this.selectedTimeFormat.map((item) => item['name'])];
     }
     if (this.selectedTimeZone?.length) {
       const tzName = this.selectedTimeZone[0].name;
-      this.selectedTimeZone = [this.dropdownListTimeZones.find(timezone => timezone.name === tzName)];
+      this.selectedTimeZone = [
+        this.dropdownListTimeZones.find((timezone) => timezone.name === tzName),
+      ];
     }
 
-    this.onFilter({
-      filter_date_format: filter_date_format,
-      filter_time_format: filter_time_format,
+    this.globalFiltersService.setFilters({
+      filter_date_format,
+      filter_time_format,
       filter_timezone: this.selectedTimeZone,
     });
-
   }
 
   clear() {
-    this.selectedDateFormat = [];
-    this.selectedTimeFormat = [];
-    this.onClear();
+    this.globalFiltersService.clear();
   }
 
   ngOnDestroy(): void {
     this.destroy$.next(true);
     this.destroy$.complete();
   }
-
 }

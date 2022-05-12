@@ -16,8 +16,8 @@
  */
 package com.epam.deltix.computations.data.base.time;
 
-import com.epam.deltix.util.annotations.TimeOfDay;
 import com.epam.deltix.computations.data.base.MutableGenericValueInfo;
+import com.epam.deltix.computations.data.base.annotations.TimeOfDay;
 
 public interface MutableTimeOfDayValueInfo extends TimeOfDayValueInfo, MutableGenericValueInfo {
 

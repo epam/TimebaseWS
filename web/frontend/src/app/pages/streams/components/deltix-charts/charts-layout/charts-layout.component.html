@@ -1,0 +1,45 @@
+<div class="details-stream-wrap full-height-page">
+  <as-split
+      [appSplitterSizes]="[75, 25]"
+      [direction]="'horizontal'"
+      [minSizes]="[800, 260]"
+      [parentWidthAddon]="62"
+      [useStorage]="false">
+    <as-split-area [order]="1">
+      <div
+          class="col-md-12 d-stream w-100">
+        <app-charts-filter></app-charts-filter>
+        <div class="grid-wr">
+          <ng-template [ngIf]="(streamDetails$ | async).errorMessage">
+            <p class="error-message">
+              <span [title]="(streamDetails$ | async).errorMessage" class="error-message-text">{{
+                (streamDetails$ | async).errorMessage
+                }}</span>
+              <button
+                  (click)="onHideErrorMessage()"
+                  [tooltip]="'buttons.removeNotification' | translate"
+                  class="btn close-btn">
+                X
+              </button>
+            </p>
+          </ng-template>
+          <ng-template [ngIf]="btnsState._same_datetime && !btnsState._loading">
+            <div class="d-flex justify-content-center w100">
+              <span>{{ 'notification_messages.same_datetime' | translate }}</span>
+            </div>
+          </ng-template>
+          <ng-template [ngIf]="btnsState._noChartType && !btnsState._loading">
+            <div class="d-flex justify-content-center w100">
+              <span>{{ 'notification_messages._no_chart_type' | translate }}</span>
+            </div>
+          </ng-template>
+          <app-deltix-charts style="height: 100%; width: 100%"></app-deltix-charts>
+        </div>
+      </div>
+    </as-split-area>
+    <as-split-area [order]="2">
+      <app-right-area></app-right-area>
+    </as-split-area>
+  </as-split>
+  <app-right-toolbar [showMessage]="false" ></app-right-toolbar>
+</div>

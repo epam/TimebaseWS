@@ -16,14 +16,14 @@
  */
 package com.epam.deltix.computations.data.base;
 
+import com.epam.deltix.computations.data.base.numeric.*;
 import com.epam.deltix.computations.data.base.complex.MutableBinaryValueInfo;
 import com.epam.deltix.computations.data.base.complex.MutableEnumValueInfo;
 import com.epam.deltix.computations.data.base.complex.MutableListValueInfo;
 import com.epam.deltix.computations.data.base.complex.MutableObjectValueInfo;
-import com.epam.deltix.computations.data.base.numeric.*;
-import com.epam.deltix.computations.data.base.text.MutableCharValueInfo;
 import com.epam.deltix.computations.data.base.text.MutableAlphanumericValueInfo;
 import com.epam.deltix.computations.data.base.text.MutableCharSequenceValueInfo;
+import com.epam.deltix.computations.data.base.text.MutableCharValueInfo;
 import com.epam.deltix.computations.data.base.time.MutableTimeOfDayValueInfo;
 import com.epam.deltix.computations.data.base.time.MutableTimestampValueInfo;
 

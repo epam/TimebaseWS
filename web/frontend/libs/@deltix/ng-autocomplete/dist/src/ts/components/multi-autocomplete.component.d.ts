@@ -1,0 +1,38 @@
+import { ElementRef, EventEmitter, OnChanges, OnDestroy, OnInit } from '@angular/core';
+import { ControlValueAccessor } from '@angular/forms';
+import { ExtendedTextareaComponent } from './extended-textarea.component';
+export declare class MultiAutocompleteComponent extends ExtendedTextareaComponent implements OnInit, ControlValueAccessor, OnDestroy, OnChanges {
+    protected element: ElementRef;
+    protected values: Array<any>;
+    protected highlight: boolean;
+    disabled: boolean;
+    placeholder: string;
+    protected valueGetter: (value: any) => string;
+    protected descriptionGetter: (value: any, highlightFunc: (str: string) => string) => string | HTMLElement;
+    protected stripTags: boolean;
+    protected allowSelectFirst: boolean;
+    dropdown: boolean;
+    protected miniFilter: boolean;
+    cssClass: string;
+    spellcheck: boolean;
+    protected changeInput: EventEmitter<string>;
+    protected showDropdownChange: EventEmitter<boolean>;
+    protected dropdownContainer: ElementRef;
+    protected miniFilterElementRef: ElementRef;
+    miniFilterText: string;
+    constructor(element: ElementRef);
+    writeValue(obj: any): void;
+    onKeyUp(event: KeyboardEvent): void;
+    select(item: any, event: Event): void;
+    isSelected(value: any): boolean;
+    protected getValueForItems(items: Array<any>): string;
+    protected getTitleForItem(item: any): string;
+    onInput(event: KeyboardEvent): void;
+    protected updateItemsFromInput(): void;
+    protected onDocumentClickCallback(): void;
+    protected prepareInput(str: string): string;
+    onMiniFilterClick(event: MouseEvent): void;
+    protected inputEmit(str: string): void;
+    readonly valuesForRender: Array<any>;
+    protected setShowDropdown(value: boolean): void;
+}

@@ -7,12 +7,34 @@
 .full-height-page {
   padding-bottom: 10 * $ss;
   padding-left: 0;
+  padding-right: 0;
+  display: flex;
 }
 
 .query-tools {
   display: flex;
-  justify-content: space-between;
   padding-bottom: 5 * $ss;
+
+  .send-btn {
+    width: 41 * $ss;
+
+    &:focus {
+      box-shadow: none;
+    }
+  }
+
+  > .btn-group {
+    margin-right: 5 * $ss;
+  }
+
+  .export-btn {
+    outline: none;
+    margin-left: 5 * $ss;
+
+    &:focus {
+      box-shadow: none;
+    }
+  }
 
   &__rows {
     display: flex;
@@ -36,24 +58,30 @@ pre {
 
 .grid-wrapper {
   position: relative;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
+
+  &,
+  .grid,
+  app-live-grid {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
 
   ag-grid-angular {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
 
-    &.hidden {
-      visibility: hidden;
-    }
-
     &::ng-deep {
       .ag-cell-data-changed {
         background-color: transparent !important;
       }
     }
+  }
+
+  .hidden {
+    visibility: hidden;
+    flex-grow: 0;
   }
 }
 
@@ -91,13 +119,6 @@ form {
       border-top-left-radius: 0;
     }
   }
-
-  &.show-details {
-    as-split-area {
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-    }
-  }
 }
 
 app-message-info ::ng-deep .stream-props {
@@ -105,3 +126,6 @@ app-message-info ::ng-deep .stream-props {
   border-bottom-left-radius: 0;
 }
 
+.export-btn {
+  margin-left: 10px;
+}

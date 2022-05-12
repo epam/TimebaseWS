@@ -1,4 +1,4 @@
-@import "~src/app/core/styles/variables";
+@import '~src/app/core/styles/variables';
 
 $cursor-width: 15px;
 $cursor-border-radius: 50px;
@@ -7,18 +7,19 @@ $cursor-border-radius: 50px;
   position: relative;
   display: block;
   height: 15px;
-  background-color: #1f526f;
+  background-color: $bg-blue;
   z-index: 0;
   border-radius: 20px;
 
   &__inner {
     position: relative;
     height: 100%;
-    margin: 0 $cursor-width / 2;
+    margin: 0 $cursor-width * 0.5;
   }
 }
 
-.time-bar-cursor, .time-bar-selector-cursor {
+.time-bar-cursor,
+.time-bar-selector-cursor {
   position: absolute;
   display: block;
   bottom: 0;
@@ -29,7 +30,7 @@ $cursor-border-radius: 50px;
   z-index: 10;
   height: 15px;
   border-radius: $cursor-border-radius;
-  margin-left: -$cursor-width / 2;
+  margin-left: -$cursor-width * 0.5;
 }
 
 .time-bar-width {
@@ -53,7 +54,7 @@ $cursor-border-radius: 50px;
   opacity: 0;
   transition: opacity 1s;
   z-index: 11;
-  margin-left: -$cursor-width / 2;
+  margin-left: -$cursor-width * 0.5;
 }
 
 .time-bar-selector-cursor-text {
@@ -77,12 +78,13 @@ $cursor-border-radius: 50px;
   display: block;
   top: 0;
   bottom: 0;
-  left: $cursor-width / 2;
-  right: $cursor-width / 2;
+  left: $cursor-width * 0.5;
+  right: $cursor-width * 0.5;
   z-index: 1000;
 
-  &--left, &--right {
-    width: $cursor-width / 2;
+  &--left,
+  &--right {
+    width: $cursor-width * 0.5;
   }
 
   &--filled {
@@ -114,7 +116,6 @@ $cursor-border-radius: 50px;
   }
 }
 
-
 ///////////////////
 
 .time-inputs {
@@ -122,7 +123,7 @@ $cursor-border-radius: 50px;
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin-top: 5*$ss;
+  margin-top: 5 * $ss;
 }
 
 .timezone-inputWr {

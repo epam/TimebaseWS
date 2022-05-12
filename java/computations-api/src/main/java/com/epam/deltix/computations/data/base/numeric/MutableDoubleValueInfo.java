@@ -16,10 +16,10 @@
  */
 package com.epam.deltix.computations.data.base.numeric;
 
-import com.epam.deltix.dfp.Decimal;
-import com.epam.deltix.dfp.Decimal64Utils;
 import com.epam.deltix.computations.data.base.GenericValueInfo;
 import com.epam.deltix.computations.data.base.MutableGenericValueInfo;
+import com.epam.deltix.dfp.Decimal;
+import com.epam.deltix.dfp.Decimal64Utils;
 
 public interface MutableDoubleValueInfo extends DoubleValueInfo, MutableGenericValueInfo {
 

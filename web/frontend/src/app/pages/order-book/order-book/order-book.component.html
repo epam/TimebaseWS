@@ -1,0 +1,12 @@
+<div
+    #container
+    [class.initialized]="initialized"
+    [style.height.px]="height"
+    [style.width.px]="width"
+    class="book-container"></div>
+<div [style.height.px]="headerHeight" [style.width.px]="bookWidth" class="headers">
+  <div [style.flex-basis.%]="headerPercents[0]" class="quantity">{{ 'orderBook.quantity' | translate }}</div>
+  <div [style.flex-basis.%]="headerPercents[1]" class="price">{{ 'orderBook.price' | translate }}</div>
+  <div [style.flex-basis.%]="headerPercents[2]" class="size">{{ 'orderBook.size' | translate }}</div>
+  <div [style.flex-basis.%]="headerPercents[3]" class="exchange">{{ 'orderBook.exchange' | translate }}</div>
+</div>

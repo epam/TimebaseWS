@@ -1,5 +1,9 @@
-@import "src/app/core/styles/variables";
+@import 'src/app/core/styles/variables';
 
 .container-ch {
   margin: 2.5 * $ss;
+}
+
+.disabled {
+  cursor: default;
 }

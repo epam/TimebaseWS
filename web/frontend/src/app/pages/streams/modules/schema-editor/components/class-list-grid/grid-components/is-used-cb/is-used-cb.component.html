@@ -1,7 +1,14 @@
 <div class="form-control-cb-wr">
-  <label class="container-ch" (click)="$event.stopImmediatePropagation(); $event.stopPropagation();">
+  <label
+      (click)="$event.stopImmediatePropagation(); $event.stopPropagation()"
+      [class.disabled]="readOnly$ | async"
+      class="container-ch">
     <ng-template [ngIf]="typeItem && typeItem._props && !typeItem.isEnum && !typeItem.isAbstract">
-      <input type="checkbox" [checked]="typeItem._props._isUsed" (change)="onSetUsed($event, typeItem)">
+      <input
+          (change)="onSetUsed($event, typeItem)"
+          [checked]="typeItem._props._isUsed"
+          [disabled]="readOnly$ | async"
+          type="checkbox" />
       <span class="checkmark"></span>
     </ng-template>
   </label>

@@ -1,6 +1,6 @@
-import { createSelector }                     from '@ngrx/store';
-import { StreamsState, streamsStoreSelector } from '../index';
-import { State }                              from './timeline-bar.reducer';
+import {createSelector} from '@ngrx/store';
+import {StreamsState, streamsStoreSelector} from '../index';
+import {State} from './timeline-bar.reducer';
 
 export const timelineBarState = createSelector(
   streamsStoreSelector,
@@ -11,8 +11,4 @@ export const timelineStartDate = createSelector(
   timelineBarState,
   (state: State) => state.startDate,
 );
-export const timelineEndDate = createSelector(
-  timelineBarState,
-  (state: State) => state.endDate,
-);
-
+export const timelineEndDate = createSelector(timelineBarState, (state: State) => state.endDate);

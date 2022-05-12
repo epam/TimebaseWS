@@ -1,36 +1,41 @@
 <app-modal>
-  <ng-container title>{{'titles.truncateModal' | translate}} {{stream.name}}</ng-container>
+  <ng-container title>{{ 'titles.truncateModal' | translate }} {{ stream.name }}</ng-container>
   <ng-container content>
     <p class="w-100">
-      <span>{{'text.truncate_explanation' | translate}}</span>
+      <span>{{ 'text.truncate_explanation' | translate }}</span>
     </p>
     <div class="w-100 symbols-list">
-      <span class="font-weight-bold w-100">{{'titles.symbolsToTruncate' | translate}}:</span>
+      <span class="font-weight-bold w-100">{{ 'titles.symbolsToTruncate' | translate }}:</span>
       <ng-multiselect-dropdown
-        [(ngModel)]="selectedSymbols"
-        [settings]="dropdownSettingsSymbols"
-        [data]="symbolsList$ | async"
-      ></ng-multiselect-dropdown>
+          [(ngModel)]="selectedSymbols"
+          [data]="symbolsList$ | async"
+          [settings]="dropdownSettingsSymbols"></ng-multiselect-dropdown>
     </div>
     <div *ngIf="endDate && startDate" class="w-100">
-      <span class="font-weight-bold w-100">{{'buttons.truncate' | translate}} {{'titles.toTime' | translate}}:</span>
+      <span class="font-weight-bold w-100"
+      >{{ 'buttons.truncate' | translate }} {{ 'titles.toTime' | translate }}:</span
+      >
       <app-time-bar-picker
-        [startDate]="startDate"
-        [endDate]="endDate"
-        method="truncate"
-        [(selectedDate)]="selectedDate"
-      ></app-time-bar-picker>
+          [(selectedDate)]="selectedDate"
+          [endDate]="endDate"
+          [startDate]="startDate"
+          method="truncate"></app-time-bar-picker>
     </div>
   </ng-container>
   <ng-container footer>
     <button
-      [tooltip]="'buttons.truncate' | translate"
-      (click)="onTruncateSubmit()"
-      class="btn btn-info"
-      type="button"
-    >{{'buttons.truncate' | translate}}</button>
-    <button [tooltip]="'buttons.cancel' | translate" appModalHideBtn class="btn btn-default last" type="button">
-      {{'buttons.cancel' | translate}}
+        (click)="onTruncateSubmit()"
+        [tooltip]="'buttons.truncate' | translate"
+        class="btn btn-info"
+        type="button">
+      {{ 'buttons.truncate' | translate }}
+    </button>
+    <button
+        [tooltip]="'buttons.cancel' | translate"
+        appModalHideBtn
+        class="btn btn-default last"
+        type="button">
+      {{ 'buttons.cancel' | translate }}
     </button>
   </ng-container>
 </app-modal>

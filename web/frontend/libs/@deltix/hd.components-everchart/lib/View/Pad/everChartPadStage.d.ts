@@ -1,0 +1,31 @@
+import { ComponentStage, StageContext } from '@deltix/hd.components-multi-app';
+import * as PIXI from 'pixi.js';
+import { InteractionEvent } from 'pixi.js';
+import { AnyAction } from 'redux';
+import { IEverChartPadState, IEverChartState } from '../../Store/everChartState';
+import { YAxisStage } from '../Axis/yAxisStage';
+import { YCrosshairStage } from '../Crosshair/yCrosshairStage';
+import { HorizontalGridStage } from '../Grid/horizontalGridStage';
+import { EverChartItemStage } from './Item/everChartItemStage';
+export declare class EverChartPadStage extends ComponentStage<IEverChartState> {
+    protected root: PIXI.Container;
+    protected pad: IEverChartPadState;
+    protected items: EverChartItemStage[];
+    protected hitArea: PIXI.Rectangle;
+    protected dispatch: (action: AnyAction) => void;
+    protected isOver: boolean;
+    protected horizontalGrid: HorizontalGridStage;
+    protected yCrosshair: YCrosshairStage;
+    protected yAxis: YAxisStage;
+    protected x: number;
+    protected y: number;
+    constructor(stage: PIXI.Container, index?: number);
+    setState(state: IEverChartState, context: StageContext, dispatch: (action: AnyAction) => void): void;
+    destroy(): void;
+    setYOffset(offset: number): void;
+    setPad(pad: IEverChartPadState): void;
+    protected onPointerover: () => void;
+    protected onPointerout: () => void;
+    protected onPointermove: (event: InteractionEvent) => void;
+    protected containsPoint: ({ x, y }: PIXI.IPointData) => boolean;
+}

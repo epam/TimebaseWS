@@ -1,14 +1,15 @@
 @import '~src/app/core/styles/variables';
 
+$horizontal-global-padding: 0 8 * $ss 0 4 * $ss;
+
 ::ng-deep {
   .menu-separator {
     position: relative;
     display: block;
     width: 100%;
     height: 0;
-    border-bottom: 2px solid transparentize($white, .5);
+    border-bottom: 2px solid transparentize($white, 0.5);
   }
-
 
   .controlWr {
     margin-bottom: 8px;
@@ -45,14 +46,23 @@
   height: 100%;
   padding: 0;
   background: $nav-bg;
+  display: flex;
+  flex-direction: column;
+
+  .sidebar-sticky,
+  .loader {
+    flex-grow: 1;
+  }
 
   &.menu-small {
-    width: calc(25 * #{$fs});
+    width: 25 * $fs;
 
     .navbar-brand span,
     .nav-search,
     .nav-bottom,
     .logo-ver,
+    .bottom-toolbar,
+    cdk-virtual-scroll-viewport,
     ul {
       display: none;
     }
@@ -61,12 +71,19 @@
       margin-top: 5 * $ss;
       padding: 0;
     }
+
+    .top-toolbar {
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 5 * $ss;
+    }
   }
 }
 
 .navbar-brand {
   font-family: $font-logo;
-
   display: inline-block;
   overflow: hidden;
   width: 100%;
@@ -74,7 +91,6 @@
   padding: calc(4 * #{$ss}) calc(5 * #{$ss}) 0;
   color: $white;
   background: $logo-bg;
-  // height: calc(30 * #{$ss});
 
   &:hover,
   &:active {
@@ -88,14 +104,6 @@
   }
 }
 
-.sidebar-heading {
-  font-size: calc(6 * #{$fs});
-  margin-bottom: 0;
-  padding: calc(5 * #{$ss});
-  letter-spacing: calc(.25 * #{$ss});
-  color: $nav-h-color;
-}
-
 .sidebar {
   position: relative;
 }
@@ -107,7 +115,7 @@
 }
 
 .tool-panel {
-  padding: 0 5 * $ss;
+  padding: $horizontal-global-padding;
 }
 
 .nav-search {
@@ -118,108 +126,7 @@
 }
 
 .side-nav-menu-link-wr {
-  position: relative;
-  display: flex;
-  align-items: center;
-  box-sizing: border-box;
-  width: 100%;
-  padding: 0 calc(5 * #{$ss});
-
-  & > * {
-    flex-shrink: 0;
-  }
-
-  .side-nav-menu-link {
-    flex-shrink: 1;
-
-    width: 100%;
-  }
-
-  &:not(:last-child) {
-    margin-bottom: 2 * $ss;
-  }
-}
-
-.nav {
-  overflow: hidden;
-
-  .side-nav-menu-item {
-    font-size: $fs-sub-title;
-
-    position: relative;
-    width: 100%;
-
-    .side-nav-menu-link:not(.collapse),
-    .arrow {
-      display: -ms-flexbox;
-      display: flex;
-      overflow: hidden;
-      white-space: nowrap;
-      text-decoration: none;
-      color: $nav-color;
-
-      .menu-item-wrapper {
-        display: flex;
-        align-items: center;
-      }
-
-      span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .active {
-        background-color: $selected-row-bg;
-      }
-    }
-
-    .side-nav-menu-link:hover,
-    .side-nav-menu-link.active,
-    .side-nav-menu-item.active > .side-nav-menu-link,
-    .arrow:hover,
-    .arrow:active {
-      cursor: pointer;
-      text-decoration: none;
-      color: $white;
-    }
-
-    .side-nav-menu-link.active,
-    .side-nav-menu-item.active > .side-nav-menu-link {
-      background-color: $selected-row-bg;
-    }
-
-    .arrow {
-      width: 8 * $ss;
-      margin-left: 2 * $ss;
-
-      svg {
-        transition-duration: .2s;
-        transition-property: transform;
-
-        &.rotated180 {
-          transform: rotate(-180deg);
-        }
-      }
-    }
-  }
-}
-
-ul.nav ul.nav {
-  li .side-nav-menu-link {
-    font-size: $fs-reg;
-    padding: 0 5 * $ss 0 10 * $ss;
-    color: $nav-color;
-
-    &:hover,
-    &:active,
-    &.active {
-      color: $white;
-    }
-
-    &.active {
-      background-color: $selected-row-bg;
-    }
-  }
+  padding: $horizontal-global-padding;
 }
 
 .navbar-brand-wrapper {
@@ -231,7 +138,6 @@ ul.nav ul.nav {
   z-index: 1000;
   top: 9 * $ss;
   right: 2.5 * $ss;
-  height: 100%;
   cursor: pointer;
   background: transparent;
 
@@ -240,38 +146,15 @@ ul.nav ul.nav {
   }
 }
 
-.input-group-append {
-  color: $nav-color-active;
-}
-
-.stream-symbols {
-  font-size: 75%;
-  opacity: .75;
-  flex-shrink: 0;
-  margin-left: 2 * $ss;
-}
-
-.active .stream-symbols {
-  opacity: 1;
-}
-
-.streams-navigation {
-  position: relative;
-  display: flex;
-  overflow: auto;
-  align-items: stretch;
-  flex: 1 1 auto;
-  flex-direction: column;
-  box-sizing: border-box;
-  min-height: 0;
-  max-height: calc(100vh - 65 * #{$ss} - 2 * #{$ss});
-  place-content: stretch flex-start;
-}
-
-.perf-scroll {
+cdk-virtual-scroll-viewport {
   max-width: 100vw;
-  max-height: calc(100vh - 77 * #{$ss});
+  height: calc(100vh - #{85 * $ss});
 
+  ::ng-deep {
+    .cdk-virtual-scroll-content-wrapper {
+      max-width: 100%;
+    }
+  }
 }
 
 .logo {
@@ -279,25 +162,29 @@ ul.nav ul.nav {
 }
 
 .logo-ver {
-  font-size: 7 * $ss;
-
-  position: relative;
-  display: block;
-  width: 100%;
-  margin: 0;
+  font-size: 6 * $ss;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $btn-secondary;
+  padding: $ss;
 }
 
-.hidden, .schema-view.hidden {
+.hidden,
+.schema-view.hidden {
   display: none !important;
   margin: 0;
   padding: 0;
 }
 
-.searchClear {
+.search-clear {
   opacity: 0;
-  color: $white;
 
-  &.showClear {
+  a {
+    color: $white;
+  }
+
+  &.show-clear {
     opacity: 1;
   }
 }
@@ -305,41 +192,145 @@ ul.nav ul.nav {
 #headerSearchResultsClear {
   position: relative;
   z-index: 1000;
+  margin-top: -3px;
 }
 
-.nav-bottom {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  padding-top: 2 * $ss;
-  margin-bottom: 2 * $ss;
-  background-color: $nav-bg;
+.top-toolbar,
+.bottom-toolbar {
+  padding: $horizontal-global-padding;
 }
 
-.btn.collapse-all {
-  position: absolute;
-  z-index: 10;
-  //top: calc(2 * #{$ss} - 2px);
-  bottom: 0;
-  right: 0;
-  height: auto;
-  padding: 0 10px;
-  text-decoration: underline;
-
-  color: rgba(255, 255, 255, .75);
-}
-
-@media only screen and (max-width: 768px) {
-  .menu-hide {
-    right: 0;
-
-    border-radius: calc(2 * #{$ss}) 0 0 calc(2 * #{$ss});
-  }
-  .streams-navigation {
-    padding-bottom: 20 * $ss;
+.top-toolbar {
+  button,
+  a,
+  app-query-btn {
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 2 * $ss;
+    color: $white;
+    height: 27px;
+    display: inline-block;
+    margin-right: 3 * $ss;
   }
 }
 
-.router-link-disabled {
-  pointer-events: none;
+.bottom-toolbar {
+  margin: 0 0 4 * $ss;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+
+  button {
+    padding: $ss;
+    margin: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: $white;
+    border-radius: 4px;
+
+    &.active {
+      background-color: $blue;
+    }
+  }
+
+  .collapse-all-btn {
+    margin-right: 2 * $ss;
+  }
+}
+
+.streams-navigation {
+  max-height: calc(100vh - 65 * #{$ss} - 2 * #{$ss});
+
+  .sidebar-menu {
+    padding: $horizontal-global-padding;
+    overflow-x: hidden;
+    max-width: 100%;
+
+    app-menu-item-context-menu,
+    .menu-item-title {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .menu-item-link {
+      flex-grow: 1;
+      max-width: 100%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      color: $nav-color;
+      text-decoration: none;
+      padding: 0 5px;
+
+      &:hover,
+      &.active {
+        color: $white;
+      }
+
+      &.active {
+        background-color: $blue;
+      }
+
+      &.router-link-disabled {
+        pointer-events: none;
+        cursor: default;
+      }
+    }
+
+    .menu-item-title {
+      height: 11 * $ss;
+      line-height: 11 * $ss;
+    }
+
+    .children-count {
+      font-size: 75%;
+      opacity: 0.75;
+      flex-shrink: 0;
+      margin-left: 2 * $ss;
+    }
+  }
+}
+
+i.sidebar-arrow {
+  min-width: 10px;
+  height: 15px;
+  position: relative;
+  cursor: pointer;
+  visibility: hidden;
+
+  &.visible {
+    visibility: visible;
+  }
+
+  &.open {
+    &::before {
+      left: 50%;
+      top: calc(50% - 1px);
+      transform: translateX(-50%) translateY(-50%) rotate(45deg);
+    }
+  }
+
+  &::before {
+    content: '';
+    display: block;
+    border-right: 1px solid $white;
+    border-bottom: 1px solid $white;
+    width: 6px;
+    height: 6px;
+    position: absolute;
+    left: calc(50% - 3px);
+    top: 50%;
+    transform: translateX(-50%) translateY(-50%) rotate(-45deg);
+  }
+}
+
+.input-group-append {
+  right: 10px;
+}
+
+.search-input {
+  padding-right: 30px;
 }

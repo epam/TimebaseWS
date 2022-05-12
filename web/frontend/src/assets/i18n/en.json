@@ -33,13 +33,28 @@
     "sendMessage": "Send message to the stream: ",
     "msgDetails": "Stream Message Details",
     "streamProps": "Stream Properties",
+    "symbolProps": "Symbol Properties",
     "versionPrefix": "v.",
     "enums": "Enumerators",
     "classes": "Classes",
     "removeSelectedItem": "Remove Selected Item",
     "access_denied": "Access denied",
     "flow_path_home": "Home",
-    "search": "Search"
+    "search": "Search",
+    "filter": "Filter",
+    "topology": "Topology",
+    "flow": {
+      "source": "Source",
+      "target": "Target",
+      "loaders": "Loaders",
+      "cursors": "Cursors",
+      "incomingConnections": "Incoming Connections",
+      "outgoingConnections": "Outgoing Connections"
+    },
+    "topologies": {
+      "ltrTree": "Tree",
+      "ringCenter": "Star"
+    }
   },
   "forms": {
     "login": {
@@ -54,6 +69,8 @@
       "name": "Name",
       "value": "Value",
       "nullable": "Nullable",
+      "description": "Description",
+      "relativeTo": "Relative to",
       "encoding": "Encoding",
       "type": "Data type",
       "elementType": "Array Type",
@@ -88,7 +105,8 @@
       "nameExists": "This name already exists",
       "streamNameExists": "Stream with this name already exists",
       "invalidPattern": "Incorrect field value",
-      "requiredField": "This field is required"
+      "requiredField": "This field is required",
+      "relativeTo": "Field is relative to "
     }
   },
   "buttons": {
@@ -120,10 +138,12 @@
     "hide_symbols": "Collapse symbols",
     "open_in_new_tab": "Open in new tab",
     "show_spaces": "Show spaces",
+    "hide_spaces": "Hide spaces",
     "move_up_timebar": "Move up timebar",
     "move_down_timebar": "Move down timebar",
     "open_tabs_list": "Tabs list",
-    "open_properties": "Stream's properties",
+    "open_stream_properties": "Stream's properties",
+    "open_symbol_properties": "Symbol's properties",
     "global_settings": "Global settings",
     "toggle_datepicker": "Toggle datepicker",
     "filters": "Symbols & types filters",
@@ -149,14 +169,17 @@
     "newValue": "New Value",
     "newStaticField": "New Static Field",
     "newNonStaticField": "New Non Static Field",
-    "schema_edit_mode": "Edit Schema",
+    "schema_edit_mode": "Schema",
     "next": "Next",
     "back": "Back",
     "finish": "Finish",
     "create": "Create",
     "confirm": "Confirm",
     "start_creating": "Start Creating",
-    "revert": "Revert"
+    "revert": "Revert",
+    "closeTab": "Close tab",
+    "expand": "Expand",
+    "collapse": "Collapse"
   },
   "tooltips": {
     "query_mode": "Query mode",
@@ -194,10 +217,13 @@
     "live_mode": "Monitor",
     "monitor_mode": "Inspector",
     "chart_mode": "Chart",
+    "deltix_chart_mode": "New Chart",
     "schema_mode": "Schema",
     "create_stream": "Create new stream",
     "importFromQMSG": "Import from QMSG",
-    "flow": "Flow"
+    "flow": "Flow",
+    "orderBook": "Order book",
+    "noOrderBook": "Order book is not available for this stream."
   },
   "gridTitle": {
     "fieldsList": {
@@ -275,6 +301,18 @@
       "title": "Paste",
       "notSupported": "(not supported by browser)",
       "denied": "Buffer access denied by browser"
+    },
+    "recentQueries": "Recent queries",
+    "export": "Export",
+    "buttons": {
+      "cancel": "Cancel",
+      "view": "RUN",
+      "monitor": "MONITOR",
+      "live": "LIVE",
+      "export": {
+        "QSMSG": "EXPORT TO QSMSG",
+        "CSV": "EXPORT TO CSV"
+      }
     }
   },
   "importFromFile": {
@@ -289,9 +327,21 @@
       "endTime": "End time",
       "setRange": "Set range",
       "choseFile": "Chose file",
-      "file": "File"
+      "file": "File",
+      "periodicity": "Periodicity"
     },
-    "import": "Import"
+    "periodicityTypes": {
+      "irregular": "Irregular",
+      "static": "Static",
+      "regular": "Regular"
+    },
+    "import": "Import",
+    "uploadingFile": "File uploading",
+    "importingFile": "File importing",
+    "cancel": "Cancel",
+    "close": "Close",
+    "return": "Return",
+    "importFinished": "Import finished"
   },
   "schemaEditor": {
     "importFromJson": {
@@ -299,6 +349,12 @@
       "dataError": "Error at position: ",
       "confirm": "Replace current schema with new in editor?",
       "unhandledError": "Import json is not valid, page was reloaded"
+    },
+    "relativeToModal": {
+      "text":  "Changing of {{ prop }} will unlink fields",
+      "from":  "from",
+      "cancel": "Cancel",
+      "continue": "Continue"
     }
   },
   "gridMenu": {
@@ -313,5 +369,59 @@
     "copyWithHeaders": "Copy with headers",
     "copyJSON": "Copy JSON",
     "sendMessage": "Send message"
+  },
+  "tabs": {
+    "closeRight": "Close to right",
+    "closeLeft": "Close to left",
+    "closeOthers": "Close others"
+  },
+  "orderBook": {
+    "filterLabels": {
+      "streams": "Streams",
+      "symbol": "Symbol",
+      "exchanges": "Exchanges"
+    },
+    "selectStreams": "Select streams",
+    "selectSymbol": "Select symbol",
+    "selectExchanges": "Select exchanges",
+    "waitingForData": "Waiting for live data...",
+    "quantity": "Quantity",
+    "price": "Price",
+    "size": "Size",
+    "exchange": "Exchange",
+    "precisionError": "Symbol {{symbol}} information (precision, base/term currency) is not found"
+  },
+  "charts": {
+    "timeRangeError": "Range should be between {{from}} and {{to}}",
+    "timeRangeErrorFrom": "Range should be more then {{from}}",
+    "filters": {
+      "levels": "Levels",
+      "barSize": "Bar size",
+      "chooseTimeRange": "Choose time range",
+      "applyRange": "Apply Range",
+      "apply": "Apply",
+      "track": "Track"
+    },
+    "noData": "No data",
+    "viewData": "View data"
+  },
+  "messageInfo": {
+    "views": {
+      "view": "View",
+      "json": "Json",
+      "orderBook": "Order book"
+    },
+    "noData": "No data"
+  },
+  "rightPanel": {
+    "messageInfo": "Message info",
+    "noMessageSelected": "No message selected"
+  },
+  "fieldBuilder": {
+    "editJson": "EDIT JSON DATA"
+  },
+  "sendMessageModal": {
+    "continue": "Continue",
+    "confirmTruncate":  "Stream {{stream.name}} will be truncated at {{confirmTime}}, continue?"
   }
 }
