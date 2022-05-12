@@ -5,79 +5,6 @@ The Api Keys library supports two flows of accessing API with API Keys:
 * [Basic flow](#basic-flow) with ApiKey and ApiSecret (more simple, but less secure because the server must store API Secret). [Samples](#client-samples).
 * [Sessions-based](#session-based-flow) flow. [Samples](#client-samples-1).
 
-## Configuration 
-
-### Configuration of API Keys
-
-You can configure Basic and Session-based flows in TimeBase Web Admin `application.yaml`. 
-
-To switch between Basic (default) and Session-based flows use flag:
-
-```yaml
-security:
-  api-keys:
-    sessions:
-      enabled: false # disabled by default
-```
-
-#### Session-Based Flow Configuration
-
-```yaml
-security:
-  api-keys:
-    sessions:
-      login-root: api/v0
-      challengeSize: 2048
-      dhSecretSize: 512
-      keepAliveMs: 100000
-      keepAliveLoginMs: 10000
-      keepAliveTimerMs: 1000
-      dhBase: 2
-      dhModulus: ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552bb9ed529077096966d670c354e4abc9804f1746c08ca18217c32905e462e36ce3be39e772c180e86039b2783a2ec07a28fb5c55df06f4c52c9de2bcbf6955817183995497cea956ae515d2261898fa051015728e5a8aacaa68ffffffffffffffff
-```
-
-### Configuration of API Keys Provider 
-
-Configure in TimeBase Web Admin `application.yaml`. 
-
-Example when API keys are stored in `application.yaml` config:
-
-```yaml
-security:
-  authorization:
-    source: CONFIG # valid values: FILE, CONFIG
-  api-keys-provider:
-    api-keys: # list of api keys and their users
-      - name: api key name
-        key: api key
-        user: api key user
-        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE] # Specify authorities for api key, otherwise authorities will get from user - see Authorization section.
-      - name: api key name
-        key: api key
-        user: api key user
-```
-
-You can also use a JSON file to configure API keys:
-
-```yaml
-security:
-  authorization:
-    source: FILE # valid values: FILE, CONFIG
-    file-source:
-      path: /path/to/tbwg.users.json
-```
-
-`tbwg.users.json` example:
-
-```json
-{
-  "apiKeys" : [ {
-    "name" : "api key name",
-    "key" : "api key",
-    "user" : "api key user"
-  } ]
-}
-```
 
 ## Basic Flow
 
@@ -516,4 +443,78 @@ const main = async () => {
 };
 
 return main();
+```
+
+## Configuration 
+
+### Configuration of API Keys
+
+You can configure Basic and Session-based flows in TimeBase Web Admin `application.yaml`. 
+
+To switch between Basic (default) and Session-based flows use flag:
+
+```yaml
+security:
+  api-keys:
+    sessions:
+      enabled: false # disabled by default
+```
+
+#### Session-Based Flow Configuration
+
+```yaml
+security:
+  api-keys:
+    sessions:
+      login-root: api/v0
+      challengeSize: 2048
+      dhSecretSize: 512
+      keepAliveMs: 100000
+      keepAliveLoginMs: 10000
+      keepAliveTimerMs: 1000
+      dhBase: 2
+      dhModulus: ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552bb9ed529077096966d670c354e4abc9804f1746c08ca18217c32905e462e36ce3be39e772c180e86039b2783a2ec07a28fb5c55df06f4c52c9de2bcbf6955817183995497cea956ae515d2261898fa051015728e5a8aacaa68ffffffffffffffff
+```
+
+### Configuration of API Keys Provider 
+
+There are two options to store API keys: in `application.yaml` config and in JSON file. 
+
+Example when API keys are stored in `application.yaml` config:
+
+```yaml
+security:
+  authorization:
+    source: CONFIG # valid values: FILE, CONFIG
+  api-keys-provider:
+    api-keys: # list of api keys and their users
+      - name: api key name
+        key: api key
+        user: api key user
+        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE] # Specify authorities for api key, otherwise authorities will get from user - see Authorization section.
+      - name: api key name
+        key: api key
+        user: api key user
+```
+
+You can also use a JSON file to configure API keys:
+
+```yaml
+security:
+  authorization:
+    source: FILE # valid values: FILE, CONFIG
+    file-source:
+      path: /path/to/tbwg.users.json
+```
+
+`tbwg.users.json` example:
+
+```json
+{
+  "apiKeys" : [ {
+    "name" : "api key name",
+    "key" : "api key",
+    "user" : "api key user"
+  } ]
+}
 ```
