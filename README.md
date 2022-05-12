@@ -10,7 +10,7 @@
 * Monitor live data.
 * Query/Export/Import data.
 
-> Refer to [TimeBase Documentation](https://kb.timebase.info/admin.html).
+> Refer to [TimeBase Documentation](https://kb.timebase.info/community/development/tools/Web%20Admin/admin_guide).
 
 TimeBase Administrator also serves as a **REST/WS gateway for TimeBase Server**. 
 
