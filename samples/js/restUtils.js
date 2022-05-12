@@ -1,7 +1,5 @@
 const http = require('http');
-const webSocket = require('ws');
 
-// commentarii
 function makeRequest(options, requestBody) {
 	return new Promise((resolve, reject) => {
 		const request = http.request(options, function(res) {
@@ -36,22 +34,8 @@ function requestToken(url, port, username, password) {
 	);
 }
 
-requestToken('localhost', 8099, 'admin', 'admin').then((response) => {
-	token = JSON.parse(response).access_token;
-	console.log(token);
-	var options = {
-	  headers: {
-		'Authorization': 'bearer ' + token
-	  }
-	};
+module.exports = {
+   makeRequest: makeRequest,
+   requestToken: requestToken
+}
 
-	let ws = new webSocket('ws://localhost:8099/ws/v0/BINANCE/select', options);
-	ws.onopen = function () {
-	  console.log('Connected');
-	};
-	ws.onmessage = function (message) {
-	  console.log('Message: %s', message.data);
-	};
-}).catch((error) => {
-	console.log(error);
-});

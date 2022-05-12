@@ -163,7 +163,7 @@ Refer to [Auth0 Configuration](https://github.com/epam/TimebaseWS/tree/main/guid
 
 ## Samples 
 
-* [REST JS](https://github.com/epam/TimebaseWS/tree/main/guide/authentication/samples/rest_token.js) 
-* [WS JS](https://github.com/epam/TimebaseWS/tree/main/guide/authentication/samples/ws_token.js) 
-* [REST Python](https://github.com/epam/TimebaseWS/tree/main/guide/authentication/samples/simple_rest_client.py) 
-* [WS Python](https://github.com/epam/TimebaseWS/tree/main/guide/authentication/samples/simple_ws_client.py) 
+* [REST JS](https://github.com/epam/TimebaseWS/tree/main/samples/js/simpleRestClientTokenAuth.js) 
+* [WS JS](https://github.com/epam/TimebaseWS/tree/main/samples/js/simpleWsClientTokenAuth.js) 
+* [REST Python](https://github.com/epam/TimebaseWS/tree/main/samples/python/simple_rest_client.py) 
+* [WS Python](https://github.com/epam/TimebaseWS/tree/main/samples/python/simple_ws_client.py) 

@@ -62,7 +62,7 @@ or start server from command line
 
 ## Configuration 
 
-> Refer to [Configuration](https://github.com/epam/TimebaseWS/tree/main/guide/configurations.md).
+> Refer to [Default Configuration](https://github.com/epam/TimebaseWS/blob/main/java/ws-server/src/main/resources/application.yaml).
 
 ## Authentication 
 
