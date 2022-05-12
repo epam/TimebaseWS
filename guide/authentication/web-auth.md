@@ -1,6 +1,6 @@
 # Web Authentication 
 
-TimeBase Web Administrator supports two types of authentication: [built-in OAuth2](#built-in-authentication-configuration) & [SSO](#sso-configuration). **One of those types must be enabled to run the application - refer to [configuration]().**
+TimeBase Web Administrator supports two types of authentication: [built-in OAuth2](#built-in-authentication-configuration) & [SSO](#sso-configuration). **One of those types must be enabled to run the application.**
 
 ## Built-In Authentication Configuration
 
@@ -60,7 +60,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri:  # Service provider URI
+          issuer-uri: Service provider URI
 
 security:
   oauth2:
@@ -88,7 +88,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: # Service provider URI
+          issuer-uri: Service provider URI
 security:
   oauth2:
     provider:
@@ -96,8 +96,8 @@ security:
       name: cognito
       clientId: <client_id>
       audience: <audience>
-      configUrl: # Service provider config URL
-      logoutUrl: # Service provider logout URL
+      configUrl: Service provider config URL
+      logoutUrl: Service provider logout URL
       usernameClaim: username
       validateIssuer: true
     users:
@@ -117,7 +117,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: # Service provider URI
+          issuer-uri: Service provider URI
 ...
 security:
   oauth2:
@@ -142,7 +142,28 @@ security:
 To enable SSO with [Auth0](https://auth0.com/) add the following blocks to your `application.yaml` configuration file. 
 
 ```yaml
-# coming soon
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: Service provider URI
+security:
+  oauth2:
+    provider:
+      providerType: SSO
+      name: auth0
+      clientId: client ID
+      audience: audience URL
+      configUrl: configuration URL
+      logoutUrl: logout URL
 ```
 
 Refer to [Auth0 Configuration](https://github.com/epam/TimebaseWS/tree/main/guide/authentication/auth0.md) to learn how to configure Auth0.
+
+## Samples 
+
+* [REST JS](https://github.com/epam/TimebaseWS/tree/main/guide/authentication/samples/rest_token.js) 
+* [WS JS](https://github.com/epam/TimebaseWS/tree/main/guide/authentication/samples/ws_token.js) 
+* [REST Python](https://github.com/epam/TimebaseWS/tree/main/guide/authentication/samples/simple_rest_client.py) 
+* [WS Python](https://github.com/epam/TimebaseWS/tree/main/guide/authentication/samples/simple_ws_client.py) 
