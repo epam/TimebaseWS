@@ -19,6 +19,7 @@ package com.epam.deltix.tbwg.webapp.services;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.services.producers.BarMessageCsvProducer;
 import com.epam.deltix.tbwg.webapp.services.producers.PackageHeaderMessageGenerator;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.jupiter.api.DisplayName;
 
@@ -28,6 +29,7 @@ public class DynamicBarSizeTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("Simple BarMessage 1 week bar test")
+    @Ignore
     public void barMessageWeekTest() {
         Instant startTime = Instant.parse("2021-03-30T20:14:45.684Z");
         Instant endTime = Instant.parse("2021-04-12T02:03:52.158Z");
@@ -39,6 +41,7 @@ public class DynamicBarSizeTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("Simple BarMessage 2 week bar test")
+    @Ignore
     public void barMessage2WeekTest() {
         Instant startTime = Instant.parse("2021-03-30T20:14:45.684Z");
         Instant endTime = Instant.parse("2021-04-12T02:03:52.158Z");
@@ -50,6 +53,7 @@ public class DynamicBarSizeTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("Simple BarMessage 1 month bar test")
+    @Ignore
     public void barMessageMonthTest() {
         Instant startTime = Instant.parse("2021-10-30T20:14:45.684Z");
         Instant endTime = Instant.parse("2021-12-01T02:03:52.158Z");
@@ -61,6 +65,7 @@ public class DynamicBarSizeTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("Simple BarMessage 2 month bar test")
+    @Ignore
     public void barMessage2MonthTest() {
         Instant startTime = Instant.parse("2021-10-30T20:14:45.684Z");
         Instant endTime = Instant.parse("2021-12-01T02:03:52.158Z");
@@ -72,6 +77,7 @@ public class DynamicBarSizeTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("Simple BarMessage 1 quarter bar test")
+    @Ignore
     public void barMessageQuarterTest() {
         Instant startTime = Instant.parse("2021-08-30T20:14:45.684Z");
         Instant endTime = Instant.parse("2021-12-01T02:03:52.158Z");
@@ -83,6 +89,7 @@ public class DynamicBarSizeTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("Simple BarMessage 4 month bar test")
+    @Ignore
     public void barMessage4MonthTest() {
         Instant startTime = Instant.parse("2021-10-30T20:14:45.684Z");
         Instant endTime = Instant.parse("2021-12-01T02:03:52.158Z");
@@ -94,6 +101,7 @@ public class DynamicBarSizeTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("Simple BarMessage 5 month bar test")
+    @Ignore
     public void barMessage5MonthTest() {
         Instant startTime = Instant.parse("2021-03-30T20:14:45.684Z");
         Instant endTime = Instant.parse("2021-05-01T02:03:52.158Z");
@@ -105,6 +113,7 @@ public class DynamicBarSizeTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("Simple BarMessage 6 month bar test")
+    @Ignore
     public void barMessage6MonthTest() {
         Instant startTime = Instant.parse("2021-03-30T20:14:45.684Z");
         Instant endTime = Instant.parse("2021-05-01T02:03:52.158Z");
@@ -116,6 +125,7 @@ public class DynamicBarSizeTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("Simple BarMessage 7 month bar test")
+    @Ignore
     public void barMessage7MonthTest() {
         Instant startTime = Instant.parse("2021-03-30T20:14:45.684Z");
         Instant endTime = Instant.parse("2021-05-01T02:03:52.158Z");
@@ -127,6 +137,7 @@ public class DynamicBarSizeTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("Simple BarMessage 1 year bar test")
+    @Ignore
     public void barMessageYearTest() {
         Instant startTime = Instant.parse("2021-10-30T20:14:45.684Z");
         Instant endTime = Instant.parse("2021-12-01T02:03:52.158Z");
