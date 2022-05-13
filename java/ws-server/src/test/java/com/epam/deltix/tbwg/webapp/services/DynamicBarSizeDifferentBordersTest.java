@@ -19,7 +19,6 @@ package com.epam.deltix.tbwg.webapp.services;
 import com.epam.deltix.tbwg.webapp.services.producers.BarMessageCsvProducer;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.services.producers.PackageHeaderMessageGenerator;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.jupiter.api.DisplayName;
 
@@ -30,7 +29,6 @@ public class DynamicBarSizeDifferentBordersTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("Check that every day of month correctly mapped to bar borders BarMessage 1 week bar test")
-    @Ignore
     public void barMessageEveryMonthDayWeekTest() {
         LocalDateTime startTime = LocalDateTime.of(2021, 4, 1, 1, 1, 1);
         LocalDateTime endTime = LocalDateTime.of(2021, 4, 2, 1, 1, 1);
@@ -51,7 +49,6 @@ public class DynamicBarSizeDifferentBordersTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("Check that every day of month correctly mapped to bar borders BarMessage 2 week bar test")
-    @Ignore
     public void barMessageEveryMonthDay2WeekTest() {
         LocalDateTime startTime = LocalDateTime.of(2021, 4, 1, 1, 1, 1);
         LocalDateTime endTime = LocalDateTime.of(2021, 4, 2, 1, 1, 1);
@@ -72,7 +69,6 @@ public class DynamicBarSizeDifferentBordersTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("Check that every month correctly mapped to bar borders BarMessage 1 month bar test")
-    @Ignore
     public void barMessageEveryMonthMonthTest() {
         LocalDateTime startTime = LocalDateTime.of(2021, 1, 5, 1, 1, 1);
         LocalDateTime endTime = LocalDateTime.of(2021, 1, 25, 1, 1, 1);
@@ -88,7 +84,6 @@ public class DynamicBarSizeDifferentBordersTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("Check that every month correctly mapped to bar borders  BarMessage 1 quarter bar test")
-    @Ignore
     public void barMessageEveryMonthQuarterTest() {
         LocalDateTime startTime = LocalDateTime.of(2021, 1, 5, 1, 1, 1);
         LocalDateTime endTime = LocalDateTime.of(2021, 1, 25, 1, 1, 1);
@@ -104,7 +99,6 @@ public class DynamicBarSizeDifferentBordersTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("Check that every month correctly mapped to bar borders  BarMessage 1 year bar test")
-    @Ignore
     public void barMessageEveryMonthYearTest() {
         LocalDateTime startTime = LocalDateTime.of(2021, 1, 5, 1, 1, 1);
         LocalDateTime endTime = LocalDateTime.of(2021, 1, 25, 1, 1, 1);

@@ -29,7 +29,7 @@ public class ChartingTest extends ChartingBaseTest {
 
     //1 hour of data from 2022-01-10T12:00 till 2022-01-10-13:00
     // leave incorrect qsmgs instead of changing binary file name
-    private final static String STREAM_1HOUR_BITFINEX = "BITFINEX1hour.qsmgs.gz";
+    private final static String STREAM_1HOUR_BITFINEX = "BITFINEX1hour.qsmsg.gz";
 
     @Test
     @DisplayName("Real data PackageHeader 1 minute bar test")

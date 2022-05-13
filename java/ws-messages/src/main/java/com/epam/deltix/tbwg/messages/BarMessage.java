@@ -16,7 +16,7 @@ import java.lang.StringBuilder;
  * Basic information about a bar.
  */
 @SchemaElement(
-        name = "messages.BarMessage",
+        name = "com.epam.deltix.timebase.messages.BarMessage",
         title = "Bar Message"
 )
 public class BarMessage extends InstrumentMessage{

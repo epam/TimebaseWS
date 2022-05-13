@@ -19,6 +19,7 @@ package com.epam.deltix.tbwg.webapp.services.orderbook;
 import com.epam.deltix.containers.AlphanumericUtils;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
+import com.epam.deltix.tbwg.webapp.utils.DefaultTypeLoader;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.timebase.messages.InstrumentMessage;
 import com.epam.deltix.qsrv.hf.pub.TypeLoaderImpl;
@@ -204,7 +205,7 @@ public class OrderBookSubscription extends Thread {
         SelectionOptions options = new SelectionOptions(false, true);
         options.realTimeNotification = true;
         options.allowLateOutOfOrder = true; // otherwise we lose messages
-        options.typeLoader = TypeLoaderImpl.SILENT_INSTANCE;
+        options.typeLoader = new DefaultTypeLoader();
 
         long maxTime = Arrays.stream(tickStreams)
             .map(s -> {

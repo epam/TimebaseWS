@@ -19,6 +19,7 @@ package com.epam.deltix.tbwg.webapp.services.charting.datasource;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
+import com.epam.deltix.tbwg.webapp.utils.DefaultTypeLoader;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickDB;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
@@ -62,10 +63,12 @@ public class StreamMessageSourceFactory implements MessageSourceFactory {
 
         //IdentityKey instrument = findInstrument(stream, symbol);
         builder.time(time - PREFETCH_INTERVAL_MS);
-        builder.typeLoader(MarketDataTypeLoader.TYPE_LOADER);
+        builder.typeLoader(new DefaultTypeLoader());
         builder.streams(stream);
         builder.symbols(symbol);
-        builder.types(types);
+        if (types != null) {
+            builder.types(types);
+        }
         builder.live(live);
         return builder.build();
     }
@@ -93,7 +96,7 @@ public class StreamMessageSourceFactory implements MessageSourceFactory {
         builder.qql(qql);
         builder.unbound(unbound);
         builder.live(live);
-        builder.typeLoader(MarketDataTypeLoader.TYPE_LOADER);
+        builder.typeLoader(new DefaultTypeLoader());
         if (stream != null && symbol != null) {
             builder.symbols(symbol);
         }

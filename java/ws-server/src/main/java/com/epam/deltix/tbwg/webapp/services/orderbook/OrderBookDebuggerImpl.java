@@ -28,12 +28,12 @@ import com.epam.deltix.tbwg.webapp.model.orderbook.*;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.pub.ChannelQualityOfService;
+import com.epam.deltix.tbwg.webapp.utils.DefaultTypeLoader;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
 import com.epam.deltix.qsrv.hf.tickdb.pub.SelectionOptions;
 import com.epam.deltix.qsrv.hf.tickdb.pub.TickCursor;
 
-import com.epam.deltix.tbwg.webapp.services.charting.datasource.MarketDataTypeLoader;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.NoStreamsException;
 import com.epam.deltix.timebase.messages.*;
@@ -240,7 +240,7 @@ public class OrderBookDebuggerImpl implements OrderBookDebugger {
         options.reversed = reverse;
         options.raw = false;
         options.space = space;
-        options.typeLoader = MarketDataTypeLoader.TYPE_LOADER;
+        options.typeLoader = new DefaultTypeLoader();
 
         return timebase.getConnection().select(startTime, options, types, getInstrument(streams, symbols),
             streams.toArray(new DXTickStream[streams.size()]));

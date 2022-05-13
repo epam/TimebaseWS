@@ -16,6 +16,7 @@
  */
 package com.epam.deltix.tbwg.webapp.services.charting.provider;
 
+import com.epam.deltix.tbwg.messages.BarMessage;
 import com.epam.deltix.tbwg.webapp.services.charting.queries.*;
 import com.epam.deltix.tbwg.webapp.services.charting.transformations.*;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
@@ -25,11 +26,10 @@ import com.epam.deltix.qsrv.hf.pub.md.ClassDescriptor;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassSet;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
-import com.epam.deltix.tbwg.webapp.services.charting.datasource.MarketDataTypeLoader;
 import com.epam.deltix.tbwg.webapp.services.charting.datasource.ReactiveMessageSource;
 import com.epam.deltix.tbwg.webapp.services.charting.datasource.MessageSourceFactory;
 
-import com.epam.deltix.timebase.messages.universal.L1Entry;
+import com.epam.deltix.timebase.messages.SchemaElement;
 import com.epam.deltix.timebase.messages.universal.PackageHeader;
 import com.epam.deltix.timebase.messages.universal.TradeEntry;
 import com.epam.deltix.util.time.GMT;
@@ -55,7 +55,7 @@ public class TransformationServiceImpl implements TransformationService {
     @Value("${charting.transformations.aggregation-optimization-threshold-ms:21600000}") // 12 hours
     private long aggregationOptimizationThresholdMs;
 
-    @Value("${charting.transformations.use-qll:true}")
+    @Value("${charting.transformations.use-qll:false}")
     private boolean useQql;
 
     @Value("${charting.transformations.use-l1:false}")
@@ -376,6 +376,16 @@ public class TransformationServiceImpl implements TransformationService {
         }
     }
 
+    private static class TransformationType {
+        private final Set<String> types;
+        private final TransformationPlanBuilder planBuilder;
+
+        public TransformationType(Set<String> types, TransformationPlanBuilder planBuilder) {
+            this.types = types;
+            this.planBuilder = planBuilder;
+        }
+    }
+
     public TransformationServiceImpl(TimebaseService timebaseService, MessageSourceFactory messageSourceFactory) {
         this.timebaseService = timebaseService;
         this.messageSourceFactory = messageSourceFactory;
@@ -388,7 +398,8 @@ public class TransformationServiceImpl implements TransformationService {
             metadata = timebaseService.getStreamMetadata(((SymbolQuery) query).getStream());
         }
 
-        TransformationPlanBuilder planBuilder = planBuilder(query, metadata);
+        TransformationType transformationType = transformationType(query, metadata);
+        TransformationPlanBuilder planBuilder = transformationType.planBuilder;
 
         ReactiveMessageSource source = null;
         if (planBuilder instanceof QqlQueryPlanBuilder) {
@@ -403,14 +414,16 @@ public class TransformationServiceImpl implements TransformationService {
             String startTimestamp = GMT.formatDateTimeMillis(symbolQuery.getInterval().getStartTimeMilli());
             String endTimestamp = GMT.formatDateTimeMillis(symbolQuery.getInterval().getEndTimeMilli());
 
-            Set<String> tradeTypes = findDerivedTypes(metadata, TradeEntry.class);
+            Set<String> tradeTypes = findDerivedTypes(metadata,
+                TradeEntry.class.getName(), "deltix.timebase.api.messages.universal.TradeEntry"
+            );
 
             if (planBuilder instanceof L2PricesPlanBuilder) {
                 L2PricesPlanBuilder l2PricesPlanBuilder = (L2PricesPlanBuilder) planBuilder;
                 if (l2PricesPlanBuilder.buildByQuery()) {
                     String qql =
                         String.format(
-                            "SELECT packageType, entries as entries TYPE \"deltix.timebase.api.messages.universal.PackageHeader\"\n" +
+                            "SELECT packageType, entries as entries TYPE \"com.epam.deltix.timebase.messages.universal.PackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(%ds)\n" +
                                 "where symbol == '%s' and entries != null\n" +
@@ -418,7 +431,7 @@ public class TransformationServiceImpl implements TransformationService {
                                 "and packageType == INCREMENTAL_UPDATE\n" +
                                 "and timestamp >= '%s'd and timestamp <= '%s'd\n" +
                                 "UNION\n" +
-                                "SELECT packageType, entries[level < %d] as entries type \"deltix.timebase.api.messages.universal.PackageHeader\"\n" +
+                                "SELECT packageType, entries[level < %d] as entries type \"com.epam.deltix.timebase.messages.universal.PackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(%ds)\n" +
                                 "where symbol == '%s' and entries != null\n" +
@@ -440,7 +453,7 @@ public class TransformationServiceImpl implements TransformationService {
                 if (bboPlanBuilder.buildByQuery()) {
                     String qql =
                         String.format(
-                            "SELECT packageType, entries as entries TYPE \"deltix.timebase.api.messages.universal.PackageHeader\"\n" +
+                            "SELECT packageType, entries as entries TYPE \"com.epam.deltix.timebase.messages.universal.PackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(%ds)\n" +
                                 "where symbol == '%s' and entries != null\n" +
@@ -448,7 +461,7 @@ public class TransformationServiceImpl implements TransformationService {
                                 "and packageType == INCREMENTAL_UPDATE\n" +
                                 "and timestamp >= '%s'd and timestamp <= '%s'd\n" +
                                 "UNION\n" +
-                                "SELECT packageType, entries[level == 0] as entries type \"deltix.timebase.api.messages.universal.PackageHeader\"\n" +
+                                "SELECT packageType, entries[level == 0] as entries type \"com.epam.deltix.timebase.messages.universal.PackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(%ds)\n" +
                                 "where symbol == '%s' and entries != null\n" +
@@ -470,7 +483,7 @@ public class TransformationServiceImpl implements TransformationService {
                 if (barPlanBuilder.buildByQuery()) {
                     String qql =
                         String.format(
-                            "SELECT packageType, entries[level == 0] as entries type \"deltix.timebase.api.messages.universal.PackageHeader\"\n" +
+                            "SELECT packageType, entries[level == 0] as entries type \"com.epam.deltix.timebase.api.messages.universal.PackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(10s)\n" +
                                 "where symbol == '%s' and entries != null\n" +
@@ -489,7 +502,7 @@ public class TransformationServiceImpl implements TransformationService {
             if (source == null) {
                 source = messageSourceFactory.buildSource(
                     symbolQuery.getStream(), symbolQuery.getSymbol(),
-                    getInputTypes(symbolQuery, metadata.getContentClasses()),
+                    transformationType.types,
                     symbolQuery.getInterval(), symbolQuery.isLive()
                 );
             }
@@ -498,80 +511,60 @@ public class TransformationServiceImpl implements TransformationService {
         return planBuilder.build(source);
     }
 
-    private TransformationPlanBuilder planBuilder(LinesQuery query, RecordClassSet metadata) {
+    private TransformationType transformationType(LinesQuery query, RecordClassSet metadata) {
         if (query instanceof QqlQuery) {
-            return new QqlQueryPlanBuilder((QqlQuery) query);
+            return new TransformationType(new HashSet<>(), new QqlQueryPlanBuilder((QqlQuery) query));
         } else if (query instanceof BookSymbolQuery) {
-            BookSymbolQuery bookSymbolQuery = (BookSymbolQuery) query;
-
-            Set<String> types = getInputTypes(bookSymbolQuery, metadata.getContentClasses());
-            if (query.getType() == ChartType.PRICES_L2) {
-                if (types.contains(PackageHeader.CLASS_NAME)) {
-                    return new L2PricesPlanBuilder(bookSymbolQuery, false);
-                }
-            }
-
-            boolean hasL1Entry = metadata.getClassDescriptor(L1Entry.CLASS_NAME) != null;
-            if (query.getType() == ChartType.BARS) {
-                if (types.contains(PackageHeader.CLASS_NAME)) {
-                    return new BarPlanBuilder(bookSymbolQuery, false, hasL1Entry);
-                }
-//                else if (types.contains(BarMessage.CLASS_NAME)) {
-//                    return new BarConversionPlanBuilder(bookSymbolQuery);
-//                }
-            }
-
-            if (query.getType() == ChartType.TRADES_BBO) {
-                if (types.contains(PackageHeader.CLASS_NAME)) {
-                    return new BboPlanBuilder(bookSymbolQuery, false, hasL1Entry);
-                }
-            }
+            return transformationType((BookSymbolQuery) query, metadata.getContentClasses());
         }
 
         throw new IllegalArgumentException("Unknown type of getQuery");
     }
 
-    private Set<String> getInputTypes(SymbolQuery query, RecordClassDescriptor[] descriptors) {
+    private TransformationType transformationType(BookSymbolQuery query, RecordClassDescriptor[] descriptors) {
         if (query.getType() == ChartType.PRICES_L2) {
             if (mayContainSubclasses(descriptors, PackageHeader.class)) {
-                Set<String> descriptorsSet = getDescriptors(descriptors, PackageHeader.class); //, SecurityFeedStatusMessage.class);
-                descriptorsSet.add(MarketDataTypeLoader.SECURITY_STATUS_CLASS);
-                return descriptorsSet;
+                return new TransformationType(
+                    getDescriptors(descriptors, PackageHeader.class), new L2PricesPlanBuilder(query, false)
+                );
             }
-//            if (mayContainSubclasses(descriptors, Level2Message.class) ||
-//                mayContainSubclasses(descriptors, L2Message.class))
-//            {
-//                return getDescriptors(descriptors, Level2Message.class, L2Message.class, L2SnapshotMessage.class, TradeMessage.class);
-//            }
+            if (mayContainSubclasses(descriptors, "deltix.timebase.api.messages.universal.PackageHeader")) {
+                return new TransformationType(
+                    null /* read all types */, new L2PricesPlanBuilder(query, false)
+                );
+            }
         }
 
         if (query.getType() == ChartType.BARS) {
             if (mayContainSubclasses(descriptors, PackageHeader.class)) {
-                Set<String> descriptorsSet = getDescriptors(descriptors, PackageHeader.class); // SecurityFeedStatusMessage.class);
-                descriptorsSet.add(MarketDataTypeLoader.SECURITY_STATUS_CLASS);
-                return descriptorsSet;
+                return new TransformationType(
+                    getDescriptors(descriptors, PackageHeader.class), new BarPlanBuilder(query, false, false)
+                );
             }
-//            if (mayContainSubclasses(descriptors, Level2Message.class) ||
-//                mayContainSubclasses(descriptors, L2Message.class))
-//            {
-//                return getDescriptors(descriptors, Level2Message.class, L2Message.class, L2SnapshotMessage.class, TradeMessage.class);
-//            }
-//            if (mayContainSubclasses(descriptors, BarMessage.class)) {
-//                return getDescriptors(descriptors, BarMessage.class);
-//            }
+            if (mayContainSubclasses(descriptors, "deltix.timebase.api.messages.universal.PackageHeader")) {
+                return new TransformationType(
+                    null /* read all types */, new BarPlanBuilder(query, false, false)
+                );
+            }
+            if (mayContainSubclasses(descriptors, BarMessage.class)) {
+                Set<String> descriptorsSet = getDescriptors(descriptors, BarMessage.class);
+                return new TransformationType(
+                    descriptorsSet, new BarConversionPlanBuilder(query)
+                );
+            }
         }
 
         if (query.getType() == ChartType.TRADES_BBO) {
             if (mayContainSubclasses(descriptors, PackageHeader.class)) {
-                Set<String> descriptorsSet = getDescriptors(descriptors, PackageHeader.class); //, SecurityFeedStatusMessage.class);
-                descriptorsSet.add(MarketDataTypeLoader.SECURITY_STATUS_CLASS);
-                return descriptorsSet;
+                return new TransformationType(
+                    getDescriptors(descriptors, PackageHeader.class), new BboPlanBuilder(query, false, false)
+                );
             }
-//            if (mayContainSubclasses(descriptors, Level2Message.class) ||
-//                mayContainSubclasses(descriptors, L2Message.class))
-//            {
-//                return getDescriptors(descriptors, Level2Message.class, L2Message.class, L2SnapshotMessage.class, TradeMessage.class);
-//            }
+            if (mayContainSubclasses(descriptors, "deltix.timebase.api.messages.universal.PackageHeader")) {
+                return new TransformationType(
+                    null /* read all types */, new BboPlanBuilder(query, false, false)
+                );
+            }
         }
 
         throw new IllegalArgumentException("Stream " + query.getStream() + " type mismatch with chart type " + query.getType());
@@ -593,24 +586,44 @@ public class TransformationServiceImpl implements TransformationService {
         return foundClasses;
     }
 
-    static boolean mayContainSubclasses(RecordClassDescriptor[] descriptors, Class <?> cls) {
-        String javaClassName = cls.getName ();
+    static boolean mayContainSubclasses(RecordClassDescriptor[] descriptors, Class<?>... classes) {
+        for (Class<?> cls : classes) {
+            if (mayContainSubclasses(descriptors, cls.getName())) {
+                return true;
+            }
 
-        for (RecordClassDescriptor rcd : descriptors)
-            if (rcd.isConvertibleTo (javaClassName))
-                return (true);
+            SchemaElement schemaElement = cls.getAnnotation(SchemaElement.class);
+            if (schemaElement != null) {
+                if (mayContainSubclasses(descriptors, schemaElement.name())) {
+                    return true;
+                }
+            }
+        }
 
         return (false);
     }
 
-    private static Set<String> findDerivedTypes(RecordClassSet rcs, Class<?> cls) {
+    static boolean mayContainSubclasses(RecordClassDescriptor[] descriptors, String className) {
+        for (RecordClassDescriptor rcd : descriptors) {
+            if (rcd.isConvertibleTo(className)) {
+                return (true);
+            }
+        }
+
+        return false;
+    }
+
+    private static Set<String> findDerivedTypes(RecordClassSet rcs, String... names) {
         Set<String> result = new HashSet<>();
-        ClassDescriptor[] descriptors = rcs.getClasses();
-        for (ClassDescriptor descriptor : descriptors) {
-            if (descriptor instanceof RecordClassDescriptor) {
-                RecordClassDescriptor rcd = (RecordClassDescriptor) descriptor;
-                if (hadDerivedType(rcd, cls.getName())) {
-                    result.add(rcd.getName());
+
+        for (String name : names) {
+            ClassDescriptor[] descriptors = rcs.getClasses();
+            for (ClassDescriptor descriptor : descriptors) {
+                if (descriptor instanceof RecordClassDescriptor) {
+                    RecordClassDescriptor rcd = (RecordClassDescriptor) descriptor;
+                    if (hadDerivedType(rcd, name)) {
+                        result.add(rcd.getName());
+                    }
                 }
             }
         }
