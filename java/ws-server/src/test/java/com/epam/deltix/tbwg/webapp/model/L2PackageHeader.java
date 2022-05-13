@@ -22,7 +22,7 @@ import com.epam.deltix.timebase.messages.universal.*;
 import com.epam.deltix.util.collections.generated.ObjectArrayList;
 
 @SchemaElement(
-    name = "deltix.timebase.api.messages.universal.PackageHeader",
+    name = "com.epam.deltix.timebase.messages.universal.PackageHeader",
     title = "Package Header"
 )
 public class L2PackageHeader extends InstrumentMessage {

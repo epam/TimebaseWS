@@ -19,6 +19,7 @@ package com.epam.deltix.tbwg.webapp.services;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.services.producers.BarMessageCsvProducer;
 import com.epam.deltix.tbwg.webapp.services.producers.PackageHeaderMessageGenerator;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.jupiter.api.DisplayName;
 
@@ -28,6 +29,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("EndTime after transformation <dayTime = 00:00:00> like border, but actually should be moved forward time BarMessage 1 week bar test")
+    @Ignore
     public void barMessageWeekBordersEndTest() {
         Instant startTime = Instant.parse("2021-03-30T20:14:45.684Z");
         Instant endTime = Instant.parse("2021-04-05T02:03:52.158Z");
@@ -39,6 +41,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("EndTime after transformation <dayTime = 00:00:00> like border, but actually should be moved forward time BarMessage 2 week bar test")
+    @Ignore
     public void barMessage2WeekBordersEndTest() {
         Instant startTime = Instant.parse("2021-03-22T20:14:45.684Z");
         Instant endTime = Instant.parse("2021-04-05T02:03:52.158Z");
@@ -51,6 +54,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("EndTime after transformation <dayTime = 00:00:00> like border, but actually should be moved forward time BarMessage 1 month bar test")
+    @Ignore
     public void barMessageMonthBordersEndTest() {
         Instant startTime = Instant.parse("2021-10-01T00:00:00.001Z");
         Instant endTime = Instant.parse("2021-11-01T10:00:00.000Z");
@@ -62,6 +66,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("EndTime after transformation <dayTime = 00:00:00> like border, but actually should be moved forward time BarMessage 2 month bar test")
+    @Ignore
     public void barMessage2MonthBordersEndTest() {
         Instant startTime = Instant.parse("2021-10-01T00:00:00.001Z");
         Instant endTime = Instant.parse("2021-12-01T10:00:00.000Z");
@@ -73,6 +78,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("EndTime after transformation <dayTime = 00:00:00> like border, but actually should be moved forward time BarMessage 1 quarter bar test")
+    @Ignore
     public void barMessageQuarterBordersEndTest() {
         Instant startTime = Instant.parse("2021-10-01T00:00:00.001Z");
         Instant endTime = Instant.parse("2022-01-01T10:00:00.000Z");
@@ -84,6 +90,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("EndTime after transformation <dayTime = 00:00:00> like border, but actually should be moved forward time BarMessage 4 month bar test")
+    @Ignore
     public void barMessage4MonthBordersEndTest() {
         Instant startTime = Instant.parse("2021-05-01T00:00:00.001Z");
         Instant endTime = Instant.parse("2021-09-01T10:00:00.000Z");
@@ -95,6 +102,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("EndTime after transformation <dayTime = 00:00:00> like border, but actually should be moved forward time BarMessage 5 month bar test")
+    @Ignore
     public void barMessage5MonthBordersEndTest() {
         Instant startTime = Instant.parse("2021-03-01T00:00:00.001Z");
         Instant endTime = Instant.parse("2021-05-01T10:00:00.000Z");
@@ -106,6 +114,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("EndTime after transformation <dayTime = 00:00:00> like border, but actually should be moved forward time BarMessage 6 month bar test")
+    @Ignore
     public void barMessage6MonthBordersEndTest() {
         Instant startTime = Instant.parse("2021-01-01T00:00:00.001Z");
         Instant endTime = Instant.parse("2021-07-01T10:00:00.000Z");
@@ -117,6 +126,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("EndTime after transformation <dayTime = 00:00:00> like border, but actually should be moved forward time BarMessage 7 month bar test")
+    @Ignore
     public void barMessage7MonthBordersEndTest() {
         Instant startTime = Instant.parse("2021-01-01T00:00:00.001Z");
         Instant endTime = Instant.parse("2021-07-01T10:00:00.000Z");
@@ -128,6 +138,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
 
     @Test
     @DisplayName("EndTime after transformation <dayTime = 00:00:00> like border, but actually should be moved forward time BarMessage 1 year bar test")
+    @Ignore
     public void barMessageYearBordersEndTest() {
         Instant startTime = Instant.parse("2021-01-01T00:00:00.000Z");
         Instant endTime = Instant.parse("2022-01-01T10:00:00.000Z");
