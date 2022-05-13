@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <config>
-    <appender name="consoleAppender" factory="deltix.gflog.appender.ConsoleAppenderFactory"/>
+    <appender name="consoleAppender" factory="com.epam.deltix.gflog.core.appender.ConsoleAppenderFactory"/>
 
     <logger>
         <appender-ref ref="consoleAppender"/>
