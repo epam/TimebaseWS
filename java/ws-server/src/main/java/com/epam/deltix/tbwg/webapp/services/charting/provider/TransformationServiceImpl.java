@@ -16,6 +16,7 @@
  */
 package com.epam.deltix.tbwg.webapp.services.charting.provider;
 
+import com.epam.deltix.qsrv.hf.pub.md.NamedDescriptor;
 import com.epam.deltix.tbwg.messages.BarMessage;
 import com.epam.deltix.tbwg.webapp.services.charting.queries.*;
 import com.epam.deltix.tbwg.webapp.services.charting.transformations.*;
@@ -37,8 +38,11 @@ import io.reactivex.Observable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class TransformationServiceImpl implements TransformationService {
@@ -414,11 +418,10 @@ public class TransformationServiceImpl implements TransformationService {
             String startTimestamp = GMT.formatDateTimeMillis(symbolQuery.getInterval().getStartTimeMilli());
             String endTimestamp = GMT.formatDateTimeMillis(symbolQuery.getInterval().getEndTimeMilli());
 
-            Set<String> tradeTypes = findDerivedTypes(metadata,
-                TradeEntry.class.getName(), "deltix.timebase.api.messages.universal.TradeEntry"
-            );
-
             if (planBuilder instanceof L2PricesPlanBuilder) {
+                Set<String> tradeTypes = findDerivedTypes(metadata,
+                    TradeEntry.class.getName(), "deltix.timebase.api.messages.universal.TradeEntry"
+                );
                 L2PricesPlanBuilder l2PricesPlanBuilder = (L2PricesPlanBuilder) planBuilder;
                 if (l2PricesPlanBuilder.buildByQuery()) {
                     String qql =
@@ -449,6 +452,9 @@ public class TransformationServiceImpl implements TransformationService {
                     );
                 }
             } else if (planBuilder instanceof BboPlanBuilder) {
+                Set<String> tradeTypes = findDerivedTypes(metadata,
+                    TradeEntry.class.getName(), "deltix.timebase.api.messages.universal.TradeEntry"
+                );
                 BboPlanBuilder bboPlanBuilder = (BboPlanBuilder) planBuilder;
                 if (bboPlanBuilder.buildByQuery()) {
                     String qql =
@@ -575,42 +581,39 @@ public class TransformationServiceImpl implements TransformationService {
         for (int i = 0; i < classes.length; ++i) {
             String className = ClassDescriptor.getClassNameWithAssembly(classes[i]);
             foundClasses.add(className);
-            for (int j = 0; j < descriptors.length; ++j) {
-                RecordClassDescriptor descriptor = descriptors[j];
-                if (descriptor.isConvertibleTo(className)) {
-                    foundClasses.add(descriptor.getName());
-                }
-            }
+            foundClasses.addAll(
+                getConvertible(descriptors, className)
+                    .stream()
+                    .map(NamedDescriptor::getName)
+                    .collect(Collectors.toList())
+            );
         }
 
         return foundClasses;
     }
 
-    static boolean mayContainSubclasses(RecordClassDescriptor[] descriptors, Class<?>... classes) {
-        for (Class<?> cls : classes) {
-            if (mayContainSubclasses(descriptors, cls.getName())) {
-                return true;
-            }
+    static String getClassName(Class<?> cls) {
+        return ClassDescriptor.getClassNameWithAssembly(cls);
+    }
 
-            SchemaElement schemaElement = cls.getAnnotation(SchemaElement.class);
-            if (schemaElement != null) {
-                if (mayContainSubclasses(descriptors, schemaElement.name())) {
-                    return true;
-                }
-            }
-        }
-
-        return (false);
+    static boolean mayContainSubclasses(RecordClassDescriptor[] descriptors, Class<?> cls) {
+        return mayContainSubclasses(descriptors, getClassName(cls));
     }
 
     static boolean mayContainSubclasses(RecordClassDescriptor[] descriptors, String className) {
-        for (RecordClassDescriptor rcd : descriptors) {
-            if (rcd.isConvertibleTo(className)) {
-                return (true);
+        return getConvertible(descriptors, className).size() > 0;
+    }
+
+    static List<RecordClassDescriptor> getConvertible(RecordClassDescriptor[] descriptors, String className) {
+        List<RecordClassDescriptor> convertible = new ArrayList<>();
+        for (int j = 0; j < descriptors.length; ++j) {
+            RecordClassDescriptor descriptor = descriptors[j];
+            if (descriptor.isConvertibleTo(className)) {
+                convertible.add(descriptor);
             }
         }
 
-        return false;
+        return convertible;
     }
 
     private static Set<String> findDerivedTypes(RecordClassSet rcs, String... names) {
