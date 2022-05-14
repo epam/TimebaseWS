@@ -18,13 +18,11 @@ package com.epam.deltix.tbwg.webapp.services;
 
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.services.producers.PackageHeaderMessageGzipProducer;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.jupiter.api.DisplayName;
 
 import java.time.Instant;
 
-@Ignore
 public class ChartingTest extends ChartingBaseTest {
 
     //1 hour of data from 2022-01-10T12:00 till 2022-01-10-13:00

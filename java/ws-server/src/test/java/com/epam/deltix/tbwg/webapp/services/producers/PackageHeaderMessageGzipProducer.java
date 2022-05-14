@@ -17,6 +17,7 @@
 package com.epam.deltix.tbwg.webapp.services.producers;
 
 import com.epam.deltix.tbwg.webapp.services.ChartingBaseTest;
+import com.epam.deltix.tbwg.webapp.utils.DefaultTypeLoader;
 import com.epam.deltix.timebase.messages.InstrumentMessage;
 import com.epam.deltix.qsrv.hf.pub.MappingTypeLoader;
 import com.epam.deltix.qsrv.hf.stream.MessageReader2;
@@ -45,7 +46,7 @@ public class PackageHeaderMessageGzipProducer implements MessageProducer {
         this.packageHeaderClass = packageHeaderClass;
 
         File file = new File(Objects.requireNonNull(getClass().getClassLoader().getResource(ChartingBaseTest.RESOURCE_FOLDER_PREFIX + filename)).toURI());
-        MappingTypeLoader typeLoader = new MappingTypeLoader();
+        MappingTypeLoader typeLoader = new DefaultTypeLoader();
         typeLoader.bind(packageHeaderClass, PackageHeader.class);
         MessageReader2 reader = MessageReader2.create(file, typeLoader);
 
