@@ -39,7 +39,7 @@ public class OrderBookServiceImpl implements OrderBookService {
     @Value("${timebase.order-book.max-tasks:50}")
     private int maxTasks;
 
-    @Value("${timebase.order-book.flush-period-ms:2000}")
+    @Value("${timebase.order-book.flush-period-ms:1000}")
     private int flushPeriodMs;
 
     @Value("${timebase.order-book.use-legacy-converter:false}")
@@ -103,7 +103,7 @@ public class OrderBookServiceImpl implements OrderBookService {
         OrderBookSubscription subscription = new OrderBookSubscription(
             timebase, instrument, streams, hiddenExchanges, consumer
         );
-        ScheduledFuture<?> scheduledFuture = scheduledExecutorService.scheduleAtFixedRate(
+        ScheduledFuture<?> scheduledFuture = scheduledExecutorService.scheduleWithFixedDelay(
             subscription::processUpdate,
             flushPeriodMs, flushPeriodMs, TimeUnit.MILLISECONDS
         );

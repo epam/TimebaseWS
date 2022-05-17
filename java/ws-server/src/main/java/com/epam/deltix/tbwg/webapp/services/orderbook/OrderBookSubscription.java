@@ -22,7 +22,6 @@ import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.utils.DefaultTypeLoader;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.timebase.messages.InstrumentMessage;
-import com.epam.deltix.qsrv.hf.pub.TypeLoaderImpl;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
 import com.epam.deltix.qsrv.hf.tickdb.pub.SelectionOptions;
 import com.epam.deltix.qsrv.hf.tickdb.pub.TickCursor;
@@ -172,7 +171,7 @@ public class OrderBookSubscription extends Thread {
     }
 
     private void sendSnapshot() {
-        consumer.accept(resampler.getFixedBook());
+        resampler.getFixedBook(hiddenExchanges).forEach(consumer);
     }
 
     // resampler logic to be implemented

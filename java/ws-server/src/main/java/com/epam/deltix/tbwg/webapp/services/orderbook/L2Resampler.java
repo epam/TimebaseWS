@@ -25,8 +25,11 @@ import com.epam.deltix.common.orderbook.options.UpdateMode;
 import com.epam.deltix.tbwg.webapp.model.orderbook.L2PackageDto;
 import com.epam.deltix.timebase.messages.universal.DataModelType;
 import com.epam.deltix.timebase.messages.universal.PackageHeaderInfo;
+import com.epam.deltix.util.collections.generated.LongHashSet;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 // mock for OrderBookSubscription
 
@@ -67,7 +70,10 @@ public class L2Resampler {
         book.update(packageHeader);
     }
 
-    public synchronized L2PackageDto getFixedBook() {
-        return orderBookConverter.convertBook(System.currentTimeMillis(), book, null);
+    public synchronized List<L2PackageDto> getFixedBook(LongHashSet hiddenExchanges) {
+        return book.getExchanges().stream()
+            .filter(e -> !hiddenExchanges.contains(e.getExchangeId()))
+            .map(e -> orderBookConverter.convertExchange(System.currentTimeMillis(), book.getSymbol().orElse(""), e))
+            .collect(Collectors.toList());
     }
 }

@@ -16,63 +16,58 @@
  */
 package com.epam.deltix.tbwg.webapp.services.orderbook;
 
-import com.epam.deltix.common.orderbook.MarketSide;
-import com.epam.deltix.common.orderbook.OrderBook;
-import com.epam.deltix.common.orderbook.OrderBookQuote;
+import com.epam.deltix.common.orderbook.*;
 import com.epam.deltix.containers.AlphanumericUtils;
 import com.epam.deltix.tbwg.webapp.model.orderbook.*;
 
-import com.epam.deltix.tbwg.webapp.utils.ArrayPoolUtils;
 import com.epam.deltix.timebase.messages.universal.QuoteSide;
 import com.epam.deltix.timebase.messages.universal.*;
-import com.epam.deltix.util.collections.generated.LongHashSet;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class OrderBookConverter {
 
-    private final ArrayPoolUtils<L2EntryDto> pool = new ArrayPoolUtils<>(L2EntryDto::new);
-    private final L2PackageDto packageDto = new L2PackageDto();
-
-    private int currentPoolPosition;
-
     public OrderBookConverter() {
-        packageDto.entries = new ArrayList<>();
-        packageDto.sequenceNumber = System.currentTimeMillis();
     }
 
-    public L2PackageDto convertBook(long timestamp, OrderBook<OrderBookQuote> book, LongHashSet hiddenExchanges) {
+    public L2PackageDto convertExchange(long timestamp, String symbol, Exchange<OrderBookQuote> exchange) {
+        L2PackageDto packageDto = new L2PackageDto();
         packageDto.timestamp = timestamp;
-        packageDto.setSecurityId(book.getSymbol().orElse(""));
+        packageDto.setSecurityId(symbol);
         packageDto.type = createL2PackageType(PackageType.PERIODICAL_SNAPSHOT);
-        packageDto.sequenceNumber++;
-        packageDto.entries.clear();
+        packageDto.entries = convertExchange(exchange);
+        return packageDto;
+    }
 
-        currentPoolPosition = 0;
+    private List<L2EntryDto> convertExchange(Exchange<OrderBookQuote> exchange) {
+        List<L2EntryDto> entries = new ArrayList<>();
         Arrays.asList(new QuoteSide[]{ QuoteSide.ASK, QuoteSide.BID }).forEach(quoteSide -> {
-            MarketSide<OrderBookQuote> side = book.getMarketSide(quoteSide);
+            MarketSide<OrderBookQuote> side = exchange.getMarketSide(quoteSide);
             for (short i = 0; i < side.depth(); ++i) {
-                OrderBookQuote quote = side.getQuote(i);
-
-                L2EntryDto l2Entry = pool.getL2Entry(currentPoolPosition++);
-                l2Entry.action = L2Action.INSERT;
-                l2Entry.level = i;
-                l2Entry.setPrice(quote.getPrice());
-                l2Entry.setQuantity(quote.getSize());
-                l2Entry.side = quoteSide == QuoteSide.BID ? Side.BUY : Side.SELL;
-                l2Entry.alphanumericExchangeId = quote.getExchangeId();
-                try {
-                    l2Entry.exchangeId = AlphanumericUtils.toString(l2Entry.alphanumericExchangeId);
-                } catch (Throwable t) {
-                    l2Entry.exchangeId = null;
-                }
-
-                packageDto.entries.add(l2Entry);
+                entries.add(convertQuote(side.getQuote(i), i, quoteSide));
             }
         });
 
-        return packageDto;
+        return entries;
+    }
+
+    private static L2EntryDto convertQuote(OrderBookQuote quote, short level, QuoteSide side) {
+        L2EntryDto l2Entry = new L2EntryDto();
+        l2Entry.action = L2Action.INSERT;
+        l2Entry.level = level;
+        l2Entry.setPrice(quote.getPrice());
+        l2Entry.setQuantity(quote.getSize());
+        l2Entry.side = side == QuoteSide.BID ? Side.BUY : Side.SELL;
+        l2Entry.alphanumericExchangeId = quote.getExchangeId();
+        try {
+            l2Entry.exchangeId = AlphanumericUtils.toString(l2Entry.alphanumericExchangeId);
+        } catch (Throwable t) {
+            l2Entry.exchangeId = null;
+        }
+
+        return l2Entry;
     }
 
     private static L2PackageType createL2PackageType(PackageType packageType) {
