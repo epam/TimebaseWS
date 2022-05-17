@@ -66,7 +66,9 @@ or start server from command line
 
 ## Authentication 
 
-> Refer to [Authentication](https://github.com/epam/TimebaseWS/tree/main/guide/authentication/auth-intro.md).
+> Refer to [Web Authentication](https://github.com/epam/TimebaseWS/blob/main/guide/authentication/web-auth.md).
+
+> Refer to [Authentication with API Keys](https://github.com/epam/TimebaseWS/blob/main/guide/authentication/api-keys.md).
 
 ## Authorization 
 
