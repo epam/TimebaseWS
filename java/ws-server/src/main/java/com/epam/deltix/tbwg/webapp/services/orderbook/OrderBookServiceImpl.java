@@ -39,7 +39,7 @@ public class OrderBookServiceImpl implements OrderBookService {
     @Value("${timebase.order-book.max-tasks:50}")
     private int maxTasks;
 
-    @Value("${timebase.order-book.flush-period-ms:1000}")
+    @Value("${timebase.order-book.flush-period-ms:500}")
     private int flushPeriodMs;
 
     @Value("${timebase.order-book.use-legacy-converter:false}")
