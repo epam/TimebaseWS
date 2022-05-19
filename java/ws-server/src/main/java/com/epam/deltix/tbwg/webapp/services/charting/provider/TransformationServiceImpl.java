@@ -31,6 +31,7 @@ import com.epam.deltix.tbwg.webapp.services.charting.datasource.ReactiveMessageS
 import com.epam.deltix.tbwg.webapp.services.charting.datasource.MessageSourceFactory;
 
 import com.epam.deltix.timebase.messages.SchemaElement;
+import com.epam.deltix.timebase.messages.service.SecurityFeedStatusMessage;
 import com.epam.deltix.timebase.messages.universal.PackageHeader;
 import com.epam.deltix.timebase.messages.universal.TradeEntry;
 import com.epam.deltix.util.time.GMT;
@@ -531,7 +532,8 @@ public class TransformationServiceImpl implements TransformationService {
         if (query.getType() == ChartType.PRICES_L2) {
             if (mayContainSubclasses(descriptors, PackageHeader.class)) {
                 return new TransformationType(
-                    getDescriptors(descriptors, PackageHeader.class), new L2PricesPlanBuilder(query, false)
+                    getDescriptors(descriptors, PackageHeader.class, SecurityFeedStatusMessage.class),
+                    new L2PricesPlanBuilder(query, false)
                 );
             }
             if (mayContainSubclasses(descriptors, "deltix.timebase.api.messages.universal.PackageHeader")) {
@@ -544,7 +546,8 @@ public class TransformationServiceImpl implements TransformationService {
         if (query.getType() == ChartType.BARS) {
             if (mayContainSubclasses(descriptors, PackageHeader.class)) {
                 return new TransformationType(
-                    getDescriptors(descriptors, PackageHeader.class), new BarPlanBuilder(query, false, false)
+                    getDescriptors(descriptors, PackageHeader.class, SecurityFeedStatusMessage.class),
+                    new BarPlanBuilder(query, false, false)
                 );
             }
             if (mayContainSubclasses(descriptors, "deltix.timebase.api.messages.universal.PackageHeader")) {
@@ -563,7 +566,8 @@ public class TransformationServiceImpl implements TransformationService {
         if (query.getType() == ChartType.TRADES_BBO) {
             if (mayContainSubclasses(descriptors, PackageHeader.class)) {
                 return new TransformationType(
-                    getDescriptors(descriptors, PackageHeader.class), new BboPlanBuilder(query, false, false)
+                    getDescriptors(descriptors, PackageHeader.class, SecurityFeedStatusMessage.class),
+                    new BboPlanBuilder(query, false, false)
                 );
             }
             if (mayContainSubclasses(descriptors, "deltix.timebase.api.messages.universal.PackageHeader")) {

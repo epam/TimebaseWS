@@ -26,6 +26,7 @@ import com.epam.deltix.common.orderbook.options.UpdateMode;
 import com.epam.deltix.dfp.Decimal64Utils;
 import com.epam.deltix.tbwg.messages.BboPoint;
 import com.epam.deltix.tbwg.messages.Message;
+import com.epam.deltix.timebase.messages.MessageInfo;
 import com.epam.deltix.timebase.messages.universal.DataModelType;
 import com.epam.deltix.timebase.messages.MarketMessageInfo;
 import com.epam.deltix.timebase.messages.universal.QuoteSide;
@@ -38,7 +39,7 @@ import java.util.Collections;
 /**
  * The transformation filters package headers and leaves only l1 entries.
  */
-public class UniversalL2OrderbookToBboTransformation extends AbstractChartTransformation<BboPoint, MarketMessageInfo> {
+public class UniversalL2OrderbookToBboTransformation extends AbstractChartTransformation<BboPoint, MessageInfo> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UniversalL2OrderbookToBboTransformation.class);
 
@@ -68,13 +69,13 @@ public class UniversalL2OrderbookToBboTransformation extends AbstractChartTransf
     }
 
     @Override
-    protected void onNextPoint(final MarketMessageInfo marketMessage) {
+    protected void onNextPoint(final MessageInfo marketMessage) {
         if (marketMessage instanceof PackageHeader) {
             final PackageHeader message = (PackageHeader) marketMessage;
             final long timestamp = marketMessage.getTimeStampMs();
 
             // todo: filter
-            book.update(marketMessage);
+            book.update((PackageHeader) marketMessage);
 
             MarketSide<OrderBookQuote> askSide = book.getMarketSide(QuoteSide.ASK);
             MarketSide<OrderBookQuote> bidSide = book.getMarketSide(QuoteSide.BID);

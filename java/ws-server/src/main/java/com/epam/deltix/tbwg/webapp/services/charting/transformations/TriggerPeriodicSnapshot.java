@@ -19,18 +19,19 @@ package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 import com.epam.deltix.tbwg.messages.Message;
 import com.epam.deltix.tbwg.messages.SnapshotMessage;
 import com.epam.deltix.timebase.messages.MarketMessageInfo;
+import com.epam.deltix.timebase.messages.MessageInfo;
 
 import java.util.Collections;
 
 /**
  * The transformation converts legacy market message (bbo, l2, level2, trade) to package header.
  */
-public class TriggerPeriodicSnapshot extends AbstractChartTransformation<SnapshotMessage, MarketMessageInfo> {
+public class TriggerPeriodicSnapshot extends AbstractChartTransformation<SnapshotMessage, MessageInfo> {
 
     private final PeriodicityFilter filter;
 
     public TriggerPeriodicSnapshot(long periodicity) {
-        super(Collections.singletonList(MarketMessageInfo.class), Collections.singletonList(SnapshotMessage.class));
+        super(Collections.singletonList(MessageInfo.class), Collections.singletonList(SnapshotMessage.class));
 
         this.filter = new PeriodicityFilter(periodicity);
     }
@@ -41,7 +42,7 @@ public class TriggerPeriodicSnapshot extends AbstractChartTransformation<Snapsho
     }
 
     @Override
-    protected void onNextPoint(MarketMessageInfo message) {
+    protected void onNextPoint(MessageInfo message) {
         if (filter.test(message)) {
             sendMessage(new SnapshotMessage(message.getTimeStampMs()));
         }

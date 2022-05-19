@@ -23,8 +23,10 @@ import com.epam.deltix.common.orderbook.impl.OrderBookFactory;
 import com.epam.deltix.common.orderbook.options.OrderBookOptionsBuilder;
 import com.epam.deltix.common.orderbook.options.OrderBookType;
 import com.epam.deltix.common.orderbook.options.UpdateMode;
-import com.epam.deltix.tbwg.messages.*;
 import com.epam.deltix.dfp.Decimal64Utils;
+import com.epam.deltix.tbwg.messages.*;
+import com.epam.deltix.timebase.messages.MessageInfo;
+import com.epam.deltix.timebase.messages.service.FeedStatus;
 import com.epam.deltix.timebase.messages.universal.DataModelType;
 import com.epam.deltix.timebase.messages.MarketMessageInfo;
 import com.epam.deltix.timebase.messages.universal.QuoteSide;
@@ -39,7 +41,7 @@ import java.util.Collections;
  * The transformation builds order book for instrument and sends snapshots with specified periodicity and max level.
  * The output messages are time series line points for each side and level of book.
  */
-public class UniversalL2OrderbookToLevelPointsTransformation extends AbstractChartTransformation<OrderBookLinePoint, MarketMessageInfo> {
+public class UniversalL2OrderbookToLevelPointsTransformation extends AbstractChartTransformation<OrderBookLinePoint, MessageInfo> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UniversalL2OrderbookToBboTransformation.class);
 
@@ -76,7 +78,7 @@ public class UniversalL2OrderbookToLevelPointsTransformation extends AbstractCha
             FeedStatusMessage feedStatus = (FeedStatusMessage) message;
             if (feedStatus.getStatus() == FeedStatus.NOT_AVAILABLE) {
                 filter.refresh();
-                book.update(createPackageHeader(feedStatus.getExchangeId()));
+                book.clear();
                 flushMessages(feedStatus.getTimestamp());
             }
         }
@@ -85,7 +87,7 @@ public class UniversalL2OrderbookToLevelPointsTransformation extends AbstractCha
     }
 
     @Override
-    protected void onNextPoint(MarketMessageInfo marketMessage) {
+    protected void onNextPoint(MessageInfo marketMessage) {
         if (marketMessage instanceof PackageHeader) {
             PackageHeader message = (PackageHeader) marketMessage;
             lastTimestamp = message.getTimeStampMs();
@@ -100,28 +102,6 @@ public class UniversalL2OrderbookToLevelPointsTransformation extends AbstractCha
                 }
             }
         }
-    }
-
-
-    private PackageHeaderInfo createPackageHeader(long exchangeId) {
-        PackageHeader packageHeader = new PackageHeader();
-        packageHeader.setPackageType(PackageType.VENDOR_SNAPSHOT);
-
-        ObjectArrayList<BaseEntryInfo> entries = new ObjectArrayList<>();
-        entries.add(createBookResetEntry(exchangeId, QuoteSide.BID));
-        entries.add(createBookResetEntry(exchangeId, QuoteSide.ASK));
-        packageHeader.setEntries(entries);
-
-        return packageHeader;
-    }
-
-    private BookResetEntry createBookResetEntry(long exchangeId, QuoteSide side) {
-        BookResetEntry resetEntry = new BookResetEntry();
-        resetEntry.setSide(side);
-        resetEntry.setModelType(book.getQuoteLevels());
-        resetEntry.setExchangeId(exchangeId);
-
-        return resetEntry;
     }
 
     private void flushMessages(long timestamp) {
