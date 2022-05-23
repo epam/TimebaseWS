@@ -18,9 +18,11 @@ package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 
 import com.epam.deltix.dfp.Decimal64Utils;
 import com.epam.deltix.tbwg.messages.BboPoint;
+import com.epam.deltix.tbwg.messages.FeedStatusMessage;
 import com.epam.deltix.tbwg.messages.SnapshotMessage;
 import com.epam.deltix.tbwg.webapp.model.charting.line.BarElementDef;
 import com.epam.deltix.tbwg.messages.Message;
+import com.epam.deltix.timebase.messages.service.FeedStatus;
 
 import java.util.Collections;
 
@@ -52,7 +54,12 @@ public class BarAggregationMidptTransformation extends AbstractChartTransformati
 
     @Override
     protected void onMessage(Message message) {
-        if (message instanceof SnapshotMessage) {
+        if (message instanceof FeedStatusMessage) {
+            FeedStatusMessage feedStatus = (FeedStatusMessage) message;
+            if (feedStatus.getStatus() == FeedStatus.NOT_AVAILABLE) {
+                timestamp = Long.MIN_VALUE;
+            }
+        } else if (message instanceof SnapshotMessage) {
             if (this.timestamp != Long.MIN_VALUE) {
                 send();
             }

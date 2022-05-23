@@ -18,6 +18,8 @@ package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 
 import com.epam.deltix.tbwg.messages.FeedStatusMessage;
 import com.epam.deltix.tbwg.messages.Message;
+import com.epam.deltix.tbwg.messages.SecurityStatus;
+import com.epam.deltix.tbwg.messages.StatusPackageHeader;
 import com.epam.deltix.timebase.messages.MarketMessageInfo;
 import com.epam.deltix.timebase.messages.MessageInfo;
 import com.epam.deltix.timebase.messages.service.FeedStatus;
@@ -40,6 +42,17 @@ public class FeedStatusTransformation extends AbstractChartTransformation<Messag
 
     @Override
     protected void onNextPoint(MessageInfo marketMessage) {
+        if (marketMessage instanceof StatusPackageHeader) {
+            StatusPackageHeader statusPackageHeader = (StatusPackageHeader) marketMessage;
+            if (statusPackageHeader.getStatus() == SecurityStatus.FEED_DISCONNECTED) {
+                sendMessage(
+                    new FeedStatusMessage(
+                        marketMessage.getTimeStampMs(), statusPackageHeader.getExchangeId(), FeedStatus.NOT_AVAILABLE
+                    )
+                );
+            }
+        }
+
         if (marketMessage instanceof SecurityFeedStatusMessage) {
             SecurityFeedStatusMessage statusMessage = (SecurityFeedStatusMessage) marketMessage;
             if (statusMessage.getStatus() == FeedStatus.NOT_AVAILABLE) {

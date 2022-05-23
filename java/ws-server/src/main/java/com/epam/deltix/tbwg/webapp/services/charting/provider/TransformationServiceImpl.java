@@ -205,6 +205,7 @@ public class TransformationServiceImpl implements TransformationService {
             Observable<?> inputObservable = source.getMessageSource()
                 .takeWhile(x -> x.getTimeStampMs() <= endTime);
 
+            inputObservable = inputObservable.lift(new FeedStatusTransformation());
             if (query.isLive()) {
                 inputObservable = inputObservable.lift(new TriggerPeriodicSnapshot(1000));
             }
@@ -267,6 +268,7 @@ public class TransformationServiceImpl implements TransformationService {
             Observable<?> inputObservable = source.getMessageSource()
                 .takeWhile(x -> x.getTimeStampMs() <= endTime + EXTEND_INTERVAL_MS);
 
+            inputObservable = inputObservable.lift(new FeedStatusTransformation());
             if (query.isLive()) {
                 inputObservable = inputObservable.lift(new TriggerPeriodicSnapshot(1000));
             }
@@ -427,7 +429,8 @@ public class TransformationServiceImpl implements TransformationService {
                 if (l2PricesPlanBuilder.buildByQuery()) {
                     String qql =
                         String.format(
-                            "SELECT packageType, entries as entries TYPE \"com.epam.deltix.timebase.messages.universal.PackageHeader\"\n" +
+                            "SELECT packageType, entries as entries \n" +
+                                "TYPE \"deltix.timebase.api.messages.universal.PackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(%ds)\n" +
                                 "where symbol == '%s' and entries != null\n" +
@@ -435,11 +438,14 @@ public class TransformationServiceImpl implements TransformationService {
                                 "and packageType == INCREMENTAL_UPDATE\n" +
                                 "and timestamp >= '%s'd and timestamp <= '%s'd\n" +
                                 "UNION\n" +
-                                "SELECT packageType, entries[level < %d] as entries type \"com.epam.deltix.timebase.messages.universal.PackageHeader\"\n" +
+                                "SELECT packageType, entries[level < %d] as entries, " +
+                                "SecurityStatusMessage:status as status, SecurityStatusMessage:exchangeId as exchangeId\n" +
+                                "TYPE \"deltix.tbwg.messages.StatusPackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(%ds)\n" +
-                                "where symbol == '%s' and entries != null\n" +
-                                "and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)\n" +
+                                "where symbol == '%s' and \n" +
+                                "((entries != null and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)) " +
+                                "or this is SecurityStatusMessage)\n" +
                                 "and timestamp >= '%s'd and timestamp <= '%s'd",
                             symbolQuery.getStream(), symbolQuery.getPointInterval() / 1000,
                             symbolQuery.getSymbol(), buildTypeFilter(tradeTypes), startTimestamp, endTimestamp,
@@ -460,7 +466,7 @@ public class TransformationServiceImpl implements TransformationService {
                 if (bboPlanBuilder.buildByQuery()) {
                     String qql =
                         String.format(
-                            "SELECT packageType, entries as entries TYPE \"com.epam.deltix.timebase.messages.universal.PackageHeader\"\n" +
+                            "SELECT packageType, entries as entries TYPE \"deltix.timebase.api.messages.universal.PackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(%ds)\n" +
                                 "where symbol == '%s' and entries != null\n" +
@@ -468,11 +474,14 @@ public class TransformationServiceImpl implements TransformationService {
                                 "and packageType == INCREMENTAL_UPDATE\n" +
                                 "and timestamp >= '%s'd and timestamp <= '%s'd\n" +
                                 "UNION\n" +
-                                "SELECT packageType, entries[level == 0] as entries type \"com.epam.deltix.timebase.messages.universal.PackageHeader\"\n" +
+                                "SELECT packageType, entries[level == 0] as entries, " +
+                                "SecurityStatusMessage:status as status, SecurityStatusMessage:exchangeId as exchangeId\n" +
+                                "type \"deltix.tbwg.messages.StatusPackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(%ds)\n" +
-                                "where symbol == '%s' and entries != null\n" +
-                                "and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)\n" +
+                                "where symbol == '%s' and \n" +
+                                "((entries != null and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)) " +
+                                "or this is SecurityStatusMessage)\n" +
                                 "and timestamp >= '%s'd and timestamp <= '%s'd",
                             symbolQuery.getStream(), symbolQuery.getPointInterval() / 1000,
                             symbolQuery.getSymbol(), buildTypeFilter(tradeTypes), startTimestamp, endTimestamp,
@@ -490,11 +499,14 @@ public class TransformationServiceImpl implements TransformationService {
                 if (barPlanBuilder.buildByQuery()) {
                     String qql =
                         String.format(
-                            "SELECT packageType, entries[level == 0] as entries type \"com.epam.deltix.timebase.api.messages.universal.PackageHeader\"\n" +
+                            "SELECT packageType, entries[level == 0] as entries, " +
+                                "SecurityStatusMessage:status as status, SecurityStatusMessage:exchangeId as exchangeId\n" +
+                                "TYPE \"deltix.tbwg.messages.StatusPackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(10s)\n" +
-                                "where symbol == '%s' and entries != null\n" +
-                                "and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)\n" +
+                                "where symbol == '%s' and\n" +
+                                "((entries != null and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)) " +
+                                "or this is SecurityStatusMessage)\n" +
                                 "and timestamp >= '%s'd and timestamp <= '%s'd",
                             symbolQuery.getStream(), symbolQuery.getSymbol(), startTimestamp, endTimestamp
                         );
