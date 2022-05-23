@@ -32,19 +32,19 @@ public class OrderBookConverter {
     public OrderBookConverter() {
     }
 
-    public L2PackageDto convertExchange(long timestamp, String symbol, Exchange<OrderBookQuote> exchange) {
+    public L2PackageDto convertExchange(long timestamp, String symbol, OrderBook<OrderBookQuote> book) {
         L2PackageDto packageDto = new L2PackageDto();
         packageDto.timestamp = timestamp;
         packageDto.setSecurityId(symbol);
         packageDto.type = createL2PackageType(PackageType.PERIODICAL_SNAPSHOT);
-        packageDto.entries = convertExchange(exchange);
+        packageDto.entries = convertExchange(book);
         return packageDto;
     }
 
-    private List<L2EntryDto> convertExchange(Exchange<OrderBookQuote> exchange) {
+    private List<L2EntryDto> convertExchange(OrderBook<OrderBookQuote> book) {
         List<L2EntryDto> entries = new ArrayList<>();
         Arrays.asList(new QuoteSide[]{ QuoteSide.ASK, QuoteSide.BID }).forEach(quoteSide -> {
-            MarketSide<OrderBookQuote> side = exchange.getMarketSide(quoteSide);
+            MarketSide<OrderBookQuote> side = book.getMarketSide(quoteSide);
             for (short i = 0; i < side.depth(); ++i) {
                 entries.add(convertQuote(side.getQuote(i), i, quoteSide));
             }
