@@ -439,13 +439,13 @@ public class TransformationServiceImpl implements TransformationService {
                                 "and timestamp >= '%s'd and timestamp <= '%s'd\n" +
                                 "UNION\n" +
                                 "SELECT packageType, entries[level < %d] as entries, " +
-                                "SecurityStatusMessage:status as status, SecurityStatusMessage:exchangeId as exchangeId\n" +
+                                "SecurityFeedStatusMessage:status as status, SecurityFeedStatusMessage:exchangeId as exchangeId\n" +
                                 "TYPE \"deltix.tbwg.messages.StatusPackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(%ds)\n" +
                                 "where symbol == '%s' and \n" +
                                 "((entries != null and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)) " +
-                                "or this is SecurityStatusMessage)\n" +
+                                "or this is SecurityFeedStatusMessage)\n" +
                                 "and timestamp >= '%s'd and timestamp <= '%s'd",
                             symbolQuery.getStream(), symbolQuery.getPointInterval() / 1000,
                             symbolQuery.getSymbol(), buildTypeFilter(tradeTypes), startTimestamp, endTimestamp,
@@ -475,13 +475,13 @@ public class TransformationServiceImpl implements TransformationService {
                                 "and timestamp >= '%s'd and timestamp <= '%s'd\n" +
                                 "UNION\n" +
                                 "SELECT packageType, entries[level == 0] as entries, " +
-                                "SecurityStatusMessage:status as status, SecurityStatusMessage:exchangeId as exchangeId\n" +
+                                "SecurityFeedStatusMessage:status as status, SecurityFeedStatusMessage:exchangeId as exchangeId\n" +
                                 "type \"deltix.tbwg.messages.StatusPackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(%ds)\n" +
                                 "where symbol == '%s' and \n" +
                                 "((entries != null and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)) " +
-                                "or this is SecurityStatusMessage)\n" +
+                                "or this is SecurityFeedStatusMessage)\n" +
                                 "and timestamp >= '%s'd and timestamp <= '%s'd",
                             symbolQuery.getStream(), symbolQuery.getPointInterval() / 1000,
                             symbolQuery.getSymbol(), buildTypeFilter(tradeTypes), startTimestamp, endTimestamp,
@@ -500,13 +500,13 @@ public class TransformationServiceImpl implements TransformationService {
                     String qql =
                         String.format(
                             "SELECT packageType, entries[level == 0] as entries, " +
-                                "SecurityStatusMessage:status as status, SecurityStatusMessage:exchangeId as exchangeId\n" +
+                                "SecurityFeedStatusMessage:status as status, SecurityFeedStatusMessage:exchangeId as exchangeId\n" +
                                 "TYPE \"deltix.tbwg.messages.StatusPackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(10s)\n" +
                                 "where symbol == '%s' and\n" +
                                 "((entries != null and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)) " +
-                                "or this is SecurityStatusMessage)\n" +
+                                "or this is SecurityFeedStatusMessage)\n" +
                                 "and timestamp >= '%s'd and timestamp <= '%s'd",
                             symbolQuery.getStream(), symbolQuery.getSymbol(), startTimestamp, endTimestamp
                         );
