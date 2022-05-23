@@ -60,7 +60,7 @@ public class TransformationServiceImpl implements TransformationService {
     @Value("${charting.transformations.aggregation-optimization-threshold-ms:21600000}") // 12 hours
     private long aggregationOptimizationThresholdMs;
 
-    @Value("${charting.transformations.use-qll:false}")
+    @Value("${charting.transformations.use-qll:true}")
     private boolean useQql;
 
     @Value("${charting.transformations.use-l1:false}")
