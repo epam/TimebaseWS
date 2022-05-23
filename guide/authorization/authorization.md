@@ -18,10 +18,10 @@ security:
     ...
     users:
       - username: <username>
-        password: <password>
+        password: <BCrypt_encoded_password>
         authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
       - username: <username>
-        password: <password>
+        password: <BCrypt_encoded_password>
         authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
 
 # SSO 

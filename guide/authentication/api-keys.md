@@ -118,63 +118,31 @@ accept-version:1.1,1.2
 
 ### Client Samples
 
-**Python REST Query Sample**
+* [Python REST Query Sample](https://github.com/epam/TimebaseWS/blob/main-1.0/samples/python/simple_rest_client_apiKeys.py)
+* [JS REST Query Sample](https://github.com/epam/TimebaseWS/blob/main-1.0/samples/js/simpleRest_apiKeys.js)
+* [JS WS (stomp) Sample](https://github.com/epam/TimebaseWS/blob/main-1.0/samples/js/simpleStomp_apiKeys.js)
+* [JS WS (non-stomp) Sample](https://github.com/epam/TimebaseWS/blob/main-1.0/samples/js/simpleWs_ApiKeys.js)
+* [Java REST Sample](https://github.com/epam/TimebaseWS/blob/main-1.0/java/ws-server/src/main/java/com/epam/deltix/tbwg/webapp/utils/SessionRestSample.java) 
+* [Java WS (stomp) Sample](https://github.com/epam/TimebaseWS/blob/main-1.0/java/ws-server/src/main/java/com/epam/deltix/tbwg/webapp/utils/ApiKeysWsSamples.java)
 
-```python
-import requests
-import hashlib
-import hmac
-import base64
+**API Keys Configuration to Run These Code Examples**
 
-apiKey = "TEST_API_KEY"
-apiSecret = "TEST_API_SECRET"
-payload = "GET/api/v0/streams"
-signature = base64.b64encode(hmac.new(apiSecret.encode('utf-8'), payload.encode('utf-8'), hashlib.sha384).digest())
-
-headers = {'X-Deltix-ApiKey' : apiKey, 'X-Deltix-Signature' : signature}
-response = requests.get("http://localhost:8099/api/v0/streams", headers=headers)
-
-print(response)
-print(response.json())
+```yaml
+security:
+  authorization:
+    source: CONFIG # valid values: FILE, CONFIG
+  api-keys:
+    sessions:
+      enabled: false
+  api-keys-provider:
+    api-keys:
+      - name: TEST_API_KEY
+        key: TEST_API_SECRET
+        user: admin
+        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
 ```
 
-**Node.js REST Query Sample**
-
-```js
-const http = require('http');
-var crypto = require('crypto');
-
-var hmac = crypto.createHmac('sha384', 'TEST_API_SECRET');    
-hmac.write('GET/api/v0/streams'); 
-hmac.end();
-signature = hmac.read().toString('base64');
-
-var options = {
-  headers: {
-    'X-Deltix-ApiKey': 'TEST_API_KEY',
-	'X-Deltix-Signature': signature
-  }
-};
-
-request = http.get('http://localhost:8099/api/v0/streams', options, function(res) {
-   var body = "";
-   res.on('data', function(data) {
-      body += data;
-   });
-   res.on('end', function() {
-      console.log(body);
-   })
-   res.on('error', function(e) {
-      onsole.log("Got error: " + e.message);
-   });
-});
-```
-
-**Java REST Query Sample**
-
-* Refer to [Rest](https://gitlab.deltixhub.com/Deltix/Nursery/api-keys/-/blob/master/java/api-keys/src/test/java/deltix/spring/apikeys/SessionRestSample.java) samples. 
-* Refer to [WS](https://gitlab.deltixhub.com/Deltix/Nursery/api-keys/-/blob/master/java/api-keys/src/test/java/deltix/spring/apikeys/ApiKeysWsSamples.java) samples.
-
+Refer to [Configuration](#configuration) to learn more. 
 
 ## Session-Based Flow
 
@@ -274,176 +242,27 @@ accept-version:1.1,1.2
 
 ### Client Samples 
 
-**Java Sample**
+* [Java REST Sample](https://github.com/epam/TimebaseWS/blob/main-1.0/java/ws-server/src/main/java/com/epam/deltix/tbwg/webapp/utils/SessionRestSample.java)
+* [JS REST Sample](https://github.com/epam/TimebaseWS/blob/main-1.0/samples/js/simpleRest_apiKeys_sessions.js)
 
-```java
-public class Main {
+**API Keys Configuration to Run These Code Examples**
 
-    public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException, NoSuchAlgorithmException, SignatureException, InvalidKeySpecException, InvalidKeyException {
-        Gson gson = new Gson();
-        Map<String, String> config = gson.fromJson(new FileReader("../config.json"), Map.class);
-
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest attemptRequest = HttpRequest.newBuilder()
-                .uri(URI.create(String.format("https://%s/session/login/attempt", config.get("host"))))
-                .POST(HttpRequest.BodyPublishers.ofString(
-                        String.format("{\"api_key_id\": \"%s\"}", config.get("api_key_id"))
-                ))
-                .header("Content-Type", "application/json")
-                .build();
-        Map<String, String> attemptResponse = gson.fromJson(client.send(attemptRequest, HttpResponse.BodyHandlers.ofString()).body(), Map.class);
-
-        Signature signatureCreator = Signature.getInstance("SHA256withRSA");
-        signatureCreator.initSign(KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(
-                Base64.getDecoder().decode(config.get("api_key_private"))
-        )));
-        signatureCreator.update(Base64.getDecoder().decode(attemptResponse.get("challenge")));
-        byte[] signature = signatureCreator.sign();
-        BigInteger dhBase = new BigInteger(Base64.getDecoder().decode(attemptResponse.get("dh_base")));
-        BigInteger dhModulus = new BigInteger(Base64.getDecoder().decode(attemptResponse.get("dh_modulus")));
-        BigInteger dhSecretInteger = new BigInteger(512, new SecureRandom());
-
-        System.out.println("Successfully started login attempt");
-
-        Map<String, String> confirmationBody = new HashMap<>();
-        confirmationBody.put("dh_key", Base64.getEncoder().encodeToString(dhBase.modPow(dhSecretInteger, dhModulus).toByteArray()));
-        confirmationBody.put("signature", Base64.getEncoder().encodeToString(signature));
-        confirmationBody.put("session_id", attemptResponse.get("session_id"));
-        HttpRequest confirmationRequest = HttpRequest.newBuilder()
-                .uri(URI.create(String.format("https://%s/session/login/confirm", config.get("host"))))
-                .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(confirmationBody)))
-                .header("Content-Type", "application/json")
-                .build();
-
-        Map<String, String> confirmationResponse = gson.fromJson(client.send(confirmationRequest, HttpResponse.BodyHandlers.ofString()).body(), Map.class);
-        BigInteger sessionSecret = new BigInteger(Base64.getDecoder().decode(confirmationResponse.get("dh_key"))).modPow(dhSecretInteger, dhModulus);
-
-        System.out.println("Successfully confirmed a session login");
-
-        Mac mac = Mac.getInstance("HmacSHA384");
-        mac.init(new SecretKeySpec(sessionSecret.toByteArray(), "Raw Bytes"));
-        String payload = "GET"+config.get("test_request")+"X-Deltix-Nonce=1&X-Deltix-Session-Id="+attemptResponse.get("session_id");
-        String requestSignature = Base64.getEncoder().encodeToString(mac.doFinal(payload.getBytes()));
-        HttpRequest testRequest = HttpRequest.newBuilder()
-                .uri(URI.create(String.format("https://%s%s", config.get("host"), config.get("test_request"))))
-                .header("X-Deltix-Signature", requestSignature)
-                .header("X-Deltix-Nonce", "1")
-                .header("X-Deltix-Session-Id", attemptResponse.get("session_id"))
-                .GET()
-                .build();
-        System.out.println(client.send(testRequest, HttpResponse.BodyHandlers.ofString()).body());
-    }
-}
+```yaml
+security:
+  authorization:
+    source: CONFIG # valid values: FILE, CONFIG
+  api-keys:
+    sessions:
+      enabled: true
+  api-keys-provider:
+    api-keys:
+      - name: TEST_SESSION_API_KEY
+        key: "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDq/Y/kEag9vPlfPu2dzFUeuPTZX94g85v/L3TxRvXHmR1IQtjOSPCtY4NmzeLb3rLwf0J2+X8HeC3Fva6oRVl5hora77cOTmLuTmEZe6oVxjFvdRsQqfcUlAqijViiPMlnDQZ/HsC6S7WLZyMwatdbBsFtnbT9fb3m4VDeakUVQwIDAQAB"
+        user: admin
+        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
 ```
 
-**JavaScript Sample**
-
-```js
-const https = require('https');
-const http = require('http');
-const crypto = require('crypto');
-const bigintCryptoUtils = require('bigint-crypto-utils');
-
-const fetch = async (url, method = 'GET', body = null, headers = {}) => {
-    return new Promise((resolve, reject) => {
-        const request = (url.startsWith('https:') ? https : http).request(url, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-                ...headers,
-            },
-        }, (response) => {
-
-            response.on('data', (buffer) => {
-                if (response.statusCode >= 200 && response.statusCode < 400) {
-                    resolve(buffer.toString('utf-8'));
-                } else {
-                    reject(new Error(response.statusCode + buffer.toString('utf-8')));
-                }
-            });
-        });
-
-        if (body) {
-            request.write(JSON.stringify(body))
-        }
-
-        request.on('error', reject);
-
-        request.end();
-    });
-};
-/**
- * Convert base64 string to BigInt
- * @param {string} base64Str
- */
-const fromBase64 = (base64Str) => BigInt('0x' + Buffer.from(base64Str, 'base64').toString('hex'));
-
-/**
- * Makes Java specific conversion of BigInt to Buffer
- * @param {BigInt} bigInt
- */
-const bigIntToBuffer = (bigInt) => {
-    const hex = bigInt.toString(16);
-    // For Java BigInts the length of byte[] representation of BigIntegers should be exactly (ceil((number.bitLength() + 1)/8)) so we right-pad the number with 0s
-    const str = '0'.repeat(Math.ceil((bigInt.toString(2).length + 1) / 8) * 2 - hex.length) + hex;
-    return Buffer.from(str, 'hex');
-};
-
-/**
- * Convert BigInt to base64 string
- * @param {BigInt} bigInt
- */
-const toBase64 = (bigInt) => bigIntToBuffer(bigInt).toString('base64');
-
-const main = async () => {
-
-    const singInAttemptResponse = await fetch(`http://localhost:8099/session/login/attempt`, 'POST', {
-        api_key_id: 'TEST_SESSION_API_KEY',
-    });
-
-    const singInAttempt = JSON.parse(singInAttemptResponse);
-    const dhModulus = fromBase64(singInAttempt.dh_modulus);
-    const dhBase = fromBase64(singInAttempt.dh_base);
-
-    const privateKey = crypto.createPrivateKey({
-        key: `-----BEGIN PRIVATE KEY-----\nMIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAOr9j+QRqD28+V8+7Z3MVR649Nlf3iDzm/8vdPFG9ceZHUhC2M5I8K1jg2bN4tvesvB/Qnb5fwd4LcW9rqhFWXmGitrvtw5OYu5OYRl7qhXGMW91GxCp9xSUCqKNWKI8yWcNBn8ewLpLtYtnIzBq11sGwW2dtP19vebhUN5qRRVDAgMBAAECgYAwP3+bxERW6MYK2FDRZXLUrAUZ3KUu/tW4v3WzVG6CXN22SINbV36TGyuPoBZELqVu27I522BJmFNNlnSV+Cc2d7+Je/LnyH853DNQu3QqlsBLzUEWt0KqCLjKF1BdVxALD0ddGka3RIAsjTJnxDVLVagfqxVOXcg/pxtrFvkMgQJBAPg1+J+dD71EocoNaSd0rsGtMEHSSiT2Dyfi9JJHHCooZ8pEJs6WtCH0Qc0xA4NQ/+EV7Zqg74J9fSrkPXxI0/8CQQDyXWI/H7T9WeqWVxh0/ZUUI2Y1x1SD6Y7LYNprzT/raUBqSPVaIv5W+A8057s80AeIiLJ7OLUJvKggcvqul269AkBiLObUK0mIcVcVFkzbYFmnHZuSzVyqVfEUs75NBXdsbWLwLBi1agKB050bTiG3lRhArW231aQmlwAlMPXo7N19AkBU7nCdWkkcd0QDxyWk6bAyTG1m7yEo0NHfZ2NjX5vErS+Lj2GbYqPqaic6DPLKTsQ1DmItWCPo85mfNWuvfxWpAkEAxX3/9QJQefjsfZvk77tLZZRM8aUI/O2YnT5ex1oufzeXmdVZpZ3f427pnosRAHZwFPvL3g8oh1iK8ynAm11EMA==\n-----END PRIVATE KEY-----`,
-        format: 'pem',
-        type: 'pkcs8'
-    });
-
-    const signer = crypto.createSign('RSA-SHA256');
-    signer.write(Buffer.from(singInAttempt.challenge, 'base64'));
-    const signature = signer.sign(privateKey, 'base64');
-    const buffer = crypto.randomBytes(512);
-    const dhNumber = BigInt('0x' + buffer.toString('hex'));
-    const dhKey = bigintCryptoUtils.modPow(dhBase, dhNumber, dhModulus);
-
-    const signInResponse = await fetch(`http://localhost:8099/session/login/confirm`, 'POST', {
-        session_id: singInAttempt.session_id,
-        signature,
-        dh_key: toBase64(dhKey),
-    });
-
-    const signIn = JSON.parse(signInResponse);
-
-    const signKey = bigintCryptoUtils.modPow(fromBase64(signIn.dh_key), dhNumber, dhModulus);
-    const secretKey = crypto.createSecretKey(bigIntToBuffer(signKey));
-
-    const nonce = Date.now();
-    const payload = `GET/api/v0/streamsX-Deltix-Nonce=${nonce}&X-Deltix-Session-Id=${singInAttempt.session_id}`;
-    const requestSignature = crypto.createHmac('SHA384', secretKey).update(payload).digest('base64');
-
-    const brokersResponse = await fetch(`http://localhost:8099/api/v0/streams`, 'GET', void 0, {
-        'X-Deltix-Nonce': nonce,
-        'X-Deltix-Session-Id': singInAttempt.session_id,
-        'X-Deltix-Signature': requestSignature,
-    });
-
-    console.log(brokersResponse);
-};
-
-return main();
-```
+Refer to [Configuration](#configuration) to learn more. 
 
 ## Configuration 
 
@@ -460,7 +279,49 @@ security:
       enabled: false # disabled by default
 ```
 
-#### Session-Based Flow Configuration
+### Configuration to Run Code Examples 
+
+```yaml
+# configuration to run code examples from this manual
+
+# basic flow
+security:
+  authorization:
+    source: CONFIG # valid values: FILE, CONFIG
+  api-keys:
+    sessions:
+      enabled: false
+  api-keys-provider:
+    api-keys:
+      - name: TEST_API_KEY
+        key: TEST_API_SECRET
+        user: admin
+        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
+      - name: TEST_SESSION_API_KEY
+        key: "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDq/Y/kEag9vPlfPu2dzFUeuPTZX94g85v/L3TxRvXHmR1IQtjOSPCtY4NmzeLb3rLwf0J2+X8HeC3Fva6oRVl5hora77cOTmLuTmEZe6oVxjFvdRsQqfcUlAqijViiPMlnDQZ/HsC6S7WLZyMwatdbBsFtnbT9fb3m4VDeakUVQwIDAQAB"
+        user: admin
+        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
+
+# session-based flow
+security:
+  authorization:
+    source: CONFIG # valid values: FILE, CONFIG
+  api-keys:
+    sessions:
+      enabled: true
+  api-keys-provider:
+    api-keys:
+      - name: TEST_API_KEY
+        key: TEST_API_SECRET
+        user: admin
+        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
+      - name: TEST_SESSION_API_KEY
+        key: "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDq/Y/kEag9vPlfPu2dzFUeuPTZX94g85v/L3TxRvXHmR1IQtjOSPCtY4NmzeLb3rLwf0J2+X8HeC3Fva6oRVl5hora77cOTmLuTmEZe6oVxjFvdRsQqfcUlAqijViiPMlnDQZ/HsC6S7WLZyMwatdbBsFtnbT9fb3m4VDeakUVQwIDAQAB"
+        user: admin
+        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
+```
+
+### Session-Based Flow Configuration
 
 ```yaml
 security:
