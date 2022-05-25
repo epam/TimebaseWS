@@ -1,0 +1,26 @@
+@import '~src/app/core/styles/variables';
+
+.hidden {
+  display: none !important;
+}
+
+app-query-btn {
+  color: white;
+  flex-grow: 1;
+}
+
+app-sidebar-context-menu-item {
+  app-query-btn ::ng-deep a,
+  button.btn-link.btn,
+  a {
+    padding-left: 0;
+    padding-right: 0;
+    color: $white;
+    text-align: left;
+  }
+
+  a {
+    display: flex;
+    align-items: center;
+  }
+}

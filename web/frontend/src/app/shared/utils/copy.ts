@@ -1,5 +1,5 @@
-import { Observable } from 'rxjs';
-import { fromPromise } from 'rxjs/internal-compatibility';
+import {Observable} from 'rxjs';
+import {fromPromise} from 'rxjs/internal-compatibility';
 
 export function copyToClipboard(text: string): Observable<void> {
   function manually(): void {
@@ -25,7 +25,7 @@ export function copyToClipboard(text: string): Observable<void> {
       return Promise.reject();
     }
 
-    return window.navigator.permissions.query({name: 'clipboard-write'}).then(result => {
+    return window.navigator.permissions.query({name: 'clipboard-write'}).then((result) => {
       if (result.state === 'granted' || result.state === 'prompt') {
         return window.navigator.clipboard.writeText(text);
       } else {
@@ -43,11 +43,12 @@ export function supportsReadFromClipboard(): boolean {
 
 export function getClipboard(): Observable<string> {
   return fromPromise(
-    window.navigator.permissions.query({name: 'clipboard-read'}).then(result => {
-    if (result.state === 'granted' || result.state === 'prompt') {
-      return window.navigator.clipboard.readText();
-    } else {
-      throw Error();
-    }
-  }));
+    window.navigator.permissions.query({name: 'clipboard-read'}).then((result) => {
+      if (result.state === 'granted' || result.state === 'prompt') {
+        return window.navigator.clipboard.readText();
+      } else {
+        throw Error();
+      }
+    }),
+  );
 }

@@ -1,5 +1,5 @@
-import { TokenResponseJson } from '@openid/appauth';
-import { ErrorType }         from '@openid/appauth/src/token_response';
+import {TokenResponseJson} from '@openid/appauth';
+import {ErrorType} from '@openid/appauth/src/token_response';
 
 export interface SilentAuthErrorJson {
   error: ErrorType | 'timeout';
@@ -15,5 +15,5 @@ export declare type MsgBodyType = SilentAuthErrorJson | TokenResponseJson | Code
 
 export declare enum AuthFlow {
   IMPLICIT = 'IMPLICIT',
-  CODE = 'CODE'
+  CODE = 'CODE',
 }

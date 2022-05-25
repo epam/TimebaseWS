@@ -1,5 +1,8 @@
-import { SchemaClassFieldModel, SchemaClassTypeModel } from '../../../../../shared/models/schema.class.type.model';
-import { SchemaMappingModel }                          from './schema.mapping.model';
+import {
+  SchemaClassFieldModel,
+  SchemaClassTypeModel,
+} from '../../../../../shared/models/schema.class.type.model';
+import {SchemaMappingModel} from './schema.mapping.model';
 
 export interface StreamMetaDataChangeModel {
   // changeImpact	Impact

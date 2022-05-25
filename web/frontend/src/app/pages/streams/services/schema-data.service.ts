@@ -1,8 +1,11 @@
-import { HttpClient }           from '@angular/common/http';
-import { Injectable }           from '@angular/core';
-import { Observable, Subject }  from 'rxjs';
-import { map, takeUntil }                              from 'rxjs/operators';
-import { SchemaClassFieldModel, SchemaClassTypeModel } from '../../../shared/models/schema.class.type.model';
+import {HttpClient} from '@angular/common/http';
+import {Injectable} from '@angular/core';
+import {Observable, Subject} from 'rxjs';
+import {map, takeUntil} from 'rxjs/operators';
+import {
+  SchemaClassFieldModel,
+  SchemaClassTypeModel,
+} from '../../../shared/models/schema.class.type.model';
 
 export interface SimpleColumnModel {
   field: string;
@@ -13,8 +16,8 @@ export interface SimpleColumnModel {
   dataType?: string;
   controlType?: string;
   controlCollection?: {
-    key: string,
-    title: string,
+    key: string | boolean;
+    title: string;
   }[];
   changeEvent?: (any) => void;
   rendered?: boolean;
@@ -24,12 +27,9 @@ export interface SimpleColumnModel {
   providedIn: 'root',
 })
 export class SchemaDataService {
-
   private $destroy = new Subject();
 
-  constructor(
-    private httpClient: HttpClient,
-  ) { }
+  constructor(private httpClient: HttpClient) {}
 
   public getSchema(streamId: string): Observable<[SchemaClassTypeModel[], SimpleColumnModel[]]> {
     return this.httpClient
@@ -60,39 +60,40 @@ export class SchemaDataService {
     return this.generateConfig(schema, '');
   }
 
-  // public getSimplifiedConfig(gridConfig: []): SimpleColumnModel[] {
-  //   return gridConfig.map(columnConfig => {
-  //     const SIMPLE_COLUMN: SimpleColumnModel = {
-  //       field: columnConfig['field'],
-  //       headerName: columnConfig['headerName'],
-  //       headerTooltip: columnConfig['headerTooltip'],
-  //     };
-  //     if (columnConfig['children']) {
-  //       SIMPLE_COLUMN['children'] = this.getSimplifiedConfig(columnConfig['children']);
-  //     }
-  //     return SIMPLE_COLUMN;
-  //   });
-  // }
-
-  public generateConfig(rawData: (SchemaClassTypeModel | SchemaClassFieldModel)[], parentKey = ''): SimpleColumnModel[] {
+  public generateConfig(
+    rawData: (SchemaClassTypeModel | SchemaClassFieldModel)[],
+    parentKey = '',
+  ): SimpleColumnModel[] {
     if (!rawData) {
       return [];
     }
-    return rawData.map(SchemaTypeModel => {
+    return rawData.map((SchemaTypeModel) => {
       const column: SimpleColumnModel = {
         headerName: SchemaTypeModel.title || SchemaTypeModel.name,
-        field: /*parentKey + */SchemaTypeModel.name.replace(/\./g, '-'),
+        field: /*parentKey + */ SchemaTypeModel.name.replace(/\./g, '-'),
         headerTooltip: SchemaTypeModel.title || SchemaTypeModel.name,
       };
       if ((SchemaTypeModel as SchemaClassTypeModel).fields) {
-        column['children'] = this.generateConfig((SchemaTypeModel as SchemaClassTypeModel).fields, column.field + '.');
+        column['children'] = this.generateConfig(
+          (SchemaTypeModel as SchemaClassTypeModel).fields,
+          column.field + '.',
+        );
       } else {
         const TYPE = (SchemaTypeModel as SchemaClassFieldModel).type;
         column.required = typeof TYPE.nullable === 'boolean' ? !TYPE.nullable : false;
         column.dataType = TYPE.name;
         switch (column.dataType) {
           case 'BOOLEAN':
-            column.controlType = 'checkbox';
+            column.controlType = 'select';
+
+            let data = column.required ? [] : [{key: null, title: 'null'}];
+
+            data = data.concat([
+              {key: true, title: 'true'},
+              {key: false, title: 'false'},
+            ]);
+
+            column.controlCollection = data;
             break;
           case 'TIMESTAMP':
             column.controlType = 'dateTime';
@@ -105,15 +106,9 @@ export class SchemaDataService {
     });
   }
 
-  public getSymbols(streamKey) {
-    return this.httpClient
-      .get<string[]>(`/${encodeURIComponent(streamKey)}/symbols`);
-  }
-
   public destroy() {
     this.$destroy.next(true);
     this.$destroy.complete();
     this.$destroy = new Subject();
   }
-
 }

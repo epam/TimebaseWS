@@ -18,6 +18,7 @@ package com.epam.deltix.computations.data;
 
 import com.epam.deltix.computations.data.base.Decoder;
 import com.epam.deltix.computations.data.base.GenericValueInfo;
+import com.epam.deltix.computations.data.base.MutableGenericValueInfo;
 import com.epam.deltix.computations.data.base.complex.MutableBinaryValueInfo;
 import com.epam.deltix.computations.data.base.numeric.*;
 import com.epam.deltix.computations.data.base.text.MutableAlphanumericValueInfo;
@@ -28,8 +29,8 @@ import com.epam.deltix.computations.data.complex.MutableEnumValue;
 import com.epam.deltix.computations.data.complex.MutableGenericObjectImpl;
 import com.epam.deltix.computations.data.complex.MutableListValue;
 import com.epam.deltix.computations.data.text.MutableCharSequenceValue;
-import com.epam.deltix.qsrv.hf.pub.RawMessage;
 import com.epam.deltix.qsrv.hf.pub.NullValueException;
+import com.epam.deltix.qsrv.hf.pub.RawMessage;
 import com.epam.deltix.qsrv.hf.pub.ReadableValue;
 import com.epam.deltix.qsrv.hf.pub.codec.CodecMetaFactory;
 import com.epam.deltix.qsrv.hf.pub.codec.CompiledCodecMetaFactory;
@@ -39,7 +40,6 @@ import com.epam.deltix.qsrv.hf.pub.md.*;
 import com.epam.deltix.util.collections.generated.ObjectToObjectHashMap;
 import com.epam.deltix.util.memory.MemoryDataInput;
 import com.epam.deltix.computations.data.base.MutableGenericRecord;
-import com.epam.deltix.computations.data.base.MutableGenericValueInfo;
 
 public class RawMessageDecoder implements Decoder<RawMessage> {
 

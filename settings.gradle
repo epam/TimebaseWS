@@ -1,33 +1,14 @@
-pluginManagement {
-    def properties = new Properties()
-    [rootDir, gradle.gradleUserHomeDir].each { dir -> new File(dir, "gradle.properties").with { file -> if (file.exists()) { file.withInputStream { is -> properties.load(is) }}}}
-
-    def proxyRepository = properties.getProperty('DELTIX_PROXY_REPOSITORY') ?: System.getenv('DELTIX_PROXY_REPOSITORY') ?: "https://nexus.deltixhub.com/repository/"
-
-    repositories {
-        maven {
-            credentials {
-                username properties.getProperty('NEXUS_USER') ?: System.getenv('NEXUS_USER') ?: "FakeProGetUser"
-                password properties.getProperty('NEXUS_PASS') ?: System.getenv('NEXUS_PASS') ?: "FakeProGetPass"
-            }
-            authentication {
-                digest(BasicAuthentication)
-            }
-            url proxyRepository + "epm-rtc-java/"
-        }
-        gradlePluginPortal()
-    }
-}
-
 include 'java:ws-messages',
         'java:ws-server',
         'java:computations-api',
         'java:grafana-api',
         'java:grafana-api-impl',
         'java:grafana-basicmath',
+        'java:api-keys',
+        'java:orderbook-core',
         'web:frontend'
 
-
+project(':java:api-keys').name = 'timebase-api-keys'
 project(':java:ws-messages').name = 'timebase-ws-messages'
 project(':java:ws-server').name = 'timebase-ws-server'
 project(':java:computations-api').name = 'timebase-computations-api'

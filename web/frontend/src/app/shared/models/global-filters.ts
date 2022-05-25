@@ -1,5 +1,7 @@
+import {GlobalFilterTimeZone} from '../../pages/streams/models/global.filter.model';
+
 export interface GlobalFilters {
   dateFormat: string[];
   timeFormat: string[];
-  timezone: { nameTitle: string, name: string, offset: number }[];
+  timezone: GlobalFilterTimeZone[];
 }

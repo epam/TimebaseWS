@@ -1,0 +1,30 @@
+{
+  "name": "@deltix/hd.components-multi-app",
+  "version": "4.18.0",
+  "main": "./index.umd.js",
+  "module": "./index.esm.js",
+  "typings": "./index.d.ts",
+  "dependencies": {
+    "@deltix/hd.components-di": "file:./../hd.components-di",
+    "@deltix/hd.components-utils": "file:./../hd.components-utils",
+    "pixi.js": "^6.2.2",
+    "fast-deep-equal": "^3.1.3",
+    "react": "17.0.2",
+    "@inlet/react-pixi": "^6.6.5",
+    "normalize-wheel": "^1.0.1",
+    "react-redux": "7.2.6",
+    "lodash": "^4.17.21",
+    "@deltix/logger": "file:./../logger",
+    "ramda": "^0.27.1",
+    "@deltix/decimal-utils": "file:./../decimal-utils",
+    "big.js": "^6.1.1",
+    "@deltix/hd.components-common": "file:./../hd.components-common",
+    "@pixi/unsafe-eval": "^6.2.2",
+    "redux": "^4.1.2",
+    "reselect": "^4.1.5",
+    "rxjs": "^6.6.3",
+    "fontfaceobserver": "^2.1.0",
+    "redux-observable": "^1.2.0"
+  },
+  "peerDependencies": {}
+}

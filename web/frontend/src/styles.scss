@@ -5,18 +5,20 @@
 @import '../node_modules/perfect-scrollbar/css/perfect-scrollbar.css';
 // TODO: add it to folder font without absolute links, on server it not work!
 
-@import "../node_modules/ag-grid-community/dist/styles/ag-grid.css";
-@import "../node_modules/ag-grid-community/dist/styles/ag-theme-balham-dark.css";
+@import '../node_modules/ag-grid-community/dist/styles/ag-grid.css';
+@import '../node_modules/ag-grid-community/dist/styles/ag-theme-balham-dark.css';
 @import '../node_modules/ngx-bootstrap/datepicker/bs-datepicker.css';
 @import './src/app/core/styles/libs';
 @import './src/app/core/styles/grid';
-@import "~@ng-select/ng-select/themes/default.theme.css";
+@import './src/app/core/styles/sidebar';
+@import './src/app/core/styles/dropdown-btn';
+@import './src/app/core/styles/dropdown';
+@import '~@ng-select/ng-select/themes/default.theme.css';
 @import './src/app/core/styles/monaco';
 @import './src/app/libs/deltix-ng-autocomplete/src/scss/autocomplete';
 
 html {
   font-size: 16px;
-
   height: 100%;
 }
 
@@ -47,7 +49,6 @@ h6 {
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
   margin: 0;
-
   -webkit-appearance: none;
 }
 
@@ -101,7 +102,6 @@ input.focused + * + .focus-show {
 .body-menu-small {
   .streams-list {
     flex: inherit;
-
     width: calc(25 * #{$fs});
   }
 
@@ -114,10 +114,6 @@ input.focused + * + .focus-show {
       transform: rotate(180deg);
     }
   }
-
-  .checkmark {
-    left: calc(50% - 8px);
-  }
 }
 
 .ps .ps__rail-x:hover,
@@ -127,7 +123,7 @@ input.focused + * + .focus-show {
 .ps .ps__rail-x.ps--clicking,
 .ps .ps__rail-y.ps--clicking,
 .ps.ps--scrolling-y > .ps__rail-y {
-  opacity: .9;
+  opacity: 0.9;
   background-color: transparent !important;
 }
 
@@ -139,7 +135,6 @@ input.focused + * + .focus-show {
 .loader:after {
   width: 5em;
   height: 5em;
-
   border-radius: 50%;
 }
 
@@ -156,10 +151,10 @@ input.focused + * + .focus-show {
   -webkit-animation: load8 1.1s infinite linear;
   animation: load8 1.1s infinite linear;
   color: transparent;
-  border-top: .55em solid rgba(255, 255, 255, .2);
-  border-right: .55em solid rgba(255, 255, 255, .2);
-  border-bottom: .55em solid rgba(255, 255, 255, .2);
-  border-left: .55em solid #fff;
+  border-top: 0.55em solid rgba(255, 255, 255, 0.2);
+  border-right: 0.55em solid rgba(255, 255, 255, 0.2);
+  border-bottom: 0.55em solid rgba(255, 255, 255, 0.2);
+  border-left: 0.55em solid #fff;
 
   &.display-block {
     display: block !important;
@@ -224,7 +219,6 @@ button.close {
 .table th,
 .table td {
   font-size: $fs-reg;
-
   padding: #{$ss};
   color: $font-color;
 }
@@ -236,50 +230,15 @@ button.close {
 h4,
 .h4 {
   font-size: $fs-title;
-
   text-transform: uppercase;
 }
 
-// Datetimepicker
-//.deltix-dt-picker__container {
-//  .deltix-dt-picker__value{
-//    display: block;
-//    padding: 0.375rem 0.5rem;
-//    font-size: $fs-reg;
-//    font-weight: 400;
-//    line-height: 1.5;
-//    color: #495057;
-//    background-color: #fff;
-//    background-clip: padding-box;
-//    border: 1px solid #ced4da;
-//    border-radius: 0.25rem;
-//    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-//    margin: 0;
-//    width: 23*$ss!important;
-//    display: inline-block;
-//    text-align: center;
-//    &:nth-child(5) {
-//      width: 25*$ss!important;
-//    }
-//    &:nth-child(13), &:nth-child(14), &:nth-child(15) {
-//      margin-right: 4*$ss;
-//    }
-//    &.deltix-dt-picker__value_wrong {
-//      box-shadow: 0 0 $ss $red;
-//    }
-//
-//  }
-//  .deltix-dt-picker__separator, .deltix-dt-picker__space {
-//    border: 0;
-//    margin-left: $ss/2;
-//    padding-left: $ss;
-//    pointer-events: none;
-//  }
-//}
-//
-//.deltix-dt-picker__all-data {
-//  display: none;
-//}
+h5,
+.h5 {
+  font-size: $fs-reg;
+  text-transform: uppercase;
+}
+
 .deltix-dt-picker__button {
   position: relative;
   display: block;
@@ -289,59 +248,9 @@ h4,
   position: relative;
 }
 
-bs-datepicker-container {
-  // transform: none !important;
-}
-
-
 .modal-message {
   max-width: none !important;
 }
-
-//
-//.deltix-dt-picker__button{
-//  display: inline-block;
-//  font-weight: 400;
-//  text-align: center;
-//  vertical-align: middle;
-//  -webkit-user-select: none;
-//  -moz-user-select: none;
-//  -ms-user-select: none;
-//  user-select: none;
-//  border: 1px solid transparent;
-//  padding: 0.375rem 0.75rem;
-//  font-size: $fs-reg;
-//  line-height: 1.5;
-//  border-radius: 0.25rem;
-//  transition: color 0.15s ease-in-out,
-//  background-color 0.15s ease-in-out,
-//  border-color 0.15s ease-in-out,
-//  box-shadow 0.15s ease-in-out;
-//  color: #fff;
-//  background-color: #007bff;
-//  border-color: #007bff;
-//  position: relative;
-//}
-//
-//.deltix-dt-picker__calendar-icon {
-//  display: none;
-//}
-//
-//.dropdown-toggle::after {
-//  margin-left: 0;
-//  vertical-align: 0.155em;
-//}
-//
-//.deltix-dt-picker {
-//  > div {
-//    display: inline-block;
-//  }
-//  .dropdown {
-//    display: inline-block!important;
-//    margin-right: 2*$ss;
-//  }
-//}
-// End datetimepicker
 
 .modal-header,
 .modal-footer {
@@ -387,8 +296,24 @@ bs-datepicker-container {
   }
 
   &:disabled {
-    opacity: .8;
+    opacity: 0.8;
     background: $input-bg-light;
+  }
+
+  &:focus {
+    color: $white;
+    background-color: transparent;
+  }
+
+  &--flat {
+    border-radius: $border-radius;
+
+    &, &:focus {
+      outline: none;
+      border: none;
+      background: $bg-blue;
+      box-shadow: none;
+    }
   }
 }
 
@@ -399,13 +324,16 @@ bs-datepicker-container {
   text-transform: uppercase;
   border-radius: $border-radius;
 
+  &, &:active, &:focus, &:hover {
+    box-shadow: none;
+  }
+
   &:not(.btn-sm) {
     height: $control-height;
   }
 
   &.btn-link {
     font-weight: inherit;
-
     height: inherit;
     text-transform: inherit;
     border-radius: 0;
@@ -430,6 +358,12 @@ bs-datepicker-container {
     &:hover {
       background: darken($btn-navy, 5%);
     }
+  }
+
+  &.btn-active {
+    background-color: $yellow;
+    border-color: $yellow;
+    color: $nav-bg;
   }
 }
 
@@ -456,7 +390,6 @@ select.btn {
 
 .modal {
   .modal-dialog {
-    //overflow: hidden;
     max-height: calc(100vh - 3.5rem);
     margin: 1.75rem;
   }
@@ -489,27 +422,38 @@ select.btn {
   background: $nav-bg;
 }
 
-.modal .modal-dialog .modal-content .modal-body .dropdown-list .multiselect-item-checkbox input[type='checkbox'] + div {
+.modal
+.modal-dialog
+.modal-content
+.modal-body
+.dropdown-list
+.multiselect-item-checkbox
+input[type='checkbox']
++ div {
   color: $white;
 }
 
-.modal .modal-dialog .modal-content .modal-body .dropdown-list .filter-textbox input {
-  color: $white;
-  background: $nav-bg;
+.modal .modal-dialog .modal-content .modal-body {
+  .dropdown-list {
+    .filter-textbox input {
+      color: $white;
+      background: $nav-bg;
 
-  &::placeholder {
-    color: $white;
+      &::placeholder {
+        color: $white;
+      }
+    }
+  }
+
+  ng-multiselect-dropdown.flat-multiselect {
+    .filter-textbox input {
+      background: transparent;
+    }
   }
 }
 
 .details-stream-wrap .deltix-dt-picker__inner-container {
   background: $input-bg-light;
-
-  /* input {
-  font-family: $font-text;
-  font-size: $fs-sub-title;
-  letter-spacing: 1px;
-}*/
 }
 
 .details-stream-wrap .deltix-dt-picker__space {
@@ -559,15 +503,16 @@ select.btn {
     .dropdown-item:hover,
     .dropdown-item:active,
     .dropdown-item:focus {
-      button.btn-link, a {
+      button.btn-link,
+      a {
         text-decoration: none;
-
         color: $white;
         background: $blue;
 
         &.disabled {
-          background: $input-bg;
           cursor: default;
+
+          background: $input-bg;
         }
       }
     }
@@ -578,11 +523,6 @@ select.btn {
       }
     }
   }
-}
-
-.form-control:focus {
-  color: $white;
-  background-color: transparent;
 }
 
 .ngx-json-viewer .segment .segment-main span.segment-key {
@@ -601,16 +541,12 @@ select.btn {
 .container-ch {
   font-family: 'Roboto Regular', sans-serif;
   position: relative;
-
   display: block;
   margin-bottom: 0;
   padding-left: 25px;
   cursor: pointer;
-  //-webkit-user-select: none;
-  //-moz-user-select: none;
-  //-ms-user-select: none;
   user-select: none;
-  color: rgba(255, 255, 255, .75);
+  color: rgba(255, 255, 255, 0.75);
 }
 
 /* Hide the browser's default checkbox */
@@ -647,7 +583,6 @@ select.btn {
 .checkmark:after {
   position: absolute;
   display: none;
-
   content: '';
 }
 
@@ -662,8 +597,6 @@ select.btn {
   left: 4px;
   width: 7px;
   height: 10px;
-  //-webkit-transform: rotate(45deg);
-  //-ms-transform: rotate(45deg);
   transform: rotate(45deg);
   border: solid white;
   border-width: 0 3px 3px 0;
@@ -734,6 +667,7 @@ select.btn {
     border: none;
     border-radius: $ss;
     background-color: $btn-control;
+    outline: none;
   }
 
   .autocomplete-active {
@@ -742,10 +676,10 @@ select.btn {
 
   .autocomplete-caret-btn {
     position: absolute;
-    top: $height / 4;
+    top: $height * 0.25;
     right: 6px;
-    width: $height / 2;
-    height: $height / 2;
+    width: $height * 0.5;
+    height: $height * 0.5;
     padding: 4px 0;
     cursor: pointer;
     border: 0;
@@ -763,7 +697,6 @@ select.btn {
     display: inline-block;
     box-sizing: border-box;
     padding: 0;
-
     border-top: 5px solid #777;
     border-right: 5px solid transparent;
     border-bottom: 5px solid transparent;
@@ -772,7 +705,6 @@ select.btn {
 
   .autocomplete-dropdown {
     z-index: 1;
-
     min-width: 100%;
     pointer-events: none;
   }
@@ -781,7 +713,7 @@ select.btn {
     border: 0;
     border-radius: $border-radius;
     background-color: $btn-control;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, .175);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
   }
 
   .autocomplete-dropdown-menu {
@@ -917,7 +849,7 @@ body .details-stream-wrap .deltix-dt-picker {
 
 .bs-datepicker-body table td span.is-other-month,
 .bs-datepicker-body table td.is-other-month span {
-  color: rgba(0, 0, 0, .5);
+  color: rgba(0, 0, 0, 0.5);
 }
 
 .theme-default .bs-datepicker-head {
@@ -950,15 +882,13 @@ body .details-stream-wrap .deltix-dt-picker {
     width: auto;
     height: auto;
     margin: 4px 0 0 0;
-
-    content: url('data:image/svg+xml; utf8, <svg style=\'color:white;\' id=\'i-calendar\' xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\' width=\'16\' height=\'16\' fill=\'none\' stroke=\'currentcolor\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\'><path d=\'M2 6 L2 30 30 30 30 6 Z M2 15 L30 15 M7 3 L7 9 M13 3 L13 9 M19 3 L19 9 M25 3 L25 9\' /></svg>');
+    content: url("data:image/svg+xml; utf8, <svg style='color:white;' id='i-calendar' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='16' height='16' fill='none' stroke='currentcolor' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'><path d='M2 6 L2 30 30 30 30 6 Z M2 15 L30 15 M7 3 L7 9 M13 3 L13 9 M19 3 L19 9 M25 3 L25 9' /></svg>");
   }
 
   span {
     display: none;
   }
 }
-
 
 body.modal-open .modal {
   display: flex !important;
@@ -1003,7 +933,7 @@ body.modal-open .modal {
   margin-left: 0;
 }
 
-.modal-footer > :not(:last-child) {
+.modal-footer > :not(:last-child):not(.last) {
   margin-right: 0;
 }
 
@@ -1015,7 +945,7 @@ body.modal-open .modal {
 
     &:not(:last-child):not(.last),
     &:not(.last) {
-      margin-right: .5rem;
+      margin-right: 0.5rem;
     }
   }
 }
@@ -1027,7 +957,8 @@ body.modal-open .modal {
 }
 
 .ag-theme-balham-dark {
-  .ag-floating-top, .ag-floating-bottom {
+  .ag-floating-top,
+  .ag-floating-bottom {
     background-color: transparentize($primary, 0.7) !important;
   }
 
@@ -1035,7 +966,6 @@ body.modal-open .modal {
     overflow-y: auto !important;
   }
 }
-
 
 .no-padding-right {
   padding-right: 0 !important;
@@ -1049,10 +979,10 @@ body.modal-open .modal {
   position: relative;
   display: block;
   height: 100%;
-  background: $nav-bg;
-  border-radius: calc(4 * #{$ss});
   min-height: calc(100vh - 40 * #{$ss});
   padding: 7.5 * $ss;
+  border-radius: calc(4 * #{$ss});
+  background: $nav-bg;
 }
 
 .sql-error {
@@ -1070,14 +1000,14 @@ body.modal-open .modal {
 .navigation-btn {
   display: flex;
   align-items: center;
-  outline: none;
-  border: none;
-  background: $dark-blue;
-  color: $table-th;
-  border-radius: $border-radius;
-  transition: color .15s;
-  padding: 3 * $ss;
   margin-right: 4 * $ss;
+  padding: 3 * $ss;
+  transition: color 0.15s;
+  color: $table-th;
+  border: none;
+  border-radius: $border-radius;
+  outline: none;
+  background: $dark-blue;
 
   &:hover {
     color: $link-hover;
@@ -1099,4 +1029,21 @@ body.modal-open .modal {
 
 as-split.hidden {
   visibility: hidden;
+}
+
+.sidebar-arrow-tooltip {
+  margin-left: 105px;
+}
+
+.beta {
+  padding-left: 2 * $ss;
+
+  color: $yellow;
+}
+
+.autofill-dark-blue:-webkit-autofill {
+  -webkit-box-shadow: inset 0 0 0 50px $dark-blue !important;
+  border-color: $input-border;
+  -webkit-text-fill-color: $white !important;
+  caret-color: $white;
 }

@@ -1,21 +1,20 @@
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { StreamsNavigationUrlPipe } from './streams-navigation-url.pipe';
-import { StreamsNavigationActiveDirective } from './streams-navigation-active.directive';
-
-
+import {CommonModule} from '@angular/common';
+import {NgModule} from '@angular/core';
+import {StreamsNavigationActiveDirective} from './streams-navigation-active.directive';
+import {StreamsNavigationParamsPipe} from './streams-navigation-params.pipe';
+import {StreamsNavigationUrlPipe} from './streams-navigation-url.pipe';
 
 @NgModule({
   declarations: [
     StreamsNavigationUrlPipe,
+    StreamsNavigationParamsPipe,
     StreamsNavigationActiveDirective,
   ],
   exports: [
     StreamsNavigationUrlPipe,
-    StreamsNavigationActiveDirective
+    StreamsNavigationActiveDirective,
+    StreamsNavigationParamsPipe,
   ],
-  imports: [
-    CommonModule
-  ]
+  imports: [CommonModule],
 })
-export class StreamsNavigationModule { }
+export class StreamsNavigationModule {}

@@ -1,7 +1,6 @@
-import { Directive } from '@angular/core';
+import {Directive} from '@angular/core';
 
 @Directive({
   selector: '[appSelectOption]',
 })
-export class SelectOptionDirective {
-}
+export class SelectOptionDirective {}

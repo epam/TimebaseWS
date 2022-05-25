@@ -1,0 +1,55 @@
+@import '~src/app/core/styles/variables';
+
+:host {
+  display: flex;
+
+  &:hover {
+    .new-tab-link {
+      display: inline-flex;
+    }
+  }
+
+  &.disabled {
+    .main-link {
+      color: $btn-secondary;
+      background: $bg-blue;
+      user-select: none;
+    }
+  }
+
+  a {
+    color: $white;
+    display: flex;
+    align-items: center;
+  }
+
+  span.main-link {
+    padding: 1.5 * $ss 0 1.5 * $ss 5 * $ss;
+  }
+
+  .main-link {
+    padding-left: 5 * $ss;
+    padding-right: 0;
+    flex-grow: 1;
+    color: $white;
+    font-size: 6 * $ss;
+    height: 15 * $ss;
+    display: flex;
+    align-items: center;
+
+    ::ng-deep svg {
+      margin-right: 5 * $ss;
+    }
+  }
+
+  .new-tab-link {
+    display: none;
+    padding: 0 5 * $ss 0 2 * $ss;
+    cursor: pointer;
+    max-width: 13 * $ss;
+
+    svg {
+      margin: 0;
+    }
+  }
+}

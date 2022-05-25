@@ -1,0 +1,83 @@
+@import '~src/app/core/styles/variables';
+
+:host,
+.grid-wr,
+.chartWr {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.isGrabbing {
+  &,
+  * {
+    cursor: grabbing !important;
+  }
+}
+
+.chart-tooltip {
+  position: absolute;
+  border: 1px solid #eee;
+  z-index: 1;
+  background: rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transform: translateX(var(--tooltip-left)) translateY(var(--tooltip-top));
+  width: var(--tooltip-width);
+  height: var(--tooltip-height);
+
+  &.border-green {
+    border-color: #008000;
+  }
+
+  &.border-red {
+    border-color: #dc0000;
+  }
+
+  &.border-blue {
+    border-color: #4c6c97;
+  }
+
+  .tooltip-content {
+    margin-top: 5px;
+  }
+}
+
+.end-of-stream {
+  position: absolute;
+  top: 0;
+  bottom: 20px;
+  pointer-events: none;
+  right: var(--end-of-stream-right);
+  width: 1px;
+  background-color: #03ff03;
+  opacity: var(--end-of-stream-opacity, 0.1);
+  z-index: 1;
+  transition: opacity 500ms linear;
+
+  &.hide {
+    display: none;
+  }
+}
+
+.no-data {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  font-size: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  background: rgba($dark-blue, 0.7);
+  pointer-events: none;
+}

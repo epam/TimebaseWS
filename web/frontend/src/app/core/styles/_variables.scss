@@ -1,8 +1,6 @@
-@import "~node_modules/bootstrap/scss/functions";
-@import "~node_modules/bootstrap/scss/variables";
-@import "./fonts";
-// @import url('https://fonts.googleapis.com/css?family=Archivo+Narrow');
-// @import url('https://fonts.googleapis.com/css?family=Questrial');
+@import '~node_modules/bootstrap/scss/functions';
+@import '~node_modules/bootstrap/scss/variables';
+@import './fonts';
 
 $ss: 0.125rem; //size-step
 $fs: $ss; //font-step
@@ -13,6 +11,7 @@ $nav-bg: rgb(39, 56, 77); //#224b7a;
 $logo-bg: $nav-bg; // #4a76a8;
 $light-blue: #337ab7;
 $dark-blue: #27384d;
+$bg-blue: #1f526f;
 $light-gray: #999;
 $selected-row-bg: #1b5c83;
 $link-hover: #0056b3;
@@ -31,8 +30,8 @@ $input-color-dark: #495057;
 $input-border: #adadad;
 $blue: #007bff;
 
-$font-logo: "Roboto Medium", sans-serif;
-$font-text: "Roboto Regular", sans-serif;
+$font-logo: 'Roboto Medium', sans-serif;
+$font-text: 'Roboto Regular', sans-serif;
 
 $fs-logo: 12.5 * $fs;
 $fs-title: 7.5 * $fs;
@@ -51,15 +50,15 @@ $btn-control: rgb(31, 82, 111);
 $border-radius: 1.5 * $ss;
 $control-height: 14.5 * $ss;
 
-%input{
+%input {
   background-color: transparent;
   color: $white;
   border: 1px solid $gray-600;
   box-sizing: border-box;
   padding: 0;
-  padding-left: 3*$ss;
-  padding-right: 3*$ss;
-  width: 40*$ss;
+  padding-left: 3 * $ss;
+  padding-right: 3 * $ss;
+  width: 40 * $ss;
   box-shadow: none;
   line-height: 21+8px;
   border-radius: 0;

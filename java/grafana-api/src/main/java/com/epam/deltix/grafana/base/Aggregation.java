@@ -16,10 +16,10 @@
  */
 package com.epam.deltix.grafana.base;
 
-import com.epam.deltix.grafana.model.fields.Field;
 import com.epam.deltix.computations.base.TimebaseFunction;
 import com.epam.deltix.computations.base.exc.RecordValidationException;
 import com.epam.deltix.computations.data.base.GenericRecord;
+import com.epam.deltix.grafana.model.fields.Field;
 
 import java.util.Collection;
 

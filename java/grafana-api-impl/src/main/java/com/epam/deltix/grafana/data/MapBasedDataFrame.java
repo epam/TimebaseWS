@@ -16,12 +16,12 @@
  */
 package com.epam.deltix.grafana.data;
 
-import com.epam.deltix.grafana.model.fields.Column;
-import com.epam.deltix.grafana.model.fields.ColumnImpl;
-import com.epam.deltix.grafana.model.fields.Field;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.epam.deltix.util.collections.generated.ObjectArrayList;
 import com.epam.deltix.grafana.model.DataFrame;
+import com.epam.deltix.grafana.model.fields.Column;
+import com.epam.deltix.grafana.model.fields.ColumnImpl;
+import com.epam.deltix.grafana.model.fields.Field;
 import com.epam.deltix.grafana.model.fields.FieldType;
 
 import javax.annotation.Nonnull;

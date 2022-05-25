@@ -1,28 +1,27 @@
-import { Action }                                                      from '@ngrx/store';
-import { AppState }                                                    from '../../../../core/store';
-import { DEFAULT_DATE_FORMAT, DEFAULT_TIME_FORMAT, DEFAULT_TIME_ZONE } from '../../../../shared/locale.timezone';
-import { SchemaTypeModel }                                             from '../../../../shared/models/schema.type.model';
-import { StreamDetailsModel }                                          from '../../models/stream.details.model';
-import { StreamDetailsActions, StreamDetailsActionTypes }              from './stream-details.actions';
-
+import {Action} from '@ngrx/store';
+import {AppState} from '../../../../core/store';
+import {
+  DEFAULT_DATE_FORMAT,
+  DEFAULT_TIME_FORMAT,
+  DEFAULT_TIME_ZONE,
+} from '../../../../shared/locale.timezone';
+import {SchemaTypeModel} from '../../../../shared/models/schema.type.model';
+import {GlobalFilterModel} from '../../models/global.filter.model';
+import {StreamDetailsModel} from '../../models/stream.details.model';
+import {StreamDetailsActions, StreamDetailsActionTypes} from './stream-details.actions';
 
 export interface FeatureState extends AppState {
   streamDetails: State;
 }
-
 
 export interface State {
   schema: SchemaTypeModel[];
   schemaAll: SchemaTypeModel[];
   symbols: string[];
   streamData: StreamDetailsModel[];
-  global_filter: {
-    filter_date_format: string[];
-    filter_time_format: string[];
-    filter_timezone: any;
-  };
+  global_filter: GlobalFilterModel;
   errorMessage: string;
-  streamRange: { end: string, start: string };
+  streamRange: {end: string; start: string};
 }
 
 export const initialState: State = {
@@ -38,7 +37,6 @@ export const initialState: State = {
   errorMessage: null,
   streamRange: null,
 };
-
 
 export function reducer(state = initialState, action: Action | StreamDetailsActions): State {
   switch (action.type) {
@@ -90,7 +88,6 @@ export function reducer(state = initialState, action: Action | StreamDetailsActi
 
     case StreamDetailsActionTypes.SET_GLOBAL_FILTER_STATE:
       let global_filter = {
-
         filter_date_format: null,
         filter_time_format: null,
         filter_timezone: null,
@@ -128,7 +125,6 @@ export function reducer(state = initialState, action: Action | StreamDetailsActi
           filter_time_format: [DEFAULT_TIME_FORMAT],
           filter_timezone: [DEFAULT_TIME_ZONE],
         },
-
       };
     case StreamDetailsActionTypes.ADD_ERROR_MESSAGE:
       return {

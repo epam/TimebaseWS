@@ -1,0 +1,42 @@
+@import 'src/app/core/styles/variables';
+
+:host {
+  display: block;
+  position: relative;
+  overflow: hidden;
+}
+
+.book-container {
+  position: absolute;
+  display: none;
+
+  &.initialized {
+    display: block;
+  }
+}
+
+.headers {
+  position: absolute;
+  top: 0;
+  font-size: 6 * $ss;
+  display: flex;
+  align-items: center;
+
+  .quantity {
+    text-align: right;
+  }
+
+  .price {
+    text-align: right;
+    padding-right: 10 * $ss;
+  }
+
+  .size {
+    text-align: center;
+  }
+
+  .exchange {
+    text-align: right;
+    padding-right: 7px;
+  }
+}

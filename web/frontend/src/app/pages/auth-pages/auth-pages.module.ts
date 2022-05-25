@@ -1,10 +1,10 @@
-import { NgModule }              from '@angular/core';
-import { RouterModule }          from '@angular/router';
-import { LoginGuard }            from '../../core/services/guards/login.guard';
-import { LogoModule }            from '../../shared/logo/logo.module';
-import { SharedModule }          from '../../shared/shared.module';
-import { AccessDeniedComponent } from './components/access-denied/access-denied.component';
-import { LoginComponent }        from './components/login/login.component';
+import {NgModule} from '@angular/core';
+import {RouterModule} from '@angular/router';
+import {LoginGuard} from '../../core/services/guards/login.guard';
+import {LogoModule} from '../../shared/logo/logo.module';
+import {SharedModule} from '../../shared/shared.module';
+import {AccessDeniedComponent} from './components/access-denied/access-denied.component';
+import {LoginComponent} from './components/login/login.component';
 
 @NgModule({
   declarations: [LoginComponent, AccessDeniedComponent],
@@ -33,9 +33,6 @@ import { LoginComponent }        from './components/login/login.component';
       },
     ]),
   ],
-  exports: [
-    RouterModule,
-  ],
+  exports: [RouterModule],
 })
-export class AuthPagesModule {
-}
+export class AuthPagesModule {}

@@ -16,9 +16,9 @@
  */
 package com.epam.deltix.tbwg.messages;
 
+import com.epam.deltix.timebase.messages.*;
 import com.epam.deltix.dfp.Decimal;
 
-import com.epam.deltix.timebase.messages.*;
 
 @SchemaElement(
     name = "deltix.tbwg.messages.Tag",

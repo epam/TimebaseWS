@@ -1,4 +1,4 @@
-import { ProviderType } from './provider.type';
+import {ProviderType} from './provider.type';
 
 export class AuthProviderModel {
   // audience: string;

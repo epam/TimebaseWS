@@ -1,11 +1,16 @@
-<div *ngIf="fields$ | async as fields" class="module-wrapper props-wr">
+<div [class.has-fields]="fields$ | async" class="module-wrapper props-wr">
   <app-pure-form-builder
+      *ngIf="fields$ | async as fields"
       [fields]="fields"
-      [form]="formGroup"
-  ></app-pure-form-builder>
-  <div class="field-properties-bottom">
-    <button (click)="revert()" [disabled]="revertDisabled$ | async" class="btn btn-default">
+      [form]="formGroup"></app-pure-form-builder>
+  <div *ngIf="isWriter$ | async" class="field-properties-bottom">
+    <button
+        (click)="revert()"
+        *ngIf="fields$ | async"
+        [disabled]="revertDisabled$ | async"
+        class="btn btn-default revert-btn">
       {{ 'buttons.revert' | translate }}
     </button>
+    <ng-content select="[save-btn]"></ng-content>
   </div>
 </div>

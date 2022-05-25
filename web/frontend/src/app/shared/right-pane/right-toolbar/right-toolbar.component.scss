@@ -1,0 +1,31 @@
+@import '../../../core/styles/variables';
+
+:host {
+  padding: 0 7.5 * $ss 0;
+}
+
+.navigation-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 10px;
+
+  &.active i {
+    color: $white;
+  }
+}
+
+i {
+  font-family: 'Ubuntu Mono', monospace;
+  font-size: 17px;
+  color: $table-th;
+  border-radius: 2px;
+  font-style: normal;
+  width: 20px;
+  height: 20px;
+  font-weight: 700;
+  line-height: 18px;
+}

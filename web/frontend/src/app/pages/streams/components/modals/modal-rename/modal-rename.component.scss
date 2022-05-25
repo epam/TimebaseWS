@@ -1,7 +1,8 @@
-@import "~src/app/core/styles/variables";
+@import '~src/app/core/styles/variables';
 
-.controlWr{
+.controlWr {
   margin-bottom: 8px;
+  display: flex;
 
   .btn:not(.btn-from) {
     margin-bottom: 0;
@@ -11,13 +12,14 @@
   }
 
   .control-label {
-    line-height: 1.8125rem;
+    line-height: 13 * $ss;
     background-color: $btn-navy;
     border-bottom-right-radius: 0;
     border-top-right-radius: 0;
+    height: auto;
   }
 
-  .input-control{
+  .input-control {
     border-bottom-left-radius: 0;
     border-top-left-radius: 0;
     text-align: left;
@@ -26,5 +28,6 @@
     user-select: auto;
     text-transform: none;
     background: $input-bg !important;
+    flex-grow: 1;
   }
 }

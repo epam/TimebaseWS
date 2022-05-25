@@ -1,4 +1,4 @@
-@import "variables";
+@import 'variables';
 
 .deltix-autocomplete {
   .autocomplete-container {
@@ -17,9 +17,9 @@
   .autocomplete-caret-btn {
     position: absolute;
     right: 6px;
-    top: $height / 4;
-    height: $height / 2;
-    width: $height / 2;
+    top: $height * 0.25;
+    height: $height * 0.5;
+    width: $height * 0.5;
     background: transparent;
     border: 0;
     outline: 0;

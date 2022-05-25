@@ -16,6 +16,9 @@
  */
 package com.epam.deltix.tbwg.model.ws.system;
 
+import com.epam.deltix.tbwg.webapp.model.ws.system.RenameMessage;
+import com.epam.deltix.tbwg.webapp.model.ws.system.StreamStates;
+
 import java.util.List;
 
 public class StreamStatesMessageWrapper extends StreamStates {

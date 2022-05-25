@@ -16,8 +16,8 @@
  */
 package com.epam.deltix.computations.base;
 
-import com.epam.deltix.computations.base.exc.RecordValidationException;
 import com.epam.deltix.computations.data.base.GenericRecord;
+import com.epam.deltix.computations.base.exc.RecordValidationException;
 
 public interface TimebaseFunction {
     

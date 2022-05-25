@@ -18,8 +18,8 @@ package com.epam.deltix.computations.data;
 
 import com.epam.deltix.computations.data.base.GenericRecord;
 import com.epam.deltix.computations.data.base.GenericValueInfo;
-import com.epam.deltix.computations.data.base.MutableGenericRecord;
 import com.epam.deltix.computations.data.complex.MutableGenericObjectImpl;
+import com.epam.deltix.computations.data.base.MutableGenericRecord;
 
 import javax.annotation.Nullable;
 

@@ -1,5 +1,5 @@
-import { Action }     from '@ngrx/store';
-import { PropsModel } from '../../models/props.model';
+import {Action} from '@ngrx/store';
+import {PropsModel} from '../../models/props.model';
 
 export enum StreamPropsActionTypes {
   GET_PROPS = '[StreamProps] Get Props',
@@ -7,7 +7,6 @@ export enum StreamPropsActionTypes {
   CLEAR_PROPS = '[StreamProps] Clear Props',
   STOP_SUBSCRIPTIONS = '[StreamProps] Stop Subscriptions',
   CHANGE_STATE_PROPS = '[StreamProps] Change State Props',
-
 }
 
 export class GetProps implements Action {
@@ -17,9 +16,11 @@ export class GetProps implements Action {
 export class SetProps implements Action {
   readonly type = StreamPropsActionTypes.SET_PROPS;
 
-  constructor(public payload: {
-    props: PropsModel,
-  }) {}
+  constructor(
+    public payload: {
+      props: PropsModel;
+    },
+  ) {}
 }
 
 export class ClearProps implements Action {
@@ -33,14 +34,16 @@ export class StopSubscriptions implements Action {
 export class ChangeStateProps implements Action {
   readonly type = StreamPropsActionTypes.CHANGE_STATE_PROPS;
 
-  constructor(public payload: {
-    opened: boolean,
-  }) {}
+  constructor(
+    public payload: {
+      opened: boolean;
+    },
+  ) {}
 }
 
 export type StreamPropsActions =
-  GetProps |
-  SetProps |
-  ClearProps |
-  StopSubscriptions |
-  ChangeStateProps;
+  | GetProps
+  | SetProps
+  | ClearProps
+  | StopSubscriptions
+  | ChangeStateProps;

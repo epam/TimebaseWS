@@ -33,6 +33,7 @@ export interface SchemaClassFieldModel {
   title: string; // "Contract ID"
   type: FieldTypeModel; // "VARCHAR (ALPHANUMERIC(10))"
   static: boolean;
+  relativeTo?: string;
   value?: string;
   _props?: SchemaClassFieldPropsModel;
 }

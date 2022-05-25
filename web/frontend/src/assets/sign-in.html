@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Redirect</title>
 </head>
 <body>
@@ -10,13 +10,14 @@ Redirection page
   (function () {
     const REDIRECT_URI = '/auth/login';
     document.addEventListener('DOMContentLoaded', function () {
-      const queryString = (window.location.hash === '' ? window.location.search : window.location.hash).substr(1);
+      const queryString = (
+          window.location.hash === '' ? window.location.search : window.location.hash
+      ).substr(1);
       const path = [REDIRECT_URI, queryString].join('#');
       // debugger;
       window.location.assign(path);
     });
   })();
 </script>
-
 </body>
 </html>

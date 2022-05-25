@@ -16,8 +16,8 @@
  */
 package com.epam.deltix.grafana.data;
 
-import com.epam.deltix.grafana.model.fields.Column;
 import com.epam.deltix.grafana.model.DataFrame;
+import com.epam.deltix.grafana.model.fields.Column;
 
 public interface MutableDataFrame extends DataFrame {
 

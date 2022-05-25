@@ -1,0 +1,25 @@
+import { IEverChartBaseItem } from '../everChartParams';
+import { IEverChartDataBlock, IEverChartDataItem, IEverChartPadState, IEverChartState } from '../everChartState';
+export declare const selectEverChartPads: (s: IEverChartState) => Record<string, IEverChartPadState>;
+export declare const selectEverChartData: (s: IEverChartState) => IEverChartDataBlock<IEverChartDataItem>[];
+export declare const selectEverChartLastRequestedTime: (s: IEverChartState) => number;
+export declare const selectEverChartCrosshair: (s: IEverChartState) => import("../everChartState").IEverChartCrosshair;
+export declare const selectEverChartPositionScroll: (s: IEverChartState) => number;
+export declare const selectEverChartZoom: (s: IEverChartState, next?: boolean) => number;
+export declare const selectEverChartMaxBucketSize: (s: IEverChartState) => number;
+export declare const selectEverChartMinTime: (s: IEverChartState) => number;
+export declare const selectEverChartMinInterval: (s: IEverChartState) => number;
+export declare const selectEverChartMaxInterval: (s: IEverChartState) => number;
+export declare const selectEverChartMaxTime: (s: IEverChartState) => number;
+export declare const selectEverChartFormatFunctions: (s: IEverChartState) => import("../everChartParams").IFormatFunctions;
+export declare const selectEverChartDisableMagnet: (s: IEverChartState) => boolean;
+export declare const selectEverChartAnimationDuration: (s: IEverChartState) => number;
+export declare const selectEverChartDisableBackButton: (s: IEverChartState) => boolean;
+export declare const selectEverChartDataSlice: (s: IEverChartState, next?: boolean) => IEverChartDataItem[];
+export declare const selectEverChartParams: (s: IEverChartState) => Omit<import("../everChartParams").IEverChartParams, "pads">;
+export declare const selectEverChartItemWidthForItem: (s: IEverChartState, item: IEverChartBaseItem) => 0 | 1;
+export declare const selectEverChartPadItemWidth: (s: IEverChartState, pad: IEverChartPadState) => number;
+export declare const selectEverChartItemWidth: (s: IEverChartState) => number;
+/** returns time */
+export declare const selectEverChartLastTimeStub: (s: IEverChartState, next?: boolean) => number;
+export declare const selectEverChartLastTime: (s: IEverChartState) => number;

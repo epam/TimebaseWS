@@ -4,4 +4,4 @@ var AuthFlow;
 (function (AuthFlow) {
   AuthFlow['IMPLICIT'] = 'IMPLICIT';
   AuthFlow['CODE'] = 'CODE';
-})(AuthFlow = exports.AuthFlow || (exports.AuthFlow = {}));
+})((AuthFlow = exports.AuthFlow || (exports.AuthFlow = {})));

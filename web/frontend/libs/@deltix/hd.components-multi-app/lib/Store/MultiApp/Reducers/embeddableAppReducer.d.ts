@@ -1,0 +1,10 @@
+import { IMultiAppState } from '../IMultiAppState';
+import { changeThemeAction, destroyEmbeddableAppAction, embeddableAppFailedAction, embeddableAppInitializedAction, embeddableAppInitializingAction, embeddableAppKernelCreatedAction, embeddableAppNoDataAction, embeddableAppUpdatePositionAction } from '../multiAppActions';
+export declare const embeddableAppInitializedReducer: (state: IMultiAppState, { payload: { appId, appType }, }: ReturnType<typeof embeddableAppInitializedAction>) => any;
+export declare const embeddableAppKernelCreatedReducer: (state: IMultiAppState, { payload: { appId, appType, state: embeddableState, position }, }: ReturnType<typeof embeddableAppKernelCreatedAction>) => any;
+export declare const embeddableAppInitializingReducer: (state: IMultiAppState, { payload: { appId, appType, position }, }: ReturnType<typeof embeddableAppInitializingAction>) => any;
+export declare const embeddableAppUpdatePositionReducer: (state: IMultiAppState, { payload: { appId, appType, newPosition }, }: ReturnType<typeof embeddableAppUpdatePositionAction>) => any;
+export declare const embeddableAppFailedReducer: (state: IMultiAppState, { payload: { appId, appType } }: ReturnType<typeof embeddableAppFailedAction>) => any;
+export declare const embeddableAppNoDataReducer: (state: IMultiAppState, { payload: { appId, appType } }: ReturnType<typeof embeddableAppNoDataAction>) => any;
+export declare const destroyEmbeddableAppReducer: (state: IMultiAppState, { payload: { appType, appId }, }: ReturnType<typeof destroyEmbeddableAppAction>) => any;
+export declare const changeThemeReducer: (state: IMultiAppState, { payload: { theme } }: ReturnType<typeof changeThemeAction>) => any;

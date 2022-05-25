@@ -1,49 +1,35 @@
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  ElementRef,
-  Input,
-  OnDestroy,
-  OnInit,
-  ViewChild,
-}                                                                                from '@angular/core';
-import { ActivatedRoute, Data, Params }                                          from '@angular/router';
-import { HdDate }                                                                from '@assets/hd-date/hd-date';
-import { select, Store }                                                         from '@ngrx/store';
-import { BsDatepickerConfig, BsDatepickerDirective, BsModalRef, BsModalService } from 'ngx-bootstrap';
-import { Observable, Subject }                                                   from 'rxjs';
-import { distinctUntilChanged, filter, take, takeUntil, withLatestFrom }         from 'rxjs/operators';
-import { AppState }                                                              from '../../../../core/store';
-// import { streamsDetailsStateSelector } from '../../store/stream-details/stream-details.selectors';
-import { getLocaleDateString }                                                   from '../../../../shared/locale.timezone';
+import { ChangeDetectorRef, Component, Input, OnDestroy, OnInit }                             from '@angular/core';
+import { ActivatedRoute }                                                                     from '@angular/router';
+import { HdDate }                                                                             from '@assets/hd-date/hd-date';
+import { select, Store }                                                                      from '@ngrx/store';
+import { BsDatepickerConfig }                                                                 from 'ngx-bootstrap/datepicker';
+import { BsModalService }                                                                     from 'ngx-bootstrap/modal';
+import { combineLatest, merge, Observable, of, Subject }                                      from 'rxjs';
+import { debounceTime, filter, map, shareReplay, switchMap, take, takeUntil, withLatestFrom } from 'rxjs/operators';
+import { AppState }                                                                           from '../../../../core/store';
+import { SchemaTypeModel }                                                                    from '../../../../shared/models/schema.type.model';
+import { RightPaneService }                                                                   from '../../../../shared/right-pane/right-pane.service';
+import { GlobalFiltersService }                                                               from '../../../../shared/services/global-filters.service';
+import { SchemaService }                                                                      from '../../../../shared/services/schema.service';
+import { StreamsService }                                                                     from '../../../../shared/services/streams.service';
+import { SymbolsService }                                                                     from '../../../../shared/services/symbols.service';
 import {
   dateToUTC,
   hdDateTZ,
-}                                                                                from '../../../../shared/utils/timezone.utils';
-import { FilterModel }                                                           from '../../models/filter.model';
-import { TabModel }                                                              from '../../models/tab.model';
-import * as FilterActions
-                                                                                 from '../../store/filter/filter.actions';
-import * as StreamDetailsActions
-                                                                                 from '../../store/stream-details/stream-details.actions';
-import { StreamDetailsEffects }                                                  from '../../store/stream-details/stream-details.effects';
+}                                                                                             from '../../../../shared/utils/timezone.utils';
+import { FilterModel }                                                                        from '../../models/filter.model';
+import { StreamUpdatesService }                                                               from '../../services/stream-updates.service';
+import { StreamDetailsEffects }                                                               from '../../store/stream-details/stream-details.effects';
 import * as fromStreamDetails
-                                                                                 from '../../store/stream-details/stream-details.reducer';
-import {
-  getStreamGlobalFilters,
-  getStreamSymbols,
-  streamsDetailsStateSelector,
-}                                                                                from '../../store/stream-details/stream-details.selectors';
-import * as fromStreamProps
-                                                                                 from '../../store/stream-props/stream-props.reducer';
+                                                                                              from '../../store/stream-details/stream-details.reducer';
+import * as StreamsTabsActions
+                                                                                              from '../../store/streams-tabs/streams-tabs.actions';
 import {
   getActiveOrFirstTab,
   getActiveTab,
   getActiveTabFilters,
-  getTabs,
-}                                                                                from '../../store/streams-tabs/streams-tabs.selectors';
-import { ModalFilterComponent }                                                  from '../modals/modal-filter/modal-filter.component';
+}                                                                                             from '../../store/streams-tabs/streams-tabs.selectors';
+import { ModalFilterComponent }                                                               from '../modals/modal-filter/modal-filter.component';
 
 const now = new HdDate();
 
@@ -59,327 +45,226 @@ export const fromUtc = (date: any) => {
   return newDate;
 };
 
-
 @Component({
   selector: 'app-filters-panel',
   templateUrl: './filters-panel.component.html',
   styleUrls: ['./filters-panel.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Default,
 })
-
 export class FiltersPanelComponent implements OnInit, OnDestroy {
   @Input() hideTimePicker = false;
-  public currentDateTimeFullHoursFrom: Date;
-  public format: string;
+  manuallyChanged$: Observable<boolean>;
+  dateTitle$: Observable<string>;
+  filteredTypesSymbols$: Observable<boolean>;
+  bsConfig$: Observable<Partial<BsDatepickerConfig>>;
+
   private destroy$ = new Subject();
-  public activeTab: Observable<TabModel>;
-  public live: boolean;
-  private reverse: boolean;
-  private filteredStartDate: boolean;
-  private dateFirst: HdDate;
-  private propsState: Observable<fromStreamProps.State>;
-  public bsModalRef: BsModalRef;
-  public schema = [];
-  public symbols = [];
-  public streamName: string;
-  public tabName: string;
-  public filteredTypesSymbols: boolean;
-  public streamDetails: Observable<fromStreamDetails.State>;
-  private filterTimezone;
-  public bsConfig: Partial<BsDatepickerConfig>;
-  @ViewChild('dp') datepicker: BsDatepickerDirective;
-  @ViewChild('btn') btn: ElementRef;
+  private now = new Date();
+  private tmpDate$ = new Subject<Date>();
+  private selectedDate: string;
+  private initialDate$: Observable<string>;
+  private schema: SchemaTypeModel[];
 
   constructor(
     private appStore: Store<AppState>,
-    private route: ActivatedRoute,
+    private activatedRoute: ActivatedRoute,
     private modalService: BsModalService,
     private streamDetailsStore: Store<fromStreamDetails.FeatureState>,
     private streamDetailsEffects: StreamDetailsEffects,
-    private streamPropsStore: Store<fromStreamProps.FeatureState>,
     private cdr: ChangeDetectorRef,
+    private globalFiltersService: GlobalFiltersService,
+    private streamsService: StreamsService,
+    private streamUpdatesService: StreamUpdatesService,
+    private symbolsService: SymbolsService,
+    private messageInfoService: RightPaneService,
+    private schemaService: SchemaService,
   ) {}
 
   ngOnInit() {
-    // this.format = getLocaleDateString() + ' HH:mm:ss.fff';
-    this.activeTab = this.appStore.pipe(select(getActiveOrFirstTab));
-    this.appStore
+    this.activatedRoute.params
+      .pipe(switchMap((tab) => this.schemaService.getSchema(tab.stream, null, true)))
       .pipe(
-        select(getStreamSymbols),
+        map((response) => [...response.types]),
         takeUntil(this.destroy$),
       )
-      .subscribe(symbols => {
-          if (symbols?.length) {
-            this.symbols = [...symbols.filter(Boolean)];
-          }
-        },
-      );
+      .subscribe((schema) => (this.schema = schema));
 
-    this.streamDetails = this.streamDetailsStore.pipe(select(streamsDetailsStateSelector));
-    this.appStore
-      .pipe(
-        select(getStreamGlobalFilters),
-        filter(global_filter => !!global_filter),
-        takeUntil(this.destroy$),
-        distinctUntilChanged(),
-      )
-      .subscribe(action => {
-        let filter_date_format = getLocaleDateString();
-        let filter_time_format = 'HH:mm:ss SSS';
+    const range$ = this.activatedRoute.params.pipe(
+      switchMap((params) =>
+        params.symbol
+          ? this.symbolsService
+              .getProps(params.stream, params.symbol, 1000)
+              .pipe(map((p) => p?.props.symbolRange))
+          : this.streamsService.getProps(params.stream).pipe(map((p) => p?.props.range)),
+      ),
+      shareReplay(1),
+    );
 
-        if (action.filter_date_format && action.filter_date_format.length) {
-          filter_date_format = action.filter_date_format[0];
-
+    this.initialDate$ = this.activatedRoute.params.pipe(
+      switchMap(() =>
+        combineLatest([
+          this.appStore.pipe(
+            select(getActiveTab),
+            filter((t) => !!t),
+          ),
+          range$,
+        ]),
+      ),
+      map(([tab, range]) => {
+        if (tab.live) {
+          return new Date(new Date(range.end).getTime() + 1).toISOString();
         }
-        if (action.filter_time_format && action.filter_time_format.length) {
-          filter_time_format = action.filter_time_format[0];
-        }
-        if (action.filter_timezone && action.filter_timezone.length) {
-          this.filterTimezone = action.filter_timezone[0];
-        } else {
-          this.filterTimezone = null;
-        }
+        return tab.reverse ? range.end : range.start;
+      }),
+      map((date) => date || this.now.toISOString()),
+    );
 
-        this.format = filter_date_format.toUpperCase() + ' ' + filter_time_format;
-        this.format = this.format.replace('tt', 'A');
-        this.format = this.format.replace(/f/g, 'S');
-        this.bsConfig = Object.assign({}, {
-          containerClass: 'theme-default',
-          dateInputFormat: this.format,
-        });
-        if (this.btn) {
-          this.btn.nativeElement.dispatchEvent(new MouseEvent('click'));
-          this.btn.nativeElement.dispatchEvent(new MouseEvent('click'));
-        }
-        this.cdr.detectChanges();
-
-      });
-
-    this.propsState = this.streamPropsStore.pipe(select('streamProps'));
-    this.propsState
-      .pipe(
-        filter(props => !!props),
-        distinctUntilChanged(),
-        takeUntil(this.destroy$),
-      )
-      .subscribe(props => {
-        let dateEnd: number;
-        let dateStart: number;
-        if (props.props && props.props.range && props.props.range.end && props.props.range.start) {
-          const end = props.props.range.end;
-          const start = props.props.range.start;
-          dateEnd = new Date(end).getTime();
-          dateStart = new Date(start).getTime();
-        }
-        if (this.reverse) {
-          if (props.props && props.props.range && props.props.range.end) {
-            this.dateFirst = toUtc(new HdDate(new Date(dateEnd).toISOString()));
-          } else {
-            this.dateFirst = toUtc(new HdDate());
-          }
-        } else if (!this.live) {
-          if (props.props && props.props.range && props.props.range.start) {
-            this.dateFirst = toUtc(new HdDate(new Date(dateStart).toISOString()));
-
-          } else {
-            this.dateFirst = toUtc(new HdDate());
-          }
-        } else if (this.live) {
-          if (props.props && props.props.range && props.props.range.end) {
-            this.dateFirst = toUtc(new HdDate(new Date(dateEnd + 1).toISOString()));
-          } else {
-            this.dateFirst = toUtc(new HdDate());
-          }
-        }
-
-        if (!this.filteredStartDate) {
-          if (this.dateFirst) {
-            this.currentDateTimeFullHoursFrom = this.checkFilterTimezoneDate(this.dateFirst);
-          }
-        }
-      });
-
-    this.appStore
-      .pipe(
-        select(getTabs),
-        filter((tabs) => !!tabs),
-        take(1),
-        takeUntil(this.destroy$),
-      )
-      .subscribe((tabs: TabModel[]) => {
-        this.route.params
-          .pipe(
-            withLatestFrom(this.route.data),
-            withLatestFrom(this.route.queryParams),
-            takeUntil(this.destroy$),
-          )
-          .subscribe(([[params, data], queryParams]: [[{ stream: string, id: string, symbol?: string }, Data], Params]) => {
-            // this.streamDetailsStore.dispatch(new StreamDetailsActions.GetSymbols({streamId: params.stream}));
-            this.streamDetailsStore.dispatch(new StreamDetailsActions.GetSymbols({
-              streamId: params.stream,
-              ...(queryParams.space ? {spaceId: queryParams.space} : {}),
-            }));
-            this.tabName = params.stream;
-            if (params.symbol) {
-              this.tabName = params.stream + params.symbol;
-            }
-
-            this.live = data.hasOwnProperty('live');
-            this.reverse = data.hasOwnProperty('reverse');
-
-            this.streamDetailsEffects
-              .setSchema
-              .pipe(
-                // take(1),
-                takeUntil(this.destroy$),
-              )
-              .subscribe(action => {
-                if (action.payload.schema && action.payload.schema.length) {
-                  this.schema = [...action.payload.schema];
-                }
-              });
-
-
-          });
-      });
-
-
-    this.appStore
-      .pipe(
+    const filtersAndInitial$ = combineLatest([
+      this.appStore.pipe(
         select(getActiveTabFilters),
-        filter((filter) => !!filter),
+        filter((f) => !!f),
+      ),
+      this.initialDate$,
+    ]);
+
+    this.dateTitle$ = merge(
+      filtersAndInitial$.pipe(
+        switchMap(([filters, initial]) => this.utcToDatePicker(filters.from || initial)),
+      ),
+      this.tmpDate$.pipe(map((date) => date.toISOString())),
+    );
+
+    this.dateTitle$.pipe(takeUntil(this.destroy$)).subscribe((date) => (this.selectedDate = date));
+
+    const filters$ = this.appStore.pipe(select(getActiveTabFilters));
+    this.manuallyChanged$ = filters$.pipe(map((filters) => filters?.manuallyChanged));
+
+    this.filteredTypesSymbols$ = filters$.pipe(
+      map((filters) => !!(filters?.filter_symbols?.length || filters?.filter_types?.length)),
+    );
+
+    this.activatedRoute.params
+      .pipe(
+        switchMap((params) =>
+          filtersAndInitial$.pipe(
+            take(1),
+            map((data) => ({data, params})),
+          ),
+        ),
         takeUntil(this.destroy$),
       )
-      .subscribe((filter: FilterModel) => {
-        if (filter.from && !this.filterTimezone) {
-          this.currentDateTimeFullHoursFrom = new Date(filter.from);
-          this.filteredStartDate = true;
-        } else if (filter.from && this.filterTimezone) {
-          this.currentDateTimeFullHoursFrom = this.checkFilterTimezoneDate(toUtc(new HdDate(filter.from)));
-          this.filteredStartDate = true;
-        } else {
-          this.currentDateTimeFullHoursFrom = null;
-          this.filteredStartDate = false;
+      .subscribe(({data: [filter, initial], params}) => {
+        if (!filter?.from) {
+          this.updateFilters({from: initial});
         }
-        this.filteredTypesSymbols = !!((filter.filter_symbols && filter.filter_symbols.length) || (filter.filter_types && filter.filter_types.length));
-        this.cdr.markForCheck();
+      });
 
+    this.bsConfig$ = this.globalFiltersService.getBsConfig();
+    const activeTab$ = this.appStore.pipe(select(getActiveOrFirstTab));
+    this.streamUpdatesService
+      .onUpdates()
+      .pipe(
+        withLatestFrom(activeTab$),
+        debounceTime(100),
+        switchMap(([updates, activeTab]) => {
+          if (updates.changed.includes(activeTab.stream) && activeTab.filter?.filter_symbols) {
+            return this.symbolsService.getSymbols(activeTab.stream, activeTab.space);
+          }
+
+          return of(null);
+        }),
+        withLatestFrom(activeTab$),
+        takeUntil(this.destroy$),
+      )
+      .subscribe(([updatedSymbols, activeTab]) => {
+        if (!updatedSymbols) {
+          return;
+        }
+
+        const newSymbols = activeTab.filter.filter_symbols.filter((symbol) =>
+          updatedSymbols.includes(symbol),
+        );
+        if (newSymbols.length !== activeTab.filter.filter_symbols.length) {
+          this.updateFilterSymbols(newSymbols);
+        }
       });
   }
 
-  setConfig() {
-    if (this.datepicker) {
-      this.currentDateTimeFullHoursFrom = new Date(this.currentDateTimeFullHoursFrom);
-      this.datepicker.setConfig();
-    }
-    this.cdr.detectChanges();
+  onDateSubmit() {
+    this.globalFiltersService
+      .getFilters()
+      .pipe(take(1))
+      .subscribe((filters) => {
+        this.updateFilters({
+          from: dateToUTC(new Date(this.selectedDate), filters.timezone[0].name).toISOString(),
+          manuallyChanged: true,
+        });
+      });
+  }
+
+  onDateChange(date: Date) {
+    this.tmpDate$.next(date);
   }
 
   onClearFilter() {
-    this.appStore.dispatch(new FilterActions.CleanFilter());
-    this.currentDateTimeFullHoursFrom = this.checkFilterTimezoneDate(this.dateFirst);
-    this.filteredStartDate = false;
+    this.messageInfoService.clearSelectedMessage();
+    this.initialDate$.pipe(take(1)).subscribe((initialDate) => {
+      this.updateFilters({from: initialDate, manuallyChanged: false});
+    });
   }
 
-  onDateFromChange(event: any) {
-    // console.log(event);
+  private updateFilters(update: Partial<FilterModel>) {
+    this.messageInfoService.clearSelectedMessage();
+    combineLatest([this.activatedRoute.params, this.appStore.pipe(select(getActiveTabFilters))])
+      .pipe(take(1))
+      .subscribe(([params, filters]) => {
+        this.appStore.dispatch(
+          new StreamsTabsActions.SetFilters({
+            filter: {...filters, ...update},
+            tabId: params.id,
+          }),
+        );
+      });
   }
 
-  checkFilterTimezone(date: HdDate) {
-    if (this.filterTimezone && date) {
-      const dateTimeZone = hdDateTZ(date, this.filterTimezone.name);
-      return toUtc(dateTimeZone);
-    }
-    return fromUtc(date);
-
-  }
-
-  checkFilterTimezoneDate(date: any) {
-    if (this.filterTimezone && date) {
-      const dateTimeZone = hdDateTZ(date, this.filterTimezone.name);
-      return new Date(toUtc(dateTimeZone).getEpochMillis());
-    }
-    return new Date(fromUtc(date).getEpochMillis());
-
-  }
-
-
-  filterTimezoneUTC(date: HdDate, filterTimezone = 'GMT') {
-    const dateTimeZone = hdDateTZ(date, filterTimezone);
-    return toUtc(dateTimeZone);
-  }
-
-  public onFilterSubmit() {
-    const filter = {};
-    if (this.currentDateTimeFullHoursFrom) {
-      filter['from'] = this.currentDateTimeFullHoursFrom.toISOString();
-      if (this.filterTimezone) {
-        filter['from'] = dateToUTC(this.currentDateTimeFullHoursFrom, this.filterTimezone.name).toISOString();
-      }
-      //   this.filteredStartDate = true;
-    }
-
-    this.appStore.dispatch(new FilterActions.AddFilters({
-      filter: filter,
-    }));
+  private utcToDatePicker(date: string): Observable<string> {
+    return this.globalFiltersService.getFilters().pipe(
+      map((filters) => {
+        const dateTimeZone = hdDateTZ(new HdDate(date), filters.timezone[0].name);
+        return new Date(toUtc(toUtc(dateTimeZone)).getEpochMillis()).toISOString();
+      }),
+    );
   }
 
   openFilterModalWithComponent() {
-    this.appStore.pipe(select(getActiveTab), take(1)).subscribe(tab => {
-      const initialState = {
-        title: 'Symbols & Message Types Filter',
-        types: this.schema,
-        symbols: this.symbols,
-        isStream: !tab.symbol,
-      };
-  
-      this.bsModalRef = this.modalService.show(ModalFilterComponent, {initialState,
-        class: 'modal-filter',
+    this.appStore
+      .pipe(select(getActiveTab))
+      .pipe(take(1))
+      .subscribe((tab) => {
+        const initialState = {
+          title: 'Symbols & Message Types Filter',
+          types: this.schema,
+          isStream: !tab.symbol,
+          closeBtnName: 'Close',
+          stream: tab.stream,
+          symbol: tab.symbol,
+          space: tab.space,
+        };
+
+        const bsModalRef = this.modalService.show(ModalFilterComponent, {
+          initialState,
+          class: 'modal-filter',
+        });
+        this.messageInfoService.clearSelectedMessage();
+        bsModalRef.content.onFilter = (data) => {
+          this.updateFilters({filter_types: data.filter_types?.length ? data.filter_types : null});
+          this.updateFilterSymbols(data.filter_symbols);
+        };
+
+        bsModalRef.content.onClear = () => {
+          this.messageInfoService.clearSelectedMessage();
+          this.updateFilters({filter_symbols: null, filter_types: null});
+        };
       });
-      this.bsModalRef.content.onFilter = (data) => {
-    
-        if (data.filter_types && data.filter_types.length) {
-          const filterTypes = {};
-          filterTypes['filter_types'] = data.filter_types;
-          this.appStore.dispatch(new FilterActions.AddFilters({
-            filter: filterTypes,
-          }));
-      
-        } else {
-          this.appStore.dispatch(new FilterActions.RemoveFilter({
-            filterName: 'filter_types',
-          }));
-        }
-    
-        if (data.filter_symbols && data.filter_symbols.length) {
-          const filterSymbols = {};
-          filterSymbols['filter_symbols'] = data.filter_symbols;
-          this.appStore.dispatch(new FilterActions.AddFilters({
-            filter: filterSymbols,
-          }));
-        } else {
-          this.appStore.dispatch(new FilterActions.RemoveFilter({
-            filterName: 'filter_symbols',
-          }));
-        }
-        this.filteredTypesSymbols = !!((data.filter_symbols && data.filter_symbols.length) || (data.filter_types && data.filter_types.length));
-    
-    
-      };
-  
-      this.bsModalRef.content.onClear = () => {
-        this.filteredTypesSymbols = false;
-        this.appStore.dispatch(new FilterActions.RemoveFilter({
-          filterName: 'filter_symbols',
-        }));
-        this.appStore.dispatch(new FilterActions.RemoveFilter({
-          filterName: 'filter_types',
-        }));
-      };
-  
-      this.bsModalRef.content.closeBtnName = 'Close';
-    });
-    
   }
 
   ngOnDestroy(): void {
@@ -387,4 +272,8 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  private updateFilterSymbols(filterSymbols: string[]) {
+    this.updateFilters({filter_symbols: filterSymbols?.length ? filterSymbols : null});
+    this.messageInfoService.clearSelectedMessage();
+  }
 }

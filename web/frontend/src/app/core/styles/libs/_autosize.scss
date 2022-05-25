@@ -1,0 +1,7 @@
+@import '../variables';
+
+textarea[autosize] {
+  line-height: 13 * $ss;
+  resize: none;
+  height: auto;
+}

@@ -1,12 +1,12 @@
 export class WSLiveModel {
-    messageType?: string;
-    fromTimestamp: string;
-    symbols?: string[];
+  messageType?: string;
+  fromTimestamp: string;
+  symbols?: string[];
   space?: string;
   types?: string[];
+  qql?: string;
 
-    constructor(obj: WSLiveModel | {}) {
-        Object.assign(this, obj);
-    }
-
+  constructor(obj: WSLiveModel | {}) {
+    Object.assign(this, obj);
+  }
 }

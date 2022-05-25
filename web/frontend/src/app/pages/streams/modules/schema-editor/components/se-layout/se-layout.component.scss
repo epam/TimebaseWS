@@ -1,6 +1,5 @@
 @import '~src/app/pages/streams/components/stream-details/stream-details.component';
 
-
 .diff-view {
   position: relative;
   display: block;
@@ -37,10 +36,8 @@
 .types-list-grid {
   position: relative;
   display: block;
-  margin: 5 * $ss 0;
-  height: calc(100% - #{$ss * 10 + 2 * $ss});
+  flex-grow: 1;
 }
-
 
 .class-detailsWr {
   position: relative;
@@ -77,43 +74,32 @@
     left: 0;
     overflow: auto;
     border-bottom-right-radius: 4 * $ss;
+    padding: 0;
   }
 }
 
 .class-details {
-  app-fl-control-panel,
-  app-fields-list {
-    position: absolute;
-    right: 5 * $ss;
-    left: 5 * $ss;
-    display: block;
-  }
-
-  app-fl-control-panel {
-    top: 5 * $ss;
-  }
+  display: flex;
+  flex-direction: column;
 
   app-fields-list {
-    top: 5 * $ss;
-    bottom: 5 * $ss;
-  }
-
-  app-fl-control-panel + app-fields-list {
-    top: (5 + 10 + 2) * $ss;
-    bottom: 5 * $ss;
+    flex-grow: 1;
   }
 }
 
+.save-btn {
+  padding: 0 4 * $ss;
+  position: sticky;
+  right: 5 * $ss;
+}
+
 .send-schema-btn {
+  padding: 0 4 * $ss;
   font-size: 6 * $ss;
-
-  //height: 10 * $ss;
   line-height: 10 * $ss;
-
   position: absolute;
   right: 5 * $ss;
   bottom: 10 * $ss;
-  padding: 0 4 * $ss;
 }
 
 .send-schema-btn-wr {
@@ -124,17 +110,17 @@
   }
 }
 
-
 ::ng-deep {
-
   .classItem {
-    &, * {
+    &,
+    * {
       color: $success;
     }
   }
 
   .enumItem {
-    &, * {
+    &,
+    * {
       color: $warning;
     }
   }
@@ -145,7 +131,6 @@
   }
 
   .nameForm {
-
     .validation-error {
       position: relative;
       display: block;
@@ -158,7 +143,6 @@
       margin-bottom: 8px;
       width: 100%;
       position: relative;
-
 
       .btn:not(.btn-from) {
         margin-bottom: 0;
@@ -196,19 +180,33 @@
     }
   }
 
+  app-cl-control-panel,
+  app-fl-control-panel {
+    margin: 0 0 5 * $ss;
+  }
 
-  .gridWr, .grid{
-    .ag-row{
-      &.isEdited{
+  app-cl-bottom-panel {
+    margin: 5 * $ss 0 0;
+  }
+
+  app-field-properties,
+  app-diff-layout {
+    flex-grow: 1;
+  }
+
+  .gridWr,
+  .grid {
+    .ag-row {
+      &.isEdited {
         border: 1px solid rgba($warning, 0.95);
       }
+
       &.hasError {
-        &, &.classItem * {
+        &,
+        &.classItem * {
           color: $danger;
         }
       }
     }
   }
 }
-
-

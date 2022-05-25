@@ -1,10 +1,179 @@
-@import "../variables";
+@import '../variables';
 
 ng-multiselect-dropdown {
   .multiselect-dropdown {
-    .dropdown-btn span.selected-item {
-      margin-bottom: 2 * $ss;
+    .dropdown-list {
+      padding-top: 0;
+      background-color: $dark-blue;
+      box-shadow: none;
+      overflow: hidden;
+
+      .multiselect-item-checkbox {
+        div {
+          color: $white !important;
+        }
+      }
+
+      .filter-textbox {
+        padding: 5 * $ss 0 5 * $ss !important;
+
+        input {
+          background: transparent;
+          color: $white;
+          padding: 0 0 0 5 * $ss !important;
+        }
+      }
+    }
+
+    .dropdown-btn {
+      padding-right: 15 * $ss !important;
+
+      span.selected-item {
+        margin: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 0 15px 0 5px !important;
+        position: relative;
+
+        &:hover {
+          box-shadow: none !important;
+        }
+
+        a {
+          position: absolute;
+          top: -3px;
+          right: 3px;
+        }
+      }
+
+      .dropdown-multiselect__caret {
+        height: auto !important;
+        padding: 0 !important;
+        width: auto !important;
+        right: 4 * $ss !important;
+        top: 9px !important;
+
+        &:before {
+          top: 0 !important;
+          display: block !important;
+        }
+      }
+    }
+
+    li.multiselect-item-checkbox:hover {
+      background-color: transparent;
+    }
+  }
+
+  &.single-selection {
+    .dropdown-btn {
+      span.selected-item {
+        background: transparent !important;
+        border: none !important;
+        padding-right: 0 !important;
+
+        a {
+          display: none !important;
+        }
+      }
+    }
+
+    .dropdown-list {
+      .multiselect-item-checkbox {
+        &:hover {
+          background: $blue;
+        }
+
+        div {
+          padding-left: 0 !important;
+
+          &::before,
+          &:after {
+            display: none;
+          }
+        }
+
+        input[type='checkbox']:checked + div {
+          background: $blue;
+          margin: -#{3 * $ss} -#{5 * $ss};
+          padding: 3 * $ss;
+          padding-left: 5 * $ss !important;
+        }
+      }
+    }
+  }
+
+  &.flat-multiselect {
+    .multiselect-item-checkbox {
+      div {
+        white-space: nowrap;
+      }
+    }
+
+    .multiselect-dropdown {
+      .dropdown-list {
+        width: fit-content;
+      }
+    }
+
+    .dropdown-btn {
+      background: $bg-blue;
+      border: none !important;
+
+      span.selected-item {
+        margin-bottom: 2 * $ss;
+        border: none !important;
+      }
+
+      .dropdown-multiselect__caret {
+        top: 13px !important;
+
+        &::before {
+          border-width: 6px 5px 0 !important;
+          margin-top: 0 !important;
+        }
+      }
+    }
+
+    .multiselect-dropdown {
+      .dropdown-list {
+        border: none;
+        background: $bg-blue;
+        padding: 0;
+        min-width: 100%;
+        margin-top: 5px;
+
+        .filter-textbox {
+          padding: 0 !important;
+
+          input {
+            height: 20 * $ss;
+
+            &,
+            &::placeholder {
+              color: $white;
+            }
+
+            &::placeholder {
+              opacity: 0.5;
+            }
+          }
+        }
+
+        .multiselect-item-checkbox,
+        .filter-textbox {
+          border-bottom: 1px solid rgba(39, 56, 77, 0.4) !important;
+        }
+      }
+    }
+
+    &.has-values {
+      .multiselect-dropdown {
+        .dropdown-btn {
+          padding: 3 * $ss 15 * $ss $ss 3 * $ss !important;
+        }
+      }
     }
   }
 }
-

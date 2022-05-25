@@ -1,0 +1,58 @@
+{
+  "name": "@deltix/ng-autocomplete",
+  "version": "2.4.1",
+  "description": "",
+  "main": "./dist/bundle/autocomplete.module.umd.js",
+  "module": "./dist/src/ts/autocomplete.module.js",
+  "typings": "./dist/src/ts/autocomplete.module.d.ts",
+  "scripts": {
+    "test": "tslint --config tslint.json './src/ts/**/*.ts'",
+    "watch": "webpack --config webpack/webpack.config.js --progress --colors --watch",
+    "server": "webpack-dev-server --config webpack/webpack.config.js",
+    "start": "npm run server",
+    "build:css": "webpack --config webpack/webpack.styles.config",
+    "build": "ngc -p tsconfig-aot.json && rollup -c && yarn build:css"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.deltixhub.com/Deltix/Common/Web/deltix-ng-autocomplete.git"
+  },
+  "keywords": [
+    "autocomplete",
+    "dropdown",
+    "angular"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@angular/common": "8.2.14",
+    "@angular/compiler": "8.2.14",
+    "@angular/compiler-cli": "8.2.14",
+    "@angular/core": "8.2.14",
+    "@angular/forms": "8.2.14",
+    "@angular/platform-browser": "8.2.14",
+    "@angular/platform-browser-dynamic": "8.2.14",
+    "autoprefixer": "^9.7.2",
+    "awesome-typescript-loader": "^5.2.1",
+    "core-js": "2.4.1",
+    "css-loader": "0.28.7",
+    "html-webpack-plugin": "^3.2.0",
+    "mini-css-extract-plugin": "^0.8.0",
+    "postcss-loader": "^3.0.0",
+    "reflect-metadata": "0.1.10",
+    "rollup": "0.67.0",
+    "rxjs": "6.5.3",
+    "sass": "^1.23.7",
+    "sass-loader": "^8.0.0",
+    "style-loader": "^1.0.1",
+    "tslint": "^5.20.1",
+    "typescript": "3.5.3",
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.3.10",
+    "webpack-dev-server": "^3.9.0",
+    "zone.js": "0.9.1"
+  },
+  "peerDependencies": {
+    "@angular/forms": "=>8.2.14"
+  }
+}

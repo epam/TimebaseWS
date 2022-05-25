@@ -11,5 +11,4 @@ export class StreamQueryModel {
   constructor(obj: StreamQueryModel | {}) {
     Object.assign(this, obj);
   }
-  
 }

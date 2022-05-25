@@ -1,0 +1,13 @@
+{
+    "VERBOSE_OUTPUT" : true,
+    "USE_DECIMAL" : false,
+    "USE_ARRAY_LIST" : false,
+    "GENERATE_PROMPTS" : true,
+    "GENERATE_INTERFACES" : true,
+    "GENERATE_POOLABLE_INTERFACES" : false,
+    "GENERATE_READONLY_INTERFACES" : true,
+    "GENERATE_READWRITE_INTERFACES" : true,
+    "GENERATE_CLASSES" : true,
+    "GENERATE_ENUMS" : true,
+    "GENERATE_ANNOTATIONS" : true
+}

@@ -1,0 +1,41 @@
+import { AfterViewInit, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import VizceralGraph from '@deltix/vizceral';
+import { VizceralDirective } from './ngx-vizceral.directive';
+import { VizceralSize } from './ngx-vizceral.models';
+import * as i0 from "@angular/core";
+export declare class VizceralComponent implements AfterViewInit, OnChanges {
+    initData: any;
+    size: VizceralSize;
+    view: any;
+    showLabels: any;
+    filters: any;
+    objectToHighlight: any;
+    match: any;
+    modes: any;
+    allowDraggingOfNodes: any;
+    styles: any;
+    targetFramerate: any;
+    initialSize: {
+        width: number;
+        height: number;
+    };
+    useCurrentInitialSize: boolean;
+    viewChanged: EventEmitter<any>;
+    viewUpdated: EventEmitter<any>;
+    objectHighlighted: EventEmitter<any>;
+    nodeContextSizeChanged: EventEmitter<any>;
+    matchesFound: EventEmitter<any>;
+    nodeUpdated: EventEmitter<any>;
+    objectHovered: EventEmitter<any>;
+    directiveRef: VizceralDirective;
+    constructor();
+    set traffic(data: any);
+    ngAfterViewInit(): void;
+    ngOnChanges(changes: SimpleChanges): void;
+    vizceral(): VizceralGraph;
+    setView(view: string[]): void;
+    locate(searchText: string): void;
+    private setTraffic;
+    static ɵfac: i0.ɵɵFactoryDeclaration<VizceralComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<VizceralComponent, "vizceral", ["ngxVizceral"], { "size": "size"; "view": "view"; "showLabels": "showLabels"; "filters": "filters"; "objectToHighlight": "objectToHighlight"; "match": "match"; "modes": "modes"; "allowDraggingOfNodes": "allowDraggingOfNodes"; "styles": "styles"; "targetFramerate": "targetFramerate"; "initialSize": "initialSize"; "useCurrentInitialSize": "useCurrentInitialSize"; "traffic": "traffic"; }, { "viewChanged": "viewChanged"; "viewUpdated": "viewUpdated"; "objectHighlighted": "objectHighlighted"; "nodeContextSizeChanged": "nodeContextSizeChanged"; "matchesFound": "matchesFound"; "nodeUpdated": "nodeUpdated"; "objectHovered": "objectHovered"; }, never, never>;
+}

@@ -16,6 +16,7 @@
  */
 package com.epam.deltix.grafana.doublemath;
 
+import com.epam.deltix.grafana.data.NumericField;
 import com.epam.deltix.containers.generated.DoubleDoubleToDoubleFunction;
 import com.epam.deltix.util.collections.generated.ObjectArrayList;
 import com.epam.deltix.computations.data.MutableGenericRecordImpl;
@@ -24,7 +25,6 @@ import com.epam.deltix.computations.data.base.GenericValueInfo;
 import com.epam.deltix.computations.data.base.MutableGenericRecord;
 import com.epam.deltix.computations.data.numeric.MutableDoubleValue;
 import com.epam.deltix.grafana.base.Aggregation;
-import com.epam.deltix.grafana.data.NumericField;
 import com.epam.deltix.grafana.model.fields.Field;
 
 import java.util.Collection;

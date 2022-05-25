@@ -1,12 +1,12 @@
-import { Observable, ReplaySubject } from 'rxjs';
-import { take } from 'rxjs/operators';
-import { Injectable } from '@angular/core';
-import IMonarchLanguage = monaco.languages.IMonarchLanguage;
-import LanguageConfiguration = monaco.languages.LanguageConfiguration;
+import {Injectable} from '@angular/core';
+import {Observable, ReplaySubject} from 'rxjs';
+import {take} from 'rxjs/operators';
 import IStandaloneThemeData = monaco.editor.IStandaloneThemeData;
 import ITextModel = monaco.editor.ITextModel;
 import IPosition = monaco.IPosition;
 import CompletionList = monaco.languages.CompletionList;
+import IMonarchLanguage = monaco.languages.IMonarchLanguage;
+import LanguageConfiguration = monaco.languages.LanguageConfiguration;
 
 type CompletionFunc = (model: ITextModel, position: IPosition) => Observable<CompletionList>;
 
@@ -23,35 +23,39 @@ export class MonacoService {
     MonacoService.monacoLoad$.next(window.monaco);
   }
 
-  private getMonaco(): Observable<any> {
-    return MonacoService.monacoLoad$.pipe(take(1));
-  }
-
   registerLanguage(languageId: string, config: LanguageConfiguration) {
-    this.getMonaco().subscribe(monaco => {
-      monaco.languages.register({ id: languageId });
+    this.getMonaco().subscribe((monaco) => {
+      monaco.languages.register({id: languageId});
       monaco.languages.setLanguageConfiguration(languageId, config);
     });
   }
 
   defineTheme(themeId: string, config: IStandaloneThemeData) {
-    this.getMonaco().subscribe(monaco => monaco.editor.defineTheme(themeId, config));
+    this.getMonaco().subscribe((monaco) => monaco.editor.defineTheme(themeId, config));
   }
 
   setAutoCompleteProvider(language: string, provider: CompletionFunc) {
     this.completionProviders.set(language, provider);
     if (!this.registeredProviders.has(language)) {
       this.registeredProviders.add(language);
-      this.getMonaco().subscribe(monaco => {
+      this.getMonaco().subscribe((monaco) => {
         monaco.languages.registerCompletionItemProvider(language, {
-          provideCompletionItems: (model: ITextModel, position: IPosition) => this.getCompletion(language, model, position).toPromise(),
+          triggerCharacters: [...Array(10).keys()].map((key) => `${key}`),
+          provideCompletionItems: (model: ITextModel, position: IPosition) =>
+            this.getCompletion(language, model, position).toPromise(),
         });
       });
     }
   }
 
   setTokensProvider(language: string, provider: IMonarchLanguage) {
-    this.getMonaco().subscribe(monaco => monaco.languages.setMonarchTokensProvider(language, provider));
+    this.getMonaco().subscribe((monaco) =>
+      monaco.languages.setMonarchTokensProvider(language, provider),
+    );
+  }
+
+  private getMonaco(): Observable<any> {
+    return MonacoService.monacoLoad$.pipe(take(1));
   }
 
   private getCompletion(language, model, position): Observable<CompletionList> {

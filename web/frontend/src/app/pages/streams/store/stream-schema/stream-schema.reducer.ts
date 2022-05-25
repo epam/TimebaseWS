@@ -1,6 +1,5 @@
-import { StreamSchemaActions, StreamSchemaActionTypes } from './stream-schema.actions';
-import { AppState }                                     from '../../../../core/store';
-
+import {AppState} from '../../../../core/store';
+import {StreamSchemaActions, StreamSchemaActionTypes} from './stream-schema.actions';
 
 export interface FeatureState extends AppState {
   streamSchema: State;
@@ -8,9 +7,8 @@ export interface FeatureState extends AppState {
 
 export interface State {
   selectedRowIsEnum: boolean;
-  selectedRowFields: { name: string, type: string }[];
+  selectedRowFields: {name: string; type: string}[];
   selectedRowName: string;
-
 }
 
 export const initialState: State = {
@@ -21,7 +19,6 @@ export const initialState: State = {
 
 export function reducer(state = initialState, action: StreamSchemaActions): State {
   switch (action.type) {
-
     case StreamSchemaActionTypes.GET_SCHEMA_FIELDS:
       return {
         ...state,

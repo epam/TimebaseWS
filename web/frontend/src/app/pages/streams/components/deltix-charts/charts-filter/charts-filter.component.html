@@ -1,0 +1,187 @@
+<div class="col-md-12 page-block">
+  <div [class.no-display]="hideFilters$ | async" class="d-flex align-items-center">
+    <form
+        *ngIf="filterForm"
+        [formGroup]="filterForm"
+        class="d-flex align-items-center filter-form"
+        id="filterForm">
+      <select
+          (change)="onChartTypeChange()"
+          *ngIf="chartTypes$ | async as chartTypes"
+          class="dropdown btn btn-control dropdown-toggle controlWr chart-types-dropdown"
+          formControlName="chart_type"
+          id="chart_type"
+          name="chart_type">
+        <option *ngFor="let chartType of chartTypes" [ngValue]="chartType.id">
+          {{ chartType.title }}
+        </option>
+      </select>
+      <button
+          (click)="switchTimeRange(-1)"
+          class="btn btn-navy btn-arrow controlWr"
+          form="filterForm"
+          type="button">
+        <svg
+            fill="none"
+            height="16"
+            id="i-chevron-left"
+            stroke="currentcolor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 32 32"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 30 L8 16 20 2" />
+        </svg>
+      </button>
+      
+      <app-select
+          (change)="onTimeRangeChange()"
+          [displayValue]="getTitle$ | async"
+          formControlName="width"
+          name="width">
+        <option *ngFor="let item of widthValuesMs$ | async" [value]="item.val" appSelectOption>
+          {{ item.title }}
+        </option>
+      </app-select>
+      
+      <button
+          (click)="switchTimeRange(1)"
+          class="btn btn-navy btn-arrow controlWr right-navigator-btn"
+          form="filterForm"
+          type="button">
+        <svg
+            fill="none"
+            height="16"
+            id="i-chevron-right"
+            stroke="currentcolor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 32 32"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 30 L24 16 12 2" />
+        </svg>
+      </button>
+      
+      <p *ngIf="showLevels$ | async" class="title">{{ 'charts.filters.levels' | translate }}:</p>
+    </form>
+    <deltix-ng-autocomplete
+        (selectItem)="onLevelsManuallyChanged()"
+        (appClickOutside)="onLevelsModelChange(null, true)"
+        (changeInput)="onLevelChangeInput($event)"
+        (keydown.enter)="onLevelsModelChange(null, true)"
+        (ngModelChange)="onLevelsModelChange($event)"
+        *ngIf="showLevels$ | async"
+        [ngModel]="levels"
+        [values]="lvlValues"
+        free="true"
+        cssClass="in-modal"
+        maxlength="3">
+    </deltix-ng-autocomplete>
+    <ng-container *ngIf="showBarsChart$ | async">
+      <p class="title">{{ 'charts.filters.barSize' | translate }}:</p>
+      <app-bars-period-filter
+          cssClass="in-modal"
+          (periodChange)="onBarsPeriodSubmit()"
+          [formControl]="filterForm.get('period')"
+          [minInterval]="minInterval$ | async"
+          [maxInterval]="maxInterval$ | async"
+          [periodicity]="periodicity$ | async"
+      ></app-bars-period-filter>
+    </ng-container>
+    <button (click)="toggleTrack()" class="btn btn-info" [class.btn-active]="track$ | async" >
+      {{ 'charts.filters.track' | translate }}
+    </button>
+    <div class="d-flex filter-right">
+      <div [class.loading]="loadingDataState$ | async" class="loader"></div>
+    </div>
+  </div>
+</div>
+<ng-template #customRangePicker>
+    <div class="modal-content newCustomTimeRangeModal">
+      <div class="modal-header">
+        <h4 class="modal-title pull-left">{{ 'charts.filters.chooseTimeRange' | translate }}</h4>
+        <button
+            (click)="hideModal()"
+            aria-label="Close"
+            class="close pull-right"
+            tooltip="Close"
+            type="button">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="timeRangeError" class="alert alert-warning">
+          {{
+          (timeRangeLimits.to ? 'charts.timeRangeError' : 'charts.timeRangeErrorFrom')
+              | translate: timeRangeLimits
+          }}
+        </div>
+        <div class="d-flex justify-content-between w-100">
+          <div class="time-control time-fromWr">
+            <div class="controlWr datepicker-inputWr">
+              <label class="btn timePickerLabel" for="rangeFromInput">From</label>
+              <input
+                  (appSafeDatePickerValueChange)="onRangeFromChange($event)"
+                  (keyup.enter)="setConfig(); hideModal(true)"
+                  [appSafeDatePickerValue]="rangeFromValue"
+                  [bsConfig]="bsConfig"
+                  [isOpen]="false"
+                  [maxDate]="rangeToValue"
+                  bsDatepicker
+                  class="btn bs-datepicker datepicker-input"
+                  id="rangeFromInput"
+                  triggers=""
+                  type="text" />
+            </div>
+          </div>
+          <div class="time-control time-toWr">
+            <div class="controlWr datepicker-inputWr">
+              <label class="btn timePickerLabel" for="rangeToInput">To</label>
+              <input
+                  (appSafeDatePickerValueChange)="onRangeToChange($event)"
+                  (keyup.enter)="setConfig(); hideModal(true)"
+                  [appSafeDatePickerValue]="rangeToValue"
+                  [bsConfig]="bsConfig"
+                  [isOpen]="false"
+                  [minDate]="rangeFromValue"
+                  bsDatepicker
+                  class="btn bs-datepicker datepicker-input"
+                  id="rangeToInput"
+                  triggers=""
+                  type="text" />
+            </div>
+          </div>
+        </div>
+        <div class="d-flex justify-content-center">
+          <bs-daterangepicker-inline
+              (bsValueChange)="onRangeChangeEvent($event)"
+              [(bsValue)]="bsInlineRangeValue"
+              [bsConfig]="{ containerClass: 'theme-default' }">
+          </bs-daterangepicker-inline>
+        </div>
+        <div class="d-flex justify-content-end btns-panel">
+          <button (click)="hideModal()" class="btn btn-outline-secondary" type="button">
+            {{ 'buttons.cancel' | translate }}
+          </button>
+          <button
+              (click)="hideModal(true)"
+              [disabled]="timeRangeError"
+              aria-label="Apply"
+              class="btn btn-info"
+              type="button">
+            {{ 'charts.filters.apply' | translate }}
+          </button>
+          <button
+              (click)="setConfig()"
+              class="btn btn-navy controlWr no-display"
+              type="button">
+            {{ 'charts.filters.applyRange' }}
+          </button>
+        </div>
+      </div>
+    </div>
+</ng-template>

@@ -1,0 +1,49 @@
+<div class="col-md-12 stream-props">
+  <h4>{{ title$ | async | translate }}</h4>
+  <button
+      (click)="closeProps()"
+      [adaptivePosition]="false"
+      [tooltip]="'buttons.close' | translate"
+      class="btn btn-link close"
+      container="body"
+      placement="left">
+    <svg
+        fill="none"
+        height="8"
+        id="i-close"
+        stroke="currentcolor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        viewBox="0 0 32 32"
+        width="8"
+        xmlns="http://www.w3.org/2000/svg">
+      <path d="M2 30 L30 2 M30 30 L2 2" />
+    </svg>
+  </button>
+  <div *ngIf="props$ | async as props" class="table-responsive">
+    <table class="table">
+      <tbody>
+      <ng-container *ngTemplateOutlet="propsTpl; context: { props: props }"></ng-container>
+      </tbody>
+    </table>
+  </div>
+  <ng-template #propsTpl let-isChild="isChild" let-props="props">
+    <ng-container *ngFor="let prop of props">
+      <tr>
+        <td *ngIf="isChild">{{ prop.key }}</td>
+        <th *ngIf="!isChild">{{ prop.key }}</th>
+        <td>
+          <ng-container> {{ prop.value }}</ng-container>
+        </td>
+      </tr>
+      <ng-container *ngIf="prop.children?.length">
+        <ng-container
+            *ngTemplateOutlet="
+            propsTpl;
+            context: { props: prop.children, isChild: true }
+          "></ng-container>
+      </ng-container>
+    </ng-container>
+  </ng-template>
+</div>

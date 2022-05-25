@@ -22,10 +22,10 @@ import com.epam.deltix.computations.data.base.complex.ListValueInfo;
 import com.epam.deltix.computations.data.base.complex.ObjectValueInfo;
 import com.epam.deltix.computations.data.base.numeric.BooleanValueInfo;
 import com.epam.deltix.containers.generated.CharSequenceToObjHashMap;
-import com.epam.deltix.timebase.messages.InstrumentMessage;
-import com.epam.deltix.util.collections.generated.*;
 import com.epam.deltix.dfp.Decimal;
 import com.epam.deltix.qsrv.hf.codec.ArrayTypeUtil;
+import com.epam.deltix.timebase.messages.InstrumentMessage;
+import com.epam.deltix.util.collections.generated.*;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -222,7 +222,7 @@ public class GenericRecordConverter {
     }
 
     private void computeFields(List<Field> fields, Class<?> clazz) {
-        if (clazz == null || clazz.equals(InstrumentMessage.class))
+        if (clazz == null || clazz.isAssignableFrom(InstrumentMessage.class))
             return;
         Arrays.stream(clazz.getDeclaredFields())
                 .filter(field -> !Modifier.isStatic(field.getModifiers()))

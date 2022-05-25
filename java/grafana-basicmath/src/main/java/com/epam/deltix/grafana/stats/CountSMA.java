@@ -17,14 +17,14 @@
 package com.epam.deltix.grafana.stats;
 
 import com.epam.deltix.computations.data.base.*;
-import com.epam.deltix.containers.generated.DecimalLongDataQueue;
 import com.epam.deltix.grafana.base.annotations.*;
+import com.epam.deltix.grafana.data.NumericField;
+import com.epam.deltix.containers.generated.DecimalLongDataQueue;
 import com.epam.deltix.util.collections.generated.ObjectArrayList;
 import com.epam.deltix.computations.data.MutableGenericRecordImpl;
 import com.epam.deltix.computations.data.numeric.MutableDecimalValue;
 import com.epam.deltix.grafana.base.Aggregation;
 
-import com.epam.deltix.grafana.data.NumericField;
 import com.epam.deltix.grafana.model.fields.Field;
 
 import javax.naming.OperationNotSupportedException;

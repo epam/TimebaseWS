@@ -1,4 +1,4 @@
-@import "~src/app/core/styles/variables";
+@import '~src/app/core/styles/variables';
 
 $cursor-height: 3px;
 
@@ -6,7 +6,7 @@ $cursor-height: 3px;
   position: relative;
   display: block;
   width: 100%;
-  height: calc(100% - (30px  + 30px));
+  height: calc(100% - (30px + 30px));
   background-color: $btn-secondary;
   z-index: 0;
 }
@@ -17,7 +17,7 @@ $cursor-height: 3px;
   left: 0;
   width: 100%;
   background-color: $gray-400;
-  border: $ss/2 solid $gray-400;
+  border: $ss * 0.5 solid $gray-400;
   z-index: 9;
   pointer-events: none;
 }
@@ -49,7 +49,7 @@ $cursor-height: 3px;
   background-color: $body-bg;
   border: 1px solid $gray-400;
   box-sizing: border-box;
-  font-size: 6*$ss;
+  font-size: 6 * $ss;
 
   &.is-rotated {
     top: 100%;
@@ -62,8 +62,8 @@ $cursor-height: 3px;
 .timebar-event-area {
   position: absolute;
   display: block;
-  top: ($cursor-height) / 2;
-  bottom: ($cursor-height) / 2;
+  top: ($cursor-height) * 0.5;
+  bottom: ($cursor-height) * 0.5;
   left: 0;
   right: 0;
   z-index: 1000;
@@ -71,7 +71,8 @@ $cursor-height: 3px;
 
   &:hover ~ .timebar-cursor {
     opacity: 1;
-    .timebar-cursor-text{
+
+    .timebar-cursor-text {
       left: auto;
     }
   }

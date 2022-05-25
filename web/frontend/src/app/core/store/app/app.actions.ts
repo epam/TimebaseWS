@@ -1,6 +1,6 @@
-import { Action }           from '@ngrx/store';
-import { AppInfoModel }     from '../../../shared/models/app.info.model';
-import { AppSettingsModel } from '../../../shared/models/app.settings.model';
+import {Action} from '@ngrx/store';
+import {AppInfoModel} from '../../../shared/models/app.info.model';
+import {AppSettingsModel} from '../../../shared/models/app.settings.model';
 
 export enum AppActionTypes {
   INIT_APP = '[App] Init app',
@@ -60,10 +60,13 @@ export class GetAppSettings implements Action {
 export class SetAppSettings implements Action {
   readonly type = AppActionTypes.SET_APP_SETTINGS;
 
-  constructor(public payload: {
-    settings: AppSettingsModel,
-  }) {}
+  constructor(
+    public payload: {
+      settings: AppSettingsModel;
+    },
+  ) {}
 }
+
 export class GetAppInfo implements Action {
   readonly type = AppActionTypes.GET_APP_INFO;
 }
@@ -71,9 +74,11 @@ export class GetAppInfo implements Action {
 export class SetAppInfo implements Action {
   readonly type = AppActionTypes.SET_APP_INFO;
 
-  constructor(public payload: {
-    info: AppInfoModel,
-  }) {}
+  constructor(
+    public payload: {
+      info: AppInfoModel;
+    },
+  ) {}
 }
 
 export class AddSystemSubscription implements Action {
@@ -95,10 +100,11 @@ export class GetCurrencies implements Action {
 export class SetCurrencies implements Action {
   readonly type = AppActionTypes.SET_CURRENCIES;
 
-  constructor(public payload: {
-                currencies: string[];
-              },
-  ) { }
+  constructor(
+    public payload: {
+      currencies: string[];
+    },
+  ) {}
 }
 
 export class StartListeningVisibilityChange implements Action {
@@ -112,7 +118,7 @@ export class ChangeDocVisibility implements Action {
     public payload: {
       visible: boolean;
     },
-  ) { }
+  ) {}
 }
 
 export class ShowLoginAlert implements Action {
@@ -130,29 +136,30 @@ export class AllowHTTPRequests implements Action {
 export class OfferToSaveFile implements Action {
   readonly type = AppActionTypes.OFFER_TO_SAVE_FILE;
 
-  constructor(public payload: {
-    data: any,
-    fileType: string,
-    fileName?: string,
-  }) {}
+  constructor(
+    public payload: {
+      data: any;
+      fileType: string;
+      fileName?: string;
+    },
+  ) {}
 }
 
 export type AppActions =
-  InitApp |
-  SetTitle |
-  GetAppInfo |
-  SetAppInfo |
-  GetAppSettings |
-  SetAppSettings |
-  AddSystemSubscription |
-  StopSystemSubscription |
-  SystemSubscriptionIsTriggered |
-  GetCurrencies |
-  SetCurrencies |
-  StartListeningVisibilityChange |
-  ChangeDocVisibility |
-  ShowLoginAlert |
-  PreventHTTPRequests |
-  AllowHTTPRequests |
-  OfferToSaveFile
-  ;
+  | InitApp
+  | SetTitle
+  | GetAppInfo
+  | SetAppInfo
+  | GetAppSettings
+  | SetAppSettings
+  | AddSystemSubscription
+  | StopSystemSubscription
+  | SystemSubscriptionIsTriggered
+  | GetCurrencies
+  | SetCurrencies
+  | StartListeningVisibilityChange
+  | ChangeDocVisibility
+  | ShowLoginAlert
+  | PreventHTTPRequests
+  | AllowHTTPRequests
+  | OfferToSaveFile;

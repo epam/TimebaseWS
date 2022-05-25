@@ -1,4 +1,4 @@
-@import "~src/app/core/styles/variables";
+@import '~src/app/core/styles/variables';
 
 .details-stream-wrap {
   .d-stream {
@@ -28,7 +28,8 @@
   left: 7.5 * $ss;
   display: flex;
   flex-direction: column;
-  &.hide-filters{
+
+  &.hide-filters {
     top: 1rem;
   }
 }
@@ -71,7 +72,7 @@
       right: 100%;
       z-index: 10;
       background: linear-gradient(to right, transparent 0%, $danger 95%, $danger 100%);
-      width: 20* $ss;
+      width: 20 * $ss;
     }
   }
 }
@@ -85,16 +86,27 @@
 .timeline-bar-wr {
   position: relative;
   height: 100%;
-  width: 15*$ss;
+  width: 15 * $ss;
   flex-shrink: 0;
-  margin-left: 7.5 * $ss / 2;
+  margin-left: 7.5 * $ss * 0.5;
 }
 
 .hide {
   display: none !important;
 }
 
+.muted {
+  visibility: hidden;
+}
+
+.loader.show {
+  display: flex;
+}
+
 .w-100 {
   width: 100%;
 }
 
+ag-grid-angular::ng-deep * {
+  transition: none !important;
+}

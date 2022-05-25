@@ -1,34 +1,60 @@
-export const DEFAULT_$TYPE_NAME = 'DEFAULT_$TYPE_NAME';
+import { SchemaTypesMap } from '../../../shared/models/schema.type.model';
 
 export class StreamDetailsModel {
   public symbol: string;
   public timestamp: string;
   public type?: string;
   public $type: string;
+  public original: Partial<StreamDetailsModel> = {};
 
-  constructor(obj) {
+  constructor(obj: {[index: string]: any}, schema: SchemaTypesMap = null) {
     let typeName;
-    if (obj && obj.$type) {
+    if (typeof obj?.$type === 'string') {
       typeName = obj.$type.replace(/\./g, '-');
-    } else if (typeof obj.$type === 'string' && obj.$type.length === 0) {
-      typeName = DEFAULT_$TYPE_NAME;
     }
 
-    if (typeName) {
-      this[typeName] = { ...obj };
+    if (typeName !== undefined) {
+      this.setFields(obj, typeName, schema);
     }
 
-    if (typeName === DEFAULT_$TYPE_NAME) {
-      Object.keys(this[typeName]).forEach(key => {
-        if (key.match(/\./)) {
-          this[typeName][key.replace(/\./g, '-')] = this[typeName][key];
-          delete this[typeName][key];
-        }
-      });
+    this.symbol = obj?.symbol;
+    this.timestamp = obj?.timestamp;
+    this.$type = obj?.$type;
+    this.original.symbol = this.symbol;
+    this.original.timestamp = this.timestamp;
+    this.original.$type = this.$type;
+  }
+
+  private setFields(
+    obj: {[index: string]: string},
+    typeName: string,
+    schema: SchemaTypesMap,
+    parentLoop = false,
+  ) {
+    if (!schema) {
+      this[typeName] = {...obj};
+      this.original = {[typeName]: {...obj}};
+      return;
     }
 
-    this.symbol = obj.symbol;
-    this.timestamp = obj.timestamp;
-    this.$type = obj.$type;
+    const schemaItem = schema.get(typeName);
+
+    this[typeName] = {};
+    this.original[typeName] = {};
+
+    Object.keys(obj).forEach((key) => {
+      const fieldName = key.replace(/\./g, '-');
+      if (schemaItem?.fields?.has(fieldName)) {
+        this[typeName][fieldName] = obj[key];
+      }
+
+      if (!parentLoop) {
+        this.original[typeName][fieldName] = obj[key];
+      }
+    });
+
+    if (schemaItem?.parent) {
+      this.setFields(obj, schemaItem?.parent, schema, true);
+    }
   }
 }

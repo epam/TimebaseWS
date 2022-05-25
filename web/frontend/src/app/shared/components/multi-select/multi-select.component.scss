@@ -1,0 +1,141 @@
+@import 'src/app/core/styles/variables';
+
+:host {
+  display: block;
+  position: relative;
+}
+
+.header {
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+
+  &.has-data {
+    padding-bottom: 2px;
+    padding-top: 4px;
+
+    .header__right {
+      padding-top: 7px;
+    }
+  }
+
+  &__content {
+    flex-grow: 1;
+
+    .selected-item {
+      border: 1px solid $light-blue;
+      margin: 0 4px 4px 0;
+      padding: 0 2px;
+      background: $light-blue;
+      font-size: 13px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+
+      .remove-icon {
+        padding-left: 3px;
+        line-height: 0;
+        width: 10px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+      }
+    }
+  }
+
+  &__right {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-top: 5px;
+  }
+
+  .caret {
+    display: block;
+    position: relative;
+    right: 0;
+    color: $light-gray;
+    border-style: solid;
+    border-width: 8px 8px 0;
+    border-color: $light-gray transparent;
+    content: '';
+    margin-bottom: 5px;
+  }
+}
+
+.header,
+.dropdown {
+  border: 1px solid $input-border;
+  border-radius: 4px;
+}
+
+.dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  background-color: $dark-blue;
+  z-index: 1;
+  margin-top: 10px;
+  height: 300px;
+  display: flex;
+  flex-direction: column;
+
+  cdk-virtual-scroll-viewport {
+    flex-grow: 1;
+    margin: 1px 0;
+  }
+
+  .option {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 0 10px;
+
+    &.selected {
+      .checkmark {
+        background-color: $light-blue;
+
+        &::after {
+          display: block;
+        }
+      }
+    }
+
+    .item-name {
+      padding-top: 1px;
+      user-select: none;
+    }
+
+    .container-ch {
+      padding: 0;
+      height: 19px;
+      width: 19px;
+      margin-right: 10px;
+    }
+  }
+}
+
+.search {
+  width: 100%;
+  border-top: 1px solid $input-border;
+  border-bottom: 1px solid $input-border;
+
+  input {
+    padding: 10px;
+    width: 100%;
+
+    &,
+    &:focus,
+    &::placeholder {
+      border: none;
+      background: transparent;
+      outline: none;
+      color: $white;
+    }
+  }
+}

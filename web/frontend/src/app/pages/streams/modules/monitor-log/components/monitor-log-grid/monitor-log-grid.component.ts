@@ -1,6 +1,6 @@
-import { Component, OnDestroy, OnInit, ViewChild }                            from '@angular/core';
-import { select, Store }                                                      from '@ngrx/store';
-import { AgGridModule }                                                       from 'ag-grid-angular';
+import { Component, OnDestroy, OnInit, ViewChild }                                        from '@angular/core';
+import { select, Store }                                                                  from '@ngrx/store';
+import { AgGridModule }                                                                   from 'ag-grid-angular';
 import {
   CellClickedEvent,
   CellDoubleClickedEvent,
@@ -11,18 +11,22 @@ import {
   GridOptions,
   GridReadyEvent,
   PinnedRowDataChangedEvent,
-}                                                                             from 'ag-grid-community';
-import * as Diff                                                              from 'fast-deep-equal';
-import { BsModalRef, BsModalService }                                         from 'ngx-bootstrap/modal';
-import { combineLatest, Observable, Subject, Subscription, timer }            from 'rxjs';
-import { distinctUntilChanged, filter, take, takeUntil, tap, withLatestFrom } from 'rxjs/operators';
-import { WebsocketService }                                                   from '../../../../../../core/services/websocket.service';
-import { WSService }                                                          from '../../../../../../core/services/ws.service';
-import { AppState }                                                           from '../../../../../../core/store';
-import { GridContextMenuService }                                             from '../../../../../../shared/grid-components/grid-context-menu.service';
-import { formatHDate }                                                        from '../../../../../../shared/locale.timezone';
-import { GridEventsService }                                                  from '../../../../../../shared/services/grid-events.service';
-import { GridService }                                                        from '../../../../../../shared/services/grid.service';
+}                                                                                         from 'ag-grid-community';
+import * as Diff                                                                          from 'fast-deep-equal';
+import { BsModalRef, BsModalService }                                                     from 'ngx-bootstrap/modal';
+import { combineLatest, Subject, Subscription, timer }                                    from 'rxjs';
+import { distinctUntilChanged, filter, switchMap, take, takeUntil, tap, withLatestFrom } from 'rxjs/operators';
+import { WebsocketService }                                                               from '../../../../../../core/services/websocket.service';
+import { WSService }                                                                      from '../../../../../../core/services/ws.service';
+import { AppState }                                                                       from '../../../../../../core/store';
+import { GridContextMenuService }                                                         from '../../../../../../shared/grid-components/grid-context-menu.service';
+import { SchemaTypesMap }                                                                 from '../../../../../../shared/models/schema.type.model';
+import { RightPaneService }                                                               from '../../../../../../shared/right-pane/right-pane.service';
+import { GlobalFiltersService }                                                           from '../../../../../../shared/services/global-filters.service';
+import { GridEventsService }                                                              from '../../../../../../shared/services/grid-events.service';
+import { GridService }                                                                    from '../../../../../../shared/services/grid.service';
+import { StreamModelsService }                                                            from '../../../../../../shared/services/stream-models.service';
+import { StreamsService }                                                                 from '../../../../../../shared/services/streams.service';
 import {
   autosizeAllColumns,
   columnIsMoved,
@@ -32,37 +36,27 @@ import {
   defaultGridOptions,
   getContextMenuItems,
   gridStateLSInit,
-}                                                                             from '../../../../../../shared/utils/grid/config.defaults';
-import { FilterModel }                                                        from '../../../../models/filter.model';
-import { GridStateModel }                                                     from '../../../../models/grid.state.model';
-import { StreamDetailsModel }                                                 from '../../../../models/stream.details.model';
-import { TabModel }                                                           from '../../../../models/tab.model';
-import { WSLiveModel }                                                        from '../../../../models/ws-live.model';
-import {
-  CleanSelectedMessage,
-  SetSelectedMessage,
-}                                                                             from '../../../../store/seletcted-message/selected-message.actions';
-import { getSelectedMessage }                                                 from '../../../../store/seletcted-message/selected-message.selectors';
+}                                                                                         from '../../../../../../shared/utils/grid/config.defaults';
+import { FilterModel }                                                                    from '../../../../models/filter.model';
+import { GridStateModel }                                                                 from '../../../../models/grid.state.model';
+import { TabModel }                                                                       from '../../../../models/tab.model';
+import { WSLiveModel }                                                                    from '../../../../models/ws-live.model';
 import * as StreamDetailsActions
-                                                                              from '../../../../store/stream-details/stream-details.actions';
-import { StreamDetailsEffects }                                               from '../../../../store/stream-details/stream-details.effects';
+                                                                                          from '../../../../store/stream-details/stream-details.actions';
+import { StreamDetailsEffects }                                                           from '../../../../store/stream-details/stream-details.effects';
 import * as fromStreamDetails
-                                                                              from '../../../../store/stream-details/stream-details.reducer';
-import { State as DetailsState }                                              from '../../../../store/stream-details/stream-details.reducer';
-import {
-  getStreamGlobalFilters,
-  streamsDetailsStateSelector,
-}                                                                             from '../../../../store/stream-details/stream-details.selectors';
-import * as fromStreamProps
-                                                                              from '../../../../store/stream-props/stream-props.reducer';
+                                                                                          from '../../../../store/stream-details/stream-details.reducer';
+import { State as DetailsState }                                                          from '../../../../store/stream-details/stream-details.reducer';
+import { streamsDetailsStateSelector }                                                    from '../../../../store/stream-details/stream-details.selectors';
 import * as fromStreams
-                                                                              from '../../../../store/streams-list/streams.reducer';
+                                                                                          from '../../../../store/streams-list/streams.reducer';
 import {
   getActiveOrFirstTab,
+  getActiveTab,
   getActiveTabFilters,
   getActiveTabSettings,
-}                                                                             from '../../../../store/streams-tabs/streams-tabs.selectors';
-import { MonitorLogGridDataService }                                          from '../../services/monitor-log-grid-data.service';
+}                                                                                         from '../../../../store/streams-tabs/streams-tabs.selectors';
+import { MonitorLogGridDataService }                                                      from '../../services/monitor-log-grid-data.service';
 
 @Component({
   selector: 'app-monitor-log-grid',
@@ -72,13 +66,13 @@ import { MonitorLogGridDataService }                                          fr
 })
 export class MonitorLogGridComponent implements OnInit, OnDestroy {
   public websocketSub: Subscription;
-  private wsUnsubscribe$ = new Subject();
   public schema = [];
-  private subIsInited: boolean;
   @ViewChild('streamDetailsGridLive', {static: true}) agGrid: AgGridModule;
-
   public bsModalRef: BsModalRef;
   public gridOptions: GridOptions;
+  public tabName: string;
+  private wsUnsubscribe$ = new Subject();
+  private subIsInited: boolean;
   private destroy$ = new Subject();
   private readyApi: GridOptions;
   private filter_date_format = [];
@@ -87,13 +81,8 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
   private gridStateLS: GridStateModel = {visibleArray: [], pinnedArray: [], resizedArray: []};
   private tabFilter;
   private subscribeTimer;
-  public tabName: string;
   private tabData: TabModel;
   private symbolName = '';
-  private prevsSocketData: WSLiveModel = {
-    messageType: '', fromTimestamp: null, symbols: null, types: null,
-  };
-  public selectedMessage$: Observable<StreamDetailsModel>;
   private intervalUpdate;
   private lastStream: string;
   private gridDefaults: GridOptions = {
@@ -112,27 +101,13 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
     suppressNoRowsOverlay: true,
     animateRows: true,
     onCellDoubleClicked: (event: CellDoubleClickedEvent) => {
-      event.api.setPinnedTopRowData([event.data]);
+      this.messageInfoService.doubleClicked(event.data);
     },
     onCellClicked: (event: CellClickedEvent) => {
-      if (event.rowPinned) {
-        this.selectedMessage$
-          .pipe(
-            take(1),
-            takeUntil(this.destroy$),
-          )
-          .subscribe(message => {
-            if (message === null) {
-              this.appStore.dispatch(SetSelectedMessage({selectedMessage: event.data}));
-            }
-          });
-      }
+      this.messageInfoService.cellClicked(event);
     },
     onPinnedRowDataChanged: (event: PinnedRowDataChangedEvent) => {
-      if (event.api.getPinnedTopRowCount() > 0) {
-        const PINNED_ROW = event.api.getPinnedTopRow(0);
-        this.appStore.dispatch(SetSelectedMessage({selectedMessage: PINNED_ROW.data}));
-      }
+      this.messageInfoService.onPinnedRowDataChanged();
     },
     onGridReady: (readyEvent: GridReadyEvent) => this.gridIsReady(readyEvent),
     onModelUpdated: (params) => {
@@ -143,12 +118,18 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
         }
       }
     },
-    onColumnResized: (resizedEvent: ColumnResizedEvent) => this.gridEventsService.columnIsResized(resizedEvent, this.tabName, this.gridStateLS),
-    onColumnVisible: (visibleEvent: ColumnVisibleEvent) => columnIsVisible(visibleEvent, this.tabName, this.gridStateLS),
-    onColumnMoved: (movedEvent: ColumnMovedEvent) => columnIsMoved(movedEvent, this.tabName, this.gridStateLS),
-    onColumnPinned: (pinnedEvent: ColumnPinnedEvent) => columnIsPinned(pinnedEvent, this.tabName, this.gridStateLS),
+    onColumnResized: (resizedEvent: ColumnResizedEvent) =>
+      this.gridEventsService.columnIsResized(resizedEvent, this.tabName, this.gridStateLS),
+    onColumnVisible: (visibleEvent: ColumnVisibleEvent) =>
+      columnIsVisible(visibleEvent, this.tabName, this.gridStateLS),
+    onColumnMoved: (movedEvent: ColumnMovedEvent) =>
+      columnIsMoved(movedEvent, this.tabName, this.gridStateLS),
+    onColumnPinned: (pinnedEvent: ColumnPinnedEvent) =>
+      columnIsPinned(pinnedEvent, this.tabName, this.gridStateLS),
     getContextMenuItems: getContextMenuItems.bind(this),
   };
+
+  private schemaMap: SchemaTypesMap;
 
   constructor(
     private appStore: Store<AppState>,
@@ -158,27 +139,31 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
     private modalService: BsModalService,
     private websocketService: WebsocketService,
     private wsService: WSService,
-    private streamPropsStore: Store<fromStreamProps.FeatureState>,
     private monitorLogGridDataService: MonitorLogGridDataService,
     private gridEventsService: GridEventsService,
     private gridService: GridService,
     private gridContextMenuService: GridContextMenuService,
-  ) { }
+    private streamModelsService: StreamModelsService,
+    private globalFiltersService: GlobalFiltersService,
+    private streamsService: StreamsService,
+    private messageInfoService: RightPaneService,
+  ) {}
 
   ngOnInit() {
     this.gridOptions = {
       ...this.gridDefaults,
       rowData: [],
     };
-    this.selectedMessage$ = this.appStore.pipe(select(getSelectedMessage));
-    
+
     this.gridContextMenuService.addColumnMenuItems([
       {
-        data: event => ({
+        data: (event) => ({
           name: 'Autosize This Column',
           action: () => {
             event.columnApi.autoSizeColumn(event.column);
-            const filtered = this.gridStateLS.resizedArray.filter(item => item.colId !== event.column.getColId());
+            const filtered = this.gridStateLS.resizedArray.filter(
+              (item) => item.colId !== event.column.getColId(),
+            );
             this.gridStateLS.resizedArray = [...filtered];
             localStorage.setItem('gridStateLS' + this.tabName, JSON.stringify(this.gridStateLS));
           },
@@ -186,7 +171,7 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
         alias: 'autosize',
       },
       {
-        data: event => ({
+        data: (event) => ({
           name: 'Autosize All Columns',
           action: () => {
             autosizeAllColumns(event.columnApi);
@@ -197,7 +182,7 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
         alias: 'autosizeAll',
       },
       {
-        data: event => ({
+        data: (event) => ({
           name: 'Reset Columns',
           action: () => {
             this.gridStateLS = {visibleArray: [], pinnedArray: [], resizedArray: []};
@@ -212,40 +197,18 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
       },
     ]);
 
-    this.appStore
-      .pipe(
-        select(getStreamGlobalFilters),
-        filter(global_filter => !!global_filter),
-        takeUntil(this.destroy$),
-        distinctUntilChanged(),
-      )
-      .subscribe((action => {
-          if (action.filter_date_format && action.filter_date_format.length) {
-            this.filter_date_format = [...action.filter_date_format];
-          } else {
-            this.filter_date_format = [];
-          }
-          if (action.filter_time_format && action.filter_time_format.length) {
-            this.filter_time_format = [...action.filter_time_format];
-          } else {
-            this.filter_time_format = [];
-          }
-          if (action.filter_timezone && action.filter_timezone.length) {
-            this.filter_timezone = [...action.filter_timezone];
-          } else {
-            this.filter_timezone = [];
-          }
-
-        }
-      ));
-  }
-
-  createWebsocketSubscription(url: string, dataObj: WSLiveModel) {
-    // this.rowData = new Map();
+    this.globalFiltersService
+      .getFilters()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((filters) => {
+        this.filter_date_format = filters.dateFormat;
+        this.filter_timezone = filters.timezone;
+        this.filter_time_format = filters.timeFormat;
+      });
   }
 
   cleanWebsocketSubscription() {
-    this.monitorLogGridDataService.destroy();
+    this.monitorLogGridDataService?.destroy();
     if (this.readyApi && this.readyApi.api) {
       this.readyApi.api.setRowData([]);
     }
@@ -255,6 +218,20 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
     this.wsUnsubscribe$ = new Subject();
   }
 
+  sendMessage(socketData: WSLiveModel) {
+    if (this.readyApi && this.readyApi.api) {
+      this.readyApi.api.setRowData([]);
+    }
+
+    this.websocketService.send(socketData);
+  }
+
+  ngOnDestroy(): void {
+    this.cleanWebsocketSubscription();
+    this.destroy$.next(true);
+    this.destroy$.complete();
+    this.streamsStore.dispatch(new StreamDetailsActions.StopSubscriptions());
+  }
 
   private gridIsReady(readyEvent: GridReadyEvent) {
     this.readyApi = {...readyEvent};
@@ -267,11 +244,9 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
       )
       .subscribe((filter: FilterModel) => {
         this.tabFilter = {...filter};
-        this.readyApi.api.setPinnedTopRowData([]);
       });
 
-    this.streamDetailsEffects
-      .setSchema
+    this.streamDetailsEffects.setSchema
       .pipe(
         withLatestFrom(this.appStore.pipe(select(getActiveTabSettings))),
         takeUntil(this.destroy$),
@@ -280,6 +255,9 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
         if (!action.payload.schema) {
           return;
         }
+
+        this.schemaMap = this.streamModelsService.getSchemaMap(action.payload.schemaAll);
+
         if (action.payload.schema && action.payload.schema.length) {
           this.schema = [...action.payload.schema];
         }
@@ -304,7 +282,7 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
             sortable: false,
             sort: 'desc',
             comparator: (valueA, valueB, nodeA, nodeB, isInverted) => {
-              let VALUE = (new Date(valueA)).getTime() - (new Date(valueB)).getTime();
+              let VALUE = new Date(valueA).getTime() - new Date(valueB).getTime();
               if (isInverted) VALUE = -1 * VALUE;
               if (VALUE > 0) {
                 return -1;
@@ -315,8 +293,8 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
             },
             width: 160,
             headerTooltip: 'Timestamp',
-            cellRenderer: params => this.gridService.dateFormat(params),
-            tooltipValueGetter: params => this.gridService.dateFormat(params),
+            cellRenderer: (params) => this.gridService.dateFormat(params),
+            tooltipValueGetter: (params) => this.gridService.dateFormat(params),
           },
           {
             headerName: 'Type',
@@ -327,25 +305,43 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
             headerTooltip: 'Type',
             hide: true,
           },
-          ...this.gridService.columnFromSchema(action.payload.schema, hideAllColumns),
+          ...this.gridService.columnFromSchema(
+            this.streamModelsService.getSchemaForColumns(
+              action.payload.schema,
+              action.payload.schemaAll,
+            ),
+            hideAllColumns,
+          ),
         ];
         readyEvent.api.setColumnDefs(null);
         readyEvent.api.setColumnDefs(props);
         this.gridStateLS = gridStateLSInit(readyEvent.columnApi, this.tabName, this.gridStateLS);
+        this.messageInfoService.setGridApi(this.readyApi);
 
-        if (this.tabFilter && this.tabFilter.filter_types && this.readyApi && this.readyApi.columnApi && this.readyApi.columnApi.getAllColumns() && this.readyApi.columnApi.getAllColumns().length) {
-
+        if (
+          this.tabFilter &&
+          this.tabFilter.filter_types &&
+          this.readyApi &&
+          this.readyApi.columnApi &&
+          this.readyApi.columnApi.getAllColumns() &&
+          this.readyApi.columnApi.getAllColumns().length
+        ) {
           const columns = [...this.readyApi.columnApi.getAllColumns()];
           const filter_types_arr = this.tabFilter.filter_types;
           const columnsVisible = [];
           for (let j = 0; j < filter_types_arr.length; j++) {
             for (let i = 0; i < columns.length; i++) {
-
-              if (String(columns[i]['colId']).indexOf(String(filter_types_arr[j]).replace(/\./g, '-')) !== -1) {
+              if (
+                String(columns[i]['colId']).indexOf(
+                  String(filter_types_arr[j]).replace(/\./g, '-'),
+                ) !== -1
+              ) {
                 columnsVisible.push(columns[i]['colId']);
-              } else if (columns[i]['colId'] !== '0' &&
+              } else if (
+                columns[i]['colId'] !== '0' &&
                 columns[i]['colId'] !== 'symbol' &&
-                columns[i]['colId'] !== 'timestamp') {
+                columns[i]['colId'] !== 'timestamp'
+              ) {
                 this.readyApi.columnApi.setColumnVisible(columns[i]['colId'], false);
               }
             }
@@ -356,49 +352,43 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
         }
       });
 
-    this.streamPropsStore
+    this.appStore
       .pipe(
-        select('streamProps'),
+        select(getActiveTab),
+        filter(Boolean),
+        switchMap((tab: TabModel) => this.streamsService.getProps(tab.stream)),
         filter((props: any) => props && props.props),
         distinctUntilChanged(),
         take(1),
         takeUntil(this.destroy$),
       )
-      .subscribe(props => {
+      .subscribe((props) => {
         combineLatest([
-            this.appStore
-              .pipe(
-                select(getActiveOrFirstTab),
-                filter((tab: TabModel) => tab && tab.monitor),
-                distinctUntilChanged((prevTabModel: TabModel, nextTabModel: TabModel) => {
-                  const PREV = new TabModel(prevTabModel);
-                  const NEXT = new TabModel(nextTabModel);
-                  delete PREV.tabSettings;
-                  delete NEXT.tabSettings;
-                  return Diff(PREV, NEXT);
-                }),
-                tap((tab) => {
-                  if (tab.stream && tab.stream !== this.lastStream) {
-                    this.lastStream = tab.stream;
-                    this.streamDetailsStore.dispatch(new StreamDetailsActions.GetSchema({streamId: tab.stream}));
-                  }
-                }),
-              ),
-            this.appStore
-              .pipe(
-                select(streamsDetailsStateSelector),
-                filter((state: DetailsState) => !!state.schema),
-                // distinctUntilChanged((p: DetailsState, q: DetailsState) => p.schema === q.schema || p.filter_types === q.filter_types || p.filter_symbols === q.filter_symbols),
-              ),
-          ],
-        )
-          .pipe(
-            tap(() => {
-              //   this.readyApi.api.setRowData(null);
+          this.appStore.pipe(
+            select(getActiveOrFirstTab),
+            filter((tab: TabModel) => tab && tab.monitor),
+            distinctUntilChanged((prevTabModel: TabModel, nextTabModel: TabModel) => {
+              const PREV = new TabModel(prevTabModel);
+              const NEXT = new TabModel(nextTabModel);
+              delete PREV.tabSettings;
+              delete NEXT.tabSettings;
+              return Diff(PREV, NEXT);
             }),
-            takeUntil(this.destroy$),
-            distinctUntilChanged(),
-          )
+            tap((tab) => {
+              if (tab.stream && tab.stream !== this.lastStream) {
+                this.lastStream = tab.stream;
+                this.streamDetailsStore.dispatch(
+                  new StreamDetailsActions.GetSchema({streamId: tab.stream}),
+                );
+              }
+            }),
+          ),
+          this.appStore.pipe(
+            select(streamsDetailsStateSelector),
+            filter((state: DetailsState) => !!state.schema),
+          ),
+        ])
+          .pipe(takeUntil(this.destroy$), distinctUntilChanged())
           .subscribe(([tab, action]: [TabModel, DetailsState]) => {
             this.tabData = tab;
             this.tabName = tab.stream;
@@ -413,7 +403,6 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
             this.cleanWebsocketSubscription();
 
             this.subscribeTimer = setTimeout(() => {
-
               const socketData: WSLiveModel = {
                 fromTimestamp: null,
               };
@@ -432,28 +421,24 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
                 socketData.types = tab.filter.filter_types;
               }
 
-              // if (tab.filter && tab.filter['from'] && tab.filter['from'].length) {
-              //   socketData.fromTimestamp = tab.filter.from;
-              // } else if (props.props && props.props.range && props.props.range['end']) {
-              //   const dateEnd = new Date(props.props.range['end']).getTime() + 1;
-              //   socketData.fromTimestamp = (new Date(dateEnd)).toISOString();
-              // }
-
-              this.monitorLogGridDataService.destroy();
+              this.monitorLogGridDataService?.destroy();
 
               this.subIsInited = true;
               this.monitorLogGridDataService
-                .getSubscription(`/user/topic/monitor/${escape(tab.stream)}`, socketData)
+                .getSubscription(
+                  `/user/topic/monitor/${escape(tab.stream)}`,
+                  socketData,
+                  this.schemaMap,
+                )
+                .pipe(takeUntil(this.destroy$))
                 .subscribe(({data, newDataLength}) => {
                   this.readyApi.api.setRowData(data);
                   if (newDataLength) {
                     this.flashRows(this.readyApi.api, newDataLength);
                   }
                 });
-
             }, 500);
           });
-
       });
   }
 
@@ -464,21 +449,4 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
     }
     gridApi.flashCells({rowNodes: ROWS});
   }
-
-  sendMessage(socketData: WSLiveModel) {
-    if (this.readyApi && this.readyApi.api) {
-      this.readyApi.api.setRowData([]);
-    }
-
-    this.websocketService.send(socketData);
-  }
-
-  ngOnDestroy(): void {
-    this.cleanWebsocketSubscription();
-    this.destroy$.next(true);
-    this.destroy$.complete();
-    this.streamsStore.dispatch(new StreamDetailsActions.StopSubscriptions());
-    this.appStore.dispatch(CleanSelectedMessage());
-  }
-
 }

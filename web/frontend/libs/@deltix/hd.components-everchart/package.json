@@ -1,0 +1,24 @@
+{
+  "name": "@deltix/hd.components-everchart",
+  "version": "4.18.0",
+  "main": "./index.umd.js",
+  "module": "./index.esm.js",
+  "typings": "./index.d.ts",
+  "dependencies": {
+    "rxjs": "^6.6.3",
+    "@deltix/hd.components-di": "file:./../hd.components-di",
+    "@deltix/hd.components-multi-app": "file:./../hd.components-multi-app",
+    "@deltix/hd.components-utils": "file:./../hd.components-utils",
+    "redux-observable": "^1.2.0",
+    "redux": "^4.1.2",
+    "@deltix/hd.components-common": "file:./../hd.components-common",
+    "pixi.js": "^6.2.2",
+    "memoize-one": "^6.0.0",
+    "lodash": "^4.17.21",
+    "@deltix/logger": "file:./../logger",
+    "color-string": "^1.9.0",
+    "@deltix/hd-date": "file:./../hd-date",
+    "react-redux": "7.2.6"
+  },
+  "peerDependencies": {}
+}

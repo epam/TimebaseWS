@@ -16,11 +16,11 @@
  */
 package com.epam.deltix.grafana;
 
-import com.epam.deltix.grafana.model.fields.Field;
 import com.epam.deltix.computations.base.exc.RecordValidationException;
 import com.epam.deltix.computations.data.base.GenericRecord;
 import com.epam.deltix.computations.data.base.MutableGenericRecord;
 import com.epam.deltix.grafana.base.Aggregation;
+import com.epam.deltix.grafana.model.fields.Field;
 
 import java.util.Collection;
 import java.util.HashMap;

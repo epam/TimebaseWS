@@ -2,39 +2,43 @@
   <ng-container title>
     {{ 'exportToFile.title.' + exportFormat | translate: {stream: stream} }}
   </ng-container>
-  <div class="export-file-content" [formGroup]="form" content>
+  <div [formGroup]="form" class="export-file-content" content>
     <label>{{ 'exportToFile.headers.dateRange' | translate }}:</label>
-    <app-date-range-picker formControlName="range" ></app-date-range-picker>
+    <app-date-range-picker
+        [maxDate]="maxDate"
+        [minDate]="minDate"
+        formControlName="range"></app-date-range-picker>
     <accordion [closeOthers]="true">
       <accordion-group [heading]="symbolsHeader$ | async">
         <app-multi-select-autocomplete
-          [autocompleteProvider]="autoCompleteProvider"
-          formControlName="symbols"
-          notFoundText="No symbols found"
-        ></app-multi-select-autocomplete>
+            [autocompleteProvider]="autoCompleteProvider"
+            formControlName="symbols"
+            notFoundText="No symbols found"></app-multi-select-autocomplete>
       </accordion-group>
       <accordion-group [heading]="fieldsHeader$ | async">
         <app-tree-checkboxes [tree]="tree$ | async" formControlName="fields"></app-tree-checkboxes>
       </accordion-group>
       <accordion-group [heading]="configHeader$ | async">
-        <ng-container *ngTemplateOutlet="configRow; context: {field: 'exportTo'}"></ng-container>
-        <ng-container *ngTemplateOutlet="configRow; context: {field: 'delimiters'}"></ng-container>
+        <ng-container *ngTemplateOutlet="configRow; context: { field: 'exportTo' }"></ng-container>
+        <ng-container
+            *ngTemplateOutlet="configRow; context: { field: 'delimiters' }"></ng-container>
         <ng-template #configRow let-field="field">
           <div *ngIf="configData[field]" class="config-row">
             <label>{{ 'exportToFile.config.' + field | translate }}:</label>
-            <div class="btn-group radio-group" [formControlName]="field" btnRadioGroup>
+            <div [formControlName]="field" btnRadioGroup class="btn-group radio-group">
               <button
-                *ngFor="let button of configData[field]"
-                class="btn btn-default"
-                [btnRadio]="button"
-              >{{ 'exportToFile.config.' + button | translate }}</button>
+                  *ngFor="let button of configData[field]"
+                  [btnRadio]="button"
+                  class="btn btn-default">
+                {{ 'exportToFile.config.' + button | translate }}
+              </button>
             </div>
           </div>
         </ng-template>
       </accordion-group>
     </accordion>
   </div>
-  <ng-container footer >
+  <ng-container footer>
     <button (click)="export()" class="btn btn-primary">
       {{ 'exportToFile.export' | translate }}
     </button>

@@ -1,6 +1,6 @@
-import { Action }             from '@ngrx/store';
-import { StreamQueryModel }   from '../../models/query.model';
-import { StreamDetailsModel } from '../../models/stream.details.model';
+import {Action} from '@ngrx/store';
+import {StreamQueryModel} from '../../models/query.model';
+import {StreamDetailsModel} from '../../models/stream.details.model';
 
 export enum StreamQueryActionTypes {
   GET_STREAMS_QUERY = '[Streams:Query] Get Streams Query',
@@ -10,32 +10,35 @@ export enum StreamQueryActionTypes {
   HIDE_LOADER = '[Streams:Query] Hide Loader',
 }
 
-
 export class GetStreamsQuery implements Action {
   readonly type = StreamQueryActionTypes.GET_STREAMS_QUERY;
 
-  constructor(public payload: {
-    query: StreamQueryModel;
-  }) { }
+  constructor(
+    public payload: {
+      query: StreamQueryModel;
+    },
+  ) {}
 }
 
 export class SetStreamsQuery implements Action {
   readonly type = StreamQueryActionTypes.SET_STREAMS_QUERY;
 
-  constructor(public payload: {
-    queryStreams: StreamDetailsModel[],
-  }) { }
+  constructor(
+    public payload: {
+      queryStreams: StreamDetailsModel[];
+    },
+  ) {}
 }
-
 
 export class GetStreamsQueryDescribe implements Action {
   readonly type = StreamQueryActionTypes.GET_STREAMS_QUERY_DESCRIBE;
 
-  constructor(public payload: {
-    query: string;
-  }) { }
+  constructor(
+    public payload: {
+      query: string;
+    },
+  ) {}
 }
-
 
 export class ClearStreamsQuery implements Action {
   readonly type = StreamQueryActionTypes.CLEAR_STREAMS_QUERY;
@@ -46,8 +49,8 @@ export class HideLoader implements Action {
 }
 
 export type StreamQueryActions =
-  GetStreamsQuery |
-  SetStreamsQuery |
-  GetStreamsQueryDescribe |
-  ClearStreamsQuery |
-  HideLoader;
+  | GetStreamsQuery
+  | SetStreamsQuery
+  | GetStreamsQueryDescribe
+  | ClearStreamsQuery
+  | HideLoader;

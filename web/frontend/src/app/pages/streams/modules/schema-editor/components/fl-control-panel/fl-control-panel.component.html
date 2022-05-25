@@ -1,88 +1,138 @@
-<ng-template [ngIf]="(selectedSchemaItem$ | async)">
+<ng-template [ngIf]="selectedSchemaItem$ | async">
   <div class="cl-control-panel">
-    <button class="btn btn-sm btn-outline-success"
+    <button
         (click)="onAskToAdd()"
-        [disabled]="(newFieldIsAdding | async)"
-        type="button">{{((selectedSchemaItem$ | async).isEnum ? 'buttons.newValue' : 'buttons.newNonStaticField') | translate}}</button>
-    <button class="btn btn-sm btn-outline-warning"
+        [disabled]="newFieldIsAdding | async"
+        class="btn btn-sm btn-outline-success"
+        type="button">
+      {{
+      ((selectedSchemaItem$ | async).isEnum ? 'buttons.newValue' : 'buttons.newNonStaticField')
+          | translate
+      }}
+    </button>
+    <button
         (click)="onAskToAdd(true)"
-        [disabled]="(newFieldIsAdding | async)"
         *ngIf="!(selectedSchemaItem$ | async).isEnum"
-        type="button">{{'buttons.newStaticField' | translate}}</button>
+        [disabled]="newFieldIsAdding | async"
+        class="btn btn-sm btn-outline-warning"
+        type="button">
+      {{ 'buttons.newStaticField' | translate }}
+    </button>
     <div class="spacer"></div>
     <button
-        class="btn btn-sm btn-outline-danger d-flex justify-content-center align-items-center delete-selected-btn"
         (click)="onAskDeleteSelected()"
         [disabled]="deleteBtnDisabled$ | async"
         [title]="'titles.removeSelectedItem' | translate"
-        type="button"
-    >{{'buttons.removeSelected' | translate}}
+        class="btn btn-sm btn-outline-danger d-flex justify-content-center align-items-center delete-selected-btn"
+        type="button">
+      {{ 'buttons.removeSelected' | translate }}
     </button>
   </div>
 </ng-template>
 
 <ng-template #modalTemplate>
   <div class="modal-body">
-    {{requestMessage}}
+    {{ requestMessage }}
   </div>
   <div class="modal-footer d-flex justify-content-end">
-    <button type="button" class="btn btn-danger pull-right" aria-label="Close" (click)="onDeleteSelectedField()">
-      <span aria-hidden="true">{{'buttons.remove' | translate}}</span>
+    <button
+        (click)="onDeleteSelectedField()"
+        aria-label="Close"
+        class="btn btn-danger pull-right"
+        type="button">
+      <span aria-hidden="true">{{ 'buttons.remove' | translate }}</span>
     </button>
-    <button type="button" class="btn btn-outline-light pull-right" aria-label="Close" (click)="deleteModalRef.hide()">
-      <span aria-hidden="true">{{'buttons.cancel' | translate}}</span>
+    <button
+        (click)="deleteModalRef.hide()"
+        aria-label="Close"
+        class="btn btn-outline-light pull-right"
+        type="button">
+      <span aria-hidden="true">{{ 'buttons.cancel' | translate }}</span>
     </button>
   </div>
 </ng-template>
 
 <ng-template #modalNewItemTemplate>
   <div class="modal-header">
-    <h4 class="modal-title pull-left">{{((selectedSchemaItem$ | async).isEnum ? 'text.addNewValue' : 'text.addNewField') | translate}}</h4>
+    <h4 class="modal-title pull-left">
+      {{
+      ((selectedSchemaItem$ | async).isEnum ? 'text.addNewValue' : 'text.addNewField') | translate
+      }}
+    </h4>
   </div>
   <div class="modal-body">
-    <form [formGroup]="nameForm" class="form-horizontal props-form nameForm" id="nameForm" (ngSubmit)="onAddNewField(askToAddInitialState.isStatic)">
+    <form
+        (ngSubmit)="onAddNewField(askToAddInitialState.isStatic)"
+        [formGroup]="nameForm"
+        class="form-horizontal props-form nameForm"
+        id="nameForm">
       <div class="controlWr">
         <label class="btn control-label" for="nameInput">
-          {{((selectedSchemaItem$ | async).isEnum ? 'forms.newValue' : 'forms.newName') | translate}}
+          {{
+          ((selectedSchemaItem$ | async).isEnum ? 'forms.newValue' : 'forms.newName') | translate
+          }}
         </label>
-        <input class="btn input-control"
-            type="text"
+        <input
+            class="btn input-control"
+            formControlName="name"
             id="nameInput"
             name="name"
-            formControlName="name"
-        />
+            type="text" />
       </div>
-      <div *ngIf="nameForm.get('name').invalid && !nameForm.get('name').pristine" class="alert alert-danger my-1 p-2 fadeInDown animated validation-error">
-        <span class="d-block" *ngIf="isNameForbidden()">{{'forms.validators.nameExists' | translate}}</span>
-        <span class="d-block" *ngIf="nameForm.get('name').getError('pattern')">{{'forms.validators.invalidPattern' | translate}}</span>
-        <span class="d-block text-pre" *ngIf="nameForm.get('name').getError('pattern')">{{'forms.fieldsList.validators.allowedFieldNamePattern' | translate}}</span>
-        <span class="d-block" *ngIf="nameForm.get('name').getError('required')">{{'forms.validators.requiredField' | translate}}</span>
+      <div
+          *ngIf="nameForm.get('name').invalid && !nameForm.get('name').pristine"
+          class="alert alert-danger my-1 p-2 fadeInDown animated validation-error">
+        <span *ngIf="isNameForbidden()" class="d-block">{{
+          'forms.validators.nameExists' | translate
+          }}</span>
+        <span *ngIf="nameForm.get('name').getError('pattern')" class="d-block">{{
+          'forms.validators.invalidPattern' | translate
+          }}</span>
+        <span *ngIf="nameForm.get('name').getError('pattern')" class="d-block text-pre">{{
+          'forms.fieldsList.validators.allowedFieldNamePattern' | translate
+          }}</span>
+        <span *ngIf="nameForm.get('name').getError('required')" class="d-block">{{
+          'forms.validators.requiredField' | translate
+          }}</span>
       </div>
       <div *ngIf="nameForm.get('value')">
         <div class="controlWr">
           <label class="btn control-label" for="valueInput">
-            {{'forms.fieldsList.staticValue' | translate}}
+            {{ 'forms.fieldsList.staticValue' | translate }}
             <strong class="text-danger">*</strong>
           </label>
-          <input class="btn input-control"
-              type="text"
+          <input
+              class="btn input-control"
+              formControlName="value"
               id="valueInput"
               name="value"
-              formControlName="value"
-          />
+              type="text" />
         </div>
-        <div *ngIf="nameForm.get('value').invalid && !nameForm.get('value').pristine" class="alert alert-danger my-1 p-2 fadeInDown animated validation-error">
-          <span class="d-block" *ngIf="nameForm.get('value').getError('required')">{{'forms.validators.requiredField' | translate}}</span>
+        <div
+            *ngIf="nameForm.get('value').invalid && !nameForm.get('value').pristine"
+            class="alert alert-danger my-1 p-2 fadeInDown animated validation-error">
+          <span *ngIf="nameForm.get('value').getError('required')" class="d-block">{{
+            'forms.validators.requiredField' | translate
+            }}</span>
         </div>
       </div>
     </form>
   </div>
   <div class="modal-footer d-flex justify-content-end">
-    <button [disabled]="nameForm.invalid || nameForm.pristine" type="submit" form="nameForm" class="btn btn-danger pull-right" aria-label="Close">
-      <span aria-hidden="true">{{'buttons.add' | translate}}</span>
+    <button
+        [disabled]="nameForm.invalid || nameForm.pristine"
+        aria-label="Close"
+        class="btn btn-danger pull-right"
+        form="nameForm"
+        type="submit">
+      <span aria-hidden="true">{{ 'buttons.add' | translate }}</span>
     </button>
-    <button type="button" class="btn btn-outline-light pull-right" aria-label="Close" (click)="newItemModalRef.hide()">
-      <span aria-hidden="true">{{'buttons.cancel' | translate}}</span>
+    <button
+        (click)="newItemModalRef.hide()"
+        aria-label="Close"
+        class="btn btn-outline-light pull-right"
+        type="button">
+      <span aria-hidden="true">{{ 'buttons.cancel' | translate }}</span>
     </button>
   </div>
 </ng-template>

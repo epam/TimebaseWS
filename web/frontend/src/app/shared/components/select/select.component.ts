@@ -1,5 +1,6 @@
 import {
-  AfterContentInit, AfterViewChecked,
+  AfterContentInit,
+  AfterViewChecked,
   Component,
   ContentChildren,
   ElementRef,
@@ -15,10 +16,10 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { Subject, timer } from 'rxjs';
-import { startWith, takeUntil } from 'rxjs/operators';
-import { SelectOptionDirective } from './select-option.directive';
+import {ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR} from '@angular/forms';
+import {ReplaySubject, Subject} from 'rxjs';
+import {delay, distinctUntilChanged, map, startWith, takeUntil} from 'rxjs/operators';
+import {SelectOptionDirective} from './select-option.directive';
 
 @Component({
   selector: 'app-select',
@@ -32,35 +33,43 @@ import { SelectOptionDirective } from './select-option.directive';
     },
   ],
 })
-export class SelectComponent implements OnInit, AfterContentInit, ControlValueAccessor, OnChanges, OnDestroy, AfterViewChecked {
-  @ContentChildren(SelectOptionDirective) private options: QueryList<SelectOptionDirective>;
-  @ViewChild('selectEl', {static: true}) private selectEl: ElementRef<HTMLSelectElement>;
-  @ViewChild('displayValueEl', {static: true}) private displayValueEl: ElementRef<HTMLDivElement>;
-
+export class SelectComponent
+  implements OnInit, AfterContentInit, ControlValueAccessor, OnChanges, OnDestroy, AfterViewChecked
+{
   @HostBinding('style.width.px') width: number;
-
   @Input() name: string;
   @Input() displayValue: string;
-
   @Output() change = new EventEmitter<string>();
-
   control = new FormControl();
+  @ContentChildren(SelectOptionDirective) private options: QueryList<SelectOptionDirective>;
+  @ViewChild('displayValueEl', {static: true}) private displayValueEl: ElementRef<HTMLDivElement>;
+  private width$ = new ReplaySubject<void>(1);
 
   private destroy$ = new Subject();
-  private countWidthOnDisplayValue = false;
+  private viewCheckedAfterChange = false;
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes.displayValue.previousValue !== changes.displayValue.currentValue) {
-      this.countWidthOnDisplayValue = true;
-    }
+    this.viewCheckedAfterChange = false;
+    this.width$.next();
   }
 
   ngOnInit() {
-    this.control.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(value => {
+    this.control.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((value) => {
       this.control.setValue(null, {emitEvent: false});
       this.onChange(value);
       this.change.emit(value);
     });
+
+    this.width$
+      .pipe(
+        map(() => `${this.displayValue}-${this.viewCheckedAfterChange ? '1' : '0'}`),
+        distinctUntilChanged(),
+        delay(0),
+        takeUntil(this.destroy$),
+      )
+      .subscribe(() => {
+        this.countWidth();
+      });
   }
 
   ngAfterContentInit() {
@@ -68,18 +77,15 @@ export class SelectComponent implements OnInit, AfterContentInit, ControlValueAc
   }
 
   ngAfterViewChecked() {
-    if (this.countWidthOnDisplayValue) {
-      this.countWidth();
-      this.countWidthOnDisplayValue = false;
-    }
+    this.viewCheckedAfterChange = true;
+    this.width$.next();
   }
 
   registerOnChange(fn: (value: string) => void): void {
     this.onChange = fn;
   }
 
-  registerOnTouched(fn: any): void {
-  }
+  registerOnTouched(fn: any): void {}
 
   writeValue(value: string): void {
     this.control.patchValue(value, {emitEvent: false});
@@ -91,12 +97,8 @@ export class SelectComponent implements OnInit, AfterContentInit, ControlValueAc
   }
 
   private countWidth() {
-    const elements = [this.selectEl, this.displayValueEl];
-    const widths = elements.map(el => el.nativeElement.offsetWidth);
-    this.width = Math.max(...widths);
+    this.width = this.displayValueEl.nativeElement.offsetWidth;
   }
 
-  private onChange(value: string) {
-
-  }
+  private onChange(value: string) {}
 }

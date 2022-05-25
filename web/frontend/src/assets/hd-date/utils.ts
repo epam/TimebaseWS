@@ -1,12 +1,13 @@
-import { HdDate }                        from './hd-date';
-import { DateTimeFormat, FullNameDigit } from './types';
+import {HdDate} from './hd-date';
+import {DateTimeFormat, FullNameDigit} from './types';
 
 export const DENOMINATOR = 1000;
-export const REGULAR_LETTERS = /[A-Za-z]+/ig;
-export const REGULAR_ISO = /[0-9]{4}\-[0-9][0-9]?\-[0-9][0-9]?[T]?[0-9][0-9]?:[0-9][0-9]?:[0-9][0-9]?\.?[0-9]?[0-9]?[0-9]?/;
-export const REGULAR_TIME = '[0-9][0-9]?\:[0-9][0-9]?\:[0-9][0-9]?';
-export const REGULAR_DATE = '[A-Za-z]{3}\,? [A-Za-z]{3} [0-9]{2} [0-9]{4}?';
-export const REGULAR_LOCAL_DATE = '[0-9]+\/[0-9]+\/[0-9]{4}';
+export const REGULAR_LETTERS = /[A-Za-z]+/gi;
+export const REGULAR_ISO =
+  /[0-9]{4}\-[0-9][0-9]?\-[0-9][0-9]?[T]?[0-9][0-9]?:[0-9][0-9]?:[0-9][0-9]?\.?[0-9]?[0-9]?[0-9]?/;
+export const REGULAR_TIME = '[0-9][0-9]?:[0-9][0-9]?:[0-9][0-9]?';
+export const REGULAR_DATE = '[A-Za-z]{3},? [A-Za-z]{3} [0-9]{2} [0-9]{4}?';
+export const REGULAR_LOCAL_DATE = '[0-9]+/[0-9]+/[0-9]{4}';
 export const REGULAR_UTC_DATE = '[A-Za-z]{3}, [0-9]{2} [A-Za-z]{3} [0-9]{4}';
 export const FORMAT_DEFAULT = 'MM/dd/yyyy hh:mm:ss.fffffffff tt';
 export const FORMAT_ISO = 'yyyy-MM-dd HH:mm:ss.fffffffff';
@@ -23,13 +24,15 @@ export function getValueDigit(date: HdDate, format: string[], locale: string = '
       value = date.getFullYear().toString().slice(2, 4);
     } else if (format[i] === DateTimeFormat.hh) {
       const hours = date.getHours();
-      value = hours >= 13 ?
-        (hours - 12).toString() :
-        (hours === 0 ? 12 : hours).toString();
+      value = hours >= 13 ? (hours - 12).toString() : (hours === 0 ? 12 : hours).toString();
     } else if (format[i] === DateTimeFormat.MMMM) {
-      value = new Intl.DateTimeFormat(locale, {month: 'long'}).format(new Date(date.getEpochMillis()));
+      value = new Intl.DateTimeFormat(locale, {month: 'long'}).format(
+        new Date(date.getEpochMillis()),
+      );
     } else if (format[i] === DateTimeFormat.MMM) {
-      value = new Intl.DateTimeFormat(locale, {month: 'short'}).format(new Date(date.getEpochMillis()));
+      value = new Intl.DateTimeFormat(locale, {month: 'short'}).format(
+        new Date(date.getEpochMillis()),
+      );
     } else if (format[i] === DateTimeFormat.Www) {
       value = `W${date.getWeek()}`;
     } else {
@@ -46,14 +49,15 @@ export function getValueDigit(date: HdDate, format: string[], locale: string = '
         value = mili + nanosFraction;
       } else {
         const nameDigit = getFullNameDigit(format[i] as DateTimeFormat);
-        value = nameDigit === FullNameDigit.Month ?
-          (date[`get${nameDigit}`]() + 1).toString() :
-          (date[`get${nameDigit}`]()).toString();
+        value =
+          nameDigit === FullNameDigit.Month
+            ? (date[`get${nameDigit}`]() + 1).toString()
+            : date[`get${nameDigit}`]().toString();
       }
     }
     values.push(value);
   }
-  
+
   return values;
 }
 
@@ -62,7 +66,11 @@ export function getFullNameDigit(digit: DateTimeFormat): FullNameDigit {
     return FullNameDigit.Month;
   } else if (digit === DateTimeFormat.dd) {
     return FullNameDigit.Date;
-  } else if (digit === DateTimeFormat.yyyy || digit === DateTimeFormat.yy || digit === DateTimeFormat.YYYY) {
+  } else if (
+    digit === DateTimeFormat.yyyy ||
+    digit === DateTimeFormat.yy ||
+    digit === DateTimeFormat.YYYY
+  ) {
     return FullNameDigit.FullYear;
   } else if (digit === DateTimeFormat.HH || digit === DateTimeFormat.hh) {
     return FullNameDigit.Hours;
@@ -83,7 +91,7 @@ export function padStart(numberSymbol: number, word: string): string {
 }
 
 export function getStringByFormat(values: string[], format: string, formatString?: string): string {
-  const separators = format.match(/[\/,\-,\.,\:,\,,\\,\s]/ig);
+  const separators = format.match(/[\/,\-,\.,\:,\,,\\,\s]/gi);
   const letters = formatString != null ? formatString.match(REGULAR_LETTERS) : null;
   const arrayFormat: string[] = format.match(REGULAR_LETTERS);
   let str = '';
@@ -97,12 +105,8 @@ export function getStringByFormat(values: string[], format: string, formatString
             arrayFormat[i].length === 9) &&
           arrayFormat[i] !== DateTimeFormat.Www
         ) {
-          const val =
-            values[i].length < 3
-              ? padStart(3 - values[i].length, values[i])
-              : values[i];
-          str +=
-            val + padStart(arrayFormat[i].length - val.length, '');
+          const val = values[i].length < 3 ? padStart(3 - values[i].length, values[i]) : values[i];
+          str += val + padStart(arrayFormat[i].length - val.length, '');
         } else if (
           arrayFormat[i] === DateTimeFormat.MMM ||
           arrayFormat[i] === DateTimeFormat.MMMM ||
@@ -110,10 +114,7 @@ export function getStringByFormat(values: string[], format: string, formatString
         ) {
           str += values[i];
         } else {
-          str += padStart(
-            arrayFormat[i].length - values[i].length,
-            values[i],
-          );
+          str += padStart(arrayFormat[i].length - values[i].length, values[i]);
         }
       } else {
         str += values[i];
@@ -170,11 +171,13 @@ export function setValue(digit: DateTimeFormat, value: number, date: HdDate) {
 
 export function checkData(digit: DateTimeFormat, value: string, hdDate: HdDate): boolean {
   const nameDigit = getFullNameDigit(digit);
-  if ((nameDigit === FullNameDigit.Month && hdDate[`get${nameDigit}`]() + 1 !== parseInt(value)) ||
-    (nameDigit === FullNameDigit.Date && hdDate[`get${nameDigit}`]() !== parseInt(value))) {
+  if (
+    (nameDigit === FullNameDigit.Month && hdDate[`get${nameDigit}`]() + 1 !== parseInt(value)) ||
+    (nameDigit === FullNameDigit.Date && hdDate[`get${nameDigit}`]() !== parseInt(value))
+  ) {
     return false;
   }
-  
+
   return true;
 }
 
@@ -187,10 +190,12 @@ export function getValue(values: string[], digit: string): string {
       arrayValues.push(values[i]);
     }
   }
-  
+
   for (const value of arrayValues) {
-    if ((digit === DateTimeFormat.dd && parseInt(value) > 12) ||
-      (digit === DateTimeFormat.MM && parseInt(value) <= 12)) {
+    if (
+      (digit === DateTimeFormat.dd && parseInt(value) > 12) ||
+      (digit === DateTimeFormat.MM && parseInt(value) <= 12)
+    ) {
       return value;
     }
   }
@@ -204,9 +209,9 @@ export function correctHours(value: string, digit: string): string {
   } else if (digit === DateTimeFormat.hh && parseInt(value) > 12) {
     returnValue = (parseInt(value) - 12).toString();
   }
-  
+
   if (returnValue.length === 1) {
-    return ('0' + returnValue);
+    return '0' + returnValue;
   } else {
     return returnValue;
   }
@@ -216,12 +221,17 @@ export function convertDate(values: string, format: string[]): string[] {
   const createdValues: string[] = [];
   const letters = values.match(REGULAR_LETTERS);
   const separator = values.match(/[\/,\-,\.,\\]/);
-  const arrayValues: string[] = values.match(/\d+/ig);
+  const arrayValues: string[] = values.match(/\d+/gi);
   let count = 0;
   for (let i = 0; i < format.length; i++) {
     if (separator != null) {
       if (format[0] === DateTimeFormat.yyyy || arrayValues[0].length === 4) {
-        if (format[i] === DateTimeFormat.dd || format[i] === DateTimeFormat.MM || format[i] === DateTimeFormat.yyyy || format[i] === DateTimeFormat.yy) {
+        if (
+          format[i] === DateTimeFormat.dd ||
+          format[i] === DateTimeFormat.MM ||
+          format[i] === DateTimeFormat.yyyy ||
+          format[i] === DateTimeFormat.yy
+        ) {
           createdValues.push(getValue(arrayValues, format[i]));
           count++;
         }
@@ -241,7 +251,12 @@ export function convertDate(values: string, format: string[]): string[] {
             count++;
           }
         } else {
-          if (format[i] === DateTimeFormat.dd || format[i] === DateTimeFormat.MM || format[i] === DateTimeFormat.yyyy || format[i] === DateTimeFormat.yy) {
+          if (
+            format[i] === DateTimeFormat.dd ||
+            format[i] === DateTimeFormat.MM ||
+            format[i] === DateTimeFormat.yyyy ||
+            format[i] === DateTimeFormat.yy
+          ) {
             createdValues.push(getValue(arrayValues, format[i]));
             count++;
           } else if (format[i] === DateTimeFormat.yy) {

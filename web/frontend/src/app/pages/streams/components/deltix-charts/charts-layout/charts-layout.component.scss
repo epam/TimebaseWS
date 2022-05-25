@@ -1,0 +1,184 @@
+@import '../../stream-details/stream-details.component';
+@import '~src/app/core/styles/variables';
+
+.controlWr {
+  margin: 0;
+}
+
+ng-multiselect-dropdown,
+deltix-ng-smart-date-time-picker,
+deltix-ng-autocomplete {
+  margin-right: 5 * $ss;
+}
+
+.loader {
+  position: relative;
+  z-index: 1000;
+  width: 15 * $ss;
+  height: 15 * $ss;
+  top: auto;
+  left: 0;
+  opacity: 0;
+  margin-left: 2 * $ss;
+  display: block;
+
+  &.loading {
+    opacity: 1;
+  }
+}
+
+.filter-form {
+  .controlWr,
+  app-select {
+    margin-right: 2 * $ss;
+  }
+
+  .chart-types-dropdown {
+    margin-right: 6 * $ss;
+  }
+}
+
+deltix-ng-autocomplete {
+  width: 30 * $ss;
+}
+
+.filter-right .controlWr {
+  margin-left: 2 * $ss;
+}
+
+input.ng-invalid.ng-touched {
+  box-shadow: 0 0 $ss $red;
+}
+
+.controlWr {
+  display: inline-block;
+}
+
+.title {
+  margin-right: 5 * $ss;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  margin-left: 4 * $ss;
+}
+
+deltix-ng-smart-date-time-picker {
+  position: relative;
+  display: block;
+}
+
+.filterFormInputs {
+  margin-left: 2 * $ss;
+  margin-right: 4 * $ss;
+
+  &,
+  .form-component {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .form-component-label {
+    margin-bottom: 0;
+    margin-left: 2 * $ss;
+  }
+}
+
+.filterForm {
+  justify-content: flex-end;
+  flex-grow: 1;
+}
+
+.btn {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.stream-details {
+  box-sizing: border-box;
+}
+
+.controlWr.btn-outline-info {
+  width: 29px;
+}
+
+.filter-right {
+  -webkit-box-pack: end;
+  justify-content: flex-end;
+  -webkit-box-flex: 1;
+  flex-grow: 1;
+  display: flex;
+}
+
+option {
+  &.selected {
+    background-color: $blue;
+  }
+}
+
+::ng-deep {
+  .canvasjs-chart-toolbar {
+    max-width: 0;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+  }
+
+  .customTimeRangeModal {
+    width: 670px;
+    max-width: none;
+
+    .modal-body {
+      box-sizing: border-box;
+    }
+
+    .time-fromWr {
+      margin-right: 16px;
+    }
+  }
+
+  .bs-datepicker {
+    box-shadow: none;
+  }
+}
+
+.datepicker-inputWr {
+  margin-bottom: 8px;
+  width: 100%;
+
+  .btn {
+    margin-bottom: 0;
+    color: $white;
+  }
+}
+
+.btns-panel {
+  margin-top: 8px;
+}
+
+.timePickerLabel {
+  line-height: 1.8125rem;
+  background-color: $btn-navy;
+  border-bottom-right-radius: 0;
+  border-top-right-radius: 0;
+  width: 65px;
+}
+
+.datepicker-input {
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+  text-align: left;
+  width: calc(100% - 65px);
+  font-weight: normal;
+  user-select: auto;
+}
+
+.btn-arrow {
+  width: 29px;
+  padding: 0;
+}
+
+.no-display {
+  display: none;
+}

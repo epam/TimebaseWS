@@ -1,0 +1,23 @@
+button {
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.item {
+  height: auto;
+
+  &:not(.last-navigation-btn) {
+    margin-right: 15px;
+  }
+}
+
+.timezone {
+  svg {
+    margin-right: 6px;
+  }
+}
+
+.dropdown {
+}

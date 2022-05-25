@@ -1,4 +1,4 @@
-@import "../../../../core/styles/variables";
+@import '../../../../core/styles/variables';
 
 $tabs-scroll-margin: 10 * $ss;
 
@@ -7,12 +7,6 @@ $tabs-scroll-margin: 10 * $ss;
   padding-left: 0;
   display: flex;
   align-items: center;
-}
-
-.timezone {
-  svg {
-    margin-right: 3 * $ss;
-  }
 }
 
 .close-btn {
@@ -34,26 +28,18 @@ $tabs-scroll-margin: 10 * $ss;
   display: flex;
   min-width: 0;
 
-  .left-btns-wrapper, .tabs {
+  .left-btns-wrapper,
+  .tabs {
     padding: 7 * $ss 0 7 * $ss;
     display: flex;
   }
 
   .tabs {
-    &:after, &:before {
+    &:after,
+    &:before {
       content: '';
       display: block;
       min-width: $tabs-scroll-margin;
-    }
-
-    .navigation-btn.active {
-      background: $dark-blue;
-      border-bottom: $ss solid $white;
-      padding-bottom: 2 * $ss;
-
-      a {
-        color: $white;
-      }
     }
   }
 
@@ -61,7 +47,8 @@ $tabs-scroll-margin: 10 * $ss;
     overflow: hidden;
     position: relative;
 
-    &:after, &:before {
+    &:after,
+    &:before {
       content: '';
       position: absolute;
       top: 0;
@@ -80,60 +67,35 @@ $tabs-scroll-margin: 10 * $ss;
       background: linear-gradient(90deg, transparent 0%, rgba($body-bg, 1) 50%);
     }
   }
-
-  .tabs {
-    .tab, .tab a {
-      display: flex;
-      align-items: center;
-      white-space: nowrap;
-    }
-
-    a {
-      color: $table-th;
-      font-size: $fs-title;
-
-      &:hover, &:active {
-        text-decoration: none;
-      }
-
-      svg {
-        margin-right: 2 * $ss;
-      }
-
-    }
-
-    .close-btn {
-      margin-left: 3 * $ss;
-    }
-  }
 }
 
 .right-menu {
   display: flex;
-
-  .navigation-btn:not(.last-navigation-btn) {
-    margin-right: 7.5 * $ss;
-  }
-
-  button {
-    svg {
-      width: 10 * $ss;
-      height: 10 * $ss;
-    }
-  }
 }
 
 .dropdown-wrapper {
   display: flex;
   position: relative;
 
+  .dropdown-menu {
+    padding-bottom: 0;
+  }
+
+  .close-all-item {
+    padding-bottom: 2 * $ss;
+    background: $bg-blue;
+    position: sticky;
+    bottom: 0;
+  }
 
   .dropdown-item {
     color: $white;
     font-size: $fs-reg;
     padding-right: 5 * $ss;
+    padding-left: 10px;
 
-    &, a {
+    &,
+    a {
       display: flex;
       align-items: center;
     }
@@ -142,12 +104,13 @@ $tabs-scroll-margin: 10 * $ss;
       flex-grow: 1;
       color: inherit;
 
-      &, &:hover {
+      &,
+      &:hover {
         text-decoration: none;
       }
 
       svg {
-        margin-right: 2 * $ss;
+        margin-right: 10px;
       }
     }
 
@@ -159,5 +122,69 @@ $tabs-scroll-margin: 10 * $ss;
       margin-left: 10 * $ss;
     }
   }
+}
 
+.scroll-dropdown {
+  max-height: calc(100vh - #{65 * $ss});
+}
+
+perfect-scrollbar ::ng-deep {
+  .ps-content {
+    min-width: 100%;
+    width: fit-content;
+  }
+
+  .ps.ps--scrolling-x {
+    .ps__rail-x {
+      background: transparent;
+    }
+  }
+}
+
+.tab,
+.tab a {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.tab {
+  user-select: none;
+
+  a {
+    color: $table-th;
+    font-size: $fs-title;
+
+    &:hover,
+    &:active {
+      text-decoration: none;
+    }
+
+    svg {
+      margin-right: 2 * $ss;
+    }
+  }
+
+  .close-btn {
+    margin-left: 3 * $ss;
+  }
+}
+
+.navigation-btn:not(.timezone):not(.tabs-dropdown-btn).active {
+  background: $dark-blue;
+  border-bottom: $ss solid $white;
+  padding-bottom: 2 * $ss;
+
+  a {
+    color: $white;
+  }
+}
+
+.tab-preview {
+  opacity: 0.8;
+}
+
+.tab-move-placeholder:not(.active) {
+  display: flex;
+  border: 1px solid $blue;
 }

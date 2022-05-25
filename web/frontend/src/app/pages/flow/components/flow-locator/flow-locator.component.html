@@ -1,0 +1,17 @@
+<div class="controlWr datepicker-inputWr">
+  <label class="btn timePickerLabel" for="flowlocator">{{ 'titles.search' | translate }}</label>
+  <input
+      (ngModelChange)="onModelChange($event)"
+      [(ngModel)]="controlValue"
+      [ngModelSuggestions]="suggestions$ | async"
+      class="btn bs-datepicker datepicker-input"
+      id="flowlocator"
+      name="flowlocator"
+      type="text" />
+  <button
+      (click)="onClearInput()"
+      *ngIf="controlValue?.length"
+      class="btn btn-navy btn-from"
+      title="Clear"
+      type="button"></button>
+</div>

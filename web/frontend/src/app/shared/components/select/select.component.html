@@ -3,10 +3,10 @@
     {{ displayValue }}
   </div>
 </div>
-<select #selectEl
-        class="dropdown btn btn-control dropdown-toggle"
-        [name]="name"
-        [formControl]="control"
-        id="width">
+<select
+    [formControl]="control"
+    [name]="name"
+    class="dropdown btn btn-control dropdown-toggle"
+    id="width">
   <ng-content></ng-content>
 </select>

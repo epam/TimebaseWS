@@ -16,10 +16,11 @@
  */
 package com.epam.deltix.grafana.doublemath;
 
-import com.epam.deltix.grafana.base.annotations.*;
 import com.epam.deltix.computations.data.base.ArgumentType;
 import com.epam.deltix.computations.data.base.Arguments;
 import com.epam.deltix.computations.data.base.ValueType;
+import com.epam.deltix.grafana.base.annotations.*;
+
 
 @GrafanaFunction(
         name = "add", group = "doublemath",

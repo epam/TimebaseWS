@@ -1,0 +1,40 @@
+<div
+    *ngIf="tooltipData$ | async as data"
+    [class.border-blue]="data.borderBlue"
+    [class.border-green]="data.borderGreen"
+    [class.border-red]="data.borderRed"
+    class="chart-tooltip">
+  <div class="chart-tooltip__inner">
+    <div>
+      {{ data.time }}
+      <ng-container *ngIf="data.isL2"> | {{ data.yVal }} </ng-container>
+    </div>
+    <div *ngIf="data.isBars || data.isBBO" class="tooltip-content">
+      <ng-container *ngIf="data.isBars && data.point.BARS">
+        <div>Open: {{ data.point.BARS.open }}</div>
+        <div>Close: {{ data.point.BARS.close }}</div>
+        <div>Low: {{ data.point.BARS.low }}</div>
+        <div>High: {{ data.point.BARS.high }}</div>
+      </ng-container>
+      <ng-container *ngIf="data.isBBO">
+        <ng-container *ngIf="data.point.BBO">
+          <div>Ask price: {{ data.point.BBO.askPrice }}</div>
+          <div>Bid price: {{ data.point.BBO.bidPrice }}</div>
+        </ng-container>
+        <ng-container *ngIf="data.point.TRADES">
+          <div>Trade value: {{ data.point.TRADES.value }}</div>
+        </ng-container>
+      </ng-container>
+    </div>
+  </div>
+</div>
+<div *ngIf="showNoData$ | async" class="no-data">
+  {{ 'charts.noData' | translate }}
+</div>
+<div [class.hide]="hideLine$ | async" class="end-of-stream" ></div>
+<div #chartRef (mouseleave)="onChartMouseLeave()" (mouseenter)="onChartMouseEnter()" class="chartWr"></div>
+<context-menu menuClass="sidebar-context-menu">
+  <ng-template contextMenuItem >
+    <a [routerLink]="viewDataRoute.route" [queryParams]="viewDataRoute.params" >{{ 'charts.viewData' | translate }}</a>
+  </ng-template>
+</context-menu>

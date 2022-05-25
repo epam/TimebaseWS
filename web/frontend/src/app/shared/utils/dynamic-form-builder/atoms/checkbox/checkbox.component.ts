@@ -1,16 +1,16 @@
-import { Component, Input } from '@angular/core';
-import { FormGroup }        from '@angular/forms';
+import {Component, Input} from '@angular/core';
+import {FormGroup} from '@angular/forms';
 
 @Component({
   selector: 'app-checkbox',
   template: `
     <div [formGroup]="form">
-      <label class="container-ch">
+      <label [class.disabled]="form.get(field.name)?.disabled" class="container-ch">
         <input
           type="checkbox"
           [formControlName]="field.name"
           [attr.readonly]="field.readonly"
-          [id]="(field.parentName || '') + field.name">
+          [id]="(field.parentName || '') + field.name" />
         <span class="checkmark"></span>
       </label>
     </div>

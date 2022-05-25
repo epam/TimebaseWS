@@ -1,13 +1,9 @@
-@import "../../../../../core/styles/variables";
+@import '../../../../../core/styles/variables';
 
 ng-multiselect-dropdown {
   margin-bottom: 10px;
   display: block;
   font-size: $fs-reg;
-
-  ::ng-deep .multiselect-item-checkbox:hover {
-    background-color: transparent;
-  }
 }
 
 .btn {

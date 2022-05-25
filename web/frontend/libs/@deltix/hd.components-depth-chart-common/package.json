@@ -1,0 +1,17 @@
+{
+  "name": "@deltix/hd.components-depth-chart-common",
+  "version": "4.18.0",
+  "main": "./index.umd.js",
+  "module": "./index.esm.js",
+  "typings": "./index.d.ts",
+  "dependencies": {
+    "big.js": "^6.1.1",
+    "@deltix/hd.components-order-book": "file:./../hd.components-order-book",
+    "redux-observable": "^1.2.0",
+    "@deltix/hd.components-utils": "file:./../hd.components-utils",
+    "redux": "^4.1.2",
+    "rxjs": "^6.6.3",
+    "@deltix/decimal-utils": "file:./../decimal-utils"
+  },
+  "peerDependencies": {}
+}

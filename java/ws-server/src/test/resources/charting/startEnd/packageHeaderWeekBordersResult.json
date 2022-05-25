@@ -1,0 +1,25 @@
+[
+  {
+    "name": "testStream[testSymbol]",
+    "lines": {
+      "BARS": {
+        "aggregationSizeMs": 604800000,
+        "newWindowSizeMs": 0,
+        "points": [
+          {
+            "time": 1633910400000,
+            "open": "1005.637041671477",
+            "close": "1011.608658765932",
+            "low": "1005.637041671477",
+            "high": "1020.295050945032",
+            "volume": "0"
+          }
+        ]
+      }
+    },
+    "effectiveWindow": {
+      "start": "2021-10-04T00:00:00.001Z",
+      "end": "2021-10-11T00:00:00.000Z"
+    }
+  }
+]

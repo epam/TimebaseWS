@@ -1,4 +1,4 @@
-@import "src/app/core/styles/variables";
+@import 'src/app/core/styles/variables';
 
 .columns-icon {
   cursor: pointer;
@@ -12,7 +12,7 @@
 
     .tree__header {
       margin-bottom: 3 * $ss;
-      height: 10 * $ss;
+      height: 9 * $ss;
       align-items: center;
     }
 
@@ -20,33 +20,48 @@
       padding-left: 10 * $ss;
     }
 
-    div.tree__expand-icon, .checkmark {
-      min-width: 8 * $ss;
-      height: 8 * $ss;
+    div.tree__expand-icon,
+    .checkmark {
       font-size: 6 * $ss;
     }
 
     div.tree__expand-icon {
       margin-right: 3 * $ss;
+      height: 12px;
+      margin-bottom: 2px;
+      min-width: 12px;
+
+      &::before {
+        margin-top: -2px;
+      }
+    }
+
+    .tree__header {
+      margin-bottom: 0;
     }
 
     .container-ch {
-      padding-left: 12 * $ss;
+      padding-left: 10 * $ss;
+      padding-top: 0;
+      line-height: 16px;
 
       .checkmark {
-        height: 9 * $ss;
+        min-width: 7 * $ss;
+        height: 7 * $ss;
+        width: 7 * $ss;
+        border-width: 1px;
       }
 
       .checkmark::after {
-        left: 2 * $ss;
-        top: 1 * $ss;
+        left: 3px;
+        top: 1px;
         height: 4 * $ss;
         width: 3 * $ss;
         border-width: 0 $ss $ss 0;
       }
 
       .partial-checked.checkmark::after {
-        top: 0.5 * $ss;
+        top: 0;
       }
     }
 
@@ -56,7 +71,7 @@
       background: $input-bg;
       margin: -8 * $ss -7 * $ss 0;
       padding: 7 * $ss;
-      padding-bottom: 5 * $ss;
+      padding-bottom: 3 * $ss;
       z-index: 1;
     }
   }

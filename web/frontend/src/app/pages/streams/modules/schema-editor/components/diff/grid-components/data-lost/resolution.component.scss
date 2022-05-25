@@ -1,64 +1,65 @@
 @import '~src/app/core/styles/variables';
 
-.cb-label-title{
+.cb-label-title {
   margin: 0;
   padding: 0;
   width: 100%;
 }
-.container-ch{
+
+.container-ch {
   width: 9 * $ss;
   height: 9 * $ss;
   padding: 0;
-  margin-right: 2*$ss;
+  margin-right: 2 * $ss;
 
   &.drop {
     .checkmark {
       border-color: $danger;
       //background-color/
     }
+
     input:checked ~ .checkmark {
       background-color: darken($danger, 10%);
-
     }
   }
 
-  .cb-label-text{
+  .cb-label-text {
     line-height: 9 * $ss;
   }
 }
 
-.form-control-cb-wr{
-  label{
+.form-control-cb-wr {
+  label {
     margin-bottom: 0;
     margin-right: 2 * $ss;
   }
 }
 
-.form-wr{
+.form-wr {
   //height: 102px;
-  ::ng-deep{
-    .props-form .form-control-label{
+  ::ng-deep {
+    .props-form .form-control-label {
       width: 45 * $ss;
       box-sizing: content-box;
     }
 
-    .props-form .form-control-cb-wr input[type=checkbox] {
+    .props-form .form-control-cb-wr input[type='checkbox'] {
       top: 0;
       left: 0;
     }
 
     .form-control[disabled],
-    .form-control:disabled,{
+    .form-control:disabled {
       opacity: 0.5;
     }
 
-    app-dynamic-form-builder{
+    app-dynamic-form-builder {
       width: 100%;
     }
   }
 }
 
-:host{
+:host {
   display: flex;
   position: relative;
 }

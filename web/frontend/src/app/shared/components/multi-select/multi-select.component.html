@@ -1,0 +1,46 @@
+<div (click)="toggleOpen()" [class.has-data]="showSelected.length" class="header">
+  <div class="header__content">
+    <ng-container *ngIf="!showSelected.length">
+      {{ placeholder }}
+    </ng-container>
+    <ng-container *ngIf="showSelected.length">
+      <span *ngFor="let item of showSelected" class="selected-item">
+        <span>{{ item.name }}</span>
+        <span (click)="remove(item)" class="remove-icon">x</span>
+      </span>
+    </ng-container>
+  </div>
+  <div class="header__right">
+    <i class="caret"></i>
+    <div *ngIf="hiddenSelected > 0" class="hidden-selected">+{{ hiddenSelected }}</div>
+  </div>
+</div>
+<div *ngIf="open" class="dropdown">
+  <div (click)="selectAll()" [class.selected]="allSelected" class="option">
+    <ng-container
+        *ngTemplateOutlet="
+        itemTpl;
+        context: { title: allSelected ? 'Unselect all' : 'Select all' }
+      "></ng-container>
+  </div>
+  <div class="search">
+    <input [formControl]="searchControl" placeholder="Search" />
+  </div>
+  <cdk-virtual-scroll-viewport [itemSize]="40" maxBufferPx="300" minBufferPx="300">
+    <div
+        (click)="onClick(item)"
+        *cdkVirtualFor="let item of filteredItems"
+        [class.selected]="isSelected[item.name]"
+        class="option">
+      <ng-container *ngTemplateOutlet="itemTpl; context: { title: item.name }"></ng-container>
+    </div>
+  </cdk-virtual-scroll-viewport>
+</div>
+<ng-template #itemTpl let-title="title">
+  <label class="container-ch">
+    <span class="checkmark"></span>
+  </label>
+  <div class="item-name">
+    {{ title }}
+  </div>
+</ng-template>

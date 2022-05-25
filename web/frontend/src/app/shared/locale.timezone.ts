@@ -1,13 +1,13 @@
-import { HdDate }                                   from '@assets/hd-date/hd-date';
-import { TimeZone }                                 from './models/timezone.model';
-import { getTimeZones, getTimeZoneTitle, hdDateTZ } from './utils/timezone.utils';
-
+import {HdDate} from '@assets/hd-date/hd-date';
+import {GlobalFilterTimeZone} from '../pages/streams/models/global.filter.model';
+import {TimeZone} from './models/timezone.model';
+import {getTimeZones, getTimeZoneTitle, hdDateTZ} from './utils/timezone.utils';
 
 export const dateFormatsSupported = [
   'MM/dd/yyyy',
   'yyyy-MM-dd',
   'dd/MM/yyyy',
-  
+
   'dd.MM.yyyy',
   'dd-MM-yyyy',
   'yyyy/MM/dd',
@@ -258,19 +258,20 @@ export const DEFAULT_TIME_FORMAT = timeFormatsSupported[2];
 const getTimeZoneName = (item: TimeZone) => {
   return getTimeZoneTitle(item);
 };
-const TIME_ZONES_LIST = getTimeZones().map(item => {
-  return { nameTitle: getTimeZoneName(item), name: item.name, offset: item.offset };
+const TIME_ZONES_LIST: GlobalFilterTimeZone[] = getTimeZones().map((item) => {
+  return {...item, nameTitle: getTimeZoneName(item)};
 });
-export const DEFAULT_TIME_ZONE = TIME_ZONES_LIST.find(timezone => timezone.name === Intl.DateTimeFormat().resolvedOptions().timeZone);
+export const DEFAULT_TIME_ZONE: GlobalFilterTimeZone = TIME_ZONES_LIST.find(
+  (timezone) => timezone.name === Intl.DateTimeFormat().resolvedOptions().timeZone,
+);
 
 export function getFormatSeparator(format: string): string {
   const TEMP_SEPARATOR = '_[XX]_';
   return format
     .replace(/\w+/gi, TEMP_SEPARATOR)
     .split(TEMP_SEPARATOR)
-    .filter(sep => !!sep)[0];
+    .filter((sep) => !!sep)[0];
 }
-
 
 const now = new HdDate();
 
@@ -288,7 +289,12 @@ export const fromUtc = (date: any) => {
 
 const localeFormat = getLocaleDateString();
 
-export function formatHDate(data: string, filter_date_format?: string[], filter_time_format?: string[], filter_timezone?: any[]) {
+export function formatHDate(
+  data: string,
+  filter_date_format?: string[],
+  filter_time_format?: string[],
+  filter_timezone?: any[],
+) {
   if (!data) {
     return null;
   }
@@ -315,7 +321,6 @@ export function formatHDate(data: string, filter_date_format?: string[], filter_
     time_format = filter_time_format[0];
   }
   return date.toLocaleFormat(date_format) + ' ' + date.toLocaleFormat(time_format);
-
 }
 
 export function getDateUsingTZ(date: Date, timeZone) {
@@ -323,11 +328,17 @@ export function getDateUsingTZ(date: Date, timeZone) {
     return null;
   }
 
-  const localOffset = -(new HdDate()).getTimezoneOffset();
+  const localOffset = -new HdDate().getTimezoneOffset();
   const selectedOffset = timeZone.offset;
   const newDate = new HdDate(date.toISOString());
 
   newDate.setMilliseconds(newDate.getMilliseconds() - (localOffset - selectedOffset) * 60 * 1000);
 
   return new Date(newDate.getEpochMillis());
+}
+
+export function dateToTimezone(date: Date | string, tzName: string): Date {
+  return new Date(
+    toUtc(hdDateTZ(toUtc(new HdDate(new Date(date).toISOString())), tzName)).getEpochMillis(),
+  );
 }

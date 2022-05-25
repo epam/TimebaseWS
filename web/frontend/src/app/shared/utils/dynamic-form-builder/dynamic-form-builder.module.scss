@@ -1,4 +1,4 @@
-@import "~src/app/core/styles/variables";
+@import '~src/app/core/styles/variables';
 
 .props-form ::ng-deep {
   .form-control {
@@ -25,7 +25,6 @@
       .form-control-label {
         border-radius: 0;
       }
-
     }
   }
 
@@ -35,7 +34,7 @@
     //width: 100%;
     font-size: 12px;
     padding-bottom: 4px;
-    opacity: .8;
+    opacity: 0.8;
   }
 
   .form-group:not(:last-child) {
@@ -45,10 +44,10 @@
   .form-control-wr {
     width: 100%;
     flex-shrink: 1.5;
-
+    min-width: 60 * $ss;
   }
 
-  input.form-control[type="text"],
+  input.form-control[type='text'],
   select.form-control {
     background: $input-bg !important;
     border-width: 0 !important;
@@ -61,7 +60,7 @@
 
     &:focus {
       color: $white;
-      background-color: transparentize($white, .8);
+      background-color: transparentize($white, 0.8);
       border-color: $input-focus-border-color;
       outline: 0;
       @if $enable-shadows {
@@ -80,7 +79,8 @@
     }
 
     &.ng-invalid.ng-dirty {
-      &, &:focus {
+      &,
+      &:focus {
         border-color: $danger;
       }
     }
@@ -88,16 +88,21 @@
     &[readonly] {
       color: $secondary;
 
-      &, &:focus {
+      &,
+      &:focus {
         border-color: $secondary;
         color: $gray-400;
       }
     }
   }
 
+  select.form-control[disabled] {
+    -webkit-appearance: none;
+  }
+
   select.form-control {
-    padding-left: 2*$ss;
-    padding-right: 2*$ss;
+    padding-left: 2 * $ss;
+    padding-right: 2 * $ss;
   }
 
   .form-control-cb-wr {
@@ -110,7 +115,7 @@
     position: relative;
     overflow: hidden;
     padding: 0.2rem;
-    padding-left: 3*$ss;
+    padding-left: 3 * $ss;
 
     //margin-left: -.2rem;
 
@@ -129,17 +134,17 @@
       position: absolute;
       background-color: $white;
       display: block;
-      top: 2*$ss;
-      bottom: 2*$ss;
-      right: 2*$ss;
-      left: 2*$ss;
+      top: 2 * $ss;
+      bottom: 2 * $ss;
+      right: 2 * $ss;
+      left: 2 * $ss;
       transform: scale(0);
       transition-property: transform;
-      transition-duration: .2s;
+      transition-duration: 0.2s;
       z-index: 2;
     }
 
-    input[type="checkbox"] {
+    input[type='checkbox'] {
       position: absolute;
       top: -10000px;
       left: -10000px;
@@ -160,15 +165,15 @@
     }
 
     .form-control-cb {
-      input[type="checkbox"]:checked + .form-control-cb-indicator {
+      input[type='checkbox']:checked + .form-control-cb-indicator {
         transform: scale(1);
       }
     }
 
     .form-control-cb {
-      input[type="checkbox"]:focus ~ .form-control-cb-focus-indicator {
+      input[type='checkbox']:focus ~ .form-control-cb-focus-indicator {
         display: block;
-        background-color: transparentize($white, .8);
+        background-color: transparentize($white, 0.8);
         border-color: $input-focus-border-color;
         outline: 0;
         @if $enable-shadows {
@@ -187,7 +192,7 @@
   justify-content: flex-start;
 
   .btn:not(:last-child) {
-    margin-left: 4*$ss;
+    margin-left: 4 * $ss;
   }
 }
 
@@ -196,7 +201,6 @@
 }
 
 ::ng-deep {
-
   .controlWr {
     margin-bottom: 4 * $ss;
 
@@ -216,7 +220,8 @@
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
-
+      max-width: var(--label-min-width, auto);
+      min-width: var(--label-min-width, 0);
     }
 
     .input-control {

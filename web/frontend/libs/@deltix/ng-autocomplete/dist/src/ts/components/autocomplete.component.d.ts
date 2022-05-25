@@ -1,0 +1,31 @@
+import { ElementRef, EventEmitter, OnChanges, OnDestroy, OnInit } from '@angular/core';
+import { ControlValueAccessor } from '@angular/forms';
+import { AutocompleteBase } from './autocomplete-base';
+export declare class AutocompleteComponent extends AutocompleteBase implements OnInit, ControlValueAccessor, OnDestroy, OnChanges {
+    protected values: Array<any>;
+    protected highlight: boolean;
+    dropdown: boolean;
+    disabled: boolean;
+    protected required: boolean;
+    placeholder: string;
+    protected valueGetter: (value: any) => string;
+    protected descriptionGetter: (value: any, highlightFunc: (str: string) => string) => string | HTMLElement;
+    protected stripTags: boolean;
+    protected free: boolean;
+    maxlength: number;
+    spellcheck: boolean;
+    cssClass: string;
+    protected changeInput: EventEmitter<string>;
+    protected showDropdownChange: EventEmitter<boolean>;
+    protected selectedValue: any;
+    protected dropdownContainer: ElementRef;
+    constructor(element: ElementRef);
+    writeValue(obj: any): void;
+    onBlur(event: Event): void;
+    onKeyUp(event: KeyboardEvent): void;
+    isSelected(value: any): boolean;
+    select(item: any, event: Event): void;
+    onInput(event: KeyboardEvent): void;
+    onInputClick(event: Event): void;
+    onFocus(event: Event): void;
+}

@@ -16,7 +16,7 @@
  */
 package com.epam.deltix.grafana.basicmath;
 
-import com.epam.deltix.grafana.model.fields.Field;
+import com.epam.deltix.grafana.data.NumericField;
 import com.epam.deltix.computations.utils.Reusable;
 import com.epam.deltix.computations.data.MutableGenericRecordImpl;
 import com.epam.deltix.computations.data.base.Arguments;
@@ -30,7 +30,7 @@ import com.epam.deltix.grafana.base.annotations.FieldArgument;
 import com.epam.deltix.grafana.base.annotations.GrafanaAggregation;
 import com.epam.deltix.grafana.base.annotations.GrafanaValueType;
 import com.epam.deltix.grafana.base.annotations.ReturnField;
-import com.epam.deltix.grafana.data.NumericField;
+import com.epam.deltix.grafana.model.fields.Field;
 
 import java.util.Collection;
 import java.util.Collections;

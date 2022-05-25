@@ -1,20 +1,21 @@
-import { CommonModule }                      from '@angular/common';
-import { NgModule }                          from '@angular/core';
-import { FormsModule, ReactiveFormsModule }  from '@angular/forms';
-import { TranslateModule }                   from '@ngx-translate/core';
-import { AgGridModule }                      from 'ag-grid-angular';
-import { NgMultiSelectDropDownModule }       from 'ng-multiselect-dropdown';
-import { BsDatepickerModule, TooltipModule } from 'ngx-bootstrap';
-import { NgxJsonViewerModule }               from 'ngx-json-viewer';
+import {CommonModule} from '@angular/common';
+import {NgModule} from '@angular/core';
+import {FormsModule, ReactiveFormsModule} from '@angular/forms';
+import {TranslateModule} from '@ngx-translate/core';
+import {AgGridModule} from 'ag-grid-angular';
+import {NgMultiSelectDropDownModule} from 'ng-multiselect-dropdown';
+import {BsDatepickerModule} from 'ngx-bootstrap/datepicker';
+import {TooltipModule} from 'ngx-bootstrap/tooltip';
+import {NgxJsonViewerModule} from 'ngx-json-viewer';
 
-import { MonacoEditorModule }       from 'ngx-monaco-editor';
-import { PerfectScrollbarModule }   from 'ngx-perfect-scrollbar';
+import {MonacoEditorModule} from 'ngx-monaco-editor';
+import {PerfectScrollbarModule} from 'ngx-perfect-scrollbar';
 import '../../ag-grid.license';
-import { BtnDatePickerModule }      from './components/btn-date-picker/btn-date-picker.module';
-import { TabsRouterProxyComponent } from './components/tabs-router-proxy/tabs-router-proxy.component';
-import { TimeBarPickerComponent }   from './components/timebar-picker/time-bar-picker.component';
+import {BtnDatePickerModule} from './components/btn-date-picker/btn-date-picker.module';
+import {TabsRouterProxyComponent} from './components/tabs-router-proxy/tabs-router-proxy.component';
+import {TimeBarPickerComponent} from './components/timebar-picker/time-bar-picker.component';
 
-import { SafeDatePickerModule } from './directives/safe-date-picker/safe-date-picker.module';
+import {SafeDatePickerModule} from './directives/safe-date-picker/safe-date-picker.module';
 
 @NgModule({
   declarations: [TimeBarPickerComponent, TabsRouterProxyComponent],
@@ -45,8 +46,7 @@ import { SafeDatePickerModule } from './directives/safe-date-picker/safe-date-pi
     TimeBarPickerComponent,
     TooltipModule,
     PerfectScrollbarModule,
+    BtnDatePickerModule,
   ],
-
 })
-export class SharedModule {
-}
+export class SharedModule {}

@@ -1,0 +1,10 @@
+@import 'src/app/core/styles/variables';
+
+app-connection-details {
+  position: relative;
+  display: block;
+
+  &:not(:last-child) {
+    margin-bottom: 2 * $ss;
+  }
+}

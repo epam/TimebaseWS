@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
-import { fromEvent, Subject } from 'rxjs';
-import { delay, filter } from 'rxjs/operators';
+import {Injectable} from '@angular/core';
+import {fromEvent, Subject} from 'rxjs';
+import {filter} from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root',
@@ -9,12 +9,14 @@ export class ClickOutsideService {
   private documentClick$ = new Subject<HTMLElement>();
 
   constructor() {
-    fromEvent(document, 'click').subscribe(event => this.documentClick$.next(event.target as HTMLElement));
+    fromEvent(document, 'click').subscribe((event) =>
+      this.documentClick$.next(event.target as HTMLElement),
+    );
   }
 
   onOutsideClick(target: HTMLElement) {
     return this.documentClick$.pipe(
-      filter(clicked => {
+      filter((clicked) => {
         let el = clicked;
         while (el) {
           if (el === target) {

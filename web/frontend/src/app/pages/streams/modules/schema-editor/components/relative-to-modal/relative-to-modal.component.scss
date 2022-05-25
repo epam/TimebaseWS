@@ -1,0 +1,5 @@
+.relative-fields {
+  strong:not(:last-child):after {
+    content: ', ';
+  }
+}

@@ -1,11 +1,11 @@
 <div class="control-multiselect-wr">
   <ng-container *ngIf="dropdownSettings">
     <ng-multiselect-dropdown
-        class="control-multiselect"
-        [ngModel]="model"
         (ngModelChange)="onModelChange($event)"
-        [settings]="dropdownSettings"
+        [class.disabled]="disabled"
         [data]="dropdownList"
-    ></ng-multiselect-dropdown>
+        [ngModel]="model"
+        [settings]="dropdownSettings"
+        class="control-multiselect"></ng-multiselect-dropdown>
   </ng-container>
 </div>

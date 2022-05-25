@@ -1,0 +1,43 @@
+image: $ARTIFACTORY_DOCKER_DEV_REPOSITORY/gitlabci.docker/web-development:node14
+
+cache:
+  untracked: true
+  paths:
+    - node_modules/
+  key: ${CI_PROJECT_PATH_SLUG}
+
+before_script:
+  - yarn
+
+stages:
+  - build
+  - publish
+
+build:
+  stage: build
+  script:
+    - yarn build
+  tags:
+    - Linux
+    - DockerExecutor
+  artifacts:
+    paths:
+    - dist
+    expire_in: 2 hour
+
+publish:
+  stage: publish
+  script:
+    - yarn deltix-publish
+  tags:
+    - Linux
+    - DockerExecutor
+  only:
+    - master
+  only:
+    - tags
+  cache:
+    policy: pull
+    key: ${CI_COMMIT_REF_SLUG}
+  dependencies:
+    - "build"

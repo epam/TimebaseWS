@@ -1,0 +1,45 @@
+<app-modal>
+  <h4 class="modal-title pull-left" title>{{ 'text.onCreateStream' | translate }}</h4>
+  <ng-container content>
+    <form (ngSubmit)="onCreateStream()" id="nameForm">
+      <div class="controlWr">
+        <label class="btn control-label" for="keyInput">
+          {{ 'forms.enterKey' | translate }}
+        </label>
+        <input
+            [formControl]="streamNameControl"
+            class="btn input-control"
+            id="keyInput"
+            name="key"
+            type="text" />
+      </div>
+      <div
+          *ngIf="streamNameControl.invalid && !streamNameControl.pristine"
+          class="alert alert-danger my-1 p-2 fadeInDown animated validation-error">
+        <span *ngIf="streamNameControl.errors?.required" class="d-block">
+          {{ 'forms.validators.requiredField' | translate }}
+        </span>
+        <span *ngIf="streamNameControl.errors?.nameIsForbidden" class="d-block">
+          {{ 'forms.validators.streamNameExists' | translate }}
+        </span>
+      </div>
+    </form>
+  </ng-container>
+  <ng-container footer>
+    <button
+        [disabled]="streamNameControl.invalid || streamNameControl.pristine"
+        aria-label="Close"
+        class="btn btn-danger pull-right"
+        form="nameForm"
+        type="submit">
+      <span aria-hidden="true">{{ 'buttons.start_creating' | translate }}</span>
+    </button>
+    <button
+        (click)="bsModalRef.hide()"
+        aria-label="Close"
+        class="btn btn-outline-light pull-right"
+        type="button">
+      <span aria-hidden="true">{{ 'buttons.cancel' | translate }}</span>
+    </button>
+  </ng-container>
+</app-modal>

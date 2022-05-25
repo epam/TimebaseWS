@@ -16,8 +16,8 @@
  */
 package com.epam.deltix.grafana.model;
 
-import com.epam.deltix.grafana.model.fields.Column;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.epam.deltix.grafana.model.fields.Column;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

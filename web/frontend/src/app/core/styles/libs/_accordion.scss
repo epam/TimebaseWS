@@ -1,15 +1,21 @@
-@import "../variables";
+@import '../variables';
 
-accordion, accordion-group {
-  &, & .card, & .card-header {
+accordion,
+accordion-group {
+  &,
+  & .card,
+  & .card-header {
     background-color: transparent;
   }
 
-  .card, .card-header {
+  .card,
+  .card-header {
     border: none;
   }
 
-  .panel-heading, .accordion-toggle .btn, .panel-body {
+  .panel-heading,
+  .accordion-toggle .btn,
+  .panel-body {
     padding: 0;
   }
 
@@ -52,5 +58,4 @@ accordion, accordion-group {
       }
     }
   }
-
 }

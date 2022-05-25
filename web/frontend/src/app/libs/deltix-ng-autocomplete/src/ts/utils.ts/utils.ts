@@ -25,7 +25,7 @@ export class Utils {
     }
     return textArray;
   }
-  
+
   public static smartLastIndexOf(text: string, separator: string, literal: string): number {
     const reg = new RegExp(literal, 'g');
     const countLiteral = text.match(reg);
@@ -42,7 +42,7 @@ export class Utils {
     }
     return text.lastIndexOf(literal) - 1;
   }
-  
+
   public static smartIndexOf(text: string, separator: string, literal: string): number {
     const reg = new RegExp(literal, 'g');
     const countLiteral = text.match(reg);

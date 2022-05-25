@@ -1,7 +1,7 @@
-import { streamRouteName, symbolRouteName } from '../../../shared/utils/routes.names';
-import { ChartTypes }                       from './chart.model';
-import { FilterModel }                      from './filter.model';
-import { TabSettingsModel }                 from './tab.settings.model';
+import {streamRouteName, symbolRouteName} from '../../../shared/utils/routes.names';
+import {ChartTypes} from './chart.model';
+import {FilterModel} from './filter.model';
+import {TabSettingsModel} from './tab.settings.model';
 
 export class TabModel {
   public stream: string;
@@ -22,7 +22,12 @@ export class TabModel {
   public chart?: boolean;
   public query?: boolean;
   public flow?: boolean;
+  public orderBook?: boolean;
   public chartType?: ChartTypes[];
+  public streamRange?: {
+    start: number;
+    end: number;
+  };
 
   public filter: FilterModel = {};
   public tabSettings: TabSettingsModel = {};
@@ -32,6 +37,9 @@ export class TabModel {
     if (obj['stream']) {
       this.stream = obj['stream'];
     }
+    if (obj['streamRange']) {
+      this.streamRange = obj['streamRange'];
+    }
 
     if (obj['chartType']) {
       this.chartType = obj['chartType'];
@@ -40,7 +48,7 @@ export class TabModel {
     if (obj['symbol']) {
       this.symbol = obj['symbol'];
     }
-    if (obj['space']) {
+    if (obj['space'] !== undefined) {
       this.space = obj['space'];
     }
     if (obj['id']) {
@@ -85,15 +93,18 @@ export class TabModel {
     if (obj['filter']) {
       this.filter = obj['filter'];
     }
+    if (obj['orderBook']) {
+      this.orderBook = obj['orderBook'];
+    }
     if (obj['tabSettings']) {
       this.tabSettings = obj['tabSettings'];
     }
   }
 
   public get title(): string {
-    let title = this.name || this.stream;
-    if (this.space) title += ' / ' + this.space;
-    if (this.symbol) title += ' / ' + this.symbol;
+    let title = this.orderBook ? '' : this.name || this.stream;
+    if (this.space !== undefined && !this.orderBook) title += ' / ' + (this.space || 'root');
+    if (this.symbol && !this.orderBook) title += ' / ' + this.symbol;
     return title;
   }
 
@@ -115,6 +126,8 @@ export class TabModel {
         return 'chart';
       case this.query:
         return 'query';
+      case this.orderBook:
+        return 'orderBook';
       case this.flow:
         return 'flow';
       case this.view:
@@ -123,14 +136,17 @@ export class TabModel {
     }
   }
 
-  public get linkQuery(): { [key: string]: string } {
+  public get linkQuery(): {[key: string]: string} {
     const QUERY = {};
-    if (this.space) QUERY['space'] = this.space;
+    if (this.space !== undefined) QUERY['space'] = this.space;
     return QUERY;
   }
 
   public get linkArray(): string[] {
-    const link_array = this.query || this.flow ? [] : [this.symbol ? symbolRouteName : streamRouteName];
+    const link_array =
+      this.query || this.flow || this.orderBook
+        ? []
+        : [this.symbol ? symbolRouteName : streamRouteName];
 
     switch (true) {
       case this.live:
@@ -160,13 +176,16 @@ export class TabModel {
       case this.query:
         link_array.push('query');
         break;
+      case this.orderBook:
+        link_array.push('order-book');
+        break;
       case this.flow:
         link_array.push('flow');
         break;
     }
 
-    if (this.stream) link_array.push(this.stream);
-    if (this.symbol) link_array.push(this.symbol);
+    if (this.stream && !this.orderBook) link_array.push(this.stream);
+    if (this.symbol && !this.orderBook) link_array.push(this.symbol);
     if (this.id + '') link_array.push(this.id + '');
 
     return link_array;

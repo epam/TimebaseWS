@@ -13,10 +13,15 @@ export interface PropsModel {
   periodicity: {
     interval: string;
     type: string;
+    milliseconds: number;
   };
   highAvailability: boolean;
   owner: string;
   range: {
+    end: string;
+    start: string;
+  };
+  symbolRange?: {
     end: string;
     start: string;
   };

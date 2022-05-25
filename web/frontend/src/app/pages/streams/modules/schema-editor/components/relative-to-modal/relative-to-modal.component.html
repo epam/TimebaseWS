@@ -1,0 +1,24 @@
+<app-modal [withoutHeader]="true">
+  <ng-container content>
+    {{ 'schemaEditor.relativeToModal.text' | translate : {prop: isFloat ? 'static' : 'datatype'} }}
+    <span class="relative-fields" >
+      <strong *ngFor="let field of blockFields">
+        "{{ field.name }}"
+      </strong>
+    </span> {{ 'schemaEditor.relativeToModal.from' | translate }} <strong>"{{ fieldName }}"</strong>
+  </ng-container>
+  <ng-container footer>
+    <button
+        (click)="discard()"
+        class="btn btn-default"
+        type="button">
+      {{ 'schemaEditor.relativeToModal.cancel' | translate }}
+    </button>
+    <button
+        (click)="clear()"
+        class="btn btn-info last"
+        type="button">
+      {{ 'schemaEditor.relativeToModal.continue' | translate }}
+    </button>
+  </ng-container>
+</app-modal>

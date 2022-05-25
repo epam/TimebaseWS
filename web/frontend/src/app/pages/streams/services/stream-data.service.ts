@@ -1,36 +1,48 @@
-import { HttpClient, HttpErrorResponse }                                                 from '@angular/common/http';
-import { Injectable }                                                                    from '@angular/core';
-import { select, Store }                                                from '@ngrx/store';
-import { IDatasource, IServerSideDatasource, IServerSideGetRowsParams } from 'ag-grid-community';
-import { IGetRowsParams }                                               from 'ag-grid-community/src/ts/rowModels/iDatasource';
-import { combineLatest, Observable, Subject }                                            from 'rxjs';
-import { distinctUntilChanged, filter, switchMap, take, takeUntil, tap, withLatestFrom } from 'rxjs/operators';
-import { AppState }                                                                      from '../../../core/store';
-import { StreamDetailsModel }                                                            from '../models/stream.details.model';
-import { TabModel }                                                                      from '../models/tab.model';
-import * as StreamDetailsActions                                                         from '../store/stream-details/stream-details.actions';
-import { State as DetailsState }                                                         from '../store/stream-details/stream-details.reducer';
-import { streamsDetailsStateSelector }                                                   from '../store/stream-details/stream-details.selectors';
-import * as fromStreams                                                                  from '../store/streams-list/streams.reducer';
-import { getActiveOrFirstTab, getActiveTab }                                             from '../store/streams-tabs/streams-tabs.selectors';
-import * as TimelineBarActions from '../store/timeline-bar/timeline-bar.actions';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Injectable }                    from '@angular/core';
+import { Store }                         from '@ngrx/store';
+import { IDatasource }                   from 'ag-grid-community';
+import { IGetRowsParams }                from 'ag-grid-community/src/ts/rowModels/iDatasource';
+import { Observable, ReplaySubject }     from 'rxjs';
+import { filter, skip, takeUntil }       from 'rxjs/operators';
+import { AppState }                      from '../../../core/store';
+import { SchemaTypeModel }               from '../../../shared/models/schema.type.model';
+import { RightPaneService }              from '../../../shared/right-pane/right-pane.service';
+import { StreamModelsService }           from '../../../shared/services/stream-models.service';
+import { StreamDetailsModel }            from '../models/stream.details.model';
+import { TabModel }                      from '../models/tab.model';
+import * as StreamDetailsActions         from '../store/stream-details/stream-details.actions';
+import * as fromStreams                  from '../store/streams-list/streams.reducer';
+import * as TimelineBarActions           from '../store/timeline-bar/timeline-bar.actions';
 
 @Injectable()
 export class StreamDataService implements IDatasource {
   private activeTab: TabModel;
-  private destroy$ = new Subject();
+  private schema: SchemaTypeModel[];
   private lastRow = 0;
+  private loadedData$ = new ReplaySubject<StreamDetailsModel[]>(1);
 
   constructor(
     private httpClient: HttpClient,
     private streamsStore: Store<fromStreams.FeatureState>,
     private appStore: Store<AppState>,
-  ) {
+    private streamModelsService: StreamModelsService,
+    private messageInfoService: RightPaneService,
+  ) {}
+
+  withTab(activeTab: TabModel, schema: SchemaTypeModel[]) {
+    this.activeTab = activeTab;
+    this.schema = schema;
+    this.loadedData$.next(null);
+    return this;
   }
 
-  withTab(activeTab: TabModel) {
-    this.activeTab = activeTab;
-    return this;
+  onLoadedData(): Observable<StreamDetailsModel[]> {
+    return this.loadedData$.pipe(filter((data) => !!data));
+  }
+
+  destroy() {
+    this.lastRow = 0;
   }
 
   public getRows(params: IGetRowsParams): void {
@@ -47,16 +59,20 @@ export class StreamDataService implements IDatasource {
     url += '/select';
     urlParams = {
       ...urlParams,
-      'offset': request.startRow + '',
-      'rows': (request.endRow - request.startRow) + '',
+      offset: request.startRow + '',
+      rows: request.endRow - request.startRow + '',
     };
-    Object.keys(filter).forEach(key => {
-      if (key != null &&
-        key !== 'filter_symbols'
-        && key !== 'filter_types'
-        // && filter[key] !== 'tabName'
-        && key !== 'filter_date_format'
-        && key !== 'filter_time_format') {
+    Object.keys(filter).forEach((key) => {
+      if (
+        ![
+          null,
+          'filter_symbols',
+          'filter_types',
+          'filter_date_format',
+          'filter_time_format',
+          'manuallyChanged',
+        ].includes(key)
+      ) {
         urlParams[key] = filter[key];
       } else if (key === 'filter_symbols') {
         urlParams['symbols'] = filter[key];
@@ -81,62 +97,82 @@ export class StreamDataService implements IDatasource {
 
     if (filter && filter['from']) {
       if (activeTab.reverse) {
-        this.appStore.dispatch(new TimelineBarActions.SetLastLoadedDate({
-          date: filter['from'],
-        }));
+        this.appStore.dispatch(
+          new TimelineBarActions.SetLastLoadedDate({
+            date: filter['from'],
+          }),
+        );
       } else {
-        this.appStore.dispatch(new TimelineBarActions.SetFirstLoadedDate({
-          date: filter['from'],
-        }));
+        this.appStore.dispatch(
+          new TimelineBarActions.SetFirstLoadedDate({
+            date: filter['from'],
+          }),
+        );
       }
     }
 
     this.httpClient
       .post<StreamDetailsModel[]>(url, urlParams, {
         headers: {
-          'customError': 'true',
+          customError: 'true',
         },
         params: {
-          ...(typeof activeTab.space === 'string' ? {
-            space: encodeURIComponent(activeTab.space),
-          } : {}),
+          ...(typeof activeTab.space === 'string'
+            ? {
+                space: encodeURIComponent(activeTab.space),
+              }
+            : {}),
         },
       })
-      .subscribe((resp: StreamDetailsModel[]) => {
-        this.appStore.dispatch(new StreamDetailsActions.SetStreamData({ streamData: resp.map(streamDetails => new StreamDetailsModel(streamDetails)) }));
-        this.appStore.dispatch(new StreamDetailsActions.RemoveErrorMessage());
-        if (resp) {
-          if (resp.length) {
-            this.appStore.dispatch(new StreamDetailsActions.SetStreamData({streamData: resp.map(streamDetails => new StreamDetailsModel(streamDetails))}));
-            this.appStore.dispatch(new TimelineBarActions.ClearLoadedDates());
-
-            const data = resp.map(streamDetails => new StreamDetailsModel(streamDetails));
-            if (activeTab.reverse) {
-              this.appStore.dispatch(new TimelineBarActions.SetFirstLoadedDate({
-                date: resp[resp.length - 1].timestamp,
-              }));
+      .pipe(takeUntil(this.loadedData$.pipe(skip(1))))
+      .subscribe(
+        (resp: StreamDetailsModel[]) => {
+          this.appStore.dispatch(new StreamDetailsActions.RemoveErrorMessage());
+          if (resp) {
+            const data = this.streamModelsService.getStreamModels(resp, this.schema);
+            this.appStore.dispatch(new StreamDetailsActions.SetStreamData({streamData: data}));
+            if (resp.length) {
+              this.appStore.dispatch(new TimelineBarActions.ClearLoadedDates());
+              if (activeTab.reverse) {
+                this.appStore.dispatch(
+                  new TimelineBarActions.SetFirstLoadedDate({
+                    date: resp[resp.length - 1].timestamp,
+                  }),
+                );
+              } else {
+                this.appStore.dispatch(
+                  new TimelineBarActions.SetLastLoadedDate({
+                    date: resp[resp.length - 1].timestamp,
+                  }),
+                );
+              }
+              this.lastRow = request.startRow + data.length;
+              this.loadedData$.next(data);
+              params.successCallback(
+                data,
+                data.length < request.endRow - request.startRow
+                  ? request.startRow + data.length
+                  : -1,
+              );
+              this.messageInfoService.checkSelected();
             } else {
-              this.appStore.dispatch(new TimelineBarActions.SetLastLoadedDate({
-                date: resp[resp.length - 1].timestamp,
-              }));
+              this.loadedData$.next([]);
+              params.successCallback([], this.lastRow);
             }
-            this.lastRow = request.startRow + data.length;
-            params.successCallback(data, data.length < (request.endRow - request.startRow) ? request.startRow + data.length : -1);
           } else {
-            params.successCallback([], this.lastRow);
+            this.loadedData$.next(null);
+            params.failCallback();
           }
-        } else {
-          params.failCallback();
-        }
-      }, (error: HttpErrorResponse) => {
-        this.appStore.dispatch(new StreamDetailsActions.AddErrorMessage({
-          message: error.error && error.error.message ? error.error.message : error.message,
-        }));
-        params.successCallback([], this.lastRow);
-      });
-  }
-
-  destroy() {
-    this.lastRow = 0;
+        },
+        (error: HttpErrorResponse) => {
+          this.appStore.dispatch(
+            new StreamDetailsActions.AddErrorMessage({
+              message: error.error?.message || `No streams [${activeTab.stream}] found`,
+            }),
+          );
+          this.loadedData$.next(null);
+          params.successCallback([], this.lastRow);
+        },
+      );
   }
 }

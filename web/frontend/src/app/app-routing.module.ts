@@ -1,8 +1,9 @@
-import { NgModule }              from '@angular/core';
-import { RouterModule, Routes }  from '@angular/router';
-import { AppInitGuard }          from './core/services/guards/app-init.guard';
-import { AuthGuard }             from './core/services/guards/auth.guard';
-import { appRoute, auth, login } from './shared/utils/routes.names';
+import {NgModule} from '@angular/core';
+import {RouterModule, Routes} from '@angular/router';
+import {AppInitGuard} from './core/services/guards/app-init.guard';
+import {AuthGuard} from './core/services/guards/auth.guard';
+import {AppViewGuard} from './shared/components/top-global-menu/app-view.guard';
+import {appRoute, auth, dashboard, login} from './shared/utils/routes.names';
 
 const routes: Routes = [
   {
@@ -15,8 +16,8 @@ const routes: Routes = [
       },
       {
         path: appRoute,
-        loadChildren: () => import('./pages/streams/streams.module').then(m => m.StreamsModule),
-        canActivate: [AuthGuard],
+        loadChildren: () => import('./pages/streams/streams.module').then((m) => m.StreamsModule),
+        canActivate: [AuthGuard, AppViewGuard],
         canActivateChild: [AuthGuard],
       },
     ],
@@ -24,7 +25,13 @@ const routes: Routes = [
   },
   {
     path: auth,
-    loadChildren: () => import('./pages/auth-pages/auth-pages.module').then(m => m.AuthPagesModule),
+    loadChildren: () =>
+      import('./pages/auth-pages/auth-pages.module').then((m) => m.AuthPagesModule),
+  },
+  {
+    path: dashboard,
+    canActivate: [AppViewGuard],
+    loadChildren: () => import('./pages/dashboard/dashboard.module').then((m) => m.DashboardModule),
   },
   {
     path: login,
@@ -36,5 +43,4 @@ const routes: Routes = [
   imports: [RouterModule.forRoot(routes, {relativeLinkResolution: 'legacy'})],
   exports: [RouterModule],
 })
-export class AppRoutingModule {
-}
+export class AppRoutingModule {}

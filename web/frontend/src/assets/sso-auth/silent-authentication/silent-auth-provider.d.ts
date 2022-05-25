@@ -1,5 +1,5 @@
-import { AuthorizationServiceConfiguration, Requestor, TokenResponse } from '@openid/appauth';
-import { AuthFlow, SilentAuthErrorJson }                               from './types';
+import {AuthorizationServiceConfiguration, Requestor, TokenResponse} from '@openid/appauth';
+import {AuthFlow, SilentAuthErrorJson} from './types';
 
 export interface SilentAuthParams {
   flow: AuthFlow;
@@ -37,11 +37,6 @@ export declare class SilentAuthProvider {
   private readonly timeoutError;
   private readonly requestor;
   private readonly authorizationEndPointUrl;
-  
-  constructor(params: SilentAuthParams);
-  
-  getToken(): void;
-  
   private createIFrame;
   private buildUrl;
   private getResponseType;
@@ -55,4 +50,8 @@ export declare class SilentAuthProvider {
   private continueImplicitFlowAuth;
   private continueCodeFlowAuth;
   private destroy;
+
+  constructor(params: SilentAuthParams);
+
+  getToken(): void;
 }

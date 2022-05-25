@@ -1,24 +1,91 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { ExportFilter } from '../models/export-filter';
-import { select, Store } from '@ngrx/store';
-import { filter, map, take } from 'rxjs/operators';
-import * as fromApp from '../../core/store/app/app.reducer';
-import { AppState } from '../../core/store';
+import {HttpClient, HttpEventType} from '@angular/common/http';
+import {Injectable} from '@angular/core';
+import {interval, Observable, of, Subject, throwError} from 'rxjs';
+import {catchError, filter, map, mapTo, switchMap, takeUntil} from 'rxjs/operators';
+import {WSService} from '../../core/services/ws.service';
+import {ImportProgress, ImportProgressType} from '../../pages/streams/models/import-progress';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ImportService {
-  constructor(
-    private httpClient: HttpClient,
-  ) {
+  constructor(private httpClient: HttpClient, private wsService: WSService) {}
+
+  startImport(data: object): Observable<number> {
+    return this.httpClient.post<number>('/startImport', data, {headers: {customError: 'true'}});
   }
 
-  import(data: object): Observable<unknown> {
-    const formData = new FormData();
-    Object.keys(data).forEach(key => formData.append(key, data[key]));
-    return this.httpClient.post(`/import`, formData);
+  importChunks(id: number, file: File, start = 0): Observable<number> {
+    return new Observable((source) => {
+      const unsubscribe$ = new Subject();
+      this.loadChunk(id, file, start, (progress) => source.next(progress))
+        .pipe(
+          takeUntil(unsubscribe$),
+          catchError((e) => {
+            source.error(e);
+            return throwError(e);
+          }),
+        )
+        .subscribe(() => {
+          source.complete();
+        });
+      return () => {
+        unsubscribe$.next();
+        unsubscribe$.complete();
+      };
+    });
+  }
+
+  onUploadProgress(uploadId: number): Observable<ImportProgress> {
+    return this.wsService
+      .watch(`/topic/import/${uploadId}`)
+      .pipe(map(({body}) => JSON.parse(body)));
+  }
+
+  cancelImport(id: number): Observable<void> {
+    return this.httpClient.post(`/cancelImport/${id}`, {}).pipe(mapTo(null));
+  }
+
+  private loadChunk(
+    id: number,
+    file: File,
+    start: number,
+    progressCallback: (progress: number) => void,
+  ): Observable<boolean> {
+    const chunkSize = 1024 * 1024 * 0.5;
+    if (start > file.size) {
+      return of(true);
+    }
+
+    progressCallback(start / file.size);
+
+    const end = start + chunkSize + 1;
+    const chunk = file.slice(start, end);
+    const fd = new FormData();
+    fd.set('file', chunk);
+    fd.set('offset', start.toString());
+    return this.httpClient
+      .post(`/importChunk/${id}`, fd, {
+        reportProgress: true,
+        observe: 'events',
+        headers: {customError: 'true'},
+      })
+      .pipe(
+        filter((event) =>
+          [HttpEventType.UploadProgress, HttpEventType.Response].includes(event.type),
+        ),
+        switchMap((event) => {
+          if (event.type === HttpEventType.UploadProgress) {
+            const loadedSize = Math.min(chunkSize, file.size - start);
+            progressCallback((start + loadedSize * (event.loaded / event.total)) / file.size);
+          }
+
+          if (event.type === HttpEventType.Response) {
+            return this.loadChunk(id, file, end, progressCallback);
+          }
+          return of(null);
+        }),
+        filter((e) => !!e),
+      );
   }
 }

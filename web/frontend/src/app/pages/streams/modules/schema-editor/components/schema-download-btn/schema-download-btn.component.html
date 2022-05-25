@@ -1,5 +1,3 @@
-<a
-    [href]="href$ | async"
-    [download]="title$ | async"
-    class="btn btn-sm btn-outline-info"
->{{'buttons.exportToJSON' | translate}}</a>
+<a [download]="title$ | async" [href]="href$ | async" class="btn btn-sm btn-outline-info">{{
+  'buttons.exportToJSON' | translate
+  }}</a>

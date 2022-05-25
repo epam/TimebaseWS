@@ -16,23 +16,25 @@
           box-shadow: 0 1px 5px $black;
 
           .multiselect-item-checkbox {
-            input[type=checkbox] + div {
+            input[type='checkbox'] + div {
               color: $white;
             }
 
             &:hover {
-              background-color: rgba($white, .1);
+              background-color: rgba($white, 0.1);
             }
           }
 
           .filter-textbox {
             border-color: $white;
 
-            input[aria-label="multiselect-search"] {
+            input[aria-label='multiselect-search'] {
               background: transparent;
               border: 1px solid $white;
 
-              &, &::placeholder, &::-webkit-input-placeholder {
+              &,
+              &::placeholder,
+              &::-webkit-input-placeholder {
                 color: $white;
               }
             }
@@ -54,7 +56,8 @@
           padding: 1px 2 * $ss 1px 4 * $ss;
           box-sizing: border-box;
 
-          span.dropdown-down, span.dropdown-up {
+          span.dropdown-down,
+          span.dropdown-up {
             position: absolute;
             display: block;
             right: 3 * $ss;
@@ -70,6 +73,40 @@
           .selected-item {
             margin-bottom: 1px;
             border: 0;
+          }
+        }
+      }
+    }
+  }
+}
+
+:host {
+  ng-multiselect-dropdown.control-multiselect {
+    &.disabled {
+      pointer-events: none;
+
+      ::ng-deep {
+        .multiselect-dropdown {
+          span.dropdown-btn {
+            span.dropdown-multiselect__caret,
+            .selected-item a {
+              display: none;
+            }
+          }
+        }
+      }
+    }
+
+    ::ng-deep {
+      .multiselect-dropdown {
+        span.dropdown-btn {
+          span.dropdown-multiselect__caret {
+            height: 100%;
+            width: 30px;
+
+            &:before {
+              border-width: 6px 6px 0;
+            }
           }
         }
       }

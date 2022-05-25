@@ -1,43 +1,103 @@
-<div class="modal-wr" [ngClass]="{'show-form': !showEditor, 'show-editor': showEditor}">
-  <div class="modal-header">
-    <h4 class="modal-title pull-left">{{'titles.sendMessage' | translate}} <span class="stream-name">{{stream.name}}</span></h4>
-    <button (click)="bsModalRef.hide()" aria-label="Close" class="close pull-right" type="button">
-      <span aria-hidden="true">&times;</span>
-    </button>
-  </div>
-  <div class="modal-body" >
-    <form class="messageForms" id="messageForm">
-      <app-form-group
-          *ngIf="commonMessageForm"
-          class="commonMessageForm"
-          [form]="commonMessageForm"
-          [simpleConfig]="commonSimpleConfig"
-      ></app-form-group>
-      <app-form-group
-          *ngIf="messageForm"
-          class="bodyMessageForm"
-          [form]="messageForm"
-          [simpleConfig]="simpleConfig"
-      ></app-form-group>
-    </form>
-    <div class="editorWr">
-      <div class="editor-btn-wr">
-        <button class="btn btn-success" type="button" (click)="onCloseEditor()">{{'buttons.saveJSON' | translate}}</button>
-      </div>
-      <ngx-monaco-editor [options]="editorOptions" [(ngModel)]="editorData" (onInit)="onEditorInit($event)"></ngx-monaco-editor>
-    </div>
-
-
-  </div>
-  <div class="modal-footer">
-    <button type="button" class="btn btn-primary btn-btn" *ngIf="!showEditor" (click)="onShowEditor()">{{'buttons.editJSON' | translate}}</button>
-    <ng-template [ngIf]="commonMessageForm && commonMessageForm && !showEditor">
-      <button class="btn btn-success" type="button"
-        (click)="onMessageFormSubmit()"
-        [disabled]="!(commonMessageForm.valid && messageForm.valid)">{{'buttons.send' | translate}}</button>
+<app-modal>
+  <ng-container title>
+    {{ 'titles.sendMessage' | translate }} <span class="stream-name">{{ stream.name }}</span>
+  </ng-container>
+  <ng-container content>
+    <ng-container *ngIf="!confirmTime; else confirm">
+      <ng-container *ngIf="!(editJsonField$ | async)">
+        <div class="top-button-groups">
+        <div [formControl]="viewControl" btnRadioGroup class="btn-group radio-group">
+          <button *ngFor="let button of views" [btnRadio]="button" class="btn btn-default">
+            {{ button }}
+          </button>
+        </div>
+          <div [formControl]="writeModeControl" btnRadioGroup class="btn-group radio-group">
+            <button *ngFor="let button of writeModes" [btnRadio]="button" class="btn btn-default">
+              {{ button }}
+            </button>
+          </div>
+        </div>
+        <div class="content">
+          <ng-container *ngIf="viewControl.value === 'form'">
+            <app-pure-form-builder
+                *ngIf="fields$ | async as fields"
+                [fields]="fields"
+                [form]="formGroup"
+                [alignLabels]="false"
+                (editJson)="onEditJson($event)"
+            ></app-pure-form-builder>
+          </ng-container>
+          <ngx-monaco-editor
+              *ngIf="viewControl.value === 'json'"
+              [formControl]="jsonViewControl"
+              [options]="editorOptions">
+          </ngx-monaco-editor>
+        </div>
+      </ng-container>
+      <ng-container *ngIf="editJsonField$ | async as editJsonField">
+        <div class="json-edit-btns">
+          <button [disabled]="jsonFieldControl.invalid" (click)="saveJson(editJsonField)" class="btn btn-success">
+            {{ 'buttons.saveJSON' | translate }}
+          </button>
+          <button (click)="cancelJsonEdit(editJsonField)" class="btn btn-default">
+            {{ 'buttons.cancel' | translate }}
+          </button>
+        </div>
+        <ngx-monaco-editor
+            [formControl]="jsonFieldControl"
+            [options]="editorOptions">
+        </ngx-monaco-editor>
+      </ng-container>
+    </ng-container>
+    <ng-template #confirm>
+      {{ 'sendMessageModal.confirmTruncate' | translate: {stream: stream, confirmTime: confirmTime} }}
     </ng-template>
-    <button (click)="bsModalRef.hide()" class="btn btn-default last" type="button">{{'buttons.cancel' | translate}}</button>
+  </ng-container>
+  <div class="footer" footer>
+    <ng-container *ngIf="!confirmTime; else confirmBtns">
+      <ng-container *ngIf="!(editJsonField$ | async)">
+        <button
+            (click)="onRevert()"
+            [tooltip]="'buttons.revert' | translate"
+            class="btn btn-default"
+            type="button">
+          {{ 'buttons.revert' | translate }}
+        </button>
+        <div>
+          <button
+              (click)="onSubmit()"
+              [tooltip]="'buttons.send' | translate"
+              class="btn btn-success"
+              [disabled]="formGroup.invalid"
+              type="button">
+            {{ 'buttons.send' | translate }}
+          </button>
+          <button
+              [tooltip]="'buttons.cancel' | translate"
+              appModalHideBtn
+              class="btn btn-default last"
+              type="button">
+            {{ 'buttons.cancel' | translate }}
+          </button>
+        </div>
+      </ng-container>
+    </ng-container>
+    <ng-template #confirmBtns>
+      <button
+          [tooltip]="'buttons.cancel' | translate"
+          (click)="cancelSave()"
+          class="btn btn-default last"
+          type="button">
+        {{ 'buttons.cancel' | translate }}
+      </button>
+      <button
+          (click)="save()"
+          [tooltip]="'sendMessageModal.continue' | translate"
+          class="btn btn-success"
+          [disabled]="formGroup.invalid"
+          type="button">
+        {{ 'sendMessageModal.continue' | translate }}
+      </button>
+    </ng-template>
   </div>
-</div>
-
-<div class="click-backdrop"></div>
+</app-modal>

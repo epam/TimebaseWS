@@ -1,7 +1,7 @@
-import { Action }             from '@ngrx/store';
-import { SchemaTypeModel }    from '../../../../shared/models/schema.type.model';
-import { StreamDetailsModel } from '../../models/stream.details.model';
-import { TabModel }           from '../../models/tab.model';
+import {Action} from '@ngrx/store';
+import {SchemaTypeModel} from '../../../../shared/models/schema.type.model';
+import {StreamDetailsModel} from '../../models/stream.details.model';
+import {TabModel} from '../../models/tab.model';
 
 export enum StreamDetailsActionTypes {
   SUBSCRIBE_TAB_CHANGES = '[StreamDetails] Subscribe to Tab Changes',
@@ -29,7 +29,6 @@ export enum StreamDetailsActionTypes {
   REMOVE_ERROR_MESSAGE = '[StreamDetails] Remove Error Message',
 
   STOP_SUBSCRIPTIONS = '[StreamDetails] Stop Subscriptions',
-
 }
 
 export class StopSubscriptions implements Action {
@@ -43,20 +42,23 @@ export class SubscribeTabChanges implements Action {
 export class GetSchema implements Action {
   readonly type = StreamDetailsActionTypes.GET_SCHEMA;
 
-  constructor(public payload: {
-    streamId: string,
-  }) { }
+  constructor(
+    public payload: {
+      streamId: string;
+    },
+  ) {}
 }
 
 export class SetSchema implements Action {
   readonly type = StreamDetailsActionTypes.SET_SCHEMA;
 
-  constructor(public payload: {
-    schema: SchemaTypeModel[],
-    schemaAll: SchemaTypeModel[],
-  }) { }
+  constructor(
+    public payload: {
+      schema: SchemaTypeModel[];
+      schemaAll: SchemaTypeModel[];
+    },
+  ) {}
 }
-
 
 export class CleanStreamData implements Action {
   readonly type = StreamDetailsActionTypes.CLEAN_STREAM_DATA;
@@ -65,37 +67,45 @@ export class CleanStreamData implements Action {
 export class GetStreamData implements Action {
   readonly type = StreamDetailsActionTypes.GET_STREAM_DATA;
 
-  constructor(public payload: {
-    activeTab: TabModel,
-  }) { }
+  constructor(
+    public payload: {
+      activeTab: TabModel;
+    },
+  ) {}
 }
 
 export class SetStreamData implements Action {
   readonly type = StreamDetailsActionTypes.SET_STREAM_DATA;
 
-  constructor(public payload: {
-    streamData: StreamDetailsModel[],
-  }) { }
+  constructor(
+    public payload: {
+      streamData: StreamDetailsModel[];
+    },
+  ) {}
 }
 
 export class AddStreamData implements Action {
   readonly type = StreamDetailsActionTypes.ADD_STREAM_DATA;
 
-  constructor(public payload: {
-    streamData: [],
-  }) { }
+  constructor(
+    public payload: {
+      streamData: [];
+    },
+  ) {}
 }
 
 export class SaveGlobalFilterState implements Action {
   readonly type = StreamDetailsActionTypes.SAVE_GLOBAL_FILTER_STATE;
 
-  constructor(public payload: {
-    global_filter: {
-      filter_date_format: string[];
-      filter_time_format: string[];
-      filter_timezone: any;
+  constructor(
+    public payload: {
+      global_filter: {
+        filter_date_format: string[];
+        filter_time_format: string[];
+        filter_timezone: any;
+      };
     },
-  }) { }
+  ) {}
 }
 
 export class SetGlobalFilterState implements Action {
@@ -111,9 +121,11 @@ export class ClearGlobalFilterState implements Action {
 export class AddErrorMessage implements Action {
   readonly type = StreamDetailsActionTypes.ADD_ERROR_MESSAGE;
 
-  constructor(public payload: {
-    message: string,
-  }) { }
+  constructor(
+    public payload: {
+      message: string;
+    },
+  ) {}
 }
 
 export class RemoveErrorMessage implements Action {
@@ -123,58 +135,64 @@ export class RemoveErrorMessage implements Action {
 export class GetSymbols implements Action {
   readonly type = StreamDetailsActionTypes.GET_SYMBOLS;
 
-  constructor(public payload: {
-    streamId: string,
-    spaceId?: string,
-  }) { }
+  constructor(
+    public payload: {
+      streamId: string;
+      spaceId?: string;
+    },
+  ) {}
 }
 
 export class SetSymbols implements Action {
   readonly type = StreamDetailsActionTypes.SET_SYMBOLS;
 
-  constructor(public payload: {
-    symbols: string[],
-  }) { }
+  constructor(
+    public payload: {
+      symbols: string[];
+    },
+  ) {}
 }
 
 export class GetStreamRange implements Action {
   readonly type = StreamDetailsActionTypes.GET_STREAM_RANGE;
 
-  constructor(public payload: {
-    streamId: string,
-    symbol?: string,
-    spaceName?: string,
-  }) { }
+  constructor(
+    public payload: {
+      streamId: string;
+      symbol?: string;
+      spaceName?: string;
+    },
+  ) {}
 }
 
 export class SetStreamRange implements Action {
   readonly type = StreamDetailsActionTypes.SET_STREAM_RANGE;
 
-  constructor(public payload: {
-    streamRange: {
-      end: string,
-      start: string,
+  constructor(
+    public payload: {
+      streamRange: {
+        end: string;
+        start: string;
+      };
     },
-  }) { }
+  ) {}
 }
 
-
 export type StreamDetailsActions =
-  StopSubscriptions |
-  SubscribeTabChanges |
-  CleanStreamData |
-  GetSchema |
-  SetSchema |
-  GetStreamData |
-  SetStreamData |
-  AddStreamData |
-  SaveGlobalFilterState |
-  SetGlobalFilterState |
-  ClearGlobalFilterState |
-  GetSymbols |
-  SetSymbols |
-  AddErrorMessage |
-  RemoveErrorMessage |
-
-  GetStreamRange |
-  SetStreamRange;
+  | StopSubscriptions
+  | SubscribeTabChanges
+  | CleanStreamData
+  | GetSchema
+  | SetSchema
+  | GetStreamData
+  | SetStreamData
+  | AddStreamData
+  | SaveGlobalFilterState
+  | SetGlobalFilterState
+  | ClearGlobalFilterState
+  | GetSymbols
+  | SetSymbols
+  | AddErrorMessage
+  | RemoveErrorMessage
+  | GetStreamRange
+  | SetStreamRange;
