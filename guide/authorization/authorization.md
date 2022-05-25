@@ -9,13 +9,12 @@ SSO providers may not support permissions for users. To cover this, TimeBase Web
 * `GRAFANA` - permission allowing Grafana plugin to query data from TimeBase. 
 
 ```yaml
-# Example how you can define permissions for users in config file. 
+# Example how you can define permissions for users in an additional config file. 
 
 # Built-in OAuth2 authentication 
 
 security:
   oauth2:
-    ...
     users:
       - username: <username>
         password: <BCrypt_encoded_password>
@@ -28,17 +27,12 @@ security:
 
 security:
   oauth2:
-    ...
     users:
       - username: <username>
         authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
       - username: <username>
         authorities: [TB_ALLOW_READ]
 ```
-
-> Refer to [standard configuration](https://github.com/epam/TimebaseWS/blob/304ec8094ab70c59042f49e25d065739fb226560/java/ws-server/src/main/resources/application.yaml#L28).
-
-> Refer to [Configuration](https://github.com/epam/TimebaseWS/blob/main/guide/configuration.md) to learn how to configure the application.
 
 You can also define permissions for users in a JSON file:
 
@@ -65,3 +59,5 @@ security:
   } ]
 }
 ```
+
+> Refer to [Configuration](https://github.com/epam/TimebaseWS/blob/main/guide/configuration.md) to learn how to configure the application.

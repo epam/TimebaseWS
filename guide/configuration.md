@@ -2,9 +2,9 @@
 
 TimeBase Web Administrator is a Spring application. You can follow standard best practices to configuring Spring applications properties, such as:
 
-* Via application.yaml
-* Via environment variables
-* Via Java system properties 
+* [Via additional application.yaml](#additional-config)
+* [Via Java system properties](#system-properties)
+* [Via environment variables](#environment-variables)
 
 > Refer to [Spring Documentation](https://docs.spring.io/spring-boot/docs/2.1.9.RELEASE/reference/html/boot-features-external-config.html).
 
