@@ -142,7 +142,7 @@ security:
         authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
 ```
 
-Refer to [Configuration](#configuration) to learn more. 
+> Refer to [Configuration](https://github.com/epam/TimebaseWS/blob/main/guide/configuration.md) to learn how to configure the application.
 
 ## Session-Based Flow
 
@@ -262,15 +262,17 @@ security:
         authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
 ```
 
-Refer to [Configuration](#configuration) to learn more. 
+> Refer to [Configuration](https://github.com/epam/TimebaseWS/blob/main/guide/configuration.md) to learn how to configure the application.
 
 ## Configuration 
 
 ### Configuration of API Keys
 
+> Refer to [Configuration](https://github.com/epam/TimebaseWS/blob/main/guide/configuration.md) to learn how to configure the application.
+
 You can configure Basic and Session-based flows in TimeBase Web Admin `application.yaml`. 
 
-To switch between Basic (default) and Session-based flows use flag:
+To switch between Basic (default) and Session-based flows use the flag:
 
 ```yaml
 security:
@@ -338,6 +340,8 @@ security:
 ```
 
 ### Configuration of API Keys Provider 
+
+> Refer to [Configuration](https://github.com/epam/TimebaseWS/blob/main/guide/configuration.md) to learn how to configure the application.
 
 There are two options to store API keys: in `application.yaml` config and in JSON file. 
 

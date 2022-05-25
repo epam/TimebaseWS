@@ -38,6 +38,8 @@ security:
 
 > Refer to [standard configuration](https://github.com/epam/TimebaseWS/blob/304ec8094ab70c59042f49e25d065739fb226560/java/ws-server/src/main/resources/application.yaml#L28).
 
+> Refer to [Configuration](https://github.com/epam/TimebaseWS/blob/main/guide/configuration.md) to learn how to configure the application.
+
 You can also define permissions for users in a JSON file:
 
 ```yaml

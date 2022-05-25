@@ -8,37 +8,9 @@ In this case the Web Application performs the roles of the authentication servic
 
 ![](/img/tb_auth2.svg)
 
-To enable built-in authentication, you need to add the following security block to your `application.yaml` configuration file. We recommend using this authentication method for test purposes.
+Built-In Authentication is enabled by default in the [standard configuration](https://github.com/epam/TimebaseWS/blob/main/java/ws-server/src/main/resources/application.yaml) of the application. 
 
-```yaml
-  oauth2:
-    provider:
-      providerType: BUILT_IN_OAUTH
-      clientId: web
-      oauthServer: http://localhost:8099
-      getTokenEndpoint: /oauth/token
-      checkTokenEndpoint: /oauth/check
-    clientId: web
-    secret: <BCrypt_encoded_secret>
-    authorizedGrantTypes:
-    - password
-    - refresh_token
-    users: # list of users with its authorities
-    - username: <username>
-      password: <BCrypt_encoded_password>
-      authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
-    scopes:
-    - trust
-    accessTokenValiditySeconds: 300 # 5 min
-    refreshTokenValiditySeconds: 86400 # one day
-    privateKey: |
-    -----BEGIN RSA PRIVATE KEY-----
-    <RSA private key>
-    -----END RSA PRIVATE KEY----- |
-    publicKey: |
-    <RSA public key>
-
-```
+> Refer to [Configuration](https://github.com/epam/TimebaseWS/blob/main/guide/configuration.md) to learn how to configure the application.
 
 ## SSO Configuration
 
@@ -51,10 +23,11 @@ To enable built-in authentication, you need to add the following security block 
 
 ### ORY Hydra
 
-To enable SSO with [ORY Hydra](https://www.ory.sh/hydra/) add the following blocks to your `application.yaml` configuration file. 
+To enable SSO with [ORY Hydra](https://www.ory.sh/hydra/), add the following configuration. 
+
+> Refer to [Configuration](https://github.com/epam/TimebaseWS/blob/main/guide/configuration.md) to learn how to configure the application.
 
 ```yaml
-
 spring:
   security:
     oauth2:
@@ -80,7 +53,9 @@ security:
 
 ### Amazon Cognito 
 
-To enable SSO with [Amazon Cognito](https://aws.amazon.com/cognito/?nc1=h_ls) add the following blocks to your `application.yaml` configuration file. 
+To enable SSO with [Amazon Cognito](https://aws.amazon.com/cognito/?nc1=h_ls), add the following configuration. 
+
+> Refer to [Configuration](https://github.com/epam/TimebaseWS/blob/main/guide/configuration.md) to learn how to configure the application.
 
 ```yaml
 spring:
@@ -89,6 +64,7 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: Service provider URI
+
 security:
   oauth2:
     provider:
@@ -109,7 +85,9 @@ security:
 
 ### Keycloak
 
-To enable SSO with [Keycloak](https://www.keycloak.org/) add the following blocks to your `application.yaml` configuration file. 
+To enable SSO with [Keycloak](https://www.keycloak.org/), add the following configuration. 
+
+> Refer to [Configuration](https://github.com/epam/TimebaseWS/blob/main/guide/configuration.md) to learn how to configure the application.
 
 ```yaml
 spring:
@@ -118,7 +96,7 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: Service provider URI
-...
+
 security:
   oauth2:
     provider:
@@ -139,7 +117,9 @@ security:
 
 ### Auth0
 
-To enable SSO with [Auth0](https://auth0.com/) add the following blocks to your `application.yaml` configuration file. 
+To enable SSO with [Auth0](https://auth0.com/), add the following configuration. 
+
+> Refer to [Configuration](https://github.com/epam/TimebaseWS/blob/main/guide/configuration.md) to learn how to configure the application.
 
 ```yaml
 spring:
@@ -148,6 +128,7 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: Service provider URI
+
 security:
   oauth2:
     provider:
