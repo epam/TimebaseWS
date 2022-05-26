@@ -31,6 +31,7 @@ import com.epam.deltix.tbwg.webapp.services.charting.datasource.ReactiveMessageS
 import com.epam.deltix.tbwg.webapp.services.charting.datasource.MessageSourceFactory;
 
 import com.epam.deltix.timebase.messages.SchemaElement;
+import com.epam.deltix.timebase.messages.service.SecurityFeedStatusMessage;
 import com.epam.deltix.timebase.messages.universal.PackageHeader;
 import com.epam.deltix.timebase.messages.universal.TradeEntry;
 import com.epam.deltix.util.time.GMT;
@@ -59,7 +60,7 @@ public class TransformationServiceImpl implements TransformationService {
     @Value("${charting.transformations.aggregation-optimization-threshold-ms:21600000}") // 12 hours
     private long aggregationOptimizationThresholdMs;
 
-    @Value("${charting.transformations.use-qll:false}")
+    @Value("${charting.transformations.use-qll:true}")
     private boolean useQql;
 
     @Value("${charting.transformations.use-l1:false}")
@@ -204,6 +205,7 @@ public class TransformationServiceImpl implements TransformationService {
             Observable<?> inputObservable = source.getMessageSource()
                 .takeWhile(x -> x.getTimeStampMs() <= endTime);
 
+            inputObservable = inputObservable.lift(new FeedStatusTransformation());
             if (query.isLive()) {
                 inputObservable = inputObservable.lift(new TriggerPeriodicSnapshot(1000));
             }
@@ -266,6 +268,7 @@ public class TransformationServiceImpl implements TransformationService {
             Observable<?> inputObservable = source.getMessageSource()
                 .takeWhile(x -> x.getTimeStampMs() <= endTime + EXTEND_INTERVAL_MS);
 
+            inputObservable = inputObservable.lift(new FeedStatusTransformation());
             if (query.isLive()) {
                 inputObservable = inputObservable.lift(new TriggerPeriodicSnapshot(1000));
             }
@@ -426,7 +429,8 @@ public class TransformationServiceImpl implements TransformationService {
                 if (l2PricesPlanBuilder.buildByQuery()) {
                     String qql =
                         String.format(
-                            "SELECT packageType, entries as entries TYPE \"com.epam.deltix.timebase.messages.universal.PackageHeader\"\n" +
+                            "SELECT packageType, entries as entries \n" +
+                                "TYPE \"deltix.timebase.api.messages.universal.PackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(%ds)\n" +
                                 "where symbol == '%s' and entries != null\n" +
@@ -434,11 +438,14 @@ public class TransformationServiceImpl implements TransformationService {
                                 "and packageType == INCREMENTAL_UPDATE\n" +
                                 "and timestamp >= '%s'd and timestamp <= '%s'd\n" +
                                 "UNION\n" +
-                                "SELECT packageType, entries[level < %d] as entries type \"com.epam.deltix.timebase.messages.universal.PackageHeader\"\n" +
+                                "SELECT packageType, entries[level < %d] as entries, " +
+                                "SecurityFeedStatusMessage:status as status, SecurityFeedStatusMessage:exchangeId as exchangeId\n" +
+                                "TYPE \"deltix.tbwg.messages.StatusPackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(%ds)\n" +
-                                "where symbol == '%s' and entries != null\n" +
-                                "and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)\n" +
+                                "where symbol == '%s' and \n" +
+                                "((entries != null and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)) " +
+                                "or this is SecurityFeedStatusMessage)\n" +
                                 "and timestamp >= '%s'd and timestamp <= '%s'd",
                             symbolQuery.getStream(), symbolQuery.getPointInterval() / 1000,
                             symbolQuery.getSymbol(), buildTypeFilter(tradeTypes), startTimestamp, endTimestamp,
@@ -459,7 +466,7 @@ public class TransformationServiceImpl implements TransformationService {
                 if (bboPlanBuilder.buildByQuery()) {
                     String qql =
                         String.format(
-                            "SELECT packageType, entries as entries TYPE \"com.epam.deltix.timebase.messages.universal.PackageHeader\"\n" +
+                            "SELECT packageType, entries as entries TYPE \"deltix.timebase.api.messages.universal.PackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(%ds)\n" +
                                 "where symbol == '%s' and entries != null\n" +
@@ -467,11 +474,14 @@ public class TransformationServiceImpl implements TransformationService {
                                 "and packageType == INCREMENTAL_UPDATE\n" +
                                 "and timestamp >= '%s'd and timestamp <= '%s'd\n" +
                                 "UNION\n" +
-                                "SELECT packageType, entries[level == 0] as entries type \"com.epam.deltix.timebase.messages.universal.PackageHeader\"\n" +
+                                "SELECT packageType, entries[level == 0] as entries, " +
+                                "SecurityFeedStatusMessage:status as status, SecurityFeedStatusMessage:exchangeId as exchangeId\n" +
+                                "type \"deltix.tbwg.messages.StatusPackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(%ds)\n" +
-                                "where symbol == '%s' and entries != null\n" +
-                                "and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)\n" +
+                                "where symbol == '%s' and \n" +
+                                "((entries != null and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)) " +
+                                "or this is SecurityFeedStatusMessage)\n" +
                                 "and timestamp >= '%s'd and timestamp <= '%s'd",
                             symbolQuery.getStream(), symbolQuery.getPointInterval() / 1000,
                             symbolQuery.getSymbol(), buildTypeFilter(tradeTypes), startTimestamp, endTimestamp,
@@ -489,11 +499,14 @@ public class TransformationServiceImpl implements TransformationService {
                 if (barPlanBuilder.buildByQuery()) {
                     String qql =
                         String.format(
-                            "SELECT packageType, entries[level == 0] as entries type \"com.epam.deltix.timebase.api.messages.universal.PackageHeader\"\n" +
+                            "SELECT packageType, entries[level == 0] as entries, " +
+                                "SecurityFeedStatusMessage:status as status, SecurityFeedStatusMessage:exchangeId as exchangeId\n" +
+                                "TYPE \"deltix.tbwg.messages.StatusPackageHeader\"\n" +
                                 "FROM \"%s\"\n" +
                                 "OVER time(10s)\n" +
-                                "where symbol == '%s' and entries != null\n" +
-                                "and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)\n" +
+                                "where symbol == '%s' and\n" +
+                                "((entries != null and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)) " +
+                                "or this is SecurityFeedStatusMessage)\n" +
                                 "and timestamp >= '%s'd and timestamp <= '%s'd",
                             symbolQuery.getStream(), symbolQuery.getSymbol(), startTimestamp, endTimestamp
                         );
@@ -531,7 +544,8 @@ public class TransformationServiceImpl implements TransformationService {
         if (query.getType() == ChartType.PRICES_L2) {
             if (mayContainSubclasses(descriptors, PackageHeader.class)) {
                 return new TransformationType(
-                    getDescriptors(descriptors, PackageHeader.class), new L2PricesPlanBuilder(query, false)
+                    getDescriptors(descriptors, PackageHeader.class, SecurityFeedStatusMessage.class),
+                    new L2PricesPlanBuilder(query, false)
                 );
             }
             if (mayContainSubclasses(descriptors, "deltix.timebase.api.messages.universal.PackageHeader")) {
@@ -544,7 +558,8 @@ public class TransformationServiceImpl implements TransformationService {
         if (query.getType() == ChartType.BARS) {
             if (mayContainSubclasses(descriptors, PackageHeader.class)) {
                 return new TransformationType(
-                    getDescriptors(descriptors, PackageHeader.class), new BarPlanBuilder(query, false, false)
+                    getDescriptors(descriptors, PackageHeader.class, SecurityFeedStatusMessage.class),
+                    new BarPlanBuilder(query, false, false)
                 );
             }
             if (mayContainSubclasses(descriptors, "deltix.timebase.api.messages.universal.PackageHeader")) {
@@ -563,7 +578,8 @@ public class TransformationServiceImpl implements TransformationService {
         if (query.getType() == ChartType.TRADES_BBO) {
             if (mayContainSubclasses(descriptors, PackageHeader.class)) {
                 return new TransformationType(
-                    getDescriptors(descriptors, PackageHeader.class), new BboPlanBuilder(query, false, false)
+                    getDescriptors(descriptors, PackageHeader.class, SecurityFeedStatusMessage.class),
+                    new BboPlanBuilder(query, false, false)
                 );
             }
             if (mayContainSubclasses(descriptors, "deltix.timebase.api.messages.universal.PackageHeader")) {

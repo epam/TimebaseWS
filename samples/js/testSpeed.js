@@ -2,15 +2,16 @@
 
 const fs = require('fs');
 const WebSocket = require('ws')
+const restUtils = require('./restUtils.js');
 
 
-const runTest = () => {
+const runTest = (token) => {
     let currentTest = 1;
     let testCount = 1;
     let messages = 0;
     let bytes = 0;
 
-    function nextTest() {
+    function nextTest(token) {
         let ws;
         let ts0 = 0;
         let ts1 = 0;
@@ -18,10 +19,18 @@ const runTest = () => {
         if (currentTest > testCount) {
             return;
         }
+		
+		var options = {
+		  headers: {
+			'Authorization': 'bearer ' + token
+		  }
+		};
+		
+		var stream = 'BINANCE'
 
         console.log(`Running test case ${currentTest}/${testCount}`);
 
-        ws = new WebSocket(`ws://localhost:8099/ws/v0/bars/select`);
+        ws = new WebSocket(`ws://localhost:8099/ws/v0/${stream}/select`, options);
 		
 
         ws.onmessage = (event) => {
@@ -46,6 +55,9 @@ const runTest = () => {
         ws.onerror = (e) => console.error(e);
     }
 
-    nextTest();
+	nextTest(token);
 };
-runTest();
+restUtils.requestToken('localhost', 8099, 'admin', 'admin').then((response) => {
+	runTest(JSON.parse(response).access_token);
+})
+

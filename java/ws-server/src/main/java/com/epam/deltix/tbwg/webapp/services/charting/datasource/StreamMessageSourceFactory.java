@@ -25,6 +25,7 @@ import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickDB;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
 import com.epam.deltix.tbwg.webapp.services.charting.TimeInterval;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
@@ -37,6 +38,9 @@ public class StreamMessageSourceFactory implements MessageSourceFactory {
     private static final Log LOGGER = LogFactory.getLog(StreamMessageSourceFactory.class);
 
     private final long PREFETCH_INTERVAL_MS = 60 * 1000;
+
+    @Value("${charting.use-interpret-codecs:false}")
+    private boolean useInterpretCodecs;
 
     private final TimebaseService timebase;
 
@@ -64,6 +68,9 @@ public class StreamMessageSourceFactory implements MessageSourceFactory {
         //IdentityKey instrument = findInstrument(stream, symbol);
         builder.time(time - PREFETCH_INTERVAL_MS);
         builder.typeLoader(new DefaultTypeLoader());
+        if (useInterpretCodecs) {
+            builder.interpreted();
+        }
         builder.streams(stream);
         builder.symbols(symbol);
         if (types != null) {
@@ -97,6 +104,9 @@ public class StreamMessageSourceFactory implements MessageSourceFactory {
         builder.unbound(unbound);
         builder.live(live);
         builder.typeLoader(new DefaultTypeLoader());
+        if (useInterpretCodecs) {
+            builder.interpreted();
+        }
         if (stream != null && symbol != null) {
             builder.symbols(symbol);
         }

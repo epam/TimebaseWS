@@ -20,8 +20,8 @@ import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.spring.apikeys.ApiKeysAuthenticationService;
 import com.epam.deltix.spring.apikeys.utils.HmacUtils;
-import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.converter.MessageConverter;
+import org.springframework.messaging.converter.StringMessageConverter;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
@@ -39,7 +39,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
@@ -61,7 +60,7 @@ public class ApiKeysWsSamples implements StompSessionHandler {
     private static CountDownLatch latch = new CountDownLatch(9);
 
     public static void main(final String[] args) throws Exception {
-        WebSocketStompClient stompClient = createWebSocketClient(new MappingJackson2MessageConverter());
+        WebSocketStompClient stompClient = createWebSocketClient(new StringMessageConverter());
 
         StompHeaders headers = new StompHeaders();
         final String payload = randomString();
@@ -97,7 +96,7 @@ public class ApiKeysWsSamples implements StompSessionHandler {
     @Override
     public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
         LOG.info().append("Established session ").append(session).commit();
-        session.subscribe("/topic/streams", this);
+        session.subscribe("/user/topic/monitor/bitfinex", this);
     }
 
     @Override
@@ -118,7 +117,7 @@ public class ApiKeysWsSamples implements StompSessionHandler {
 
     @Override
     public Type getPayloadType(StompHeaders headers) {
-        return Map.class;
+        return String.class;
     }
 
     @Override

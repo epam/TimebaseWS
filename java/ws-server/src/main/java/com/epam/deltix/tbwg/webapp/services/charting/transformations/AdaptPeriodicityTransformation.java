@@ -19,6 +19,7 @@ package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 import com.epam.deltix.tbwg.messages.ChangePeriodicity;
 import com.epam.deltix.tbwg.messages.Message;
 import com.epam.deltix.timebase.messages.MarketMessageInfo;
+import com.epam.deltix.timebase.messages.MessageInfo;
 import com.epam.deltix.timebase.messages.universal.BaseEntryInfo;
 import com.epam.deltix.timebase.messages.universal.L2EntryNew;
 import com.epam.deltix.timebase.messages.universal.PackageHeader;
@@ -27,14 +28,14 @@ import com.epam.deltix.util.collections.generated.ObjectArrayList;
 
 import java.util.Collections;
 
-public class AdaptPeriodicityTransformation extends AbstractChartTransformation<MarketMessageInfo, MarketMessageInfo> {
+public class AdaptPeriodicityTransformation extends AbstractChartTransformation<MessageInfo, MessageInfo> {
 
     private final long maxPeriodicity;
     private final int maxLevels;
     private final PeriodicityFilter filter;
 
     public AdaptPeriodicityTransformation(int maxLevels , long periodicity) {
-        super(Collections.singletonList(MarketMessageInfo.class), Collections.singletonList(MarketMessageInfo.class));
+        super(Collections.singletonList(MessageInfo.class), Collections.singletonList(MessageInfo.class));
 
         this.maxLevels = maxLevels;
         this.maxPeriodicity = periodicity;
@@ -47,7 +48,7 @@ public class AdaptPeriodicityTransformation extends AbstractChartTransformation<
     }
 
     @Override
-    protected void onNextPoint(MarketMessageInfo marketMessage) {
+    protected void onNextPoint(MessageInfo marketMessage) {
         if (marketMessage instanceof PackageHeader) {
             PackageHeader message = (PackageHeader) marketMessage;
             if (message.getPackageType() != PackageType.INCREMENTAL_UPDATE) {

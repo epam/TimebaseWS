@@ -23,13 +23,17 @@ import com.epam.deltix.common.orderbook.options.OrderBookOptionsBuilder;
 import com.epam.deltix.common.orderbook.options.OrderBookType;
 import com.epam.deltix.common.orderbook.options.UpdateMode;
 import com.epam.deltix.tbwg.webapp.model.orderbook.L2PackageDto;
+import com.epam.deltix.timebase.messages.universal.BaseEntryInfo;
 import com.epam.deltix.timebase.messages.universal.DataModelType;
 import com.epam.deltix.timebase.messages.universal.PackageHeaderInfo;
+import com.epam.deltix.util.collections.generated.LongEnumeration;
 import com.epam.deltix.util.collections.generated.LongHashSet;
+import com.epam.deltix.util.collections.generated.LongToObjectHashMap;
+import com.epam.deltix.util.collections.generated.ObjectList;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 // mock for OrderBookSubscription
 
@@ -44,18 +48,12 @@ interface ObjObjObjConsumer {
 
 public class L2Resampler {
 
-    private final OrderBook<OrderBookQuote> book;
+    private final String symbol;
+    private final LongToObjectHashMap<OrderBook<OrderBookQuote>> books = new LongToObjectHashMap<>();
     private final OrderBookConverter orderBookConverter = new OrderBookConverter();
 
     public L2Resampler(String symbol) {
-        book = OrderBookFactory.create(
-            new OrderBookOptionsBuilder()
-                .symbol(symbol)
-                .orderBookType(OrderBookType.CONSOLIDATED)
-                .updateMode(UpdateMode.WAITING_FOR_SNAPSHOT)
-                .quoteLevels(DataModelType.LEVEL_TWO)
-                .build()
-        );
+        this.symbol = symbol;
     }
 
     public void addOnDiffComputedListener(ObjObjObjConsumer consumer) {
@@ -67,13 +65,61 @@ public class L2Resampler {
     }
 
     public synchronized void process(PackageHeaderInfo packageHeader) {
-        book.update(packageHeader);
+        OrderBook<OrderBookQuote> book = getOrCreateOrderBook(getExchange(packageHeader));
+        if (book != null) {
+            book.update(packageHeader);
+        }
     }
 
     public synchronized List<L2PackageDto> getFixedBook(LongHashSet hiddenExchanges) {
-        return book.getExchanges().stream()
-            .filter(e -> !hiddenExchanges.contains(e.getExchangeId()))
-            .map(e -> orderBookConverter.convertExchange(System.currentTimeMillis(), book.getSymbol().orElse(""), e))
-            .collect(Collectors.toList());
+        List<L2PackageDto> result = new ArrayList<>();
+
+        LongEnumeration enumeration = books.keys();
+        while (enumeration.hasMoreElements()) {
+            long exchange = enumeration.nextLongElement();
+            if (hiddenExchanges.contains(exchange)) {
+                continue;
+            }
+
+            OrderBook<OrderBookQuote> book = books.get(exchange, null);
+            if (book != null) {
+                result.add(
+                    orderBookConverter.convertExchange(
+                        System.currentTimeMillis(), book.getSymbol().orElse(""), book
+                    )
+                );
+            }
+        }
+
+        return result;
+    }
+
+    private long getExchange(PackageHeaderInfo packageHeader) {
+        ObjectList<BaseEntryInfo> entries = packageHeader.getEntries();
+        if (entries == null || entries.isEmpty()) {
+            return Long.MIN_VALUE;
+        }
+
+        return entries.get(0).getExchangeId();
+    }
+
+    private OrderBook<OrderBookQuote> getOrCreateOrderBook(long exchange) {
+        if (exchange == Long.MIN_VALUE) {
+            return null;
+        }
+
+        OrderBook<OrderBookQuote> book = books.get(exchange, null);
+        if (book == null) {
+            books.put(exchange, OrderBookFactory.create(
+                new OrderBookOptionsBuilder()
+                    .symbol(symbol)
+                    .orderBookType(OrderBookType.SINGLE_EXCHANGE)
+                    .updateMode(UpdateMode.WAITING_FOR_SNAPSHOT)
+                    .quoteLevels(DataModelType.LEVEL_TWO)
+                    .build()
+            ));
+        }
+
+        return book;
     }
 }

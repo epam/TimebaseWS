@@ -10,11 +10,11 @@
 * Monitor live data.
 * Query/Export/Import data.
 
-> Refer to [TimeBase Documentation](https://kb.timebase.info/admin.html).
+> Refer to [TimeBase Documentation](https://kb.timebase.info/community/development/tools/Web%20Admin/admin_guide).
 
 TimeBase Administrator also serves as a **REST/WS gateway for TimeBase Server**. 
 
-> Refer to [TimeBase REST/WS API reference](https://docs.deltixhub.com/timebase-api/).
+> Refer to [TimeBase REST/WS API reference](https://webadmin.timebase.info/api/v0/docs/index.html).
 
 ## How to Build
 
@@ -62,8 +62,15 @@ or start server from command line
 
 ## Configuration 
 
-> Refer to [Configuration](https://github.com/epam/TimebaseWS/tree/main/guide/configurations.md).
+> Refer to [Configuration](https://github.com/epam/TimebaseWS/blob/main/guide/configuration.md).
 
 ## Authentication 
 
-> Refer to [Authentication](https://github.com/epam/TimebaseWS/tree/main/guide/authentication.md).
+> Refer to [Web Authentication](https://github.com/epam/TimebaseWS/blob/main/guide/authentication/web-auth.md).
+
+> Refer to [Authentication with API Keys](https://github.com/epam/TimebaseWS/blob/main/guide/authentication/api-keys.md).
+
+## Authorization 
+
+> Refer to [Authorization](https://github.com/epam/TimebaseWS/tree/main/guide/authorization/authorization.md).
+

@@ -18,9 +18,11 @@ package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 
 import com.epam.deltix.dfp.Decimal64Utils;
 import com.epam.deltix.tbwg.messages.BboPoint;
+import com.epam.deltix.tbwg.messages.FeedStatusMessage;
 import com.epam.deltix.tbwg.messages.Message;
 import com.epam.deltix.tbwg.messages.SnapshotMessage;
 import com.epam.deltix.tbwg.webapp.model.charting.line.BBOElementDef;
+import com.epam.deltix.timebase.messages.service.FeedStatus;
 
 import java.util.Collections;
 
@@ -47,7 +49,12 @@ public class BboAggregationTransformation extends AbstractChartTransformation<BB
 
     @Override
     protected void onMessage(Message message) {
-        if (message instanceof SnapshotMessage) {
+        if (message instanceof FeedStatusMessage) {
+            FeedStatusMessage feedStatus = (FeedStatusMessage) message;
+            if (feedStatus.getStatus() == FeedStatus.NOT_AVAILABLE) {
+                sendEmpty(feedStatus.getTimestamp());
+            }
+        } else if (message instanceof SnapshotMessage) {
             if (bidPrice != Decimal64Utils.NULL && askPrice != Decimal64Utils.NULL) {
                 send(((SnapshotMessage) message).getTimestamp());
             }
@@ -79,5 +86,14 @@ public class BboAggregationTransformation extends AbstractChartTransformation<BB
 
         sendMessage(bbo);
     }
+
+    private void sendEmpty(long timestamp) {
+        bbo.setTime(timestamp);
+        bbo.setBidPrice(Decimal64Utils.toString(Decimal64Utils.NaN));
+        bbo.setAskPrice(Decimal64Utils.toString(Decimal64Utils.NaN));
+
+        sendMessage(bbo);
+    }
+
 
 }

@@ -16,6 +16,8 @@
  */
 package com.epam.deltix.tbwg.messages;
 
+import com.epam.deltix.timebase.messages.service.FeedStatus;
+
 public class FeedStatusMessage implements Message {
 
     private final long timestamp;

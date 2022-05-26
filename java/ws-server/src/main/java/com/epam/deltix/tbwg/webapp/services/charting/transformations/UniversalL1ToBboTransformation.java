@@ -20,6 +20,7 @@ import com.epam.deltix.dfp.Decimal64Utils;
 import com.epam.deltix.tbwg.messages.BboPoint;
 import com.epam.deltix.tbwg.messages.Message;
 import com.epam.deltix.timebase.messages.MarketMessageInfo;
+import com.epam.deltix.timebase.messages.MessageInfo;
 import com.epam.deltix.timebase.messages.universal.QuoteSide;
 import com.epam.deltix.timebase.messages.universal.L1Entry;
 import com.epam.deltix.timebase.messages.universal.PackageHeader;
@@ -30,7 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * The transformation filters package headers and leaves only l1 entries.
  */
-public class UniversalL1ToBboTransformation extends AbstractChartTransformation<BboPoint, MarketMessageInfo> {
+public class UniversalL1ToBboTransformation extends AbstractChartTransformation<BboPoint, MessageInfo> {
 
     private final BboPoint bboPoint = new BboPoint();
 
@@ -50,7 +51,7 @@ public class UniversalL1ToBboTransformation extends AbstractChartTransformation<
     }
 
     @Override
-    protected void onNextPoint(MarketMessageInfo marketMessage) {
+    protected void onNextPoint(MessageInfo marketMessage) {
         if (marketMessage instanceof PackageHeader) {
             PackageHeader message = (PackageHeader) marketMessage;
 

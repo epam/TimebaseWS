@@ -19,6 +19,7 @@ package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 import com.epam.deltix.tbwg.messages.ExecutionTag;
 import com.epam.deltix.tbwg.messages.Message;
 import com.epam.deltix.timebase.messages.MarketMessageInfo;
+import com.epam.deltix.timebase.messages.MessageInfo;
 import com.epam.deltix.timebase.messages.universal.AggressorSide;
 import com.epam.deltix.timebase.messages.universal.QuoteSide;
 import com.epam.deltix.timebase.messages.universal.PackageHeader;
@@ -29,7 +30,7 @@ import java.util.Collections;
 /**
  * The transformation filters package headers and leaves only trades.
  */
-public class UniversalToTradeTransformation extends AbstractChartTransformation<ExecutionTag, MarketMessageInfo> {
+public class UniversalToTradeTransformation extends AbstractChartTransformation<ExecutionTag, MessageInfo> {
 
     private final ExecutionTag tradeTag = new ExecutionTag();
 
@@ -43,7 +44,7 @@ public class UniversalToTradeTransformation extends AbstractChartTransformation<
     }
 
     @Override
-    protected void onNextPoint(MarketMessageInfo marketMessage) {
+    protected void onNextPoint(MessageInfo marketMessage) {
         if (marketMessage instanceof PackageHeader) {
             PackageHeader message = (PackageHeader) marketMessage;
             if (message.getEntries() != null) {

@@ -16,9 +16,11 @@
  */
 package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 
-import com.epam.deltix.tbwg.messages.*;
 import com.epam.deltix.dfp.Decimal64Utils;
+import com.epam.deltix.tbwg.messages.*;
 import com.epam.deltix.timebase.messages.MarketMessageInfo;
+import com.epam.deltix.timebase.messages.MessageInfo;
+import com.epam.deltix.timebase.messages.service.FeedStatus;
 import com.epam.deltix.timebase.messages.universal.QuoteSide;
 import com.epam.deltix.timebase.messages.universal.*;
 import com.epam.deltix.util.collections.generated.ObjectArrayList;
@@ -30,7 +32,7 @@ import java.util.Collections;
  * Same as UniversalL2Transformation, but output book builds using only snapshots, without quoteflow.
  * This is faster then UniversalL2Transformation but requires periodical snaphosts.
  */
-public class UniversalL2SnapshotsToLevelPointsTransformation extends AbstractChartTransformation<OrderBookLinePoint, MarketMessageInfo> {
+public class UniversalL2SnapshotsToLevelPointsTransformation extends AbstractChartTransformation<OrderBookLinePoint, MessageInfo> {
 
     private final int maxLevels;
 
@@ -71,7 +73,7 @@ public class UniversalL2SnapshotsToLevelPointsTransformation extends AbstractCha
     }
 
     @Override
-    protected void onNextPoint(MarketMessageInfo marketMessage) {
+    protected void onNextPoint(MessageInfo marketMessage) {
         if (marketMessage instanceof PackageHeader) {
             PackageHeader message = (PackageHeader) marketMessage;
             lastTimestamp = message.getTimeStampMs();
