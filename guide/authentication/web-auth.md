@@ -93,7 +93,7 @@ security:
       provider-type: SSO
       name: keycloak
       clientId: <client_id>
-      usernameClaim: <username>
+      usernameClaim: preferred_username
       validateIssuer: false
       validateClientId: true
 ```

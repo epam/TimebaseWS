@@ -35,7 +35,7 @@ services:
   timebase-admin:
     environment:
       - JAVA_OPTS=
-        -Dspring.config.additional-location=/path/to/the/additional/config file/application.yaml
+        -Dspring.config.additional-location=/path/to/the/additional/config_file/application.yaml
 ```
 or add the edditional configuration file using environment variable:
 
@@ -44,7 +44,7 @@ or add the edditional configuration file using environment variable:
 services:
   timebase-admin:
     environment:
-      - SPRING_CONFIG_ADDITIONAL-LOCATION=/path/to/the/additional/config file/application.yaml
+      - SPRING_CONFIG_ADDITIONAL-LOCATION=/path/to/the/additional/config_file/application.yaml
 ```
 
 ## System Properties 
@@ -88,7 +88,7 @@ services:
   timebase-admin:
     environment:
       - JAVA_OPTS=
-        -Dspring.config.location=/path/to/the/config file/application.yaml
+        -Dspring.config.location=/path/to/the/config_file/application.yaml
 ```
 
 ## Examples 
@@ -147,7 +147,7 @@ services:
       - JAVA_OPTS=
         -Dsecurity.oauth2.users.0.username=admin
         -Dsecurity.oauth2.users.0.password=admin
-        -Dsecurity.oauth2.users.0.authorities=[TB_ALLOW_READ, TB_ALLOW_WRITE]
+        -Dsecurity.oauth2.users.0.authorities="TB_ALLOW_READ, TB_ALLOW_WRITE"
 ```
 
 Configure API Keys via environment variables: 
@@ -160,7 +160,7 @@ services:
       - SECURITY_AUTHORIZATION_SOURCE=CONFIG
       - SECURITY_API-KEYS_SESSIONS_ENABLED=false
       - SECURITY_API-KEYS-PROVIDER_API-KEYS_0_NAME=TEST_API_KEY
-      - SECURITY_API-KEYS-PROVIDER_API-KEYS_1_KEY=TEST_API_SECRET
-      - SECURITY_API-KEYS-PROVIDER_API-KEYS_2_USER=admin
-      - SECURITY_API-KEYS-PROVIDER_API-KEYS_3_AUTHORITIES=[TB_ALLOW_READ, TB_ALLOW_WRITE]
+      - SECURITY_API-KEYS-PROVIDER_API-KEYS_0_KEY=TEST_API_SECRET
+      - SECURITY_API-KEYS-PROVIDER_API-KEYS_0_USER=admin
+      - SECURITY_API-KEYS-PROVIDER_API-KEYS_0_AUTHORITIES=TB_ALLOW_READ, TB_ALLOW_WRITE
 ```
