@@ -20,10 +20,10 @@ import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.pub.RawMessage;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
-import com.epam.deltix.qsrv.hf.stream.MessageWriter2;
 import com.epam.deltix.qsrv.hf.tickdb.pub.query.InstrumentMessageSource;
 import com.epam.deltix.tbwg.webapp.model.input.ExportMode;
 import com.epam.deltix.tbwg.webapp.model.input.ExportRequest;
+import com.epam.deltix.tbwg.webapp.utils.MessageWriter3;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
 import com.epam.deltix.util.time.Interval;
 
@@ -43,9 +43,12 @@ public class MessageSource2QMSGFile extends StreamExporter {
     private final Interval periodicity;
 
     @SuppressWarnings({"unchecked", "unused"})
-    public MessageSource2QMSGFile(AtomicLong exportProcesses, ExportSourceFactory sourceFactory, ExportRequest request) {
+    public MessageSource2QMSGFile(AtomicLong exportProcesses, ExportSourceFactory sourceFactory,
+                                  ExportRequest request, boolean convertNamespaces) {
+
         super(exportProcesses, null, sourceFactory, request,
-            Long.MIN_VALUE, Long.MAX_VALUE, 0, Integer.MAX_VALUE, null
+            Long.MIN_VALUE, Long.MAX_VALUE, 0, Integer.MAX_VALUE,
+            convertNamespaces, null
         );
         this.periodicity = null;
     }
@@ -53,9 +56,11 @@ public class MessageSource2QMSGFile extends StreamExporter {
     public MessageSource2QMSGFile(AtomicLong exportProcesses,
                                   String file, ExportSourceFactory sourceFactory, ExportRequest request,
                                   long fromTimestamp, long toTimestamp, long startIndex, long endIndex,
-                                  Interval periodicity, RecordClassDescriptor... descriptors)
+                                  Interval periodicity, boolean convertNamespaces,
+                                  RecordClassDescriptor... descriptors)
     {
-        super(exportProcesses, file, sourceFactory, request, fromTimestamp, toTimestamp, startIndex, endIndex, descriptors);
+        super(exportProcesses, file, sourceFactory, request, fromTimestamp, toTimestamp, startIndex, endIndex,
+            convertNamespaces, descriptors);
         this.periodicity = periodicity;
     }
 
@@ -76,7 +81,7 @@ public class MessageSource2QMSGFile extends StreamExporter {
 
     private void exportSingleFile(OutputStream outputStream) throws IOException {
         try (InstrumentMessageSource source = sourceFactory.newMessageSource();
-             MessageWriter2 messageWriter = TBWGUtils.create(outputStream, periodicity, descriptors))
+             MessageWriter3 messageWriter = TBWGUtils.create(outputStream, periodicity, convertNamespaces, descriptors))
         {
             exportFile(messageWriter, source);
         } catch (ClassNotFoundException e) {
@@ -102,7 +107,7 @@ public class MessageSource2QMSGFile extends StreamExporter {
             for (String space : spaces) {
                 zipOutputStream.putNextEntry(new ZipEntry(encodeName(space) + ExportService.MSG_FORMAT));
                 GZIPOutputStream gzos = new GZIPOutputStream(zipOutputStream, 1 << 16 / 2);
-                MessageWriter2 messageWriter = new MessageWriter2(gzos, periodicity, null, descriptors);
+                MessageWriter3 messageWriter = TBWGUtils.create(gzos, periodicity, null, convertNamespaces, descriptors);
 
                 streamSourceFactory.getOptions().space = space;
                 try (InstrumentMessageSource source = sourceFactory.newMessageSource()) {
@@ -132,7 +137,7 @@ public class MessageSource2QMSGFile extends StreamExporter {
             for (String symbol : symbols) {
                 zipOutputStream.putNextEntry(new ZipEntry(encodeName(symbol) + ExportService.MSG_FORMAT));
                 GZIPOutputStream gzos = new GZIPOutputStream(zipOutputStream, 1 << 16 / 2);
-                MessageWriter2 messageWriter = new MessageWriter2(gzos, periodicity, null, descriptors);
+                MessageWriter3 messageWriter = TBWGUtils.create(gzos, periodicity, null, convertNamespaces, descriptors);
                 try {
                     source.clearAllSymbols();
                     source.addSymbol(symbol);
@@ -150,7 +155,7 @@ public class MessageSource2QMSGFile extends StreamExporter {
         }
     }
 
-    private void exportFile(MessageWriter2 messageWriter, InstrumentMessageSource source) {
+    private void exportFile(MessageWriter3 messageWriter, InstrumentMessageSource source) {
         int messageIndex = 0;// inclusive
         while (source.next() && (endIndex < 0 || messageIndex <= endIndex)) {
             if (messageIndex >= startIndex) {

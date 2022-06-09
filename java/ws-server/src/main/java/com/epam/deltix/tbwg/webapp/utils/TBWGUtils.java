@@ -18,6 +18,7 @@ package com.epam.deltix.tbwg.webapp.utils;
 
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
+import com.epam.deltix.qsrv.hf.pub.TypeLoader;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 
@@ -89,15 +90,26 @@ public class TBWGUtils {
         return null;
     }
 
-    public static MessageWriter2 create(OutputStream os, Interval periodicity, RecordClassDescriptor... cds) throws IOException, ClassNotFoundException {
-        os = new GZIPOutputStream(os, 1 << 16 / 2);
+    public static MessageWriter3 create(OutputStream os, Interval periodicity, boolean convertNamespaces,
+                                        RecordClassDescriptor... cds)
+        throws IOException, ClassNotFoundException {
+
+        GZIPOutputStream gzos = new GZIPOutputStream(os, 1 << 16 / 2);
         try {
-            MessageWriter2 wr = new MessageWriter2(os, periodicity, null, cds);
-            os = null;
+            MessageWriter3 wr = create(gzos, periodicity, null, convertNamespaces, cds);
+            gzos = null;
             return wr;
         } finally {
-            Util.close(os);
+            Util.close(gzos);
         }
+    }
+
+    public static MessageWriter3 create(GZIPOutputStream gzos, Interval periodicity, TypeLoader loader,
+                                        boolean convertNamespaces,
+                                        RecordClassDescriptor ... descriptors)
+        throws IOException, ClassNotFoundException {
+
+        return new MessageWriter3(gzos, periodicity, loader, convertNamespaces, descriptors);
     }
 
     public static IdentityKey[] collect(HashSet<IdentityKey> instruments) {
