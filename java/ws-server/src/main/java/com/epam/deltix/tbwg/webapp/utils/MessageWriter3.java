@@ -104,6 +104,7 @@ public class MessageWriter3 extends AbstractMessageWriter implements MessageChan
 
         xml = xml.replaceAll("com.epam.deltix.timebase.messages.", "deltix.timebase.api.messages.");
         xml = xml.replaceAll("com.epam.deltix.", "deltix.");
+        xml = xml.replaceAll("(?s)<tags>.*?</tags>", "");
 
         DataOutputStream dout = new DataOutputStream(out);
         writeSchema(dout, xml);
