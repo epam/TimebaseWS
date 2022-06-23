@@ -114,7 +114,7 @@ configure(javaProjects) {
             // spring boot tests
             dependency 'org.springframework.boot:spring-boot-starter-test:2.2.7.RELEASE'
             dependency 'org.junit.jupiter:junit-jupiter-api:5.5.2'
-            dependency 'com.nimbusds:oauth2-oidc-sdk:6.14'
+            //dependency 'com.nimbusds:oauth2-oidc-sdk:6.14'
 
             dependency 'org.hdrhistogram:HdrHistogram:2.1.10'
             dependency 'org.slf4j:slf4j-api:1.7.25'
@@ -157,12 +157,20 @@ configure(javaProjects) {
                 entry 'spring-expression'
             }
 
-            dependencySet(group: 'org.springframework.boot', version: '2.2.7.RELEASE') {
+            dependencySet(group: 'org.springframework.boot', version: '2.2.13.RELEASE') {
+                entry 'spring-boot'
                 entry 'spring-boot-starter'
+                entry 'spring-boot-autoconfigure'
                 entry 'spring-boot-starter-web'
                 entry 'spring-boot-starter-websocket'
                 entry 'spring-boot-starter-actuator'
                 entry 'spring-boot-configuration-processor'
+            }
+
+            dependencySet(group: 'org.apache.tomcat.embed', version: '9.0.43') {
+                entry 'tomcat-embed-core'
+                entry 'tomcat-embed-websocket'
+                entry 'tomcat-embed-el'
             }
 
             dependencySet(group: 'org.springframework.security', version: '5.2.11.RELEASE') {
@@ -178,6 +186,9 @@ configure(javaProjects) {
 
             dependency 'org.springframework.security.oauth:spring-security-oauth2:2.5.1.RELEASE'
             dependency 'org.springframework.security:spring-security-jwt:1.1.0.RELEASE'
+
+            dependency 'org.yaml:snakeyaml:1.26'
+            dependency 'com.nimbusds:nimbus-jose-jwt:7.9'
 
             dependencySet(group: 'com.epam.deltix', version: '3.0.1') {
                 entry 'gflog-api'
