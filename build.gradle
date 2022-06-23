@@ -138,9 +138,12 @@ configure(javaProjects) {
             dependency 'org.apache.commons:commons-math3:3.6'
             dependency 'org.apache.commons:commons-text:1.8'
 
-            dependency 'com.fasterxml.jackson.core:jackson-databind:2.13.3'
-            dependency 'com.fasterxml.jackson.core:jackson-core:2.10.5'
-            dependency 'com.fasterxml.jackson.core:jackson-annotations:2.10.3'
+
+            dependencySet(group: 'com.fasterxml.jackson.core', version: '2.12.7') {
+                entry 'jackson-databind'
+                entry 'jackson-core'
+                entry 'jackson-annotations'
+            }
 
             dependencySet(group: 'org.springframework', version: '5.2.22.RELEASE') {
                 entry 'spring-beans'
