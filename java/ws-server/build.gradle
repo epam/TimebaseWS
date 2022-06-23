@@ -20,9 +20,7 @@ dependencies {
             project(":java:timebase-grafana-basicmath")
 
     // Timebase Client
-    implementation "org.finos.timebase-ce:timebase-client"
-    implementation "org.finos.timebase-ce:timebase-api"
-    implementation "org.finos.timebase-ce:timebase-pub"
+    api "org.finos.timebase-ce:timebase-client"
 
     // Timebase Commons
     implementation "com.epam.deltix:timebase-lang"

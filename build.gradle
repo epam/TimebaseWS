@@ -92,12 +92,11 @@ configure(javaProjects) {
             // Enunciate annotations
             dependency 'com.webcohesion.enunciate:enunciate-core-annotations:2.12.1'
 
+            // ---- Timebase dependencies
             dependency "org.finos.timebase-ce:timebase-client:${timebaseVersion}"
             dependency "org.finos.timebase-ce:timebase-api:${timebaseVersion}"
             dependency "org.finos.timebase-ce:timebase-pub:${timebaseVersion}"
             dependency "org.finos.timebase-ce:timebase-aerondirect:${timebaseVersion}"
-
-            dependency "com.epam.deltix:containers:3.1.2"
 
             dependency "com.epam.deltix:timebase-lang:${commonsVersion}"
             dependency "com.epam.deltix:timebase-util:${commonsVersion}"
@@ -105,9 +104,18 @@ configure(javaProjects) {
             dependency "com.epam.deltix:timebase-collections:${commonsVersion}"
 
             dependency 'com.epam.deltix:dfp:0.11.19'
+            dependency "com.epam.deltix:containers:3.1.2"
             dependency 'com.epam.deltix:hd-date-time:0.2.11'
-
             dependency 'com.epam.deltix:thread-affinity:1.0.4'
+
+            dependencySet(group: 'com.epam.deltix', version: '3.0.1') {
+                entry 'gflog-api'
+                entry 'gflog-core'
+                entry 'gflog-jul'
+                entry 'gflog-dcl'
+                entry 'gflog-slf4j'
+            }
+            // ----
 
             //dependency 'deltix:deltix-spring-api-keys:0.1.4'
 
@@ -189,14 +197,6 @@ configure(javaProjects) {
 
             dependency 'org.yaml:snakeyaml:1.26'
             dependency 'com.nimbusds:nimbus-jose-jwt:7.9'
-
-            dependencySet(group: 'com.epam.deltix', version: '3.0.1') {
-                entry 'gflog-api'
-                entry 'gflog-core'
-                entry 'gflog-jul'
-                entry 'gflog-dcl'
-                entry 'gflog-slf4j'
-            }
 
             dependency 'org.testcontainers:testcontainers:1.16.2'
             dependency 'org.testcontainers:junit-jupiter:1.16.2'
