@@ -16,8 +16,6 @@
  */
 package com.epam.deltix.spring.apikeys.utils;
 
-import com.epam.deltix.util.LangUtil;
-
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidKeyException;
@@ -82,7 +80,7 @@ public class HmacUtils {
             try {
                 return Mac.getInstance(algorithm);
             } catch (final NoSuchAlgorithmException e) {
-                throw LangUtil.rethrowUnchecked(e);
+                throw new RuntimeException(e);
             }
         };
 
