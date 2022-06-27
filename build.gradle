@@ -12,7 +12,7 @@ buildscript {
 plugins {
     id 'base'
     id 'io.spring.dependency-management' version '1.0.9.RELEASE'
-    id 'org.springframework.boot' version '2.6.6' apply false
+    id 'org.springframework.boot' version '2.7.1' apply false
     id "com.github.node-gradle.node" version "3.3.0" apply false
     id "com.webcohesion.enunciate" version "2.12.1"apply false
     id "io.freefair.lombok" version "5.3.3.3" apply false
@@ -118,8 +118,8 @@ configure(javaProjects) {
             //dependency 'deltix:deltix-spring-api-keys:0.1.4'
 
             // spring boot tests
-            dependency 'org.springframework.boot:spring-boot-starter-test:2.2.7.RELEASE'
-            dependency 'org.junit.jupiter:junit-jupiter-api:5.5.2'
+            dependency 'org.springframework.boot:spring-boot-starter-test:2.7.1'
+            dependency 'org.junit.jupiter:junit-jupiter-api:5.8.2'
             //dependency 'com.nimbusds:oauth2-oidc-sdk:6.14'
 
             dependency 'org.hdrhistogram:HdrHistogram:2.1.10'
@@ -145,13 +145,13 @@ configure(javaProjects) {
             dependency 'org.apache.commons:commons-text:1.8'
 
 
-            dependencySet(group: 'com.fasterxml.jackson.core', version: '2.13.2') {
+            dependencySet(group: 'com.fasterxml.jackson.core', version: '2.13.3') {
                 entry 'jackson-databind'
                 entry 'jackson-core'
                 entry 'jackson-annotations'
             }
 
-            dependencySet(group: 'org.springframework', version: '5.3.18') {
+            dependencySet(group: 'org.springframework', version: '5.3.21') {
                 entry 'spring-beans'
                 entry 'spring-core'
                 entry 'spring-context'
@@ -163,7 +163,7 @@ configure(javaProjects) {
                 entry 'spring-expression'
             }
 
-            dependencySet(group: 'org.springframework.boot', version: '2.6.6') {
+            dependencySet(group: 'org.springframework.boot', version: '2.7.1') {
                 entry 'spring-boot'
                 entry 'spring-boot-starter'
                 entry 'spring-boot-autoconfigure'
@@ -180,7 +180,7 @@ configure(javaProjects) {
                 entry 'tomcat-embed-el'
             }
 
-            dependencySet(group: 'org.springframework.security', version: '5.6.6') {
+            dependencySet(group: 'org.springframework.security', version: '5.7.2') {
                 entry 'spring-security-web'
                 entry 'spring-security-messaging'
                 entry 'spring-security-core'

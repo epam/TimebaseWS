@@ -124,7 +124,10 @@ licenseReport {
 //    }
 
     excludeGroups = ['javax.servlet.*']
-    excludes = ['asm:asm', 'com.sun.codemodel:codemodel-project', 'net.jcip:jcip-annotations']
+    excludes = ['asm:asm',
+                'com.sun.codemodel:codemodel-project',
+                'net.jcip:jcip-annotations',
+                'com.fasterxml.jackson:jackson-bom']
 
     configurations = ['runtimeClasspath']
     allowedLicensesFile = new File("$rootDir/allowed-licenses.json")
