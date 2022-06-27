@@ -20,7 +20,9 @@ dependencies {
             project(":java:timebase-grafana-basicmath")
 
     // Timebase Client
-    api "org.finos.timebase-ce:timebase-client"
+    api("org.finos.timebase-ce:timebase-client") {
+        exclude group: 'org.finos.timebase-ce', module: 'timebase-s3'
+    }
 
     // Timebase Commons
     implementation "com.epam.deltix:timebase-lang"
@@ -55,10 +57,11 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter"
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     implementation 'org.springframework.security.oauth:spring-security-oauth2'
 
-    implementation        'org.springframework.security:spring-security-config',
+    implementation 'org.springframework.security:spring-security-config',
             'org.springframework.security:spring-security-web',
             'org.springframework.security:spring-security-messaging',
             'org.springframework.security:spring-security-oauth2-client',
@@ -173,7 +176,7 @@ def bootGroup = 'boot'
 
 task bootJar(type: BootJar, dependsOn: enunciate, group: bootGroup) {
 
-    mainClassName 'com.epam.deltix.tbwg.webapp.Application'
+    mainClass.set('com.epam.deltix.tbwg.webapp.Application')
 
     manifest {
         attributes(

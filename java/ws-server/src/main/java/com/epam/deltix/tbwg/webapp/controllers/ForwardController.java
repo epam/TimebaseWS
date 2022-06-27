@@ -19,7 +19,6 @@ package com.epam.deltix.tbwg.webapp.controllers;
 import com.webcohesion.enunciate.metadata.Ignore;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 /**
@@ -38,8 +37,8 @@ public class ForwardController {
      * Forward to home page so that route is preserved.
      */
     @Ignore
-    @RequestMapping("/app/**/{path:[^.]*}")
-    public String redirect(@PathVariable String path) {
+    @RequestMapping("/app/**")
+    public String redirect() {
         return "forward:/";
     }
 
@@ -49,9 +48,4 @@ public class ForwardController {
         return "forward:/";
     }
 
-    @Ignore
-    @RequestMapping("/app")
-    public String redirect() {
-        return "forward:/";
-    }
 }
