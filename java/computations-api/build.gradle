@@ -1,7 +1,9 @@
 dependencies {
     api 'com.epam.deltix:dfp'
     api 'com.epam.deltix:containers'
-    api "org.finos.timebase-ce:timebase-client"
+    api "org.finos.timebase-ce:timebase-pub"
+    api "org.finos.timebase-ce:timebase-api"
+    api "com.epam.deltix:timebase-messages"
 
     compileOnly 'com.fasterxml.jackson.core:jackson-annotations'
     compileOnly 'com.google.code.findbugs:jsr305'

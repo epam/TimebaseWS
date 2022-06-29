@@ -52,7 +52,7 @@ public class ExportServiceImpl implements ExportService {
     @Override
     public String prepareExport(ExportSourceFactory exportSourceFactory, ExportRequest request,
                                 long startTime, long endTime, long startIndex, long endIndex,
-                                Interval periodicity, RecordClassDescriptor[] rcds)
+                                Interval periodicity, boolean convertNamespaces, RecordClassDescriptor[] rcds)
     {
         if (exportProcesses.incrementAndGet() >= MAX_EXPORT_PROCESSES) {
             LOGGER.error().append("Number of export requests over the limit ").append(MAX_EXPORT_PROCESSES).append(".")
@@ -75,7 +75,7 @@ public class ExportServiceImpl implements ExportService {
         StreamingResponseBody body = request.format == ExportFormat.QSMSG ?
             new MessageSource2QMSGFile(
                 exportProcesses,
-                file, exportSourceFactory, request, startTime, endTime, startIndex, endIndex, periodicity, rcds
+                file, exportSourceFactory, request, startTime, endTime, startIndex, endIndex, periodicity, convertNamespaces, rcds
             ) :
             new CSVExporter(exportProcesses,
                 file, exportSourceFactory, request, startTime, endTime, startIndex, endIndex, rcds

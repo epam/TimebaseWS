@@ -28,7 +28,7 @@ public interface ExportService {
     String prepareExport(
         ExportSourceFactory exportSourceFactory, ExportRequest request,
         long startTime, long endTime, long startIndex, long endIndex,
-        Interval periodicity, RecordClassDescriptor[] rcds
+        Interval periodicity, boolean convertNamespaces, RecordClassDescriptor[] rcds
     );
 
     StreamingResponseBody getExportBody(String id);

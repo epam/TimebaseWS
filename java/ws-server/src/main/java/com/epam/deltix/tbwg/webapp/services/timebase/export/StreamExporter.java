@@ -40,10 +40,12 @@ public abstract class StreamExporter implements FileResponseBody {
     protected final TickStream[] streams;
     protected final RecordClassDescriptor[] descriptors;
     protected final String fileName;
+    protected final boolean convertNamespaces;
 
     StreamExporter(AtomicLong exportProcesses,
                    String fileName, ExportSourceFactory sourceFactory, ExportRequest request,
                    long fromTimestamp, long toTimestamp, long startIndex, long endIndex,
+                   boolean convertNamespaces,
                    RecordClassDescriptor[] descriptors)
     {
         this.exportProcesses = exportProcesses;
@@ -54,6 +56,7 @@ public abstract class StreamExporter implements FileResponseBody {
         this.toTimestamp = toTimestamp;
         this.startIndex = startIndex;
         this.endIndex = endIndex;
+        this.convertNamespaces = convertNamespaces;
         this.streams = sourceFactory instanceof StreamsExportSourceFactory ?
             ((StreamsExportSourceFactory) sourceFactory).getStreams() : new TickStream[0];
         this.descriptors = descriptors;

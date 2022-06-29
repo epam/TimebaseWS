@@ -104,6 +104,12 @@ public class ExportRequest {
     public String[]             symbols;
 
     /**
+     * Convert exported schema namespaces to Timebase 5 format
+     */
+    @JsonProperty
+    public boolean              convertNamespaces;
+
+    /**
      * Return timebase type name for selection
      * @return String names
      */

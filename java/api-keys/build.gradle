@@ -12,9 +12,6 @@ jar {
 dependencies {
     api 'com.epam.deltix:gflog-api', 'com.epam.deltix:gflog-core', 'com.epam.deltix:gflog-jul'
 
-    implementation "com.epam.deltix:timebase-lang"
-    implementation "com.epam.deltix:timebase-util"
-
     implementation 'org.springframework.boot:spring-boot-starter',
             'org.springframework.boot:spring-boot-starter-web',
             'org.springframework.boot:spring-boot-starter-websocket',

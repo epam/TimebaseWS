@@ -374,7 +374,7 @@ public class TimebaseController {
         return ResponseEntity.ok(new DownloadId(
             exportService.prepareExport(
                 new StreamsExportSourceFactory(service, startTime, options, tickStreams, select.getTypes(), ids),
-                select, startTime, select.getEndTime(), startIndex, endIndex, periodicity, descriptors
+                select, startTime, select.getEndTime(), startIndex, endIndex, periodicity, select.convertNamespaces, descriptors
             )
         ));
     }
@@ -432,7 +432,7 @@ public class TimebaseController {
             exportService.prepareExport(
                 new StreamsExportSourceFactory(service, startTime, options, new DXTickStream[]{stream}, select.getTypes(), ids),
                 select, startTime, select.getEndTime(), startIndex, endIndex, periodicity,
-                stream.getTypes()
+                select.convertNamespaces, stream.getTypes()
             )
         ));
     }
@@ -493,7 +493,7 @@ public class TimebaseController {
         return ResponseEntity.ok(new DownloadId(
             exportService.prepareExport(
                 new QueryExportSourceFactory(service, options, query.query),
-                request, Long.MIN_VALUE, Long.MAX_VALUE, 0, -1, null, rcds
+                request, Long.MIN_VALUE, Long.MAX_VALUE, 0, -1, null, false, rcds
             )
         ));
     }

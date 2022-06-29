@@ -33,7 +33,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: Service provider URI
+          issuer-uri: <service provider uri>
 
 security:
   oauth2:
@@ -44,11 +44,6 @@ security:
       validateIssuer: false
       userInfo:
         enable: true
-    users:
-      - username: <username>
-        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
-      - username: <username>
-        authorities: [TB_ALLOW_READ]
 ```
 
 ### Amazon Cognito 
@@ -63,7 +58,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: Service provider URI
+          issuer-uri: <service provider uri>
 
 security:
   oauth2:
@@ -72,15 +67,10 @@ security:
       name: cognito
       clientId: <client_id>
       audience: <audience>
-      configUrl: Service provider config URL
-      logoutUrl: Service provider logout URL
+      configUrl: <service provider config url>
+      logoutUrl: <service provider logout url>
       usernameClaim: username
       validateIssuer: true
-    users:
-      - username: <username>
-        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
-      - username: <username>
-        authorities: [TB_ALLOW_READ]
 ```
 
 ### Keycloak
@@ -95,24 +85,17 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: Service provider URI
+          issuer-uri: <service provider uri>
 
 security:
   oauth2:
     provider:
       provider-type: SSO
       name: keycloak
-      clientId: client ID
+      clientId: <client_id>
       usernameClaim: preferred_username
       validateIssuer: false
       validateClientId: true
-    groups:
-      - name: <username>
-        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
-    users:
-      - username: <username>
-        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
-
 ```
 
 ### Auth0
@@ -127,17 +110,17 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: Service provider URI
+          issuer-uri: <service provider uri>
 
 security:
   oauth2:
     provider:
       providerType: SSO
       name: auth0
-      clientId: client ID
-      audience: audience URL
-      configUrl: configuration URL
-      logoutUrl: logout URL
+      clientId: <client_id>
+      audience: <audience url>
+      configUrl: <configuration url>
+      logoutUrl: <logout url>
 ```
 
 Refer to [Auth0 Configuration](https://github.com/epam/TimebaseWS/tree/main/guide/authentication/auth0.md) to learn how to configure Auth0.

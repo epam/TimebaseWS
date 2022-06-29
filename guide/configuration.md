@@ -2,7 +2,7 @@
 
 TimeBase Web Administrator is a Spring application. You can follow standard best practices to configuring Spring applications properties, such as:
 
-* [Via additional application.yaml](#additional-config)
+* [Via additional application.yaml](#additional-configuration-file)
 * [Via Java system properties](#system-properties)
 * [Via environment variables](#environment-variables)
 
@@ -10,144 +10,157 @@ TimeBase Web Administrator is a Spring application. You can follow standard best
 
 > Refer to [Spring Documentation](https://docs.spring.io/spring-boot/docs/1.2.0.M1/reference/html/howto-properties-and-configuration.html).
 
-## Configuration Guidelines
-
 TimeBase Web Administrator starts with the default configuration specified in the application.yaml file.
 
 > Refer to [Default Configuration](https://github.com/epam/TimebaseWS/blob/main/java/ws-server/src/main/resources/application.yaml).
 
-You can use it as it is, or follow the suggested best practices to edit the application behavior to meet your specific requirements. 
+You can override specific default configuration parameters (in this case other parameters keep their default values) or the entire default configuration to meet your specific requirements. 
 
-### Redefine the Default Configuration Parameters
+## Additional Configuration File
 
-You can redefine the selected configuration parameters. The rest of the parameters will keep their default values. There are several ways to do that. 
+You can create an **additional** application.yaml configuration file to **override** the selected configuration parameters.
 
-#### Additional Config
-
-Using an **additional** application.yaml configuration file.
-
-For example, to redefine the default TimeBase URL, you can add an additional application.yaml configuration file as shown in the below example: 
+For example, to override the default TimeBase URL, you can create an **additional** application.yaml configuration file as shown in the example below: 
 
 ```yaml
-# create an additional application.yaml file to redefine the default TimeBase url
+# additional application.yaml
 timebase:
-  url: dxtick://localhost:8011
+  url: dxtick://localhost:8045
 ```
-
-In the **additional** application.yaml, all you need is to specify the application properties you want to redefine, other (not specified in the additional config) properties will keep their default values. In this case, run the application with [spring.config.additional-location](https://docs.spring.io/spring-boot/docs/2.1.9.RELEASE/reference/html/boot-features-external-config.html#:~:text=Alternatively%2C%20when%20custom,becomes%20the%20following%3A) option and provide the path to the additional application.yaml you want to use. 
+and run the application with [-Dspring.config.additional-location](https://docs.spring.io/spring-boot/docs/2.1.9.RELEASE/reference/html/boot-features-external-config.html#:~:text=Alternatively%2C%20when%20custom,becomes%20the%20following%3A) system property, where you provide the path to the additional application.yaml you want to use. 
 
 ```yaml
-# docker-compose snippet example
+# docker-compose.yaml
+services:
+  timebase-admin:
     environment:
       - JAVA_OPTS=
-        -Dspring.config.additional-location=path to the additional config
+        -Dspring.config.additional-location=/path/to/the/additional/config_file/application.yaml
 ```
-
-#### System Properties 
-
-Default configuration parameters can be mapped on and redefined in Java System Properties.
-
-For example, to redefine the default TimeBase URL, you can add a system property as shown in the below example: 
+or add the edditional configuration file using environment variable:
 
 ```yaml
-# docker-compose snippet example
+# docker-compose.yaml
+services:
+  timebase-admin:
     environment:
-      - JAVA_OPTS=
-        -Dtimebase.url=new TimeBase url
+      - SPRING_CONFIG_ADDITIONAL-LOCATION=/path/to/the/additional/config_file/application.yaml
 ```
 
-#### Environment Variables
+## System Properties 
 
-Default configuration parameters can be redefined in Environment Variables.
+Default configuration parameters can be mapped on and overridden using Java system properties.
+
+For example, to **override** the default TimeBase URL, you can add a system property as shown in the below example: 
+
+```yaml
+# docker-compose.yaml
+services:
+  timebase-admin:
+    environment:
+      - JAVA_OPTS=
+        -Dtimebase.url=dxtick://localhost:8045
+```
+
+## Environment Variables
+
+Default configuration parameters can be overridden using environment variables.
 
 > Refer to [Spring Naming Convention](https://docs.spring.io/spring-boot/docs/2.1.9.RELEASE/reference/html/boot-features-external-config.html#boot-features-external-config-relaxed-binding) for your reference. 
 
 ```yaml
-# docker-compose snippet example
+# docker-compose.yaml
+services:
+  timebase-admin:
     environment:
-      TIMEBASE_URL=new TimeBase url
+      - TIMEBASE_URL=dxtick://localhost:8045
 ```
 
-### Replace the Default Configuration 
+## Replace the Default Configuration 
 
-You can ignore the default configuration and entirely replace it by the **custom** application.yaml. In this case, run the application with [spring.config.location](https://docs.spring.io/spring-boot/docs/2.1.9.RELEASE/reference/html/boot-features-external-config.html#:~:text=When%20custom%20config%20locations%20are%20configured%20by%20using%20spring.config.location%2C%20they%20replace%20the%20default%20locations.%20For%20example%2C%20if%20spring.config.location%20is%20configured%20with%20the%20value%20classpath%3A/custom%2Dconfig/%2Cfile%3A./custom%2Dconfig/%2C%20the%20search%20order%20becomes%20the%20following%3A) option and provide the path to the new application.yaml you want to use instead of the default one. 
+You can ignore the default configuration and entirely replace it by the **custom** application.yaml. In this case, run the application with [-Dspring.config.location](https://docs.spring.io/spring-boot/docs/2.1.9.RELEASE/reference/html/boot-features-external-config.html#:~:text=When%20custom%20config%20locations%20are%20configured%20by%20using%20spring.config.location%2C%20they%20replace%20the%20default%20locations.%20For%20example%2C%20if%20spring.config.location%20is%20configured%20with%20the%20value%20classpath%3A/custom%2Dconfig/%2Cfile%3A./custom%2Dconfig/%2C%20the%20search%20order%20becomes%20the%20following%3A) system property and provide the path to the new application.yaml you want to use instead of the default one. 
 
 Be aware, that in this case, you will have to create the entire config from scratch, which is significantly more resourceful than redefining the selected parameters - described in the above sections. 
 
 ```yaml
-# docker-compose snippet example
+# docker-compose.yaml
+services:
+  timebase-admin:
     environment:
       - JAVA_OPTS=
-        -Dspring.config.location=path to the config file
+        -Dspring.config.location=/path/to/the/config_file/application.yaml
 ```
 
-### Examples 
+## Examples 
 
-Redefine TimeBase connection parameters in the additional application.yaml file:
+Override TimeBase connection parameters in the additional application.yaml file:
 
 ```yaml
-# create an additional application.yaml file to redefine the default TimeBase parameters
+# additional application.yaml
 timebase:
-  url: new TimeBase URL
-  user: <username>
-  password: <BCrypt_encoded_password>
+  url: dxtick://localhost:8045
+  user: admin
+  password: admin
 ```
 
 Configure users by adding an additional application.yaml: 
 
 ```yaml
-# additional application.yaml to configure users
+# additional application.yaml
 security:
   oauth2:
     users:
       - username: admin
-        password: <BCrypt_encoded_password>
+        password: admin # or BCrypt encoded password
         authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
 ```
 
 Configure ORY Hydra SSO provider in the additional application.yaml:
 
 ```yaml
+# additional application.yaml
 spring:
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: Service provider URI
+          issuer-uri: http://hydra-url:8011/my-client-id
 
 security:
   oauth2:
     provider:
       providerType: SSO
       name: hydra
-      clientId: <client_id>
+      clientId: my-hydra-client-id
       validateIssuer: false
       userInfo:
         enable: true
-    users:
-      - username: <username>
-        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
-      - username: <username>
-        authorities: [TB_ALLOW_READ]
 ```
 
-Configure users via Java System Properties: 
+Configure users via Java system properties: 
 
 ```yaml
-# docker-compose snippet example
+# docker-compose.yaml
+services:
+  timebase-admin:
     environment:
       - JAVA_OPTS=
         -Dsecurity.oauth2.users.0.username=admin
-        -Dsecurity.oauth2.users.0.authorities.0=TB_ALLOW_READ
-        -Dsecurity.oauth2.users.0.authorities.1=TB_ALLOW_WRITE
+        -Dsecurity.oauth2.users.0.password=admin
+        -Dsecurity.oauth2.users.0.authorities="TB_ALLOW_READ, TB_ALLOW_WRITE"
 ```
 
-Configure users via Environment Variables: 
+Configure API Keys via environment variables: 
 
 ```yaml
-# docker-compose snippet example
+# docker-compose.yaml
+services:
+  timebase-admin:
     environment:
-      SECURITY_OAUTH2_USERS_0_USERNAME=admin
-      SECURITY_OAUTH2_USERS_0_AUTHORITIES_0=TB_ALLOW_READ
-      SECURITY_OAUTH2_USERS_0_AUTHORITIES_1=TB_ALLOW_WRITE
+      - SECURITY_AUTHORIZATION_SOURCE=CONFIG
+      - SECURITY_API-KEYS_SESSIONS_ENABLED=false
+      - SECURITY_API-KEYS-PROVIDER_API-KEYS_0_NAME=TEST_API_KEY
+      - SECURITY_API-KEYS-PROVIDER_API-KEYS_0_KEY=TEST_API_SECRET
+      - SECURITY_API-KEYS-PROVIDER_API-KEYS_0_USER=admin
+      - SECURITY_API-KEYS-PROVIDER_API-KEYS_0_AUTHORITIES=TB_ALLOW_READ, TB_ALLOW_WRITE
 ```

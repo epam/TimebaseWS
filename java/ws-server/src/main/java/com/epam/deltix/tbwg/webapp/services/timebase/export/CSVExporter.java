@@ -39,7 +39,7 @@ public class CSVExporter extends StreamExporter {
                        String fileName, ExportSourceFactory sourceFactory,
                        ExportRequest request, long fromTimestamp, long toTimestamp, long startIndex, long endIndex,
                        RecordClassDescriptor[] descriptors) {
-        super(exportProcesses, fileName, sourceFactory, request, fromTimestamp, toTimestamp, startIndex, endIndex, descriptors);
+        super(exportProcesses, fileName, sourceFactory, request, fromTimestamp, toTimestamp, startIndex, endIndex, false, descriptors);
     }
 
     @Override
