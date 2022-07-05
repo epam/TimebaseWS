@@ -20,6 +20,7 @@ import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
 import com.epam.deltix.tbwg.webapp.model.ErrorDef;
+import com.epam.deltix.tbwg.webapp.utils.HeaderAccessorHelper;
 import com.epam.deltix.tbwg.webapp.websockets.WebSocketUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -47,7 +48,7 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
 
     private static final Log LOG = LogFactory.getLog(SubscriptionService.class);
 
-    private static final String DESTINATION_PREFIX = "/user";
+    public static final String DESTINATION_PREFIX = "/user";
 
     private final InboundChannelInterceptor inboundChannelInterceptor = new InboundChannelInterceptor();
 
@@ -69,8 +70,8 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
         String destination = DESTINATION_PREFIX + destinationSuffix;
 
         LOG.debug("SubscriptionService registers: destination=%s, controller=%s")
-                .with(destinationSuffix)
-                .with(controller);
+            .with(destinationSuffix)
+            .with(controller);
 
         final SubscriptionController result = controllers.putIfAbsent(destination, controller);
         if (result != null) {
@@ -102,7 +103,7 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
             Objects.requireNonNull(sessionId);
             Objects.requireNonNull(subscriptionId);
 
-            accessor.setDestination(destination + "?session=" + sessionId + "&subscription=" + subscriptionId);
+            translateDestination(accessor, destination, sessionId, subscriptionId);
             return message;
         }
 
@@ -127,10 +128,15 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
 
         private synchronized void onSubscribe(final SimpMessageHeaderAccessor headers) {
             final String destination = headers.getDestination();
+            final String originalDestination = HeaderAccessorHelper.getOriginalDestination(headers);
             final String sessionId = headers.getSessionId();
             final String subscriptionId = headers.getSubscriptionId();
 
-            if (destination == null || !destination.startsWith(DESTINATION_PREFIX)) {
+            if (destination == null) {
+                return;
+            }
+
+            if (originalDestination == null || !originalDestination.startsWith(DESTINATION_PREFIX)) {
                 return;
             }
 
@@ -150,9 +156,7 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
                 .with(subscriptionId)
                 .with(destination);
 
-            int paramsIndex = destination.indexOf('?');
-            final String key = paramsIndex >= 0 ? destination.substring(0, paramsIndex) : destination;
-            final SubscriptionController controller = findController(key);
+            final SubscriptionController controller = findController(originalDestination);
             if (controller != null) {
                 final SubscriptionChannelImpl channel = new SubscriptionChannelImpl(messagingTemplate, destination, sessionId, headers);
                 Subscription subscription = null;
@@ -161,10 +165,10 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
                     subscription = controller.onSubscribe(headers, channel);
                 } catch (final Throwable e) {
                     LOG.warn("SubscriptionService controller thew an exception on subscribe: : session=%s, subscription=%s, destination=%s, exception=%s")
-                            .with(sessionId)
-                            .with(subscriptionId)
-                            .with(destination)
-                            .with(e);
+                        .with(sessionId)
+                        .with(subscriptionId)
+                        .with(destination)
+                        .with(e);
 
                     channel.sendError(e);
                 }
@@ -197,9 +201,9 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
             final String subscriptionId = header.getSubscriptionId();
 
             LOG.debug("SubscriptionService disconnects: session=%s, subscription=%s, destination=%s")
-                    .with(sessionId)
-                    .with(subscriptionId)
-                    .with(destination);
+                .with(sessionId)
+                .with(subscriptionId)
+                .with(destination);
 
             Objects.requireNonNull(sessionId);
             removeSubscriptions(sessionId);
@@ -215,8 +219,8 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
 
         private void addSubscription(String sessionId, String subscriptionId, Subscription subscription) {
             Subscription result = subscriptions
-                    .computeIfAbsent(sessionId, s -> new ConcurrentHashMap<>())
-                    .putIfAbsent(subscriptionId, subscription);
+                .computeIfAbsent(sessionId, s -> new ConcurrentHashMap<>())
+                .putIfAbsent(subscriptionId, subscription);
 
             if (result != null) {
                 throw new IllegalStateException("Subscription already exists at session: " + sessionId + " and subscription: " + subscriptionId);
@@ -235,7 +239,7 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
                         subscription.onUnsubscribe();
                     } catch (Throwable e) {
                         LOG.error("SubscriptionService subscription threw an exception on unsubscribe: %s")
-                                .with(e);
+                            .with(e);
                     }
                 }
             }
@@ -255,7 +259,7 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
                         subscription.onUnsubscribe();
                     } catch (final Throwable e) {
                         LOG.error("SubscriptionService subscription threw an exception on unsubscribe: %s")
-                                .with(e);
+                            .with(e);
                     }
                 }
             }
@@ -270,6 +274,22 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
             }
 
             return null;
+        }
+
+        private void translateDestination(SimpMessageHeaderAccessor accessor, String destination,
+                                          String sessionId, String subscriptionId) {
+
+            String fullDestination = makeFullDestination(destination, sessionId, subscriptionId);
+            if (fullDestination.startsWith(DESTINATION_PREFIX + "/")) {
+                accessor.setDestination(
+                    fullDestination.replaceFirst(DESTINATION_PREFIX, "") + "-user" + sessionId
+                );
+                HeaderAccessorHelper.setOriginalDestination(accessor, destination);
+            }
+        }
+
+        private String makeFullDestination(String destination, String sessionId, String subscriptionId) {
+            return destination + "?session=" + sessionId + "&subscription=" + subscriptionId;
         }
 
     }
