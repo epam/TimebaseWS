@@ -34,6 +34,8 @@ public class HeaderAccessorHelper {
     public static final String SYMBOLS_HEADER = "symbols";
     public static final String TYPES_HEADER = "types";
 
+    public static final String ORIGINAL_DESTINATION_HEADER = "dxOriginalDestination";
+
     private final DateFormatter formatter = new DateFormatter();
 
     private final Gson gson = new Gson();
@@ -70,6 +72,19 @@ public class HeaderAccessorHelper {
             return null;
         }
         return gson.fromJson(headers.get(0), LIST_STRING);
+    }
+
+    public static String getOriginalDestination(SimpMessageHeaderAccessor headers) {
+        Object originalDestination = headers.getHeader(ORIGINAL_DESTINATION_HEADER);
+        if (originalDestination instanceof String) {
+            return (String) originalDestination;
+        }
+
+        return null;
+    }
+
+    public static void setOriginalDestination(SimpMessageHeaderAccessor accessor, String destination) {
+        accessor.setHeader(ORIGINAL_DESTINATION_HEADER, destination);
     }
 
 }

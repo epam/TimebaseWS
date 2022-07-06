@@ -36,13 +36,8 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     public static final String TOPIC = "/topic";
-    public static final String USER = "/user";
     public static final String SYSTEM_ENDPOINT = "/stomp/v0";
     public static final String STREAMS_TOPIC = TOPIC + "/streams";
-    public static final String FLOWCHART_TOPIC = TOPIC + "/flowchart";
-    public static final String FLOWCHART_METADATA_TOPIC = FLOWCHART_TOPIC + "/metadata";
-    public static final String FLOWCHART_RING_CENTER_TOPIC = FLOWCHART_TOPIC + "/ringCenter";
-    public static final String FLOWCHART_TREE_TOPIC = FLOWCHART_TOPIC + "/ltrTree";
 
     public static final String MONITOR_TOPIC = TOPIC + "/monitor";
     public static final String MONITOR_QQL_TOPIC = TOPIC + "/monitor-qql";
@@ -77,7 +72,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         config.setPreservePublishOrder(true)
-            .setApplicationDestinationPrefixes(TOPIC, USER)
+            .setApplicationDestinationPrefixes(TOPIC, SubscriptionService.DESTINATION_PREFIX)
             .enableSimpleBroker()
             .setTaskScheduler(heartBeatScheduler());
     }
@@ -92,11 +87,4 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         return new ThreadPoolTaskScheduler();
     }
 
-    public static String getMonitorTopic(String stream) {
-        return MONITOR_TOPIC + "/" + stream;
-    }
-
-    public static String getChartingTopic(String stream) {
-        return CHARTING_TOPIC + "/" + stream;
-    }
 }

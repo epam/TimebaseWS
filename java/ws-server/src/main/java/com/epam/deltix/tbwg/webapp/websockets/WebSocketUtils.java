@@ -36,7 +36,8 @@ public class WebSocketUtils {
     public static MessageHeaders generateHeaders(final SimpMessageHeaderAccessor requestHeaderAccessor,
                                                  final HttpStatus responseStatus) {
         final SimpMessageHeaderAccessor headerAccessor = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
-        headerAccessor.setSessionId(requestHeaderAccessor.getSessionId()); // send only for current session
+        headerAccessor.setSessionId(requestHeaderAccessor.getSessionId());
+        headerAccessor.setSubscriptionId(requestHeaderAccessor.getSubscriptionId());
         headerAccessor.setNativeHeader(HEADER_STATUS, String.valueOf(responseStatus.value()));
         return headerAccessor.getMessageHeaders();
     }

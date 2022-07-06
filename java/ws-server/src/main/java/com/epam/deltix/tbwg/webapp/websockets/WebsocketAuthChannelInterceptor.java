@@ -18,12 +18,10 @@ package com.epam.deltix.tbwg.webapp.websockets;
 
 import com.epam.deltix.spring.apikeys.ApiKeysStompResolver;
 import com.epam.deltix.tbwg.webapp.security.TokenService;
-import com.epam.deltix.tbwg.webapp.services.WebSocketSessionsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.SimpMessageType;
-import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
@@ -36,16 +34,13 @@ import org.springframework.stereotype.Component;
 public class WebsocketAuthChannelInterceptor implements ChannelInterceptor {
 
     private final TokenService tokenService;
-    private final WebSocketSessionsService sessionsService;
     private final ApiKeysStompResolver apiKeysStompResolver;
 
     @Autowired
     public WebsocketAuthChannelInterceptor(final TokenService tokenService,
-                                           final WebSocketSessionsService sessionsService,
                                            final ApiKeysStompResolver apiKeysStompResolver)
     {
         this.tokenService = tokenService;
-        this.sessionsService = sessionsService;
         this.apiKeysStompResolver = apiKeysStompResolver;
     }
 
@@ -55,13 +50,6 @@ public class WebsocketAuthChannelInterceptor implements ChannelInterceptor {
         try {
             preSend(message, accessor);
         } catch (Throwable ex) {
-            if (accessor.getCommand() == StompCommand.DISCONNECT) {
-                try {
-                    sessionsService.unsubscribe(accessor.getSessionId());
-                } catch (Throwable ignore) {
-                }
-                return message; // Always disconnect
-            }
             throw ex;
         }
         return message;
@@ -74,20 +62,11 @@ public class WebsocketAuthChannelInterceptor implements ChannelInterceptor {
         if (messageType == SimpMessageType.HEARTBEAT)
             return message;
 
-        final String sessionId = accessor.getSessionId();
-
         switch (accessor.getCommand()) {
             case CONNECT:
                 if (authentication == null)
                     throw new AccessDeniedException("User not authenticated.");
                 break;
-
-            case UNSUBSCRIBE:
-                sessionsService.unsubscribe(sessionId, accessor.getSubscriptionId());
-                break;
-
-            case DISCONNECT:
-                sessionsService.unsubscribe(sessionId);
         }
         return message;
     }
