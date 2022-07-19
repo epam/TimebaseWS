@@ -31,6 +31,8 @@ TimeBase Administrator also serves as a **REST/WS gateway for TimeBase Server**.
 
 ## Quick Start 
 
+> Default credentials: admin/admin
+
 1. [Start TimeBase Server](https://kb.timebase.info/community/overview/quick-start)
 ```bash
 docker run --rm -d \ 
