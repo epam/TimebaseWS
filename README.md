@@ -35,18 +35,27 @@ TimeBase Administrator also serves as a **REST/WS gateway for TimeBase Server**.
 
 1. [Start TimeBase Server](https://kb.timebase.info/community/overview/quick-start)
 ```bash
+# create a user-defined network
+docker network create --driver bridge timebase-network
+
+# make sure the network was created
+docker network ls
+
+# run the timebase server container
 docker run --rm -d \ 
+   --name timebase-server \
+   --network timebase-network
    -p 8011:8011 \ 
-   --name=timebase-server \ 
    --ulimit nofile=65536:65536 \ 
    finos/timebase-ce-server:6.1
 ```
 2. Run Docker container with [TimeBase WS Server](https://hub.docker.com/r/epam/timebase-ws-server)
 
 ```bash
+# run the timebase web admin container
 docker run --rm -d \ 
    --name timebase-admin \
-    --link timebase-server:timebase \ 
+   --network timebase-network
    -p 8099:8099 \ 
    -e "JAVA_OPTS=-Dtimebase.url=dxtick://timebase:8011" \
     --ulimit nofile=65536:65536 \
