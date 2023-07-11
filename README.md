@@ -42,24 +42,24 @@ docker network create --driver bridge timebase-network
 docker network ls
 
 # run the timebase server container
-docker run --rm -d \ 
+docker run --rm -d \
    --name timebase-server \
-   --network timebase-network
-   -p 8011:8011 \ 
-   --ulimit nofile=65536:65536 \ 
+   --network timebase-network \
+   -p 8011:8011 \
+   --ulimit nofile=65536:65536 \
    finos/timebase-ce-server:6.1
 ```
 2. Run Docker container with [TimeBase WS Server](https://hub.docker.com/r/epam/timebase-ws-server)
 
 ```bash
 # run the timebase web admin container
-docker run --rm -d \ 
+docker run --rm -d \
    --name timebase-admin \
-   --network timebase-network
-   -p 8099:8099 \ 
+   --network timebase-network \
+   -p 8099:8099 \
    -e "JAVA_OPTS=-Dtimebase.url=dxtick://timebase-server:8011" \
    --ulimit nofile=65536:65536 \
-   epam/timebase-ws-server:0.5
+   epam/timebase-ws-server:1.0
 ```
 or start server from command line
 
