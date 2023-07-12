@@ -240,7 +240,9 @@ configure(javaProjects) {
 
             dependency 'net.java.dev.jna:jna:5.8.0'
 
-            dependency 'org.yaml:snakeyaml:1.31'
+            dependency 'org.yaml:snakeyaml:2.0'
+
+            dependency 'org.apache.bcel:bcel:6.6.0'
         }
     }
 
