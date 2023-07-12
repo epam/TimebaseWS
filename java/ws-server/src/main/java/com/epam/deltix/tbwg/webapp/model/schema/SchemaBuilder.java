@@ -35,7 +35,7 @@ public class SchemaBuilder {
     protected SchemaDef schema;
     protected RecordClassSet set;
 
-    protected final Object2ObjectHashMap<String, RecordClassDescriptor> cache = new Object2ObjectHashMap<>();
+    protected final Object2ObjectHashMap<String, ClassDescriptor> cache = new Object2ObjectHashMap<>();
 
     public final static DataType[] ALL_TYPES = new DataType[]{
             new BooleanDataType(true),

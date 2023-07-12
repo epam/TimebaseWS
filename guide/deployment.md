@@ -14,7 +14,6 @@ As a TimeBase Server management tool, Web Admin can be deployed and run as a sta
 2. [Start TimeBase Server](https://kb.timebase.info/quick-start.html)
 3. Run Docker container with [TimeBase WS Server](https://hub.docker.com/r/epam/timebase-ws-server)
 
-
 ```bash
 # Community edition example
 docker run --rm -d \ 
@@ -24,6 +23,7 @@ docker run --rm -d \
     epam/timebase-ws-server:latest
 ```
 
+> Default credentials: admin/admin
 
 ## Orchestration
 

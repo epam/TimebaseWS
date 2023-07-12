@@ -109,7 +109,7 @@ public class MessageSource2QMSGFile extends StreamExporter {
                 GZIPOutputStream gzos = new GZIPOutputStream(zipOutputStream, 1 << 16 / 2);
                 MessageWriter3 messageWriter = TBWGUtils.create(gzos, periodicity, null, convertNamespaces, descriptors);
 
-                streamSourceFactory.getOptions().space = space;
+                streamSourceFactory.getOptions().withSpaces(space);
                 try (InstrumentMessageSource source = sourceFactory.newMessageSource()) {
                     exportFile(messageWriter, source);
                 } finally {

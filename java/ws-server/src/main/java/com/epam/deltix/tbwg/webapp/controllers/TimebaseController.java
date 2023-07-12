@@ -917,7 +917,7 @@ public class TimebaseController {
 
         LOGGER.log(LogLevel.INFO, "SELECT * FROM " + streamId + " WHERE MESSAGE_INDEX IN [" + startIndex + ", " + endIndex + "] " +
                 "AND TYPES = [" + Arrays.toString(select.types) + "] AND ENTITIES = [" + Arrays.toString(ids) + "] " +
-                (options.space != null ? "AND SPACE = [" + options.space + "]" : "") +
+                (options.spaces != null ? "AND SPACES = " + Arrays.toString(options.spaces) : "") +
                 "AND timestamp [" + GMT.formatDateTimeMillis(startTime) + ":" + GMT.formatDateTimeMillis(select.getEndTime()) + "]");
 
 
@@ -976,7 +976,7 @@ public class TimebaseController {
         options.channelQOS = ChannelQualityOfService.MIN_INIT_TIME;
         options.reversed = r.reverse;
         options.raw = true;
-        options.space = r.space;
+        options.withSpaces(r.space);
 
         return options;
     }
