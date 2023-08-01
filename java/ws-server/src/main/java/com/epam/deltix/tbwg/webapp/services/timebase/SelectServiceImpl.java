@@ -65,7 +65,7 @@ public class SelectServiceImpl implements SelectService {
         TickCursor source;
 
         if (streams.size() == 1 && space != null) {
-            options.withSpaces(space);
+            options.withSpace(space);
             source = streams.get(0).select(startTime, options, types, collect(instruments));
         } else {
             source = timebase.getConnection().select(startTime, options, types, collect(instruments),

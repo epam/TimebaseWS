@@ -87,7 +87,7 @@ public class CSVExporter extends StreamExporter {
         }
 
         for (String space : spaces) {
-            streamSourceFactory.getOptions().withSpaces(space);
+            streamSourceFactory.getOptions().withSpace(space);
             try (InstrumentMessageSource source = sourceFactory.newMessageSource()) {
                 zipOutputStream.putNextEntry(new ZipEntry(encodeName(space) + ".csv"));
                 writeFile(source, lineWriter);

@@ -976,7 +976,7 @@ public class TimebaseController {
         options.channelQOS = ChannelQualityOfService.MIN_INIT_TIME;
         options.reversed = r.reverse;
         options.raw = true;
-        options.withSpaces(r.space);
+        options.withSpace(r.space);
 
         return options;
     }
