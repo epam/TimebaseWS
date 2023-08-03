@@ -19,7 +19,7 @@ import java.lang.StringBuilder;
         name = "com.epam.deltix.timebase.messages.BarMessage",
         title = "Bar Message"
 )
-public class BarMessage extends InstrumentMessage{
+public class BarMessage extends InstrumentMessage {
     public static final String CLASS_NAME = BarMessage.class.getName();
 
     /**

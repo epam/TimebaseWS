@@ -239,7 +239,7 @@ public class OrderBookDebuggerImpl implements OrderBookDebugger {
         options.channelQOS = ChannelQualityOfService.MIN_INIT_TIME;
         options.reversed = reverse;
         options.raw = false;
-        options.withSpaces(space);
+        options.withSpace(space);
         options.typeLoader = new DefaultTypeLoader();
 
         return timebase.getConnection().select(startTime, options, types, getInstrument(streams, symbols),

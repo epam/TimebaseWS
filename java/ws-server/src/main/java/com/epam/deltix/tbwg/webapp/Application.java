@@ -57,6 +57,8 @@ public class Application {
             application.setRegisterShutdownHook(false);
             context = application.run(args);
             shutdownSignal.await();
+        } catch (Throwable ex) {
+            ex.printStackTrace(System.out);
         } finally {
             CloseHelper.close(context);
             LogConfigurator.unconfigure();

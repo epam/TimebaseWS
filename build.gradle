@@ -14,7 +14,7 @@ plugins {
     id 'io.spring.dependency-management' version '1.0.9.RELEASE'
     id 'org.springframework.boot' version '2.7.1' apply false
     id "com.github.node-gradle.node" version "3.3.0" apply false
-    id "com.webcohesion.enunciate" version "2.12.1"apply false
+    id "com.webcohesion.enunciate" version "2.15.0" apply false
     id "io.freefair.lombok" version "5.3.3.3" apply false
 
     id 'com.github.jk1.dependency-license-report' version '1.16'
@@ -119,6 +119,7 @@ configure(javaProjects) {
             dependency 'com.webcohesion.enunciate:enunciate-core-annotations:2.12.1'
 
             // ---- Timebase dependencies
+
             dependency "org.finos.timebase-ce:timebase-client:${timebaseVersion}"
             dependency "org.finos.timebase-ce:timebase-api:${timebaseVersion}"
             dependency "org.finos.timebase-ce:timebase-pub:${timebaseVersion}"
@@ -134,7 +135,7 @@ configure(javaProjects) {
             dependency 'com.epam.deltix:hd-date-time:0.2.11'
             dependency 'com.epam.deltix:thread-affinity:1.0.4'
 
-            dependencySet(group: 'com.epam.deltix', version: '3.0.1') {
+            dependencySet(group: 'com.epam.deltix', version: '3.0.2') {
                 entry 'gflog-api'
                 entry 'gflog-core'
                 entry 'gflog-jul'
