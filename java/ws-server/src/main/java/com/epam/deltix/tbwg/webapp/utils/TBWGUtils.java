@@ -19,6 +19,7 @@ package com.epam.deltix.tbwg.webapp.utils;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.pub.TypeLoader;
+import com.epam.deltix.tbwg.messages.BarMessage;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 
@@ -158,9 +159,12 @@ public class TBWGUtils {
         RecordClassDescriptor[] descriptors = stream.getStreamOptions().getMetaData().getContentClasses();
 
         if (mayContainSubclasses(descriptors, PackageHeader.class) ||
-                mayContainSubclasses(descriptors, "deltix.timebase.api.messages.universal.PackageHeader")) {
+                mayContainSubclasses(descriptors, "com.epam.deltix.timebase.messages.universal.PackageHeader")) {
             chartTypes.add(ChartType.PRICES_L2);
             chartTypes.add(ChartType.TRADES_BBO);
+            chartTypes.add(ChartType.BARS);
+        } else if (mayContainSubclasses(descriptors, BarMessage.class) ||
+                mayContainSubclasses(descriptors, "com.epam.deltix.timebase.messages.BarMessage")) {
             chartTypes.add(ChartType.BARS);
         }
 

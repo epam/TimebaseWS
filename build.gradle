@@ -135,7 +135,7 @@ configure(javaProjects) {
             dependency 'com.epam.deltix:hd-date-time:0.2.11'
             dependency 'com.epam.deltix:thread-affinity:1.0.4'
 
-            dependencySet(group: 'com.epam.deltix', version: '3.0.1') {
+            dependencySet(group: 'com.epam.deltix', version: '3.0.2') {
                 entry 'gflog-api'
                 entry 'gflog-core'
                 entry 'gflog-jul'
