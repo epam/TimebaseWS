@@ -1,41 +1,26 @@
-<div
-    *ngIf="selectedNodeView$ | async as selectedNodeView"
-    [cdkDragDisabled]="!isParent"
-    cdkDrag
-    cdkDragBoundary=".page-block"
-    class="detailWr">
-  <div (dblclick)="showContent = !showContent" class="detailsHeader">
+<div *ngIf="selectedNodeView$ | async as selectedNodeView" class="detailWr">
+  <div class="detailsHeader">
     <h4 class="detailsName">
-      <span *ngIf="isParent" cdkDragHandle class="panEventHolder"></span>
-      <span class="font-weight-normal">[{{ selectedNodeView.class }}] </span
-      ><span [style.color]="selectedNodeView.metadata.color">{{ selectedNodeView.name }}</span>
+      <span class="font-weight-normal">[{{ selectedNodeView.class }}] </span>
+      <span [style.color]="selectedNodeView.metadata.color">{{ selectedNodeView.name }}</span>
     </h4>
-    <app-details-modal-settings [(expanded)]="showContent"></app-details-modal-settings>
   </div>
-  
-  <div *ngIf="showContent" class="detailsContent">
-    <div *ngIf="!!selectedNodeView.incomingConnections.length" class="subSection">
-      <div class="subSectionHeader">
-        <h4 class="subSectionName">{{ 'titles.flow.incomingConnections' | translate }} :</h4>
+  <div class="tabs-container">
+    <div class="tabs-wrapper">
+      <div (click)="switchShowConnections('incoming')" [class.active]="(showConnections$ | async) === 'incoming'" *ngIf="!!selectedNodeView.incomingConnections.length">
+        {{ 'titles.flow.incomingConnections' | translate }}
       </div>
-      <div class="subsectionContent">
-        <app-connection-details
-            *ngFor="let connection of selectedNodeView.incomingConnections"
-            [nodeConnection]="connection">
-        </app-connection-details>
+      <div (click)="switchShowConnections('outgoing')" [class.active]="(showConnections$ | async) === 'outgoing'" *ngIf="!!selectedNodeView.outgoingConnections.length">
+        {{ 'titles.flow.outgoingConnections' | translate }}
       </div>
     </div>
-    <hr *ngIf="!!selectedNodeView.outgoingConnections.length" />
-    <div *ngIf="!!selectedNodeView.outgoingConnections.length" class="subSection">
-      <div class="subSectionHeader">
-        <h4 class="subSectionName">{{ 'titles.flow.outgoingConnections' | translate }} :</h4>
-      </div>
-      <div class="subsectionContent">
-        <app-connection-details
-            *ngFor="let connection of selectedNodeView.outgoingConnections"
-            [nodeConnection]="connection">
-        </app-connection-details>
-      </div>
+  </div>
+  <div class="list-wrapper">
+    <div class="list-wrapper__inner">
+      <app-connection-details
+          *ngFor="let connection of displayConnections$ | async"
+          [nodeConnection]="connection"
+      ></app-connection-details>
     </div>
   </div>
 </div>

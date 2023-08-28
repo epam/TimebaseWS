@@ -12,4 +12,8 @@ ag-grid-angular ::ng-deep {
   .ag-cell-focus {
     border-color: transparent !important;
   }
+
+  .ag-row-editing {
+    background-color: rgba(78, 108, 149, 0.3);
+  }
 }

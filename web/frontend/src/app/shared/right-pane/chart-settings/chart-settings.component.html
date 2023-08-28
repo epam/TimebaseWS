@@ -1,0 +1,35 @@
+<app-right-info-wrapper>
+  <ng-container title>{{ 'chartSettings.title' | translate }}</ng-container>
+  <div class="content" content>
+    <ng-container *ngIf="lineList as list; else loader">
+      <div class="line select-all-line">
+        <label class="container-ch">
+          <input (ngModelChange)="toggleAll($event)" [ngModel]="anyChecked$ | async" type="checkbox" />
+          <span [class.partial-checked]="partialChecked$ | async" class="checkmark"></span>
+          {{ selectAllTitle$ | async | translate }}
+        </label>
+      </div>
+      <div class="line" *ngFor="let item of list">
+        <div
+            (colorPickerSelect)="onColorChange($event, item.id)"
+            [colorPicker]="item.color"
+            [cpPosition]="'right'"
+            [style.background-color]="item.color"
+            class="line__color"
+        ></div>
+        <label class="container-ch">
+          <input (ngModelChange)="toggleLine(item)" [ngModel]="item.shown" type="checkbox" />
+          <span class="checkmark"></span>
+          {{ item.title }}
+        </label>
+      </div>
+      <button *ngIf="initialColorsChanged | async" class="btn btn-default" (click)="resetColors()">
+        Reset Colors
+      </button>
+    </ng-container>
+    <ng-template #loader>
+      <div class="loader"></div>
+    </ng-template>
+  </div>
+</app-right-info-wrapper>
+

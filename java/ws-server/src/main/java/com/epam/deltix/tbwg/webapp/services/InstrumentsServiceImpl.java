@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,32 +14,35 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services;
 
-import com.epam.deltix.tbwg.webapp.controllers.TimebaseController;
-import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.dfp.Decimal64Utils;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
-import com.epam.deltix.timebase.messages.InstrumentMessage;
 import com.epam.deltix.qsrv.hf.pub.RawMessage;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
 import com.epam.deltix.qsrv.hf.tickdb.pub.RawMessageHelper;
 import com.epam.deltix.qsrv.hf.tickdb.pub.SelectionOptions;
 import com.epam.deltix.qsrv.hf.tickdb.pub.TickCursor;
+import com.epam.deltix.tbwg.webapp.controllers.TimebaseController;
+import com.epam.deltix.tbwg.webapp.model.smd.CurrencyDef;
 import com.epam.deltix.tbwg.webapp.model.smd.InstrumentDef;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
+import com.epam.deltix.timebase.messages.InstrumentMessage;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.time.Duration;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 @Service
 public class InstrumentsServiceImpl implements InstrumentsService {
@@ -55,13 +58,16 @@ public class InstrumentsServiceImpl implements InstrumentsService {
     @Value("${instrumentsService.smiUrl:https://smi.deltixhub.com}")
     private String smiUrl;
 
+    @Value("${instrumentsService.timeout:30000}")
+    private int timeout;
+
     private final TimebaseService timebase;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final ExecutorService refreshInstrumentsExecutor = Executors.newSingleThreadExecutor();
     private final RawMessageHelper rawMessageHelper = new RawMessageHelper();
     private final Map<String, InstrumentDef> instrumentsDefCache = new ConcurrentHashMap<>();
-
     private volatile Map<String, String> instrumentsMapping = new HashMap<>();
+    private final List<CurrencyDef> currencyDefCache = new ArrayList<>();
 
     public static class SymbolResponse {
         public String symbol;
@@ -72,8 +78,17 @@ public class InstrumentsServiceImpl implements InstrumentsService {
         public String orderSizePrecision;
     }
 
-    public InstrumentsServiceImpl(TimebaseService timebase) {
+    public static class CurrencyResponse {
+        public String alphabeticCode;
+        public int numericCode;
+    }
+
+    public InstrumentsServiceImpl(TimebaseService timebase, RestTemplateBuilder restTemplateBuilder) {
         this.timebase = timebase;
+        this.restTemplate = restTemplateBuilder
+            .setConnectTimeout(Duration.ofMillis(timeout))
+            .setReadTimeout(Duration.ofMillis(timeout))
+            .build();
     }
 
     @Scheduled(fixedDelayString = "${instrumentsService.reload-securities-ms:30000}")
@@ -84,6 +99,7 @@ public class InstrumentsServiceImpl implements InstrumentsService {
     @Scheduled(fixedDelayString = "${instrumentsService.invalidate-smd-cache-ms:1800000}")
     public void invalidateCache() {
         instrumentsDefCache.clear();
+        clearCurrenciesCache();
     }
 
     private void fetchInstrumentsMappingTask() {
@@ -147,6 +163,37 @@ public class InstrumentsServiceImpl implements InstrumentsService {
         } catch (Throwable t) {
             LOGGER.error().append("Failed to query instrument").append(t).commit();
             return new InstrumentDef();
+        }
+    }
+
+    @Override
+    public List<CurrencyDef> getCurrencies() {
+        synchronized (currencyDefCache) {
+            try {
+                if (currencyDefCache.isEmpty()) {
+                    ResponseEntity<CurrencyResponse[]> response = restTemplate.getForEntity(
+                        smiUrl + "/api/v1/currencyinfo",
+                        CurrencyResponse[].class
+                    );
+                    CurrencyResponse[] currencies = response.getBody();
+                    if (currencies != null && currencies.length > 0) {
+                        currencyDefCache.addAll(Arrays.stream(currencies)
+                            .map(c -> new CurrencyDef(c.alphabeticCode, c.numericCode))
+                            .collect(Collectors.toList()));
+                    }
+                }
+
+                return new ArrayList<>(currencyDefCache);
+            } catch (Throwable t) {
+                LOGGER.error().append("Failed to fetch currencies from Security Master.").append(t).commit();
+                return new ArrayList<>();
+            }
+        }
+    }
+
+    private void clearCurrenciesCache() {
+        synchronized (currencyDefCache) {
+            currencyDefCache.clear();
         }
     }
 

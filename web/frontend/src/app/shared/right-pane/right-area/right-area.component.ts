@@ -1,7 +1,7 @@
 import {Component, Input, OnDestroy, OnInit, Optional} from '@angular/core';
 import {SplitAreaDirective} from 'angular-split';
-import {combineLatest, Observable, ReplaySubject} from 'rxjs';
-import {map, takeUntil} from 'rxjs/operators';
+import { Observable, ReplaySubject} from 'rxjs';
+import { takeUntil} from 'rxjs/operators';
 import {RightPaneService} from '../right-pane.service';
 
 @Component({
@@ -14,21 +14,23 @@ export class RightAreaComponent implements OnInit, OnDestroy {
 
   showMessageInfo$: Observable<boolean>;
   showProps$: Observable<boolean>;
-  showRightArea$: Observable<boolean>;
+  showChartSettings$: Observable<boolean>;
+  showDescription$: Observable<boolean>;
 
   private destroy$ = new ReplaySubject(1);
 
   constructor(
-    private messageInfoService: RightPaneService,
+    private rightPaneService: RightPaneService,
     @Optional() private splitArea: SplitAreaDirective,
   ) {}
 
   ngOnInit(): void {
-    this.showMessageInfo$ = this.messageInfoService.onShowSelectedMessage();
-    this.showProps$ = this.messageInfoService.onShowProps();
-
-    combineLatest([this.showProps$, this.showMessageInfo$])
-      .pipe(map(([props, info]) => props || info))
+    this.showMessageInfo$ = this.rightPaneService.onShowSelectedMessage();
+    this.showProps$ = this.rightPaneService.onShowProps();
+    this.showChartSettings$ = this.rightPaneService.onShowChartSettings();
+    this.showDescription$ = this.rightPaneService.onShowDescription();
+  
+    this.rightPaneService.onShowAny()
       .pipe(takeUntil(this.destroy$))
       .subscribe((showArea) => {
         if (this.splitArea) {

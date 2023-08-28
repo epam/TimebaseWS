@@ -1,0 +1,117 @@
+app-multi-select {
+  margin-bottom: 1rem;
+}
+
+.warning {
+  position: absolute;
+  margin-top: -3rem;
+  margin-left: 40%;
+  font-size: 13px;
+  z-index: 20;
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.warning-list, .invalid-mapping-list {
+  margin-top: 0.2rem;
+  white-space: nowrap;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  font-weight: bold;
+  height: 1.6rem;
+}
+
+.warning-list {
+  color: #ffc107;
+}
+
+.invalid-mapping-list {
+  color: #dc3545;
+}
+
+.error-details-dropdown {
+  position: fixed;
+  top:  calc(50% - 150px);
+  width: 500px;
+  height: 300px;
+  left: calc(50% - 250px);
+  visibility: hidden;
+  z-index: 105000;
+}
+
+.warning-modal-content {
+  width: 100%;
+  height: 300px;
+  background-color: rgb(25, 32, 46);
+  border: 1px solid #adadad;
+  border-radius: 0.2rem;
+  padding: 1rem;
+  box-shadow: rgba(128, 128, 128, 0.758) 1.95px 1.95px 2.6px;
+}
+
+.error-list {
+  max-height: calc(100% - 80px);
+  border-radius: 0.2rem;
+  overflow-y: auto;
+}
+
+.error-messages {
+  color: rgba(226, 83, 83, 0.7);
+  padding: 0.3rem 1rem;
+}
+
+.stream-title {
+  color: rgba(178, 176, 215, 0.8);
+}
+
+.modal-header {
+  position: relative;
+  .close-button {
+    position: absolute;
+    top: 0rem;
+    right: 0rem;
+    border: none;
+    border-radius: 50%;
+    background-color: rgba(40, 40, 40, 0);
+    color: rgba(178, 176, 215, 0.8);
+    font-size: 16px;
+    font-weight: bold;
+  }
+}
+
+.file-header {
+  cursor: pointer;
+  padding: 0.4rem 1rem;
+  background-color: rgba(68, 79, 89, 0.5);
+  border-bottom: 1px solid rgb(25, 32, 46);;
+}
+
+.copy-button {
+  margin-left: 1rem;
+  border: none;
+  background-color: transparent;
+}
+
+svg {
+  width: 1rem;
+  height: 1rem;
+  color: white;
+}
+
+.copying-notification {
+  color: rgb(42, 157, 134);
+  margin-left: 0.2rem;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.mapping-error {
+  color: #dc3545;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  border: 1px solid #dc3545;
+  border-radius: 0.1875rem;
+  padding: 2px 13px;
+  cursor: default;
+}

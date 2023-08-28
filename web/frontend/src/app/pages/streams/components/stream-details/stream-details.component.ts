@@ -48,7 +48,7 @@ const now = new HdDate();
 
 export const toUtc = (date: any) => {
   const newDate = new HdDate(date);
-  newDate.setMilliseconds(newDate.getMilliseconds() + now.getTimezoneOffset() * 60 * 1000);
+  newDate.setMilliseconds(newDate.getMilliseconds() + new Date().getTimezoneOffset() * 60 * 1000);
   return newDate;
 };
 
@@ -62,7 +62,7 @@ export const formatDate = (date: any, format: string): string => {
 
 export const fromUtc = (date: any) => {
   const newDate = new HdDate(date);
-  newDate.setMilliseconds(newDate.getMilliseconds() - now.getTimezoneOffset() * 60 * 1000);
+  newDate.setMilliseconds(newDate.getMilliseconds() - new Date().getTimezoneOffset() * 60 * 1000);
   return newDate;
 };
 
@@ -103,6 +103,10 @@ export class StreamDetailsComponent implements OnInit, AfterViewInit, OnDestroy 
 
   ngOnInit() {
     this.activeTab$ = this.appStore.pipe(select(getActiveOrFirstTab));
+
+    this.activeTab$
+      .pipe(take(1))
+      .subscribe(() => this.appStore.dispatch(new StreamDetailsActions.RemoveErrorMessage()));
 
     this.error$ = this.streamDetailsStore
       .pipe(select(streamsDetailsStateSelector))
@@ -226,20 +230,6 @@ export class StreamDetailsComponent implements OnInit, AfterViewInit, OnDestroy 
 
   cleanWebsocketSubscription() {
     this.wsService.close();
-  }
-
-  closedPropsEmit($event) {
-    if (this.closedProps !== $event) {
-      this.closedProps = $event;
-    }
-    this.appStore.dispatch(
-      new StreamsTabsActions.SetTabSettings({
-        tabSettings: {
-          ...this.tabSettings,
-          showProps: false,
-        },
-      }),
-    );
   }
 
   ngOnDestroy(): void {

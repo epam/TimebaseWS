@@ -52,6 +52,6 @@ export class StreamsNavigationActiveDirective implements AfterViewInit, OnDestro
 
   private checkActive() {
     this.active = this.streamsNavigationService.urlIsActive(this.routerLinkWithHref.href);
-    this.disabled = this.routerLinkWithHref['commands'].length === 0;
+    this.disabled = !this.routerLinkWithHref['commands']?.length;
   }
 }

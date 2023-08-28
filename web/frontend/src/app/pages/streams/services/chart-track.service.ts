@@ -10,6 +10,7 @@ export class ChartTrackService implements OnDestroy {
 
   constructor(private tabStorage: TabStorageService<{track: boolean}>) {
     this.tabStorage
+      .flow<{track: boolean}>('track')
       .getData(['track'])
       .pipe(takeUntil(this.destroy$))
       .subscribe((data) => {
@@ -19,7 +20,7 @@ export class ChartTrackService implements OnDestroy {
 
   track(track: boolean) {
     this.track$.next(track);
-    this.tabStorage.updateData((data) => ({...data, track})).subscribe();
+    this.tabStorage.flow<{track: boolean}>('track').updateData((data) => ({...data, track})).subscribe();
   }
 
   onTrack(): Observable<boolean> {

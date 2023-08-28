@@ -111,15 +111,22 @@ deltix-ng-autocomplete {
   .controlWr,
   app-select {
     margin-right: 2 * $ss;
+    font-size: 12px;
   }
 
   .chart-types-dropdown {
-    margin-right: 6 * $ss;
+    margin-right: 4 * $ss;
+    font-size: 12px;
   }
 }
 
-deltix-ng-autocomplete {
+:host ::ng-deep deltix-ng-autocomplete {
   width: 30 * $ss;
+  display: inline-block;
+  min-width: 75px;
+  .autocomplete-input {
+    font-size: 12px;
+  }
 }
 
 .filter-right .controlWr {
@@ -135,11 +142,12 @@ input.ng-invalid.ng-touched {
 }
 
 .title {
-  margin-right: 5 * $ss;
+  margin-right: 2 * $ss;
   margin-bottom: 0;
   display: flex;
   align-items: center;
   white-space: nowrap;
+  font-size: 12px;
 }
 
 deltix-ng-smart-date-time-picker {
@@ -188,6 +196,7 @@ deltix-ng-smart-date-time-picker {
 }
 
 .filter-right {
+  min-width: 2rem;
   justify-content: flex-start;
   flex-grow: 1;
   display: flex;
@@ -275,21 +284,67 @@ option {
   user-select: auto;
 }
 
-.btn-arrow {
-  width: 29px;
-  padding: 0;
-}
-
 .no-display {
   display: none !important;
 }
 
 app-bars-period-filter {
   display: block;
-  width: 100px;
-  margin-right: 12px;
+  margin-right: 6px;
 }
 
 .btn.controlWr.right-navigator-btn {
-  margin-right: 12px;
+  margin-right: 8px;
+}
+
+.exchange-control-wrapper {
+  display: flex;
+  justify-content: flex-end;
+}
+
+app-multi-select {
+  min-width: 95px;
+  font-size: 12px;
+}
+
+::ng-deep {
+  .cdk-virtual-scroll-content-wrapper {
+    .option {
+      font-size: 12px;
+    }
+  }
+  .autocomplete-dropdown-item {
+    font-size: 12px;
+  }
+}
+
+.date-picker-container {
+  padding-bottom: 1.6rem;
+  position: relative;
+}
+
+.invalid-time-message {
+  display: flex;
+  justify-content: space-around;
+  position: absolute;
+  bottom: 0rem;
+  color: #ffffff;
+  background-color: rgb(141, 32, 65);
+  padding: 0.1rem 2.4rem;
+  min-width: calc(100% + 0.2rem);
+  max-height: 1.4rem;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  text-align: center;
+}
+
+.btn {
+  font-size: 10px;
+  padding: 0 2px;
+}
+
+.btn-info {
+  padding: 0 10px;
 }

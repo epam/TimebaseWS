@@ -1,6 +1,6 @@
 import {Injectable, NgZone} from '@angular/core';
 import {Router} from '@angular/router';
-import {Actions, Effect, ofType} from '@ngrx/effects';
+import {Actions, createEffect, ofType} from '@ngrx/effects';
 import {select, Store} from '@ngrx/store';
 import {combineLatest, fromEvent, Subject} from 'rxjs';
 
@@ -30,7 +30,7 @@ import {getTabs, getTabsState} from './streams-tabs.selectors';
 
 @Injectable()
 export class StreamsTabsEffects {
-  @Effect() loadTabsFromLS = this.actions$.pipe(
+   loadTabsFromLS = createEffect(() => this.actions$.pipe(
     ofType(StreamsTabsActionTypes.LOAD_TABS_FROM_LS),
     mergeMap(() => {
       return [
@@ -40,8 +40,8 @@ export class StreamsTabsEffects {
         new StreamsTabsActions.StartTabsLSSync(),
       ];
     }),
-  );
-  @Effect({dispatch: false}) saveTabsToLS = this.actions$.pipe(
+  ));
+   saveTabsToLS = createEffect(() => this.actions$.pipe(
     ofType(
       StreamsTabsActionTypes.ADD_TAB,
       StreamsTabsActionTypes.UPDATE_TAB,
@@ -70,22 +70,22 @@ export class StreamsTabsEffects {
         ),
       );
     }),
-  );
-  @Effect({dispatch: false}) removeGridData = this.actions$.pipe(
+  ), {dispatch: false});
+   removeGridData = createEffect(() => this.actions$.pipe(
     ofType<StreamsTabsActions.RemoveTab>(StreamsTabsActionTypes.REMOVE_TAB),
     concatMap((data) => this.gridDataStorageService.removeData(data.payload.tab.id)),
-  );
-  @Effect({dispatch: false}) removeGridDataOfTabs = this.actions$.pipe(
+  ), {dispatch: false});
+   removeGridDataOfTabs = createEffect(() => this.actions$.pipe(
     ofType<StreamsTabsActions.RemoveTabs>(StreamsTabsActionTypes.REMOVE_TABS),
     concatMap((data) =>
       combineLatest(data.payload.tabs.map((tab) => this.gridDataStorageService.removeData(tab.id))),
     ),
-  );
-  @Effect({dispatch: false}) removeAllGridData = this.actions$.pipe(
+  ), {dispatch: false});
+   removeAllGridData = createEffect(() => this.actions$.pipe(
     ofType<StreamsTabsActions.RemoveAllTabs>(StreamsTabsActionTypes.REMOVE_ALL_TABS),
     concatMap(() => this.gridDataStorageService.removeAllData()),
-  );
-  @Effect({dispatch: false}) createTab = this.actions$.pipe(
+  ), {dispatch: false});
+   createTab = createEffect(() => this.actions$.pipe(
     ofType<StreamsTabsActions.CreateTab>(StreamsTabsActionTypes.CREATE_TAB),
     withLatestFrom(this.appStore.pipe(select(getTabs))),
     tap(([action, tabs]: [StreamsTabsActions.CreateTab, TabModel[]]) => {
@@ -105,9 +105,9 @@ export class StreamsTabsEffects {
         });
       }
     }),
-  );
+  ), {dispatch: false});
   private stop_tabs_subscription$ = new Subject();
-  @Effect() startTabsLSSync = this.actions$.pipe(
+   startTabsLSSync = createEffect(() => this.actions$.pipe(
     ofType(StreamsTabsActionTypes.START_TABS_LS_SYNC),
     switchMap(() => {
       return fromEvent(window, 'storage').pipe(
@@ -125,14 +125,14 @@ export class StreamsTabsEffects {
         takeUntil(this.stop_tabs_subscription$),
       );
     }),
-  );
-  @Effect({dispatch: false}) stopTabsSync = this.actions$.pipe(
+  ));
+   stopTabsSync = createEffect(() => this.actions$.pipe(
     ofType(StreamsTabsActionTypes.STOP_TABS_LS_SYNC),
     tap(() => {
       this.stop_tabs_subscription$.next(true);
       this.stop_tabs_subscription$.complete();
     }),
-  );
+  ), {dispatch: false});
 
   constructor(
     private actions$: Actions,

@@ -56,9 +56,10 @@ export abstract class AutocompleteBase
     document.body.appendChild(this.dropdownOuterContainer);
     this.onDocumentEvent = () => {
       this.updateDropdownPosition();
+      this.onChangePosition();
     };
     document.addEventListener('scroll', this.onDocumentEvent, true);
-    document.addEventListener('resize', this.onDocumentEvent, true);
+    window.addEventListener('resize', this.onDocumentEvent, true);
   }
 
   private _showDropdown = false;
@@ -139,7 +140,7 @@ export abstract class AutocompleteBase
   public ngOnDestroy(): void {
     document.removeEventListener('click', this.onDocumentClick);
     document.removeEventListener('scroll', this.onDocumentEvent);
-    document.removeEventListener('resize', this.onDocumentEvent);
+    window.removeEventListener('resize', this.onDocumentEvent);
     this.dropdownOuterContainer.remove();
   }
 
@@ -161,6 +162,9 @@ export abstract class AutocompleteBase
   }
 
   public onInputClick(event: Event) {}
+  
+  public onChangePosition() {
+  }
 
   public getTitleAttrValueForItem(value: any): string {
     const title = this.getTitleForItem(value);

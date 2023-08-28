@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,10 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model;
+package com.epam.deltix.tbwg.webapp.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.epam.deltix.qsrv.hf.tickdb.pub.BufferOptions;
 import com.epam.deltix.qsrv.hf.tickdb.pub.StreamScope;
 
 /**
@@ -35,22 +34,22 @@ public class StreamOptionsDef {
     public String description = null;
 
     @JsonProperty
-    public int distributionFactor = 0;
+    public String distributionFactor = "MAX";
 
     @JsonProperty
-    public BufferOptions bufferOptions;
+    public StreamScope scope;
 
     @JsonProperty
-    public StreamScope  scope;
+    public PeriodicityDef periodicity;
 
     @JsonProperty
-    public PeriodicityDef  periodicity;
+    public boolean highAvailability;
 
     @JsonProperty
-    public boolean      highAvailability;
+    public String owner;
 
     @JsonProperty
-    public String       owner;
+    public String version;
 
     @JsonProperty
     public TimeRangeDef range;

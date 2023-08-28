@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,22 +14,18 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.charting;
+package com.epam.deltix.tbwg.webapp.services.charting;
 
-import com.epam.deltix.tbwg.webapp.services.charting.queries.ChartingResult;
-import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartingFrameDef;
+import com.epam.deltix.tbwg.webapp.services.charting.queries.ChartingResult;
 
 public interface ChartingService {
 
     long    MAX_TIMESTAMP = Long.MAX_VALUE / 2; /* prevents overflow when we slightly extend interval */
 
-    ChartingFrameDef          getData(String streamKey, String symbol, ChartType type,
-                                      TimeInterval interval, int maxPoints, int levels);
-
     ChartingFrameDef          getData(ChartingSettings settings, Long correlationId);
 
-    ChartingResult getDataStream(ChartingSettings settings, Long correlationId);
+    ChartingResult            getDataStream(ChartingSettings settings, Long correlationId);
 
     void                      stopCharting(long id);
 }

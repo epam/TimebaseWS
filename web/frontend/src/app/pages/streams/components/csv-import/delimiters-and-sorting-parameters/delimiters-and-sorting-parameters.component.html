@@ -1,0 +1,71 @@
+<form [formGroup]="formGroup">
+  <div class="file-by-symbol">
+    <div class="row">
+      <div class="col-md-4">{{ 'Symbols' | translate }}</div>
+      <div class="col-md-8">
+        <app-multi-select
+          [class.edited]="settingEdited('symbols')"
+          formControlName="symbols"
+          [items]="allSymbolsOptions"
+          [placeholder]="'Symbols'"
+          [initiallySelectedItems]="selectedSymbols"
+        ></app-multi-select>
+      </div>
+    </div>
+  </div>
+  
+  <div class="delimiters-container">
+    <div class="row">
+      <div class="col-4">
+        {{ 'Delimiters:' | translate }}
+      </div>
+      <div class="col-8" [class.edited-row]="settingEdited('separator')">
+        <div *ngFor="let delimiter of delimiters" class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" value="{{ delimiter.symbol }}" formControlName="delimiter"
+          (change)="setDelimiterValue($event, delimiter.symbol)">
+          <label class="form-check-label">
+            {{ delimiter.title | translate }}
+          </label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" value="other" formControlName="delimiter"
+            (change)="resetDelimiterValue($event)">
+          <label class="form-check-label">
+            {{ 'Other' | translate }}
+          </label>
+          <input type="text" class="form-control" maxlength="1" size="5" formControlName="delimiterAsText"
+            [class.edited]="settingEdited('separator')" [class.invalid]="settingInvalid('delimiterAsText')"
+            #delimiterAsText>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="file-by-symbol">
+    <div class="row">
+      <div class="col-4">{{ 'File By Symbol:' | translate }}</div>
+      <div class="col-8" [class.edited-row]="settingEdited('fileBySymbol')">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" formControlName="fileBySymbol">
+          <label class="form-check-label sorting-label">
+            {{ 'File by Symbol' | translate }}
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sort-params-container">
+    <div class="row">
+      <div class="col-4">{{ 'Sorting:' | translate }}</div>
+      <div class="col-8" [class.edited-row]="settingEdited('globalSorting')">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" formControlName="globalSorting">
+          <label class="form-check-label sorting-label">
+            {{ 'Sorting by Timestamp' | translate }}
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>

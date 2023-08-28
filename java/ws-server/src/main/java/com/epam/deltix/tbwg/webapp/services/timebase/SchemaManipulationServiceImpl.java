@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,13 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.timebase;
 
-import com.epam.deltix.tbwg.webapp.model.schema.*;
-import com.epam.deltix.tbwg.webapp.services.timebase.base.SchemaManipulationService;
-import com.epam.deltix.tbwg.webapp.services.timebase.exc.TimebaseExceptions;
-import com.epam.deltix.tbwg.webapp.services.timebase.exc.UnknownStreamException;
-import com.epam.deltix.tbwg.webapp.services.timebase.exc.WriteOperationsException;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.pub.md.*;
@@ -30,8 +26,13 @@ import com.epam.deltix.qsrv.hf.tickdb.schema.MetaDataChange;
 import com.epam.deltix.qsrv.hf.tickdb.schema.SchemaAnalyzer;
 import com.epam.deltix.qsrv.hf.tickdb.schema.StreamMetaDataChange;
 import com.epam.deltix.tbwg.webapp.model.input.QueryRequest;
+import com.epam.deltix.tbwg.webapp.model.schema.*;
 import com.epam.deltix.tbwg.webapp.model.schema.changes.StreamMetaDataChangeDef;
+import com.epam.deltix.tbwg.webapp.services.timebase.base.SchemaManipulationService;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.InvalidSchemaChangeException;
+import com.epam.deltix.tbwg.webapp.services.timebase.exc.TimebaseExceptions;
+import com.epam.deltix.tbwg.webapp.services.timebase.exc.UnknownStreamException;
+import com.epam.deltix.tbwg.webapp.services.timebase.exc.WriteOperationsException;
 import com.epam.deltix.tbwg.webapp.utils.ColumnsManager;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -193,6 +194,25 @@ public class SchemaManipulationServiceImpl implements SchemaManipulationService 
         stream.execute(task);
 
         return SchemaBuilder.toSchemaDef(stream.getStreamOptions().getMetaData(), false);
+    }
+
+    @Override
+    public SchemaDef getSchema(String key) {
+        StandardMessageTypes standardMessageTypes;
+        try {
+            standardMessageTypes = StandardMessageTypes.valueOf(key);
+        } catch (IllegalArgumentException e) {
+            String message = "Can't generate schema for " + key;
+            LOG.error().append(message).commit();
+            throw new IllegalArgumentException(message);
+        }
+        String[] classNames = standardMessageTypes.getClassNames();
+        try {
+            return SchemaBuilder.getSchemaDef(classNames);
+        } catch (ClassNotFoundException | Introspector.IntrospectionException e) {
+            LOG.error().append("Failed to generate schema for ").append(key).append("\nReason: ").append(e).commit();
+            throw new RuntimeException("Can't generate schema for " + key);
+        }
     }
 
     private DXTickStream getStream(String key) throws UnknownStreamException {

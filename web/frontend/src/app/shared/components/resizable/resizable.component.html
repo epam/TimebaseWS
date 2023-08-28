@@ -1,0 +1,40 @@
+<div class="resizable" [ngStyle]="style">
+  <button *ngIf="(defaultSizeButtonIsVisible | async) && rootModal" class="set-default-size-button close pull-right" 
+    (click)="setDefaultSize()" placement="left" [tooltip]="'buttons.setDefaultSize' | translate">
+    <svg 
+      style="width: 0.8rem; height: 0.8rem; vertical-align: middle; fill: currentColor; overflow: hidden; color: white" 
+      fill="#000000" 
+      version="1.1" 
+      id="Layer_1" 
+      xmlns="http://www.w3.org/2000/svg" 
+      xmlns:xlink="http://www.w3.org/1999/xlink" 
+      viewBox="0 0 492.308 492.308" 
+      xml:space="preserve">
+      <g>
+        <g>
+          <path d="M114.279,0v114.274H0v378.034h378.039V378.029h114.269V0H114.279z M358.346,472.615H19.692V133.966h338.654V472.615z
+            M472.615,358.337h-94.577V114.274H133.971V19.692h338.644V358.337z"/>
+        </g>
+      </g>
+    </svg>
+  </button>
+  <ng-content></ng-content>
+  <div #resizableBorders>
+    <div class="cell-border-top"></div>
+    <div class="cell-border-bottom"></div>
+    <div class="cell-border-left"></div>
+    <div class="cell-border-right"></div>
+    <div class="cell-top-right"></div>
+    <div class="cell-bottom-right"></div>
+    <div class="cell-top-left"></div>
+    <div class="cell-bottom-left"></div>
+    <svg 
+      class="right-bottom-resize-icon svg-icon" 
+      style="width: 2em; height: 2em; vertical-align: middle; fill: currentColor; overflow: hidden;" 
+      viewBox="0 0 1024 1024" 
+      version="1.1" 
+      xmlns="http://www.w3.org/2000/svg">
+      <path d="M938.666667 938.666667 853.333333 938.666667 853.333333 853.333333 938.666667 853.333333 938.666667 938.666667M938.666667 768 853.333333 768 853.333333 682.666667 938.666667 682.666667 938.666667 768M768 938.666667 682.666667 938.666667 682.666667 853.333333 768 853.333333 768 938.666667M768 768 682.666667 768 682.666667 682.666667 768 682.666667 768 768M597.333333 938.666667 512 938.666667 512 853.333333 597.333333 853.333333 597.333333 938.666667M938.666667 597.333333 853.333333 597.333333 853.333333 512 938.666667 512 938.666667 597.333333Z"/>
+    </svg>
+  </div>
+</div>

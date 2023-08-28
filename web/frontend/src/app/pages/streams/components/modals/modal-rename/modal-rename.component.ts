@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
-import {FormBuilder, FormGroup, Validators} from '@angular/forms';
+import {UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
 import {Store} from '@ngrx/store';
 import {BsModalRef} from 'ngx-bootstrap/modal';
 import {AppState} from '../../../../../core/store';
@@ -14,7 +14,7 @@ import * as StreamsActions from '../../../store/streams-list/streams.actions';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ModalRenameComponent implements OnInit {
-  public renameForm: FormGroup;
+  public renameForm: UntypedFormGroup;
   public stream: StreamModel;
   public data: {
     stream: MenuItem;
@@ -26,7 +26,7 @@ export class ModalRenameComponent implements OnInit {
   constructor(
     public bsModalRef: BsModalRef,
     private appStore: Store<AppState>,
-    private fb: FormBuilder,
+    private fb: UntypedFormBuilder,
   ) {}
 
   ngOnInit(): void {

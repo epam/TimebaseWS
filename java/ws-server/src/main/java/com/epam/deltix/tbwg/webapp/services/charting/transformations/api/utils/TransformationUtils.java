@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -17,7 +17,7 @@
 package com.epam.deltix.tbwg.webapp.services.charting.transformations.api.utils;
 
 import com.epam.deltix.dfp.Decimal64;
-import com.epam.deltix.tbwg.webapp.services.charting.transformations.api.transformations.api.Transformation;
+import com.epam.deltix.tbwg.webapp.services.charting.transformations.api.Transformation;
 import io.reactivex.Observable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

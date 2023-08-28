@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model.qql;
+package com.epam.deltix.tbwg.webapp.model.qql;
 
 import com.epam.deltix.tbwg.webapp.model.schema.DataTypeDef;
 import lombok.Getter;
@@ -29,5 +29,6 @@ public class FunctionDef {
     private DataTypeDef returnType;
     private List<FunctionArgumentDef> initArguments;
     private List<FunctionArgumentDef> arguments;
+    private boolean isStateful;
 
 }

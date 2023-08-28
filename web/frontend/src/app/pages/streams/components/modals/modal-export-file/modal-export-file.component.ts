@@ -1,16 +1,16 @@
 import {Component, OnInit} from '@angular/core';
-import {FormBuilder, FormGroup} from '@angular/forms';
+import {UntypedFormBuilder, UntypedFormGroup} from '@angular/forms';
 import {TranslateService} from '@ngx-translate/core';
 import {BsModalRef} from 'ngx-bootstrap/modal';
 import {combineLatest, Observable, of} from 'rxjs';
 import {map, publishReplay, refCount, startWith, switchMap, take} from 'rxjs/operators';
+import { dateTimeFormats } from 'src/app/shared/utils/dateTimeFormats';
 import {TreeItem} from '../../../../../shared/components/tree-checkboxes/tree-item';
 import {
   ExportFilter,
   ExportFilterFormat,
   ExportTo,
 } from '../../../../../shared/models/export-filter';
-import {MenuItem} from '../../../../../shared/models/menu-item';
 import {ExportService} from '../../../../../shared/services/export.service';
 import {SchemaService} from '../../../../../shared/services/schema.service';
 import {StreamsService} from '../../../../../shared/services/streams.service';
@@ -36,9 +36,13 @@ const delimiterValues = {
   styleUrls: ['./modal-export-file.component.scss'],
 })
 export class ModalExportFileComponent implements OnInit {
-  stream: MenuItem;
+  stream: {id: string; name: string};
+  symbols: string[];
+  types: string[];
   exportFormat: ExportFilterFormat;
-  form: FormGroup;
+  form: UntypedFormGroup;
+  initialRangeStart: string;
+  initialRangeEnd: string;
 
   symbolsHeader$: Observable<string>;
   fieldsHeader$: Observable<string>;
@@ -50,10 +54,12 @@ export class ModalExportFileComponent implements OnInit {
   maxDate: Date;
   autoCompleteProvider = this.getSymbols.bind(this);
 
+  dateTimeFormats = dateTimeFormats;
+
   constructor(
     private symbolsService: SymbolsService,
     private schemaService: SchemaService,
-    private fb: FormBuilder,
+    private fb: UntypedFormBuilder,
     private translateService: TranslateService,
     private streamsService: StreamsService,
     private exportService: ExportService,
@@ -88,11 +94,13 @@ export class ModalExportFileComponent implements OnInit {
     );
 
     this.form = this.fb.group({
-      symbols: null,
+      symbols: this.symbols ? [this.symbols] : null,
       fields: null,
       exportTo: ExportTo.oneFile,
       delimiters: Delimiters.comma,
       range: {start: null, end: null},
+      datetimeFormat: dateTimeFormats[0],
+      exportStaticFields: true
     });
 
     const fields$ = this.tree$.pipe(
@@ -112,8 +120,11 @@ export class ModalExportFileComponent implements OnInit {
       .pipe(take(1))
       .subscribe(([fields, range]) => {
         this.form.patchValue({
-          fields,
-          range: {start: new Date(range.start), end: new Date(range.end)},
+          fields: this.types ? this.types : fields,
+          range: {
+            start: this.initialRangeStart || new Date(range.start),
+            end: this.initialRangeEnd || new Date(range.end),
+          },
         });
 
         this.minDate = new Date(range.start);
@@ -154,7 +165,7 @@ export class ModalExportFileComponent implements OnInit {
   }
 
   export() {
-    const {range, fields, delimiters, exportTo, symbols} = this.form.getRawValue();
+    const {range, fields, delimiters, exportTo, symbols, datetimeFormat, exportStaticFields} = this.form.getRawValue();
     const types = {};
     fields.forEach((field) => {
       const [type, fieldName] = field.split(':');
@@ -173,6 +184,8 @@ export class ModalExportFileComponent implements OnInit {
       format: this.exportFormat,
       valueSeparator: delimiterValues[delimiters],
       mode: exportTo,
+      datetimeFormat,
+      enableStaticFields: exportStaticFields
     };
 
     if (symbols) {

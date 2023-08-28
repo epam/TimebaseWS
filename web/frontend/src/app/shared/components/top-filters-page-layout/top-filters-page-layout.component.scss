@@ -1,0 +1,28 @@
+@import 'src/app/core/styles/variables';
+
+.full-height-page {
+  padding-bottom: 10px;
+  padding-right: 15px;
+}
+
+.page-divider {
+  height: 10px;
+  background-color: $body-bg;
+  margin: 0 -15px;
+}
+
+.page-block {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.filters {
+  display: flex;
+  justify-content: space-between;
+  max-width: 100%;
+  padding-left: 15px;
+  padding-right: 15px;
+}

@@ -1,72 +1,50 @@
 @import 'src/app/core/styles/variables';
 
-.full-height-page {
-  padding-left: 0;
-  padding-bottom: 5 * $ss;
-}
-
 app-order-book {
-  margin-top: 5 * $ss;
-  height: 100%;
-  width: 100%;
+  flex-grow: 1;
+  margin: 10px 15px 15px;
 }
 
-.page-block {
+.filters-left {
   display: flex;
-  flex-direction: column;
-}
-
-.page-divider {
-  height: 10px;
-  background-color: $body-bg;
-  margin: 0 -15px;
-}
-
-.filters {
-  display: flex;
-  justify-content: space-between;
-  max-width: 100%;
-
-  .filters-left {
-    display: flex;
-
-    .filter {
-      margin-right: 10 * $ss;
-    }
-  }
 
   .filter {
-    display: flex;
-    align-items: flex-start;
-    max-width: 300px;
-  }
-
-  label {
-    margin-top: 3 * $ss;
-    margin-right: 5 * $ss;
-  }
-
-  ng-multiselect-dropdown {
-    display: inline-block;
-    min-width: 0;
-    margin-bottom: 15px;
-  }
-
-  .streams-filter {
-    flex-grow: 1;
-    width: 400px;
-    display: flex;
-    max-width: unset;
-
-    ng-multiselect-dropdown {
-      flex-grow: 1;
-    }
-  }
-
-  .exchanges-filter {
-    max-width: 500px;
+    margin-right: 10 * $ss;
   }
 }
+
+.filter {
+  display: flex;
+  align-items: flex-start;
+  max-width: 300px;
+}
+
+label {
+  margin-top: 3 * $ss;
+  margin-right: 5 * $ss;
+}
+
+ng-multiselect-dropdown {
+  display: inline-block;
+  min-width: 0;
+  margin-bottom: 15px;
+}
+
+.streams-filter {
+  flex-grow: 1;
+  width: 400px;
+  display: flex;
+  max-width: unset;
+
+  ng-multiselect-dropdown {
+    flex-grow: 1;
+  }
+}
+
+.exchanges-filter {
+  max-width: 500px;
+}
+
 
 .loader.show {
   display: block;
@@ -82,10 +60,4 @@ app-order-book {
 
 .hidden {
   display: none;
-}
-
-.alert-warning {
-  padding: 5px 10px;
-  width: fit-content;
-  margin-bottom: 10px;
 }

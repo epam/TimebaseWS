@@ -2,11 +2,13 @@ import { HttpClient }                          from '@angular/common/http';
 import { Injectable }                          from '@angular/core';
 import { SchemaAllTypeModel, SchemaTypeModel } from '../models/schema.type.model';
 import { CacheRequestService }                 from './cache-request.service';
+import { tap } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root',
 })
 export class SchemaService {
+  schema: { types: SchemaTypeModel[], all: SchemaTypeModel[] };
   constructor(private httpClient: HttpClient, private cacheRequestService: CacheRequestService) {}
 
   getSchema(stream: string, spaceId: string = null, tree = false) {
@@ -31,6 +33,6 @@ export class SchemaService {
         },
       ),
       1000,
-    );
+    ).pipe(tap(schema => this.schema = schema));
   }
 }

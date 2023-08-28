@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,14 +14,19 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.tree;
+package com.epam.deltix.tbwg.webapp.services.tree;
 
-import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DBStateListener;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DBStateNotifier;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickDB;
+import com.epam.deltix.tbwg.webapp.events.TimeBaseEvent;
 import com.epam.deltix.tbwg.webapp.model.tree.TreeNodeDef;
+import com.epam.deltix.tbwg.webapp.services.timebase.SystemMessagesService;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
+import com.epam.deltix.tbwg.webapp.services.view.ViewService;
 import com.epam.deltix.tbwg.webapp.settings.TimeBaseTreeSettings;
+import org.springframework.context.ApplicationListener;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
@@ -32,7 +37,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class TimeBaseTreeServiceImpl implements TimeBaseTreeService, DBStateListener {
+public class TimeBaseTreeServiceImpl implements TimeBaseTreeService, DBStateListener, ApplicationListener<TimeBaseEvent> {
 
     private static class TreePath {
         private final String[] elements;
@@ -68,14 +73,19 @@ public class TimeBaseTreeServiceImpl implements TimeBaseTreeService, DBStateList
 
     private final TimeBaseTreeSettings settings;
     private final TimebaseService timebaseService;
+    private final ViewService viewService;
 
     private final SplitGroupsStrategy splitGroupsStrategy = new BucketSplitGroups();
     private final SpaceEntitiesCache spaceEntitiesCache;
 
-    public TimeBaseTreeServiceImpl(TimeBaseTreeSettings settings, TimebaseService timebaseService) {
+    public TimeBaseTreeServiceImpl(TimeBaseTreeSettings settings,
+                                   TimebaseService timebaseService, ViewService viewService,
+                                   SystemMessagesService messagesService) {
         this.settings = settings;
         this.timebaseService = timebaseService;
-        this.spaceEntitiesCache = new SpaceEntitiesCacheLateInit(timebaseService, this);
+        this.viewService = viewService;
+        this.spaceEntitiesCache = new SpaceEntitiesCacheImpl();
+        messagesService.subscribe(this);
     }
 
     @PreDestroy
@@ -84,6 +94,16 @@ public class TimeBaseTreeServiceImpl implements TimeBaseTreeService, DBStateList
         if (db instanceof DBStateNotifier) {
             ((DBStateNotifier) db).removeStateListener(this);
         }
+    }
+
+    @Scheduled(fixedDelayString = "${timebase.tree.invalidate-cache-period-ms:60000}")
+    public void reload() {
+        spaceEntitiesCache.invalidate();
+    }
+
+    @Override
+    public void onApplicationEvent(TimeBaseEvent event) {
+        spaceEntitiesCache.invalidate();
     }
 
     @Override
@@ -106,18 +126,50 @@ public class TimeBaseTreeServiceImpl implements TimeBaseTreeService, DBStateList
     }
 
     @Override
-    public TreeNodeDef buildTree(List<String> paths, String filter, boolean showSpaces) {
+    public TreeNodeDef buildTree(List<String> paths, TreeFilter filter, boolean showSpaces, boolean views) {
         List<TreePath> treePaths = paths.stream()
             .map(TreePath::new)
             .collect(Collectors.toList());
 
         return walk(
             new TickDbTreeNode(
-                new TreeConfig(filter != null && !filter.isEmpty() ? filter.toLowerCase() : null,
-                    showSpaces, settings, splitGroupsStrategy, spaceEntitiesCache),
-                    timebaseService
-            ), treePaths, 1
+                new TreeConfig(filter, showSpaces, views, settings, splitGroupsStrategy, spaceEntitiesCache),
+                timebaseService, viewService
+            ),
+            treePaths, 1
         ).getTreeNodeDef();
+    }
+
+    @Override
+    public String findSymbol(String stream, String symbol, boolean showSpaces, boolean views) {
+        // todo: the method is in progress
+
+        TickDbTreeNode dbTreeNode = new TickDbTreeNode(
+            new TreeConfig(null, showSpaces, views, settings, splitGroupsStrategy, spaceEntitiesCache),
+            timebaseService, viewService
+        );
+
+        String result = "";
+        TreeNode<?> node = dbTreeNode.addChild(stream);
+        if (node == null) {
+            return result;
+        }
+
+        while (true) {
+            result += "/" + node.treeNode.getId();
+            if (node instanceof SymbolGroupTreeNode) {
+                node = ((SymbolGroupTreeNode) node).findSymbol(symbol);
+                continue;
+            } else if (node instanceof SpaceGroupTreeNode) {
+
+            } else if (node instanceof SymbolTreeNode) {
+                break;
+            }
+
+            break;
+        }
+
+        return result;
     }
 
     private static TreeNode<?> walk(TreeNode<?> node, List<TreePath> treePaths, int depth) {

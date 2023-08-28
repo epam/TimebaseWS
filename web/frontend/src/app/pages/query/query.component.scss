@@ -13,26 +13,37 @@
 
 .query-tools {
   display: flex;
+  justify-content: space-between;
   padding-bottom: 5 * $ss;
 
-  .send-btn {
-    width: 41 * $ss;
+  &__left {
+    display: flex;
 
-    &:focus {
-      box-shadow: none;
+    > .btn-group {
+      margin-right: 5 * $ss;
+    }
+
+    .export-btn {
+      outline: none;
+      margin-left: 5 * $ss;
+
+      &:focus {
+        box-shadow: none;
+      }
+    }
+
+    .send-btn {
+      width: 41 * $ss;
+
+      &:focus {
+        box-shadow: none;
+      }
     }
   }
 
-  > .btn-group {
-    margin-right: 5 * $ss;
-  }
-
-  .export-btn {
-    outline: none;
-    margin-left: 5 * $ss;
-
-    &:focus {
-      box-shadow: none;
+  &__right {
+    button {
+      margin-left: 10px;
     }
   }
 
@@ -58,6 +69,7 @@ pre {
 
 .grid-wrapper {
   position: relative;
+  padding: 10px;
 
   &,
   .grid,
@@ -90,21 +102,24 @@ form {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding: 10px;
 
-  .editor-wrapper {
+  .top-split-area-container {
+    display: flex;
+    flex-direction: column;
     flex-grow: 1;
     overflow: hidden;
   }
 
-  ngx-monaco-editor {
-    height: auto !important;
+  app-qql-editor {
+    flex-grow: 1;
+    overflow: hidden;
   }
 }
 
 .vertical-split {
   as-split-area {
     background-color: $dark-blue;
-    padding: 5 * $ss;
     border-radius: 0.5rem;
     display: flex;
     flex-direction: column;
@@ -128,4 +143,13 @@ app-message-info ::ng-deep .stream-props {
 
 .export-btn {
   margin-left: 10px;
+}
+
+.no-data {
+  color: #ffffff;
+  background-color: rgb(141, 32, 65);
+  padding: 0.1rem 2.4rem;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  text-align: center;
 }

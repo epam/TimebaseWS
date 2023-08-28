@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
-import {FormGroup} from '@angular/forms';
+import {UntypedFormGroup} from '@angular/forms';
 import {ActivatedRoute, Data} from '@angular/router';
 import {select, Store} from '@ngrx/store';
 import {IOutputData} from 'angular-split/lib/interface';
@@ -20,6 +20,8 @@ import {
   tap,
   withLatestFrom,
 } from 'rxjs/operators';
+import { SchemaService } from 'src/app/shared/services/schema.service';
+import { StreamsService } from 'src/app/shared/services/streams.service';
 import {AppState} from '../../../../../../core/store';
 import {
   DefaultTypeModel,
@@ -47,6 +49,7 @@ import {
 } from '../../../../store/streams-tabs/streams-tabs.selectors';
 import {SeSettings} from '../../models/se-settings';
 import {StreamMetaDataChangeModel} from '../../models/stream.meta.data.change.model';
+import { SchemaEditorService } from '../../services/add-class.service';
 import {SeDataService} from '../../services/se-data.service';
 import {SeFieldFormsService} from '../../services/se-field-forms.service';
 import {SeSelectionService} from '../../services/se-selection.service';
@@ -66,6 +69,8 @@ import {
   getSchemaDiff,
   getSelectedSchemaItem,
 } from '../../store/schema-editor.selectors';
+import { ClControlPanelComponent } from '../cl-control-panel/cl-control-panel.component';
+import { FlControlPanelComponent } from '../fl-control-panel/fl-control-panel.component';
 
 @Component({
   selector: 'app-se-layout',
@@ -77,6 +82,8 @@ import {
 export class SeLayoutComponent implements OnInit, OnDestroy {
   @ViewChild('modalTemplate', {static: true}) modalTemplate;
   @ViewChild('saveSchemaChangesModalTemplate', {static: true}) saveSchemaChangesModalTemplate;
+  @ViewChild(ClControlPanelComponent) classControlPanel: ClControlPanelComponent;
+  @ViewChild(FlControlPanelComponent) fieldControlPanel: FlControlPanelComponent;
 
   streamDetails: Observable<fromStreamDetails.State>;
   selectedSchemaItem$: Observable<SchemaClassTypeModel>;
@@ -93,7 +100,7 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
   showClassListGrid$: Observable<boolean>;
   newItemModalRef: BsModalRef;
   saveChangesModalRef: BsModalRef;
-  keyForm: FormGroup;
+  keyForm: UntypedFormGroup;
   isWriter$: Observable<boolean>;
 
   private isOpenInNewTab: boolean;
@@ -102,6 +109,7 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
   private tabFilter;
   private saveChangesDisabledButtons = false;
   private onSchemaResetState$ = new ReplaySubject<boolean>(1);
+  private lastFocusedElement: HTMLElement;
 
   constructor(
     private appStore: Store<AppState>,
@@ -115,6 +123,9 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
     private tabStorageDataService: TabStorageService<SeSettings>,
     private onCloseTabAlertService: OnCloseTabAlertService,
     private permissionsService: PermissionsService,
+    private schemaEditorService: SchemaEditorService,
+    private streamsService: StreamsService,
+    private schemaService: SchemaService
   ) {}
 
   ngOnInit() {
@@ -132,6 +143,13 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
       skipWhile((schema) => !schema),
     );
 
+    this.appStore
+      .pipe(
+        select(getActiveTab),
+        filter((tab: TabModel) => !this.route.snapshot.data.streamCreate && !!tab?.stream),
+        switchMap((tab: TabModel) => this.schemaService.getSchema(tab?.stream)))
+      .subscribe();
+
     this.isSchemaEdited$ = this.onSchemaResetState$.pipe(
       switchMap((isCreate) => {
         if (isCreate) {
@@ -146,14 +164,16 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
     const types$ = this.appStore.pipe(select(getAllSchemaItems));
 
     this.hasSchemaError$ = types$.pipe(
-      switchMap((types) =>
-        this.seFieldFormsService.hasAnyError().pipe(
+      switchMap((types) => {
+        return this.seFieldFormsService.hasAnyError().pipe(
           map((hasError) => {
-            return hasError || !types.filter((type) => type._props._isUsed).length;
+            const objectTypeFields = types.reduce((acc, type) => [...acc, ...type.fields], []).filter(field => field.type.elementType);
+            return hasError || !types.filter((type) => type._props._isUsed).length || 
+              objectTypeFields.some(field => !field.type.elementType.types.length);
           }),
-        ),
-      ),
-    );
+        )
+      })
+    )
 
     types$.pipe(takeUntil(this.destroy$)).subscribe((types) => {
       this.seFieldFormsService.typesChanged(types);
@@ -239,6 +259,10 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
           this.appStore.dispatch(GetSchema());
         }
       });
+
+    this.modalService.onHide
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.lastFocusedElement?.focus())
   }
 
   public onHideErrorMessage() {
@@ -256,6 +280,7 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
     this.streamsStore.dispatch(new StreamDetailsActions.StopSubscriptions());
     this.onCloseTabAlertService.resetNeedShowAlert();
+    this.schemaEditorService.clearEditedItems();
   }
 
   public onAskToCreateStream() {
@@ -317,5 +342,16 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
         })),
       })),
     );
+  }
+
+  public addNewItemToClassList(target: HTMLElement) {
+    this.lastFocusedElement = target;
+    const insertionType = target.parentElement.classList.contains('classItem') ? 'class' : 'enum';
+    this.classControlPanel.onAskToAdd(insertionType === 'enum');
+  }
+
+  public addNewItemToFieldsList([target, isStatic]) {
+    this.lastFocusedElement = target;
+    this.fieldControlPanel.onAskToAdd(isStatic);
   }
 }

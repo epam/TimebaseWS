@@ -67,7 +67,7 @@ export class RequestDefaultErrorInterceptor implements HttpInterceptor {
           }
           this.appStore.dispatch(
             new NotificationsActions.AddAlert({
-              message: message,
+              message,
               dismissible: true,
               closeInterval: interval,
             }),

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,6 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.charting.datasource;
 
 import com.epam.deltix.gflog.api.Log;
@@ -32,12 +33,15 @@ public class TimebaseDataSource implements Runnable, Disposable {
     private final TimeBaseReactiveMessageSource.Builder builder;
     private final PublishSubject<InstrumentMessage> subject;
 
+    private final long endTime;
+
     private InstrumentMessageSource source;
     private volatile boolean closed;
 
     public TimebaseDataSource(TimeBaseReactiveMessageSource.Builder builder, PublishSubject<InstrumentMessage> subject) {
         this.builder = builder;
         this.subject = subject;
+        this.endTime = builder.endTime;
     }
 
     @Override
@@ -47,6 +51,9 @@ public class TimebaseDataSource implements Runnable, Disposable {
             initSource();
             while (source.next()) {
                 final InstrumentMessage message = source.getMessage();
+                if (message.getTimeStampMs() > endTime) {
+                    break;
+                }
                 subject.onNext(message);
                 cnt++;
             }

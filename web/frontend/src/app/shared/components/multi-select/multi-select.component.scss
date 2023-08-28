@@ -6,41 +6,61 @@
 }
 
 .header {
-  padding: 6px;
+  padding: 2px 4px;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: stretch;
+  min-height: 1.8rem;
 
-  &.has-data {
-    padding-bottom: 2px;
-    padding-top: 4px;
+  &.disabled {
+    background-color: rgba(128, 128, 128, 0.3);
+    color: rgb(162, 162, 162);
+  }
+
+  &.multiple.has-data {
+    padding: 2px 4px;
 
     .header__right {
       padding-top: 7px;
     }
   }
 
+  &.multiple:not(.has-data) {
+    .header__content {
+      height: 16px;
+      margin-top: -1px;
+    }
+  }
+
   &__content {
     flex-grow: 1;
+    max-width: calc(100% - 20px);
 
     .selected-item {
-      border: 1px solid $light-blue;
-      margin: 0 4px 4px 0;
-      padding: 0 2px;
+      margin: 0 2px 2px 0;
+      padding: 0 3px;
       background: $light-blue;
-      font-size: 13px;
+      font-size: 12px;
       border-radius: 4px;
       display: inline-flex;
       align-items: center;
+      max-width: 100%;
+      overflow: hidden;
+
+      &__name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
 
       .remove-icon {
         padding-left: 3px;
         line-height: 0;
         width: 10px;
-        height: 18px;
+        height: 12px;
         display: flex;
         align-items: center;
+        padding-bottom: 3px;
       }
     }
   }
@@ -50,7 +70,7 @@
     flex-direction: column;
     justify-content: space-between;
     align-items: flex-end;
-    padding-top: 5px;
+    padding-top: 6px;
   }
 
   .caret {
@@ -59,10 +79,14 @@
     right: 0;
     color: $light-gray;
     border-style: solid;
-    border-width: 8px 8px 0;
+    border-width: 6px 6px 0;
     border-color: $light-gray transparent;
     content: '';
     margin-bottom: 5px;
+  }
+
+  .caret.open {
+    transform: rotate(180deg);
   }
 }
 
@@ -74,27 +98,53 @@
 
 .dropdown {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
+  top: 0;
   background-color: $dark-blue;
-  z-index: 1;
-  margin-top: 10px;
-  height: 300px;
+  z-index: 1050;
   display: flex;
   flex-direction: column;
 
+  &.flat {
+    margin-top: 5px;
+    border-color: #27384d66;
+    background-color: $bg-blue;
+
+    .search, .select-all {
+      border-bottom: 1px solid #27384d66;
+
+      input::placeholder {
+        opacity: 0.5;
+      }
+    }
+
+    .checkmark {
+      background-color: transparent;
+    }
+
+    .option {
+      border-bottom: 1px solid #27384d66;
+    }
+  }
+
   cdk-virtual-scroll-viewport {
     flex-grow: 1;
-    margin: 1px 0;
   }
 
   .option {
-    height: 40px;
     display: flex;
     align-items: center;
     cursor: pointer;
     padding: 0 10px;
+
+    &.single {
+      &:hover, &.selected {
+        background: $blue;
+      }
+    }
+
+    &.childSelected {
+      background-color: #1b5c83;
+    }
 
     &.selected {
       .checkmark {
@@ -106,9 +156,8 @@
       }
     }
 
-    .item-name {
-      padding-top: 1px;
-      user-select: none;
+    .child-item-name {
+      margin-left: 0.5rem;
     }
 
     .container-ch {
@@ -120,13 +169,16 @@
   }
 }
 
+.select-all {
+  border-bottom: 1px solid $input-border;
+}
+
 .search {
   width: 100%;
-  border-top: 1px solid $input-border;
   border-bottom: 1px solid $input-border;
 
   input {
-    padding: 10px;
+    padding: 7px 10px;
     width: 100%;
 
     &,
@@ -138,4 +190,60 @@
       color: $white;
     }
   }
+}
+
+:host.flat-multiselect {
+  .header {
+    background: $bg-blue;
+    border: none;
+    padding: 6px;
+
+    &.multiple.has-data {
+      padding-bottom: 0.5px;
+      padding-top: 3px;
+    }
+
+    .caret {
+      border-width: 6px 5px 0!important;
+      margin-top: 0!important;
+    }
+
+    .selected-item {
+      margin: 0 4px 3px 0;
+    }
+  }
+}
+
+.single {
+  .search {
+    padding: 5px 0;
+  }
+}
+
+.item-name {
+  display: flex;
+  padding-top: 1px;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.item-icon {
+  font-size: 16px;
+  font-weight: bolder;
+  color: rgb(203, 203, 204);
+  min-width: 16px;
+  min-height: 16px;
+  max-width: 16px;
+  max-height: 16px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.none-icon {
+  color: rgb(244, 135, 135);
+}
+
+.item-text {
+  margin-top: 0.2rem;
+  margin-left: 0.4rem;
 }

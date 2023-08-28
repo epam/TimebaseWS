@@ -1,5 +1,5 @@
 import {Component, Input, OnInit} from '@angular/core';
-import {ContextMenuService} from 'ngx-contextmenu';
+import {ContextMenuService} from '@perfectmemory/ngx-contextmenu';
 
 @Component({
   selector: 'app-sidebar-context-menu-item',

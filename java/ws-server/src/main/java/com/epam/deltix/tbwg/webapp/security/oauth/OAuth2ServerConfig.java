@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,17 +14,17 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.security.oauth;
 
-import com.epam.deltix.tbwg.webapp.config.WebMvcConfig;
+import com.epam.deltix.gflog.api.Log;
+import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.security.TokenService;
 import com.epam.deltix.tbwg.webapp.services.authorization.TbwgUser;
 import com.epam.deltix.tbwg.webapp.services.authorization.UsersProvider;
 import com.epam.deltix.tbwg.webapp.settings.OAuthConfig;
 import com.epam.deltix.tbwg.webapp.settings.SecurityOauth2ProviderSettings;
 import com.epam.deltix.tbwg.webapp.settings.SecurityOauth2ServerSettings;
-import com.epam.deltix.gflog.api.Log;
-import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.utils.SignatureUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -34,10 +34,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -60,6 +60,9 @@ import javax.annotation.PostConstruct;
 
 import java.security.NoSuchAlgorithmException;
 
+import static com.epam.deltix.tbwg.webapp.config.WebMvcConfig.GRAFANA_API_PREFIX;
+import static com.epam.deltix.tbwg.webapp.config.WebMvcConfig.MAIN_API_PREFIX;
+
 /**
  *
  */
@@ -67,7 +70,7 @@ import java.security.NoSuchAlgorithmException;
 @Conditional(OAuthConfig.class)
 @EnableWebSecurity
 @SuppressWarnings("deprecation")
-public class OAuth2ServerConfig extends WebSecurityConfigurerAdapter {
+public class OAuth2ServerConfig {
 
     private static final Log LOG = LogFactory.getLog(OAuth2ServerConfig.class);
 
@@ -186,8 +189,8 @@ public class OAuth2ServerConfig extends WebSecurityConfigurerAdapter {
                     .antMatchers("/api/v0/docs/**").permitAll()
                     .antMatchers("/api/v0/authInfo").permitAll()
                     .antMatchers("/api/v0/download").permitAll()
-                    .antMatchers(WebMvcConfig.MAIN_API_PREFIX + "/**").fullyAuthenticated()
-                    .antMatchers(WebMvcConfig.GRAFANA_API_PREFIX + "/**").fullyAuthenticated();
+                    .antMatchers(MAIN_API_PREFIX + "/**").fullyAuthenticated()
+                    .antMatchers(GRAFANA_API_PREFIX + "/**").fullyAuthenticated();
             http.headers()
                 .frameOptions().sameOrigin();
         }
@@ -248,14 +251,13 @@ public class OAuth2ServerConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
-    @Override
-    protected AuthenticationManager authenticationManager() throws Exception {
-        return super.authenticationManager();
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 
-    @Override
-    public void configure(WebSecurity web) throws Exception {
-        web.httpFirewall(allowUrlEncodedSlashHttpFirewall());
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return web -> web.httpFirewall(allowUrlEncodedSlashHttpFirewall());
     }
 
 }

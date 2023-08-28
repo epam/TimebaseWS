@@ -1,7 +1,9 @@
-<div class="d-flex h-100 flex-shrink-1">
-  <ag-grid-angular
-      #streamDetailsGridLive
-      [gridOptions]="gridOptions"
-      class="grid ag-theme-balham-dark">
-  </ag-grid-angular>
-</div>
+<app-page-loading class="h-100" [loaded]="loaded$ | async" [error]="error$ | async" >
+  <div class="d-flex h-100 flex-shrink-1">
+    <ag-grid-angular
+        #streamDetailsGridLive
+        [gridOptions]="gridOptions"
+        class="grid ag-theme-balham-dark">
+    </ag-grid-angular>
+  </div>
+</app-page-loading>

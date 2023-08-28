@@ -49,6 +49,12 @@
   padding-bottom: 10 * $ss;
 }
 
+.save-btn-container {
+  position: absolute;
+  bottom: 15 * $ss;
+  right: 10 * $ss;
+}
+
 .as-split-area {
   position: relative;
 }
@@ -97,13 +103,12 @@
   padding: 0 4 * $ss;
   font-size: 6 * $ss;
   line-height: 10 * $ss;
-  position: absolute;
-  right: 5 * $ss;
-  bottom: 10 * $ss;
 }
 
 .send-schema-btn-wr {
-  display: flex;
+  position: absolute;
+  right: 15 * $ss;
+  bottom: 20 * $ss;
 
   & > .btn {
     margin-left: 5 * $ss;

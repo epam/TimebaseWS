@@ -1,0 +1,61 @@
+<div class="upload-file-container">
+  <form class="form-group files-form-group" [formGroup]="form">
+    <div class="buttons-container">
+      <div class="file-input-container">
+        <app-file-btn [accept]="acceptFormats.length ? acceptFormats : ['*']" formControlName="file"
+          [importMultiple]="true" [showFileNames]="false" (addFilesToList)="addFiles($event)" [folderInput]="true"
+          (addFolderToList)="addFolderFiles($event)" [inputDisabled]="fileButtonsDisabled">
+          <span>{{ 'importFromFile.labels.addFiles' | translate }}</span>
+        </app-file-btn>
+      </div>
+    </div>
+    <div class="btn-group btn-group-sm" role="group">
+      <button *ngFor="let format of formats | keyvalue" type="button" 
+        [ngClass]="{'active': importingFormats[formats[format.key]], 'btn btn-outline-primary': true}" 
+        (click)="toggleFileFormat(format.key, format.value)">
+        .{{ format.key }}
+      </button>
+    </div>
+  </form>
+  <div *ngIf="uploadedFileNamesSorted?.length || uploadedFilesDefaultOrder?.length" class="uploaded-files-header">
+    <button class="toggle-sorting-button" (click)="toggleSortingType()">
+      <span>Source Files</span>
+      <span [ngSwitch]="sorting">
+        <span *ngSwitchCase="'none'" class="toggle-sorting-button-arrow">&#8597;</span>
+        <span *ngSwitchCase="'ascending'" class="toggle-sorting-button-arrow">&#8593;</span>
+        <span *ngSwitchCase="'descending'" class="toggle-sorting-button-arrow">&#8595;</span>
+      </span>
+    </button>
+  </div>
+  <div class="uploaded-files-container">
+    <ul>
+      <ng-container *ngIf="uploadedFileNamesSorted?.length; else defaultFileOrder">
+        <li *ngFor="let fileName of uploadedFileNamesSorted" class="uploaded-file-title">
+          <span>{{ fileName }}</span>
+          <button class="delete-uploaded-file-button" (click)="removeUploadedFile(fileName)"
+            [disabled]="fileButtonsDisabled">&#x2715;</button>
+        </li>
+      </ng-container>
+      <ng-template #defaultFileOrder>
+        <ng-container *ngIf="uploadedFilesDefaultOrder?.length; else noResults">
+          <li *ngFor="let fileName of uploadedFilesDefaultOrder" class="uploaded-file-title">
+            <span>{{ fileName }}</span>
+            <button class="delete-uploaded-file-button" (click)="removeUploadedFile(fileName)"
+              [disabled]="fileButtonsDisabled">&#x2715;</button>
+          </li>
+        </ng-container>
+      </ng-template>
+    </ul>
+    <ng-template #noResults><div class="no-uploaded-files">No files uploaded</div></ng-template>
+    <div *ngIf="!!fileAddingError" class="error-messages">
+      {{ fileAddingError }}
+    </div>
+  </div>
+  <div>
+    <button *ngIf="uploadedFileNames?.length" (click)="removeAllUploadedFiles()" 
+      [disabled]="fileButtonsDisabled"
+      class="btn btn-primary remove-all-files-btn">
+      {{ 'importFromFile.removeAll' | translate }}
+    </button>
+  </div>
+</div>

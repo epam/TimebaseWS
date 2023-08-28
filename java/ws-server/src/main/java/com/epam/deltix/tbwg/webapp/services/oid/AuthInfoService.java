@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,16 +14,18 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.oid;
 
-import com.epam.deltix.tbwg.webapp.settings.ProviderType;
-import com.epam.deltix.tbwg.webapp.settings.SecurityOauth2ProviderSettings;
-import com.epam.deltix.tbwg.webapp.settings.UserInfoSettings;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.model.auth.AuthInfo;
+import com.epam.deltix.tbwg.webapp.settings.ProviderType;
+import com.epam.deltix.tbwg.webapp.settings.SecurityOauth2ProviderSettings;
+import com.epam.deltix.tbwg.webapp.settings.UserInfoSettings;
+import com.epam.deltix.tbwg.webapp.utils.TextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.OAuth2ResourceServerProperties;
 import org.springframework.http.*;
@@ -62,7 +64,7 @@ public class AuthInfoService {
                     throw new RuntimeException("Config URL and Issuer Url is empty");
                 }
 
-                configUrl = issuerUrl + "/.well-known/openid-configuration";
+                configUrl = TextUtils.appendURIPath(issuerUrl, "/.well-known/openid-configuration");
             }
 
             LOGGER.info().append("OpenID config URL: ").append(configUrl).commit();

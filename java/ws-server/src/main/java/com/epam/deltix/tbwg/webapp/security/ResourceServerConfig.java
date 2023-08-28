@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,31 +14,33 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.security;
+package com.epam.deltix.tbwg.webapp.security;
 
 import com.epam.deltix.spring.apikeys.ApiKeysFilterProvider;
-import com.epam.deltix.tbwg.webapp.config.WebMvcConfig;
-import com.epam.deltix.tbwg.webapp.settings.SecurityOauth2ProviderSettings;
 import com.epam.deltix.tbwg.webapp.security.jwt.AudienceValidator;
 import com.epam.deltix.tbwg.webapp.security.jwt.JwtAuthenticationConverterImpl;
+import com.epam.deltix.tbwg.webapp.settings.SecurityOauth2ProviderSettings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.OAuth2ResourceServerProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.*;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.firewall.DefaultHttpFirewall;
 import org.springframework.security.web.firewall.HttpFirewall;
 
+import static com.epam.deltix.tbwg.webapp.config.WebMvcConfig.GRAFANA_API_PREFIX;
+import static com.epam.deltix.tbwg.webapp.config.WebMvcConfig.MAIN_API_PREFIX;
+
 @EnableWebSecurity()
 @ConditionalOnProperty(value = "security.oauth2.provider.providerType", havingValue = "SSO", matchIfMissing = true)
-public class ResourceServerConfig extends WebSecurityConfigurerAdapter {
+public class ResourceServerConfig {
 
     private final OAuth2ResourceServerProperties.Jwt jwtConfig;
     private final SecurityOauth2ProviderSettings providerConfig;
@@ -61,8 +63,8 @@ public class ResourceServerConfig extends WebSecurityConfigurerAdapter {
         }
     }
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain filterChain(final HttpSecurity http) throws Exception {
         http
             //.cors().and()
             .authorizeRequests()
@@ -72,14 +74,15 @@ public class ResourceServerConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/v0/docs/**").permitAll()
                 .antMatchers("/api/v0/authInfo").permitAll()
                 .antMatchers("/api/v0/download").permitAll()
-                .antMatchers(WebMvcConfig.MAIN_API_PREFIX + "/**").fullyAuthenticated()
-                .antMatchers(WebMvcConfig.GRAFANA_API_PREFIX + "/**").fullyAuthenticated()
+                .antMatchers(MAIN_API_PREFIX + "/**").fullyAuthenticated()
+                .antMatchers(GRAFANA_API_PREFIX + "/**").fullyAuthenticated()
             .and()
                 .oauth2ResourceServer()
                     .jwt().jwtAuthenticationConverter(jwtAuthenticationConverter);
 
         http.headers().frameOptions().sameOrigin();
         http.addFilterAfter(apiKeysFilterProvider.getInstance(), BasicAuthenticationFilter.class);
+        return http.build();
     }
 
     @Bean
@@ -112,9 +115,9 @@ public class ResourceServerConfig extends WebSecurityConfigurerAdapter {
         return firewall;
     }
 
-    @Override
-    public void configure(WebSecurity web) throws Exception {
-        web.httpFirewall(allowUrlEncodedSlashHttpFirewall());
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return web -> web.httpFirewall(allowUrlEncodedSlashHttpFirewall());
     }
 
 }

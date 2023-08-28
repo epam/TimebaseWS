@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,14 +14,17 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model;
+package com.epam.deltix.tbwg.webapp.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.epam.deltix.util.time.Periodicity;
+import com.epam.deltix.util.time.TimeUnit;
+import lombok.NoArgsConstructor;
 
 /**
  * Created by Alex Karpovich on 16/12/2019.
  */
+@NoArgsConstructor
 public class PeriodicityDef {
 
     public PeriodicityDef(long milliseconds, String interval, Periodicity.Type type) {
@@ -39,4 +42,15 @@ public class PeriodicityDef {
     @JsonProperty
     public long milliseconds;
 
+    @Override
+    public String toString() {
+        if (interval != null) {
+            String[] s = interval.split(" ");
+            if (s.length == 2)
+                return s[0] + TimeUnit.valueOf(s[1]).getSuffix();
+        } else if (Periodicity.Type.STATIC.equals(type)) {
+            return type.toString();
+        }
+        return Periodicity.Type.IRREGULAR.toString();
+    }
 }

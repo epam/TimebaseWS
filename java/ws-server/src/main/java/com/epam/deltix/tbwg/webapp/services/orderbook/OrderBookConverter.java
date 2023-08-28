@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -16,8 +16,10 @@
  */
 package com.epam.deltix.tbwg.webapp.services.orderbook;
 
-import com.epam.deltix.common.orderbook.*;
 import com.epam.deltix.containers.AlphanumericUtils;
+import com.epam.deltix.orderbook.core.api.MarketSide;
+import com.epam.deltix.orderbook.core.api.OrderBook;
+import com.epam.deltix.orderbook.core.api.OrderBookQuote;
 import com.epam.deltix.tbwg.webapp.model.orderbook.*;
 
 import com.epam.deltix.timebase.messages.universal.QuoteSide;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,17 +14,18 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model.input;
+package com.epam.deltix.tbwg.webapp.model.input;
 
-import com.epam.deltix.tbwg.webapp.services.timebase.export.ExportService;
-import com.epam.deltix.tbwg.webapp.utils.DateFormatter;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.webcohesion.enunciate.metadata.DocumentationExample;
+import com.epam.deltix.tbwg.webapp.services.timebase.export.ExportService;
 
 import java.time.Instant;
 import java.util.stream.Stream;
+
+import static com.epam.deltix.tbwg.webapp.utils.DateFormatter.DATETIME_MILLIS_FORMAT_STR;
 
 public class ExportRequest {
 
@@ -33,7 +34,7 @@ public class ExportRequest {
      */
     @DocumentationExample("2018-06-28T09:30:00.123Z")
     @JsonProperty
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DateFormatter.DATETIME_MILLIS_FORMAT_STR, timezone = "UTC")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATETIME_MILLIS_FORMAT_STR, timezone = "UTC")
     public Instant from;
 
     /**
@@ -41,37 +42,37 @@ public class ExportRequest {
      */
     @DocumentationExample("2018-06-30T09:30:00.123Z")
     @JsonProperty
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DateFormatter.DATETIME_MILLIS_FORMAT_STR, timezone = "UTC")
-    public Instant              to;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATETIME_MILLIS_FORMAT_STR, timezone = "UTC")
+    public Instant to;
 
     /**
      * Start row offset. (By default = 0)
      */
     @DocumentationExample("0")
     @JsonProperty
-    public long                 offset = 0;
+    public long offset = 0;
 
     /**
      * Number of returning rows. (By default = -1, means all rows must be selected)
      */
     @DocumentationExample("1000")
     @JsonProperty
-    public int                  rows = -1;
+    public int rows = -1;
 
     /**
      * Result order of messages
      */
     @DocumentationExample("false")
     @JsonProperty
-    public boolean              reverse = false;
+    public boolean reverse = false;
 
     @JsonIgnore
-    public long                 getStartTime(long currentTime) {
+    public long getStartTime(long currentTime) {
         return from != null ? from.toEpochMilli() : Long.MIN_VALUE;
     }
 
     @JsonIgnore
-    public long                 getEndTime() {
+    public long getEndTime() {
         return to != null ? to.toEpochMilli() : Long.MAX_VALUE;
     }
 
@@ -79,47 +80,65 @@ public class ExportRequest {
      * Specified message types to be subscribed. If undefined, then all types will be subscribed.
      */
     @JsonProperty
-    public TypeSelection[]      types;
+    public TypeSelection[] types;
 
     /**
      * Specified export format
      */
     @JsonProperty
-    public ExportFormat         format;
+    public ExportFormat format;
 
     /**
      * Values separator in case of CSV export format. ',' by default
      */
     @JsonProperty
-    public String               valueSeparator = ",";
+    public String valueSeparator = ",";
 
     @JsonProperty
-    public ExportMode           mode = ExportMode.SINGLE_FILE;
+    public ExportMode mode = ExportMode.SINGLE_FILE;
 
     /**
      * Specified instruments(symbols) to be subscribed. If undefined, then all instruments will be subscribed.
      */
     @DocumentationExample(value = "BTCEUR", value2 = "ETHEUR")
     @JsonProperty
-    public String[]             symbols;
+    public String[] symbols;
 
     /**
-     * Convert exported schema namespaces to Timebase 5 format
+     * Does not export empty spaces/symbols
+     */
+    @DocumentationExample("false")
+    @JsonProperty
+    public boolean skipEmpty = false;
+
+    /**
+     * Determines whether static fields will be included in the CSV export.
+     * True by default
+     * For qsmsg, this is always true
+     */
+    @DocumentationExample("false")
+    @JsonProperty
+    public boolean enableStaticFields = true;
+
+    /**
+     * The pattern string of this formatter. "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" by default.
      */
     @JsonProperty
-    public boolean              convertNamespaces;
+    @DocumentationExample("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    public String datetimeFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
     /**
      * Return timebase type name for selection
+     *
      * @return String names
      */
     @JsonIgnore
-    public String[]             getTypes() {
+    public String[] getTypes() {
         return types != null ? Stream.of(types).map(x -> x.name).toArray(String[]::new) : null;
     }
 
     @JsonIgnore
-    public void                 setTypes(String[] names) {
+    public void setTypes(String[] names) {
         if (names == null) {
             types = null;
         } else {
@@ -130,7 +149,7 @@ public class ExportRequest {
     }
 
     @JsonIgnore
-    public String               getFileName(String name) {
+    public String getFileName(String name) {
         if (format == ExportFormat.CSV) {
             return name + ".zip";
         } else {

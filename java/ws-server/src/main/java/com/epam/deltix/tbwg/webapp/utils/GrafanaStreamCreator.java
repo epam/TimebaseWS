@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,6 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.utils;
 
 import com.epam.deltix.containers.AlphanumericUtils;
@@ -26,7 +27,6 @@ import com.epam.deltix.grafana.test.GrafanaTestMessage;
 import com.epam.deltix.qsrv.hf.pub.md.Introspector;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
 import com.epam.deltix.qsrv.hf.tickdb.pub.*;
-import com.epam.deltix.util.annotations.Alphanumeric;
 import com.epam.deltix.util.cmdline.DefaultApplication;
 
 import java.util.HashMap;
@@ -136,7 +136,6 @@ public class GrafanaStreamCreator extends DefaultApplication {
         return GrafanaTestEnum.values()[random.nextInt(GrafanaTestEnum.values().length)];
     }
 
-    @Alphanumeric
     private long currency() {
         return currencies[random.nextInt(currencies.length)];
     }

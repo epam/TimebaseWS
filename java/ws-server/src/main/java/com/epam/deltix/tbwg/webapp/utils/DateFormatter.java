@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.utils;
+package com.epam.deltix.tbwg.webapp.utils;
 
 import org.apache.commons.lang3.time.FastDateFormat;
 
@@ -30,11 +30,17 @@ public class DateFormatter {
     public static final String DATETIME_MILLIS_FORMAT_STR = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
     private final Calendar mCalendar;
-    private final FastDateFormat DTFX = FastDateFormat.getInstance(DATETIME_MILLIS_FORMAT_STR, TimeZone.getTimeZone("UTC"));
+    private final FastDateFormat DTFX;
 
     public DateFormatter() {
+        this(DATETIME_MILLIS_FORMAT_STR);
+    }
+
+    public DateFormatter(String format) {
+        format = format == null ? DATETIME_MILLIS_FORMAT_STR : format;
         mCalendar = new GregorianCalendar();
         mCalendar.setTimeZone(TimeZone.getTimeZone("UTC"));
+        DTFX = FastDateFormat.getInstance(format, TimeZone.getTimeZone("UTC"));
     }
 
     public void toDateString(long timestamp, StringBuilder sb) {

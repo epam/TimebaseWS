@@ -1,0 +1,35 @@
+@import 'src/app/core/styles/variables';
+
+:host {
+  display: flex;
+  flex-direction: column;
+}
+
+.monaco-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+
+  ngx-monaco-editor {
+    flex-grow: 1;
+    height: auto !important;
+    overflow: hidden;
+  }
+}
+
+.alert {
+  padding: 3px 10px;
+  margin: 0;
+
+  &.qql-alert {
+    min-height: 30px;
+    border-top-right-radius: 0;
+    border-top-left-radius: 0;
+    word-break: break-word;
+
+    a {
+      color: $link-hover;
+    }
+  }
+}

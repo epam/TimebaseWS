@@ -1,0 +1,11 @@
+<app-modal>
+  <div content>
+    {{ 'importFromFile.resetSettingsConfirmation' | translate }}
+  </div>
+  <div footer>
+    <button class="btn btn-sm btn-primary" (click)="resetToDefaultSettingsAndMappings()">
+      {{ 'importFromFile.confirm' | translate }}
+    </button>
+    <button class="btn btn-sm btn-primary" (click)="cancel()">{{ 'importFromFile.cancel' | translate }}</button>
+  </div>
+</app-modal>

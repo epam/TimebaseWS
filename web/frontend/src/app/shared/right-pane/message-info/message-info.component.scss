@@ -6,26 +6,10 @@
   flex-direction: column;
 }
 
-.stream-props {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: calc(100vh - 40 * #{$ss});
-  padding-top: calc(7.5 * #{$ss});
-  padding-bottom: calc(7.5 * #{$ss});
-  border-radius: calc(4 * #{$ss});
-  background: $nav-bg;
-}
-
 .table {
   tr td:first-child {
     padding-left: calc(5 * #{$ss});
   }
-}
-
-h4 {
-  word-wrap: break-word;
 }
 
 .two_cols {

@@ -1,6 +1,5 @@
 @import '~src/app/core/styles/variables';
 
-:host,
 .grid-wr,
 .chartWr {
   display: block;
@@ -8,6 +7,11 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
+}
+
+:host {
+  display: flex;
+  flex-direction: column;
 }
 
 .isGrabbing {
@@ -60,10 +64,14 @@
   opacity: var(--end-of-stream-opacity, 0.1);
   z-index: 1;
   transition: opacity 500ms linear;
+}
 
-  &.hide {
-    display: none;
-  }
+.hide {
+  display: none;
+}
+
+.hide-chart {
+  visibility: hidden;
 }
 
 .no-data {
@@ -79,5 +87,52 @@
   justify-content: center;
   user-select: none;
   background: rgba($dark-blue, 0.7);
+  pointer-events: none;
+}
+
+.chart-date {
+  height: 20px;
+}
+
+.http-error {
+  position: absolute;
+  height: 100%;
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  align-self: center;
+
+  .error-header {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+
+  app-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+}
+
+.linear-data-container {
+  margin-top: 10px;
+}
+
+.highlight-line {
+  font-weight: bold;
+}
+
+.linear-circle {
+  width: 10px;
+  height: 10px;
+  border-radius: 10px;
+  background-color: white;
+  position: absolute;
+  margin-left: -5px;
+  margin-top: -5px;
+  z-index: 1;
   pointer-events: none;
 }

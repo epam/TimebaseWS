@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,6 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.model.schema;
 
 import com.epam.deltix.qsrv.hf.pub.codec.*;
@@ -75,7 +76,10 @@ public class SchemaBuilder {
 
     public void build() {
         for (int i = 0; i < schema.types.length; i++) {
-            set.addContentClasses((RecordClassDescriptor) toDescriptor(schema.types[i]));
+            TypeDef type = schema.types[i];
+            if (!type.isAbstract()){
+                set.addContentClasses((RecordClassDescriptor) toDescriptor(type));
+            }
         }
     }
 
@@ -100,8 +104,14 @@ public class SchemaBuilder {
             cache.put(rcd.getName(), rcd);
 
             // populate fields
-            for (int i = 0; i < type.getFields().length; i++)
+            for (int i = 0; i < type.getFields().length; i++) {
+                try {
                 fields[i] = toField(type.getFields()[i]);
+                } catch (Exception e) {
+                    throw new IllegalArgumentException(String.format("Type: %s. Failed to convert field: %s. Reason: %s",
+                            type.getName(), type.getFields()[i].getName(), e.getMessage()));
+                }
+            }
 
             return rcd;
         }
@@ -130,7 +140,7 @@ public class SchemaBuilder {
             else if (rcd instanceof RecordClassDescriptor)
                 return new ClassDataType(typeDef.isNullable(), (RecordClassDescriptor) rcd);
 
-            throw new IllegalArgumentException("Unknown type name" + typeDef.getName());
+            throw new IllegalArgumentException("Unknown type name: " + typeDef.getName());
         }
 
         DataType matched = types.get(0);
@@ -165,7 +175,7 @@ public class SchemaBuilder {
             case T_OBJECT_TYPE: {
                 List<RecordClassDescriptor> subtypes = new ArrayList<RecordClassDescriptor>();
 
-                if (typeDef.getTypes() == null)
+                if (typeDef.getTypes() == null || typeDef.getTypes().isEmpty())
                     throw new IllegalStateException("Expected not-nullable types: " + typeDef);
 
                 for (String typeDefType : typeDef.getTypes()) {
@@ -215,14 +225,14 @@ public class SchemaBuilder {
                 if (info instanceof StaticFieldLayout) {
                     fields.add(FieldDef.createStatic(info.getName(),
                             info.getTitle(),
-                            ((StaticFieldLayout)info).getDescription(),
+                            ((StaticFieldLayout) info).getDescription(),
                             getDataTypeDef(info.getType()),
                             ((StaticFieldInfo) info).getString()));
                 } else if (info instanceof NonStaticFieldLayout) {
                     NonStaticFieldLayout fieldLayout = (NonStaticFieldLayout) info;
                     fields.add(FieldDef.createNonStatic(info.getName(),
                             info.getTitle(),
-                            ((NonStaticFieldLayout)info).getDescription(),
+                            ((NonStaticFieldLayout) info).getDescription(),
                             getDataTypeDef(info.getType()),
                             fieldLayout.getRelativeTo() != null ? fieldLayout.getRelativeTo().getName() : null,
                             fieldLayout.isPrimaryKey()
@@ -240,8 +250,8 @@ public class SchemaBuilder {
                 } else if (info instanceof NonStaticDataField) {
                     NonStaticDataField dataField = (NonStaticDataField) info;
                     fields.add(FieldDef.createNonStatic(
-                        info.getName(), info.getTitle(), info.getDescription(), getDataTypeDef(info.getType()),
-                        dataField.getRelativeTo(), dataField.isPk()
+                            info.getName(), info.getTitle(), info.getDescription(), getDataTypeDef(info.getType()),
+                            dataField.getRelativeTo(), dataField.isPk()
                     ));
                 }
             }
@@ -327,5 +337,17 @@ public class SchemaBuilder {
         type.setAbstract(descriptor instanceof RecordClassDescriptor && ((RecordClassDescriptor) descriptor).isAbstract());
 
         return type;
+    }
+
+    public static SchemaDef getSchemaDef(String[] classNames)
+            throws ClassNotFoundException, Introspector.IntrospectionException {
+        Introspector it = Introspector.createEmptyMessageIntrospector();
+        RecordClassDescriptor[] descriptors = new RecordClassDescriptor[classNames.length];
+        for (int i = 0; i < classNames.length; i++) {
+            descriptors[i] = it.introspectRecordClass(Class.forName(classNames[i]));
+        }
+        RecordClassSet set = new RecordClassSet();
+        set.addContentClasses(descriptors);
+        return SchemaBuilder.toSchemaDef(set, false);
     }
 }

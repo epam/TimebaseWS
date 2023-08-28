@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,8 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.websockets;
+package com.epam.deltix.tbwg.webapp.websockets;
 
+import com.epam.deltix.tbwg.webapp.services.MetricsService;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.util.concurrent.QuickExecutor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -48,15 +49,19 @@ public class LiveServiceImpl implements WebSocketConfigurer {
 
     private TimebaseService service;
 
-    public LiveServiceImpl(TimebaseService timebaseService) {
+    private MetricsService metrics;
+
+    public LiveServiceImpl(TimebaseService timebaseService, MetricsService metrics) {
         this.service = timebaseService;
+        this.metrics = metrics;
     }
 
     @Override
     public void         registerWebSocketHandlers(@NotNull WebSocketHandlerRegistry registry) {
-        registry.addHandler(new WSHandler(service, executor),"/ws/v0/{streamId}/select")
-                .addHandler(new WSHandler(service, executor), "/ws/v0/select")
-                .addHandler(new WSHandler(service, executor, service.getFlushPeriodMs()), "/ws/v0/{streamId}/monitor")
+        registry.addHandler(new WSHandler(service, executor, metrics),"/ws/v0/{streamId}/select")
+                .addHandler(new WSHandler(service, executor, metrics), "/ws/v0/select")
+                .addHandler(new WSQueryHandler(service, executor, metrics), "/ws/v0/query")
+                .addHandler(new WSHandler(service, executor, metrics, service.getFlushPeriodMs()), "/ws/v0/{streamId}/monitor")
                 .addInterceptors(new TemplateHandshakeInterceptor())
                 .setAllowedOrigins("*");
     }

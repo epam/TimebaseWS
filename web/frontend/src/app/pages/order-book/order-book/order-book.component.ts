@@ -10,23 +10,33 @@ import {
   Output,
   SimpleChanges,
   ViewChild,
-}                                                                                    from '@angular/core';
-import { DepthChartEmbeddableKernel }                                                from '@deltix/hd.components-depth-chart';
-import { ContainerBuilder }                                                          from '@deltix/hd.components-di';
+}                                      from '@angular/core';
+import { DepthChartEmbeddableKernel }  from '@deltix/hd.components-depth-chart';
+import { ContainerBuilder }            from '@deltix/hd.components-di';
 import {
   AbstractEmbeddableKernel,
   embeddableAppUpdatePositionAction,
   MultiAppFacade,
-}                                                                                    from '@deltix/hd.components-multi-app';
-import { OrderBook }                                                                 from '@deltix/hd.components-order-book';
-import { IL2Package }                                                                from '@deltix/hd.components-order-book/lib/l2';
+}                                      from '@deltix/hd.components-multi-app';
+import { updateParametersAction }      from '@deltix/hd.components-depth-chart-common';
+import { OrderBook }                   from '@deltix/hd.components-order-book';
+import { IL2Package }                  from '@deltix/hd.components-order-book/lib/l2';
 import {
   MARKET_PRICE_USER_EXCHANGE,
   OrderGridEmbeddableKernel,
-}                                                                                    from '@deltix/hd.components-order-grid';
-import { BehaviorSubject, combineLatest, merge, Observable, ReplaySubject, Subject } from 'rxjs';
+}                                      from '@deltix/hd.components-order-grid';
+import { StorageMap }                  from '@ngx-pwa/local-storage';
+import equal                           from 'fast-deep-equal/es6';
 import {
-  bufferTime,
+  BehaviorSubject,
+  combineLatest,
+  merge,
+  Observable, of,
+  ReplaySubject,
+  Subject,
+}                                      from 'rxjs';
+import {
+  bufferTime, concatMap,
   debounceTime,
   distinctUntilChanged,
   filter,
@@ -36,11 +46,13 @@ import {
   take,
   takeUntil,
   tap,
-}                                                                                    from 'rxjs/operators';
-import { WSService }                                                                 from '../../../core/services/ws.service';
-import { ResizeObserveService }                                                      from '../../../shared/services/resize-observe.service';
-import { SymbolsService }                                                            from '../../../shared/services/symbols.service';
-import { OrderBookIdService }                                                        from '../order-book-id.service';
+}                                      from 'rxjs/operators';
+import { WSService }                   from '../../../core/services/ws.service';
+import { dateToTimezone, formatHDate } from '../../../shared/locale.timezone';
+import { GlobalFiltersService }        from '../../../shared/services/global-filters.service';
+import { ResizeObserveService }        from '../../../shared/services/resize-observe.service';
+import { SymbolsService }              from '../../../shared/services/symbols.service';
+import { OrderBookIdService }          from '../order-book-id.service';
 
 export enum EResourceType {
   image = 'image',
@@ -70,7 +82,7 @@ export const defaultFormatFunction: IFormat = (numberToFormat: string) => {
   const splitted = numberToFormat.split('.');
   const integerPart = splitted[0];
   const fractionalPart = splitted[1] || '';
-
+  
   return {
     integerPart,
     fractionalPart,
@@ -84,27 +96,37 @@ export const defaultFormatFunction: IFormat = (numberToFormat: string) => {
   styleUrls: ['./order-book.component.scss'],
 })
 export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
+  @ViewChild('container') private container: ElementRef;
+  
   @Input() symbol: string;
   @Input() streams: string[];
   @Input() exchanges: string[];
+  @Input() orientation: EOrientations = EOrientations.price;
   @Input() hiddenExchanges: string[] = [];
   @Input() feed$: Observable<IL2Package>;
   @Input() inDepthChart = true;
   @Input() bookWidth = 500;
   @Input() padding = 30;
-
+  @Input() showLastTime = false;
+  
   @Output() ready = new EventEmitter<void>();
   @Output() readyWithData = new EventEmitter<void>();
   @Output() destroy = new EventEmitter<void>();
   @Output() exchangesChanged = new EventEmitter<string[]>();
   @Output() precisionError = new EventEmitter<boolean>();
+  @Output() orientationChange = new EventEmitter<EOrientations>();
+  @Output() reRun = new EventEmitter<void>();
+  
   height: number;
   width: number;
   initialized = false;
   headerHeight = 30;
   headerPercents = MARKET_PRICE_USER_EXCHANGE.map((v) => v * 100);
-
-  @ViewChild('container') private container: ElementRef;
+  orientationDropdownOpen = false;
+  orientations = [EOrientations.price, EOrientations.quantity];
+  lastMessageTime$: Observable<string>;
+  lastTimeHeight = 30;
+  
   private destroy$ = new ReplaySubject(1);
   private facade: MultiAppFacade;
   private bookId: string;
@@ -114,6 +136,7 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
     streams: string[];
     symbol: string;
   }>();
+  private reRun$ = new BehaviorSubject(null);
   private exchanges$ = new BehaviorSubject<Set<string>>(new Set<string>());
   private exchangesUpdating = false;
   private lastSymbolRequest: string;
@@ -121,7 +144,8 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
   private runBook$ = new Subject<void>();
   private dataReady$ = new BehaviorSubject(false);
   private ready$ = new BehaviorSubject(false);
-
+  private lastSubscriptionParams: string = '';
+  
   constructor(
     private elementRef: ElementRef,
     private resizeObserveService: ResizeObserveService,
@@ -129,35 +153,92 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
     private orderBookIdService: OrderBookIdService,
     private cdRef: ChangeDetectorRef,
     private symbolsService: SymbolsService,
+    private globalFiltersService: GlobalFiltersService,
+    private storageMap: StorageMap,
   ) {}
-
-  ngAfterViewInit(): void {
+  
+  ngAfterViewInit(): void {    
     this.bookId = this.orderBookIdService.registerId().toString();
     this.depthChartId = this.orderBookIdService.registerId().toString();
-
+    
     this.resizeObserveService
       .observe(this.elementRef.nativeElement)
       .pipe(takeUntil(this.destroy$), debounceTime(100))
       .subscribe(() => {
         this.updateSize();
       });
+    
+    const changes$ = this.changes$.pipe(
+      debounceTime(0),
+      distinctUntilChanged(equal),
+    );
 
-    this.changes$
+    combineLatest([changes$, this.reRun$])
       .pipe(
-        debounceTime(0),
-        distinctUntilChanged((p, c) => JSON.stringify(p) === JSON.stringify(c)),
-        filter((data) => !!data.symbol),
+        map(([changes]) => changes),
+        filter(changes => changes.symbol && changes.streams && changes.hiddenExchanges),
+        filter(changes => this.lastSubscriptionParams !== changes.symbol + changes.streams + changes.hiddenExchanges),
+        tap(changes => this.lastSubscriptionParams = changes.symbol + changes.streams + changes.hiddenExchanges),
         switchMap((data) => this.symbolConfig(data.symbol)),
         takeUntil(this.destroy$),
       )
-      .subscribe((data) => this.runBook(data));
-
+      .subscribe(data => this.runBook(data));
+    
+    combineLatest([
+      changes$.pipe(
+        distinctUntilChanged(equal),
+        filter(changes => changes.symbol && changes.streams && changes.hiddenExchanges),
+        filter(changes => this.lastSubscriptionParams !== changes.symbol + changes.streams + changes.hiddenExchanges),
+        switchMap(changes => {
+          this.lastSubscriptionParams = changes.symbol + changes.streams + changes.hiddenExchanges;
+          return this.getFeed(changes.symbol, changes.streams, changes.hiddenExchanges);
+        })
+      ),
+      this.changes$.pipe(map(changes => changes.symbol)),
+    ]).pipe(
+      distinctUntilChanged(equal),
+      map(([feed, symbol]) => {
+        const maxPrecision = field => Math.max(...feed.entries.map(entry => entry[field].toString().split('.')?.[1]?.length || 0));
+        const maxPrice = maxPrecision('price');
+        const maxSize = maxPrecision('quantity');
+        return {maxPrice, maxSize, symbol};
+      }),
+      concatMap(({
+                   maxPrice,
+                   maxSize,
+                   symbol,
+                 }) => this.storageMap.get('symbolPrecisionsFromFeed').pipe(map(storage => ({
+        maxPrice,
+        maxSize,
+        storage,
+        symbol,
+      })))),
+      concatMap(({maxPrice, maxSize, storage, symbol}) => {
+        const currentPricePrecision = storage?.[symbol]?.price || 0;
+        const currentSizePrecision = storage?.[symbol]?.size || 0;
+        const update = {...(storage || {}) as object};
+        update[symbol] = {
+          price: Math.max(maxPrice, currentPricePrecision) || 0,
+          size: Math.max(maxSize, currentSizePrecision) || 0,
+        };
+        
+        const changed = storage?.[symbol] && JSON.stringify(storage?.[symbol]) !== JSON.stringify(update[symbol]);
+        return this.storageMap.set('symbolPrecisionsFromFeed', update).pipe(map(() => changed));
+      }),
+      takeUntil(this.destroy$),
+    ).subscribe(changed => {
+      if (changed) {
+        this.reRun.emit();
+        this.reRun$.next(null);
+      }
+    });
+    
     this.changes$.next({
       streams: this.streams,
       hiddenExchanges: this.hiddenExchanges,
       symbol: this.symbol,
     });
-
+    
     this.exchanges$
       .pipe(
         bufferTime(300),
@@ -170,7 +251,7 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
         this.exchangesChanged.next(exchanges);
         this.exchangesUpdating = false;
       });
-
+    
     combineLatest([this.dataReady$, this.ready$])
       .pipe(
         map(([data, ready]) => data && ready),
@@ -183,25 +264,25 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
         }
       });
   }
-
+  
   ngOnChanges(changes: SimpleChanges): void {
     if (this.exchangesUpdating) {
       return;
     }
-
+    
     this.changes$.next({
       hiddenExchanges: this.hiddenExchanges,
       symbol: this.symbol,
       streams: this.streams,
     });
   }
-
+  
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
     this.facade?.destroy();
   }
-
+  
   private runBook({quantityPrecision, pricePrecision, baseCurrency, termCurrency}) {
     this.initialized = true;
     const emitExchanges = !this.hiddenExchanges?.length;
@@ -242,29 +323,34 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
     this.dataReady$.next(false);
     this.ready$.next(false);
     const orderGridKernel = new OrderGridEmbeddableKernel(params);
-    const feed$: Observable<IL2Package> =
-      this.feed$ ||
-      this.wsService
-        .watch('/user/topic/order-book', {
-          instrument: this.symbol,
-          streams: JSON.stringify(this.streams),
-          hiddenExchanges: JSON.stringify(this.hiddenExchanges),
-        })
-        .pipe(
-          map(({body}) => JSON.parse(body)),
-          tap((message) => {
-            const data = this.exchanges$.getValue();
-            message.entries.forEach((entry) => data.add(entry.exchange_id));
-            if (emitExchanges) {
-              this.exchanges$.next(data);
-            }
-          }),
-          takeUntil(merge(this.destroy$, this.runBook$)),
-        );
-
-    feed$.pipe(take(1)).subscribe(() => {
+    const feed$: Observable<IL2Package> = this.getFeed(this.symbol, this.streams, this.hiddenExchanges)
+      .pipe(
+        tap((message) => {
+          const data = this.exchanges$.getValue();
+          message.entries.forEach((entry) => data.add(entry.exchange_id));
+          if (emitExchanges) {
+            this.exchanges$.next(data);
+          }
+        }),
+        takeUntil(merge(this.destroy$, this.runBook$)),
+        shareReplay({bufferSize: 1, refCount: true}),
+      );
+    
+    feed$.pipe(take(1), takeUntil(this.destroy)).subscribe(() => {
       this.dataReady$.next(true);
     });
+    
+    this.lastMessageTime$ = combineLatest([this.globalFiltersService.getFilters(), feed$]).pipe(
+      map(([filters, message]) =>
+        formatHDate(
+          new Date(message.timestamp).toISOString(),
+          filters.dateFormat,
+          filters.timeFormat,
+          filters.timezone,
+        ),
+      ),
+    );
+    
     const orderBook = new OrderBook(
       {
         subscribe: (symbol: string, appId: string): Observable<IL2Package> =>
@@ -279,7 +365,7 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
     if (this.inDepthChart) {
       kernels.push(new DepthChartEmbeddableKernel(params));
     }
-
+    
     kernels.forEach((kernel) =>
       kernel.addExtension({
         processApp: (containerBuilder: ContainerBuilder, parameters: any) => null,
@@ -288,7 +374,7 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
         getName: () => '',
       } as any),
     );
-
+    
     this.facade = new MultiAppFacade(
       kernels,
       this.container.nativeElement,
@@ -298,7 +384,7 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
         resolveResource: (name: string, path: string) => path.replace('Assets', 'assets'),
       },
     );
-
+    
     const apps = [
       this.facade.createApp('orderGrid', this.bookId, this.bookSizes(), {
         showExchangeId: true,
@@ -314,12 +400,12 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
         termCode: termCurrency,
       }),
     ];
-
+    
     if (this.inDepthChart) {
       apps.push(
         this.facade.createApp('depthChart', this.depthChartId, this.chartSizes(), {
           parameters: {
-            orientation: EOrientations.price,
+            orientation: this.orientation,
           },
           formatFunctions: {
             price: defaultFormatFunction,
@@ -339,9 +425,9 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
         }),
       );
     }
-
+    
     combineLatest(apps.map((app) => app.pipe(filter((e) => e === 'initialized'))))
-      .pipe(take(1))
+      .pipe(take(1), takeUntil(this.destroy))
       .subscribe(() => {
         this.initialized = true;
         this.updateSize();
@@ -350,12 +436,12 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
         this.ready$.next(true);
       });
   }
-
+  
   private updateSize() {
     if (!this.facade) {
       return;
     }
-
+    
     this.height = this.chartSizes().height;
     this.width = this.bookSizes().width + this.chartSizes().width + this.padding;
     this.facade['renderer'].resize(this.width, this.height);
@@ -369,25 +455,45 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
       }
     });
   }
-
-  private chartSizes(): {width: number; height: number; x: number; y: number} {
+  
+  private getFeed(symbol: string, streams: string[], hiddenExchanges: string[]): Observable<IL2Package> {
+    if (this.feed$) {
+      return this.feed$.pipe(
+        map(feed => ({...feed, entries: feed.entries.map(entry => ({...entry, quantity: entry.quantity || 0}))}))
+      );
+    } else {
+      return this.wsService
+        .watchObject<IL2Package>('/user/topic/order-book', {
+          instrument: symbol,
+          streams: JSON.stringify(streams),
+          hiddenExchanges: JSON.stringify(hiddenExchanges),
+        }).pipe(
+          map(feed => ({...feed, entries: feed.entries.map(entry => ({...entry, quantity: entry.quantity || 0}))})),
+        );
+    }
+  }
+  
+  private chartSizes(): { width: number; height: number; x: number; y: number } {
     return {
       width: this.elementRef.nativeElement.offsetWidth - this.bookWidth - this.padding,
       height: this.elementRef.nativeElement.offsetHeight,
-      x: this.bookWidth + this.padding,
+      x: (this.bookWidth || 0) + (this.padding || 0),
       y: 0,
     };
   }
-
-  private bookSizes(): {width: number; height: number; x: number; y: number} {
+  
+  private bookSizes(): { width: number; height: number; x: number; y: number } {
     return {
       width: this.bookWidth,
-      height: this.elementRef.nativeElement.offsetHeight - this.headerHeight,
+      height:
+        this.elementRef.nativeElement.offsetHeight -
+        this.headerHeight -
+        (this.showLastTime ? this.lastTimeHeight : 0),
       x: 0,
-      y: this.headerHeight,
+      y: this.headerHeight || 0,
     };
   }
-
+  
   private symbolConfig(symbol: string): Observable<{
     quantityPrecision: number;
     pricePrecision: number;
@@ -399,25 +505,49 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
       this.lastSymbolRequest = requestKey;
       this.lastSymbolConfig$ = this.symbolsService.config(symbol, this.hiddenExchanges).pipe(
         shareReplay(1),
-        map((config) => {
+        switchMap((config) => {
           const getPrecision = (string: string) =>
             string.indexOf('.') === -1 ? 0 : string.length - string.indexOf('.') - 1;
-          this.precisionError.next(
-            !config?.sizePrecision ||
-              !config?.pricePrecision ||
-              !config?.termCurrency ||
-              !config?.baseCurrency,
-          );
-          return {
+          
+          const result = {
             termCurrency: config.termCurrency || '',
             baseCurrency: config.baseCurrency || '',
-            quantityPrecision: getPrecision(config?.sizePrecision || '0.00001'),
-            pricePrecision: getPrecision(config?.pricePrecision || '0.00001'),
+            quantityPrecision: getPrecision(config?.sizePrecision || ''),
+            pricePrecision: getPrecision(config?.pricePrecision || ''),
           };
+          
+          return this.precisionsFromFeed().pipe(map(fromFeed => ({
+            ...result,
+            quantityPrecision: Math.max(result.quantityPrecision, fromFeed?.size || 0),
+            pricePrecision: Math.max(result.pricePrecision, fromFeed?.price || 0),
+          })));
         }),
       );
     }
-
+    
     return this.lastSymbolConfig$;
+  }
+  
+  toggleOrientationDropDown() {
+    this.orientationDropdownOpen = !this.orientationDropdownOpen;
+  }
+  
+  closeOrientationDropDown() {
+    this.orientationDropdownOpen = false;
+  }
+  
+  changeOrientation(orientation: EOrientations) {
+    if (this.orientation !== orientation) {
+      this.facade.dispatchTo(
+        updateParametersAction({orientation}),
+        'depthChart',
+        this.depthChartId,
+      );
+      this.orientationChange.emit(orientation);
+    }
+  }
+  
+  private precisionsFromFeed(): Observable<{ size: number, price: number }> {
+    return this.storageMap.get('symbolPrecisionsFromFeed').pipe(map(storage => storage?.[this.symbol]));
   }
 }

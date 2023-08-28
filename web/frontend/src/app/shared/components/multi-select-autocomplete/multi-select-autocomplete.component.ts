@@ -1,8 +1,9 @@
-import {Component, forwardRef, Input, OnDestroy, OnInit, ViewChild} from '@angular/core';
-import {ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR} from '@angular/forms';
-import {NgSelectComponent} from '@ng-select/ng-select';
-import {Observable, of, ReplaySubject, timer} from 'rxjs';
-import {debounceTime, map, switchMap, take, takeUntil, tap} from 'rxjs/operators';
+import { Component, ElementRef, forwardRef, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import {ControlValueAccessor, UntypedFormControl, NG_VALUE_ACCESSOR}                     from '@angular/forms';
+import {NgSelectComponent}                                          from '@ng-select/ng-select';
+import {Observable, of, ReplaySubject, timer}                       from 'rxjs';
+import {debounceTime, map, switchMap, take, takeUntil, tap}         from 'rxjs/operators';
+import { ClickOutsideService }                                      from '../../directives/click-outside/click-outside.service';
 
 @Component({
   selector: 'app-multi-select-autocomplete',
@@ -19,14 +20,21 @@ export class MultiSelectAutocompleteComponent implements OnInit, ControlValueAcc
   autocomplete$: Observable<string[]>;
   searchTerm$ = new ReplaySubject<string>(1);
   autocompleteLoading = false;
-  control = new FormControl();
+  control = new UntypedFormControl();
   @Input() autocompleteProvider: (term?: string) => Observable<string[]>;
   @Input() notFoundText: string;
   @Input() cssClass: string;
   @ViewChild(NgSelectComponent) private ngSelectComponent: NgSelectComponent;
   private insertDelimiter = ';';
   private destroy$ = new ReplaySubject(1);
-
+  
+  constructor(
+    private clickOutsideService: ClickOutsideService,
+    private elementRef: ElementRef<HTMLElement>,
+  ) {
+  }
+  
+  
   ngOnInit(): void {
     this.autocomplete$ = this.searchTerm$.pipe(
       tap(() => (this.autocompleteLoading = true)),
@@ -45,6 +53,10 @@ export class MultiSelectAutocompleteComponent implements OnInit, ControlValueAcc
       }),
       map(({items}) => items),
     );
+    
+    this.clickOutsideService.onOutsideClick(this.elementRef.nativeElement).pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.onItemChange();
+    });
 
     this.control.valueChanges
       .pipe(takeUntil(this.destroy$))

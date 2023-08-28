@@ -156,7 +156,7 @@ export class SchemaEditorEffects {
           },
         );
       }),
-      tap((resp) => console.warn('SUCCESS CREATE STREAM RESPONSE: ', resp)), // TODO: Delete this before checkIN
+      // tap((resp) => console.warn('SUCCESS CREATE STREAM RESPONSE: ', resp)), // TODO: Delete this before checkIN
       switchMap(() => this.translate.get('text.streamCreated')),
       withLatestFrom(this.appStore.pipe(select(getActiveTab))),
       mergeMap(([message, activeTab]) => {

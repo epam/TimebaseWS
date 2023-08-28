@@ -1,16 +1,17 @@
-import { Injectable }                                                  from '@angular/core';
-import { BsDatepickerConfig }                                          from 'ngx-bootstrap/datepicker';
-import { Observable }                                                  from 'rxjs';
-import { map }                                                         from 'rxjs/operators';
-import { GlobalFilterTimeZone }                                        from '../../pages/streams/models/global.filter.model';
-import { DEFAULT_DATE_FORMAT, DEFAULT_TIME_FORMAT, DEFAULT_TIME_ZONE } from '../locale.timezone';
-import { GlobalFilters }                                               from '../models/global-filters';
-import { SyncStorageService }                                          from './sync-storage.service';
+import {Injectable} from '@angular/core';
+import {BsDatepickerConfig} from 'ngx-bootstrap/datepicker';
+import {Observable} from 'rxjs';
+import {map} from 'rxjs/operators';
+import {GlobalFilterTimeZone} from '../../pages/streams/models/global.filter.model';
+import {DEFAULT_DATE_FORMAT, DEFAULT_TIME_FORMAT, DEFAULT_TIME_ZONE} from '../locale.timezone';
+import {GlobalFilters} from '../models/global-filters';
+import {SyncStorageService} from './sync-storage.service';
 
 interface GlobalFiltersState {
   filter_date_format: string[];
   filter_time_format: string[];
   filter_timezone: GlobalFilterTimeZone[];
+  showSpaces: boolean;
 }
 
 @Injectable({
@@ -20,7 +21,13 @@ export class GlobalFiltersService {
   private defaultFilters: GlobalFiltersState = {
     filter_date_format: [DEFAULT_DATE_FORMAT],
     filter_time_format: [DEFAULT_TIME_FORMAT],
-    filter_timezone: [DEFAULT_TIME_ZONE],
+    filter_timezone: DEFAULT_TIME_ZONE ? [DEFAULT_TIME_ZONE] : [{
+      alias: "UTC",
+      name: "UTC",
+      offset: 0,
+      nameTitle: 'UTC'
+    }],
+    showSpaces: false,
   };
 
   private lastFilters: GlobalFilters;
@@ -32,17 +39,20 @@ export class GlobalFiltersService {
       map((action) => {
         const data = (action || this.defaultFilters) as GlobalFilters;
         Object.keys(data).forEach((key) => {
+          if (!['filter_date_format', 'filter_time_format', 'filter_timezone'].includes(key)) {
+            return;
+          }
           if (!data[key]?.length) {
             data[key] = this.lastFilters?.[key] || this.defaultFilters[key];
           }
         });
-
         this.lastFilters = data;
         const getData = (key): any[] => (data[key] && data[key].length ? [...data[key]] : []);
         return {
           dateFormat: getData('filter_date_format'),
           timeFormat: getData('filter_time_format'),
           timezone: getData('filter_timezone'),
+          showSpaces: data.showSpaces,
         };
       }),
     );
@@ -73,7 +83,8 @@ export class GlobalFiltersService {
         const compare = [
           [selected.timeFormat[0], DEFAULT_TIME_FORMAT],
           [selected.dateFormat[0], DEFAULT_DATE_FORMAT],
-          [selected.timezone[0].name, DEFAULT_TIME_ZONE.name],
+          [selected.timezone[0].name, DEFAULT_TIME_ZONE ? DEFAULT_TIME_ZONE.name : 'UTC'],
+          [selected.showSpaces, this.defaultFilters.showSpaces],
         ];
 
         return !!compare.find((set) => set[0] !== set[1]);

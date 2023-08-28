@@ -1,0 +1,44 @@
+<h5>{{ 'importFromFile.stepHeaders.writeModeAndTimeRange' | translate }}  </h5>
+<form class="settings-container">
+  <div class="row write-mode-row">
+    <div class="col-4">{{ 'importFromFile.labels.writeMode' | translate }}</div>
+    <div class="col-8 write-mode">
+      <app-write-modes-control [formControl]="writeModeControl" (click)="setWriteMode($event)">
+      </app-write-modes-control>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-4">{{ 'importFromFile.labels.importRange' | translate }}</div>
+    <div class="col-8 error-message">{{ timeRangeValidationError }}</div>
+  </div>
+  <div class="row">
+    <div class="col-4 time-range-checkbox">
+      <input class="form-check-input" type="checkbox" (change)="toggleInputDisabled('startTime', $event)">
+      <span>{{ 'importFromFile.labels.startTime' | translate }}</span>
+    </div>
+    <div class="col-8">
+      <app-btn-date-picker
+        (valueChange)="onTimeChange($event, 'startTime')"
+        [value]="startTime"
+        [inputDisabled]="inputsAreDisabled.startTime"
+        [inputInvalid]="inputsInvalid.startTime">
+      </app-btn-date-picker>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-4 time-range-checkbox">
+      <input class="form-check-input" type="checkbox" (change)="toggleInputDisabled('endTime', $event)">
+      <span>{{ 'importFromFile.labels.endTime' | translate }}</span>
+    </div>
+    <div class="col-8">
+      <app-btn-date-picker
+        (valueChange)="onTimeChange($event, 'endTime')"
+        [value]="endTime"
+        [timeZone]="selectedTimezone"
+        [minDate]="endTimeMin"
+        [inputDisabled]="inputsAreDisabled.endTime"
+        [inputInvalid]="inputsInvalid.endTime">
+      </app-btn-date-picker>
+    </div>
+  </div>
+</form>

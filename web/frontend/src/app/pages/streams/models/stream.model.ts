@@ -2,7 +2,7 @@ export interface StreamModel {
   key: string;
   name: string;
   symbols: number;
-  chartType?: string[];
+  chartType?: { chartType: string, title: string }[];
 
   // all custom properties should starts from "_"
   _symbolsList?: string[];

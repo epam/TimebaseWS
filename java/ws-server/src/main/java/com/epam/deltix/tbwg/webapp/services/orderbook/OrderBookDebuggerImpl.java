@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,16 +14,18 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.orderbook;
 
-import com.epam.deltix.common.orderbook.MarketSide;
-import com.epam.deltix.common.orderbook.OrderBook;
-import com.epam.deltix.common.orderbook.OrderBookQuote;
-import com.epam.deltix.common.orderbook.impl.OrderBookFactory;
-import com.epam.deltix.common.orderbook.options.OrderBookOptionsBuilder;
-import com.epam.deltix.common.orderbook.options.OrderBookType;
-import com.epam.deltix.common.orderbook.options.UpdateMode;
+
 import com.epam.deltix.containers.AlphanumericUtils;
+import com.epam.deltix.orderbook.core.api.MarketSide;
+import com.epam.deltix.orderbook.core.api.OrderBook;
+import com.epam.deltix.orderbook.core.api.OrderBookFactory;
+import com.epam.deltix.orderbook.core.api.OrderBookQuote;
+import com.epam.deltix.orderbook.core.options.OrderBookOptionsBuilder;
+import com.epam.deltix.orderbook.core.options.OrderBookType;
+import com.epam.deltix.orderbook.core.options.UpdateMode;
 import com.epam.deltix.tbwg.webapp.model.orderbook.*;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
@@ -143,6 +145,7 @@ public class OrderBookDebuggerImpl implements OrderBookDebugger {
         long messageTimestamp = Long.MIN_VALUE;
         try (TickCursor cursor = select(streamKeys, symbols, startTime, types, space, true)) {
             int currentOffset = 0;
+
             while (cursor.next()) {
                 InstrumentMessage message = cursor.getMessage();
 

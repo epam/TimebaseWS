@@ -1,5 +1,10 @@
 @import '../../../../../core/styles/variables';
 
+app-modal {
+  display: block;
+  width: 550px;
+}
+
 ng-multiselect-dropdown {
   margin-bottom: 10px;
   display: block;
@@ -10,4 +15,17 @@ ng-multiselect-dropdown {
   height: 15.5 * $ss;
   padding-bottom: 0;
   padding-top: 0;
+}
+
+.section-header {
+  font-size: 15px;
+  margin-bottom: 10px;
+
+  &:not(:first-child) {
+    margin-top: 20px;
+  }
+}
+
+.col-md-12 {
+  margin-top: 10px;
 }

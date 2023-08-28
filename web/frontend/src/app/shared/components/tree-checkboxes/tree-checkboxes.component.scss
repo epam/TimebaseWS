@@ -15,23 +15,31 @@
   }
 
   &__expand-icon {
-    font-size: 7.5 * $fs;
-    font-weight: bold;
+    position: relative;
     margin-right: 5 * $ss;
     min-width: 9 * $ss;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     border: 0.5 * $ss solid;
     height: 9 * $ss;
-    line-height: 9 * $ss;
     cursor: pointer;
-  }
 
-  &__expand-icon::before {
-    display: block;
-    content: '+';
-    margin-top: -1.5 * $ss;
+    &::before, &::after {
+      position: absolute;
+      content: '';
+      left: 50%;
+      top: 50%;
+      transform: translateX(-50%) translateY(-50%);
+      background-color: currentColor;
+    }
+
+    &::before {
+      width: 1.5px;
+      height: 9px;
+    }
+
+    &::after {
+      width: 9px;
+      height: 1.5px;
+    }
   }
 }
 
@@ -41,7 +49,7 @@
   }
 
   .tree__expand-icon::before {
-    content: '-';
+    display: none;
   }
 }
 
@@ -66,14 +74,6 @@
 
   .checkmark {
     left: 0;
-  }
-
-  .checkmark.partial-checked::after {
-    display: block;
-    transform: none;
-    height: 3.5 * $ss;
-    border-right: none;
-    border-width: 0 0 $ss 0;
   }
 }
 

@@ -1,0 +1,30 @@
+@import '../../../core/styles/variables';
+
+:host {
+  display: block;
+
+  &.overflow {
+    &, .stream-props {
+      display: flex;
+      overflow: hidden;
+      max-height: calc(100vh - 80px);
+      flex-direction: column;
+    }
+  }
+}
+
+.stream-props {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: calc(100vh - 40 * #{$ss});
+  padding-top: calc(7.5 * #{$ss});
+  padding-bottom: calc(7.5 * #{$ss});
+  border-radius: calc(4 * #{$ss});
+  background: $nav-bg;
+}
+
+h4 {
+  word-wrap: break-word;
+}

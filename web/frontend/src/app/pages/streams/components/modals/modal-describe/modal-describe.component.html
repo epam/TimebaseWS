@@ -1,7 +1,10 @@
 <app-modal>
-  <ng-container title>{{ 'titles.describe' | translate }} {{ stream.name }}</ng-container>
-  <ng-container *ngIf="describe | async as _describe" content>
-    <pre>{{ _describe.ddl }}</pre>
+  <ng-container title>{{ 'describeModal.title.' + (view ? 'view' : 'stream') | translate }} {{ stream.name }}</ng-container>
+  <ng-container content>
+    <app-stream-describe-content
+        [stream]="stream"
+        [view]="view"
+    ></app-stream-describe-content>
   </ng-container>
   <ng-container footer>
     <button (click)="onCopy()" class="btn btn-info" type="button">

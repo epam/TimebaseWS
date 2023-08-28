@@ -1,0 +1,21 @@
+button {
+  margin-top: 15px;
+}
+
+.btn-secondary {
+  font-weight: normal;
+  font-size: 11px;
+  padding: 3px 15px 1px;
+}
+
+.btn-wrapper {
+  position: relative;
+}
+
+.copying-notification {
+  position: absolute;
+  color: #721c24;
+  top: 19px;
+  left: calc(50% + 5.5rem);
+  font-size: 11px;
+}

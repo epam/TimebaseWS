@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.tree;
+package com.epam.deltix.tbwg.webapp.services.tree;
 
 import com.epam.deltix.tbwg.webapp.settings.TimeBaseTreeSettings;
 import lombok.AllArgsConstructor;
@@ -24,8 +24,9 @@ import lombok.Getter;
 @AllArgsConstructor
 public class TreeConfig {
 
-    private final String filter;
+    private final TreeFilter filter;
     private final boolean showSpaces;
+    private final boolean views;
     private final TimeBaseTreeSettings settings;
     private final SplitGroupsStrategy splitGroupsStrategy;
     private final SpaceEntitiesCache spaceEntitiesCache;

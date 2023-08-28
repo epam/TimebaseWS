@@ -1,0 +1,5 @@
+<div [formControl]="control" btnRadioGroup class="btn-group radio-group">
+  <button *ngFor="let button of writeModes" [btnRadio]="button" class="btn btn-default">
+    {{ button }}
+  </button>
+</div>

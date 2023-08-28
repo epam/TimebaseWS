@@ -15,7 +15,6 @@ dependencies {
             project(":java:timebase-ws-messages"),
             project(":java:timebase-grafana-api"),
             project(":java:timebase-api-keys"),
-            project(":java:orderbook-core"),
             project(":java:timebase-grafana-api-impl"),
             project(":java:timebase-grafana-basicmath")
 
@@ -29,6 +28,8 @@ dependencies {
     implementation "com.epam.deltix:timebase-util"
     implementation "com.epam.deltix:timebase-messages"
     implementation "com.epam.deltix:timebase-collections"
+
+    implementation 'com.epam.deltix:orderbook-core'
 
     implementation 'org.reflections:reflections'
 
@@ -47,10 +48,14 @@ dependencies {
     api 'com.epam.deltix:gflog-core'
     api 'com.epam.deltix:gflog-jul'
 
+    implementation 'org.modelmapper:modelmapper'
+
     implementation 'org.hdrhistogram:HdrHistogram'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
 
     implementation 'com.google.code.gson:gson'
     implementation 'com.google.guava:guava'
+    implementation 'commons-io:commons-io'
 
     implementation 'org.asynchttpclient:async-http-client'
 

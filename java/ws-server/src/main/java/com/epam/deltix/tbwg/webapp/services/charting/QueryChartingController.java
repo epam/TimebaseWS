@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,16 +14,17 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.charting;
 
-import com.epam.deltix.tbwg.webapp.websockets.subscription.Subscription;
-import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
-import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionController;
-import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionControllerRegistry;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
+import com.epam.deltix.tbwg.webapp.websockets.subscription.Subscription;
+import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
+import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionController;
+import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionControllerRegistry;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
@@ -89,13 +90,14 @@ public class QueryChartingController implements SubscriptionController {
 
         return subscribe(
             headerAccessor, channel,
-            chartType, null, query, null, new TimeInterval(startTime, endTime), pointInterval, levels
+            chartType, null, query, null,
+            new TimeInterval(startTime, endTime), pointInterval, levels
         );
     }
 
     private Subscription subscribe(SimpMessageHeaderAccessor headerAccessor, SubscriptionChannel channel,
-                                   ChartType chartType, String stream, String query, String instrument, TimeInterval timeInterval,
-                                   long pointInterval, int levels)
+                                   ChartType chartType, String stream, String query, String instrument,
+                                   TimeInterval timeInterval, long pointInterval, int levels)
     {
         String sessionId = headerAccessor.getSessionId();
         String subscriptionId = headerAccessor.getSubscriptionId();

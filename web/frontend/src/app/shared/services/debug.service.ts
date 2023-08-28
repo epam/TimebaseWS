@@ -77,9 +77,14 @@ export class DebugService {
   }
 
   log(callback: () => object) {
+    if (window['forceDebug'] || localStorage.getItem('forceDebug')) {
+      console.log({time: new Date().toISOString(), url: location.href, ...callback()});
+    }
+
     if (!environment.debug) {
       return;
     }
+
     this.log$.next({time: new Date().toISOString(), url: location.href, ...callback()});
   }
 

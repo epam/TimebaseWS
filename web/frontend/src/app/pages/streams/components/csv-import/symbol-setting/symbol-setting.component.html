@@ -1,0 +1,68 @@
+<form [formGroup]="formGroup">
+  <div class="pattern-section">
+    <div class="row">
+      <div class="col-md-4"></div>
+      <div class="col-md-8">
+        <h5>Pattern</h5>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-4"></div>
+      <div class="col-md-8">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" (change)="toggleTransformationApplying($event)"
+            formControlName="applyTransformation">
+          <label class="form-check-label">
+            Apply Transformation
+          </label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox"
+            formControlName="useCaseInsentitive">
+          <label class="form-check-label">
+            Use Case Insentitive
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-4">Pattern: </div>
+      <div class="col-md-8">
+        <input type="text" class="form-control"
+          formControlName="pattern">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-4">Replacement: </div>
+      <div class="col-md-8">
+        <input type="text" class="form-control"
+          formControlName="replacement">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-4">Preview: </div>
+      <div class="col-md-8">
+        <div class="preview"><b>symbol</b></div>
+      </div>
+    </div>
+  </div>
+  <div class="mapping-section">
+    <div class="row">
+      <div class="col-md-4"></div>
+      <div class="col-md-8">
+        <h5>Mapping</h5>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-4">Mapping: </div>
+      <div class="col-md-8">
+        <app-multi-select
+          formControlName="mapping"
+          [items]="mappingItems"
+          [single]="true"
+          [search]="false"
+        ></app-multi-select>
+      </div>
+    </div>
+  </div>
+</form>

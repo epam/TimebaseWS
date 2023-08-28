@@ -1,0 +1,74 @@
+<h5>{{ 'importFromFile.stepHeaders.preview' | translate }}</h5>
+<div *ngIf="warning" class="warning alert alert-warning">{{ warning }}</div>
+<form [formGroup]="formGroup">
+  <app-multi-select
+    formControlName="files"
+    [items]="fileList"
+    [single]="true"
+    [search]="true"
+  ></app-multi-select>
+</form>
+<ag-grid-angular
+  style="width: 100%; height: 80%;"
+  class="grid ag-theme-balham-dark"
+  [gridOptions]="gridOptions"
+  [rowData]="rowData" 
+  [columnDefs]="columnDefs">
+</ag-grid-angular>
+<div class="warning-list">
+  <span *ngIf="filesWithInvalidMapping.length">
+    Warnings (in {{ filesWithInvalidMapping.length }} file<span *ngIf="filesWithInvalidMapping.length > 1">s</span>): 
+  </span>
+    <button class="btn btn-outline-warning btn-sm" *ngFor="let file of filesWithInvalidMapping" 
+      (click)="toggleErrorDetailsDropdown(file)">{{ file }}</button>
+</div>
+<div class="invalid-mapping-list">
+  <span *ngIf="invalidMappings.length">Invalid Mapping ({{ invalidMappings.length }}): </span>
+    <span class="mapping-error" *ngFor="let message of invalidMappings">{{ message }}</span>
+</div>
+
+<div class="error-details-dropdown" #errorDetails>
+  <app-resizable [minWidth]="500" [minHeight]="300" [storageKey]="'error-details-dropdown'" [modalClassName]="'warning-modal-content'"
+    [contentClassName]="'error-list'" [contentHeightDifference]="10" [rootModal]="false">
+    <div class="warning-modal-content">
+      <div class="modal-header">
+        <h5>
+          <span>Warnings in </span>
+          <span class="stream-title">{{ fileErrorDetails.fileName }}</span>
+          <button class="copy-button" (click)="copyAllWarnings()">
+            <svg 
+              version="1.1" 
+              id="Layer_1" 
+              xmlns="http://www.w3.org/2000/svg" 
+              xmlns:xlink="http://www.w3.org/1999/xlink" 
+              x="0px" y="0px" 
+              viewBox="0 0 115.77 122.88"
+              xml:space="preserve">
+              <style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;}</style>
+              <g>
+                <path class="st0" d="M89.62,13.96v7.73h12.19h0.01v0.02c3.85,0.01,7.34,1.57,9.86,4.1c2.5,2.51,4.06,5.98,4.07,9.82h0.02v0.02 v73.27v0.01h-0.02c-0.01,3.84-1.57,7.33-4.1,9.86c-2.51,2.5-5.98,4.06-9.82,4.07v0.02h-0.02h-61.7H40.1v-0.02 c-3.84-0.01-7.34-1.57-9.86-4.1c-2.5-2.51-4.06-5.98-4.07-9.82h-0.02v-0.02V92.51H13.96h-0.01v-0.02c-3.84-0.01-7.34-1.57-9.86-4.1 c-2.5-2.51-4.06-5.98-4.07-9.82H0v-0.02V13.96v-0.01h0.02c0.01-3.85,1.58-7.34,4.1-9.86c2.51-2.5,5.98-4.06,9.82-4.07V0h0.02h61.7 h0.01v0.02c3.85,0.01,7.34,1.57,9.86,4.1c2.5,2.51,4.06,5.98,4.07,9.82h0.02V13.96L89.62,13.96z M79.04,21.69v-7.73v-0.02h0.02 c0-0.91-0.39-1.75-1.01-2.37c-0.61-0.61-1.46-1-2.37-1v0.02h-0.01h-61.7h-0.02v-0.02c-0.91,0-1.75,0.39-2.37,1.01 c-0.61,0.61-1,1.46-1,2.37h0.02v0.01v64.59v0.02h-0.02c0,0.91,0.39,1.75,1.01,2.37c0.61,0.61,1.46,1,2.37,1v-0.02h0.01h12.19V35.65 v-0.01h0.02c0.01-3.85,1.58-7.34,4.1-9.86c2.51-2.5,5.98-4.06,9.82-4.07v-0.02h0.02H79.04L79.04,21.69z M105.18,108.92V35.65v-0.02 h0.02c0-0.91-0.39-1.75-1.01-2.37c-0.61-0.61-1.46-1-2.37-1v0.02h-0.01h-61.7h-0.02v-0.02c-0.91,0-1.75,0.39-2.37,1.01 c-0.61,0.61-1,1.46-1,2.37h0.02v0.01v73.27v0.02h-0.02c0,0.91,0.39,1.75,1.01,2.37c0.61,0.61,1.46,1,2.37,1v-0.02h0.01h61.7h0.02 v0.02c0.91,0,1.75-0.39,2.37-1.01c0.61-0.61,1-1.46,1-2.37h-0.02V108.92L105.18,108.92z" 
+                fill="white"></path>
+              </g>
+            </svg>
+          </button>
+          <span class="copying-notification">{{ notificationMessage }}</span>
+        </h5>
+        <button class="close-button" (click)="toggleErrorDetailsDropdown(fileErrorDetails.fileName)">&#215;</button>
+      </div>
+      <div class="error-list">
+        <ul>
+          <li *ngFor="let header of fileErrorDetails.headers">
+            <div *ngIf="fileErrorDetails.errorMessages[header].length" (click)="toggleErrorList(header)" class="file-header">
+              {{ header }}
+            </div>
+            <ul *ngIf="openedErrorList === header" class="error-messages">
+              <li *ngFor="let message of fileErrorDetails.errorMessages[header]">
+                <b>{{ message.row }}  </b><span>{{ message.text }}</span>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </app-resizable>
+</div>

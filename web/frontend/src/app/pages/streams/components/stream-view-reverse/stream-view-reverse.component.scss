@@ -1,5 +1,9 @@
 @import '~src/app/core/styles/variables';
 
+:host {
+  display: flex;
+}
+
 .details-stream-wrap {
   .d-stream {
     padding-right: calc(2 * #{$ss});
@@ -80,7 +84,7 @@
 .grid {
   position: relative;
   width: 100%;
-  flex-shrink: 1;
+  flex-grow: 1;
 }
 
 .timeline-bar-wr {
@@ -109,4 +113,14 @@
 
 ag-grid-angular::ng-deep * {
   transition: none !important;
+}
+
+::ng-deep {
+  .ag-horizontal-left-spacer {
+    visibility: hidden;
+  }
+}
+
+.grid-wrapper {
+  flex-direction: column;
 }

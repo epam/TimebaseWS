@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,11 +14,12 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 
 import com.epam.deltix.dfp.Decimal64Utils;
 import com.epam.deltix.tbwg.messages.*;
-import com.epam.deltix.timebase.messages.MarketMessageInfo;
+import com.epam.deltix.timebase.messages.InstrumentMessage;
 import com.epam.deltix.timebase.messages.MessageInfo;
 import com.epam.deltix.timebase.messages.service.FeedStatus;
 import com.epam.deltix.timebase.messages.universal.QuoteSide;
@@ -30,7 +31,7 @@ import java.util.Collections;
 
 /**
  * Same as UniversalL2Transformation, but output book builds using only snapshots, without quoteflow.
- * This is faster then UniversalL2Transformation but requires periodical snaphosts.
+ * This is faster than UniversalL2Transformation but requires periodical snaphosts.
  */
 public class UniversalL2SnapshotsToLevelPointsTransformation extends AbstractChartTransformation<OrderBookLinePoint, MessageInfo> {
 
@@ -46,7 +47,7 @@ public class UniversalL2SnapshotsToLevelPointsTransformation extends AbstractCha
     private long lastTimestamp = Long.MIN_VALUE;
 
     public UniversalL2SnapshotsToLevelPointsTransformation(String symbol, int maxLevels, long periodicity) {
-        super(Collections.singletonList(MarketMessageInfo.class), Collections.singletonList(OrderBookLinePoint.class));
+        super(Collections.singletonList(InstrumentMessage.class), Collections.singletonList(OrderBookLinePoint.class));
 
         this.maxLevels = maxLevels;
         this.tempAskQuotes = new L2EntryNew[maxLevels];

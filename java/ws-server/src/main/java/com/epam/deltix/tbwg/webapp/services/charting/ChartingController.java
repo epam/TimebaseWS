@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,13 +14,15 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.charting;
+package com.epam.deltix.tbwg.webapp.services.charting;
 
-import com.epam.deltix.tbwg.webapp.services.charting.provider.BarsAggregationCalculatorImpl;
-import com.epam.deltix.tbwg.webapp.services.charting.queries.ChartingResult;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartingFrameDef;
 import com.epam.deltix.tbwg.webapp.model.input.QueryRequest;
+import com.epam.deltix.tbwg.webapp.services.charting.queries.ChartingResult;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
+import com.epam.deltix.tbwg.webapp.services.timebase.exc.UnknownStreamException;
+import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -38,10 +40,12 @@ import static com.epam.deltix.tbwg.webapp.utils.BordersTimeBarChartsUtils.*;
 @RequestMapping("/api/v0/charting")
 public class ChartingController {
 
+    private final TimebaseService timebaseService;
     private final ChartingService chartingService;
 
     @Autowired
-    public ChartingController(ChartingService chartingService) {
+    public ChartingController(TimebaseService timebaseService, ChartingService chartingService) {
+        this.timebaseService = timebaseService;
         this.chartingService = chartingService;
     }
 
@@ -66,41 +70,9 @@ public class ChartingController {
         );
     }
 
-    /**
-     * Return charting data
-     *
-     * @param streamKey     stream key
-     * @param symbols       list of symbols to query data
-     * @param type          Chart Type
-     * @param startTime     Query start time
-     * @param endTime       Query end time
-     * @param maxPoints     max points per chart
-     * @param levels        number of display levels for L2 charts
-     *
-     * @return List of ChartingFrames
-     */
-    @RequestMapping(value = "/{streamKey}", method = RequestMethod.GET)
-    public List<ChartingFrameDef> getData(@PathVariable String streamKey,
-                                    @RequestParam List<String> symbols,
-                                    @RequestParam(defaultValue = "PRICES_L2") ChartType type,
-                                    @RequestParam Instant startTime,
-                                    @RequestParam Instant endTime,
-                                    @RequestParam(required = false, defaultValue = "100") int maxPoints,
-                                    @RequestParam(required = false, defaultValue = "20") int levels)
-    {
-        if (maxPoints <= 1) {
-            throw new RuntimeException("Illegal maxPoints value: " + maxPoints);
-        }
-
-        if (type == ChartType.BARS) {
-            long pointInterval = new BarsAggregationCalculatorImpl().getAggregation(new TimeInterval(startTime, endTime));
-            startTime = roundStartTime(startTime, pointInterval);
-            endTime = roundEndTime(endTime, pointInterval);
-        }
-
-        return Arrays.asList(
-            chartingService.getData(streamKey, symbols.get(0), type, new TimeInterval(startTime, endTime), maxPoints, levels)
-        );
+    @RequestMapping(value = "/{streamKey}/settings/linear-chart-columns", method = RequestMethod.GET)
+    public String[] chartableColumns(@PathVariable String streamKey) throws UnknownStreamException {
+        return TBWGUtils.getLinearChartColumns(timebaseService.getStreamChecked(streamKey).getTypes());
     }
 
     @RequestMapping(value = "/dx/{streamKey}", method = RequestMethod.GET)
@@ -117,7 +89,7 @@ public class ChartingController {
             throw new RuntimeException("Illegal pointInterval value: " + pointInterval);
         }
 
-        if (type == ChartType.BARS) {
+        if (type.isBars()) {
             startTime = roundStartTime(startTime, pointInterval);
             endTime = roundEndTime(endTime, pointInterval);
         }

@@ -1,7 +1,7 @@
 import {HttpClient} from '@angular/common/http';
 import {Injectable, NgZone} from '@angular/core';
 import {Router} from '@angular/router';
-import {Actions, Effect, ofType} from '@ngrx/effects';
+import {Actions, createEffect, ofType} from '@ngrx/effects';
 import {Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
 import {fromEvent, Observable, of, Subject, throwError} from 'rxjs';
@@ -18,7 +18,7 @@ import {AppActionTypes} from './app.actions';
 
 @Injectable()
 export class AppEffects {
-  @Effect() getAppVer = this.actions$.pipe(
+   getAppVer = createEffect(() => this.actions$.pipe(
     ofType(AppActionTypes.GET_APP_VER),
     switchMap(() => {
       return this.httpClient.get('/config/version').pipe(
@@ -27,8 +27,8 @@ export class AppEffects {
         }),
       );
     }),
-  );
-  @Effect() getAppSettings = this.actions$.pipe(
+  ));
+   getAppSettings = createEffect(() => this.actions$.pipe(
     ofType(AppActionTypes.GET_APP_SETTINGS),
     switchMap(() => {
       return this.httpClient.get<AppSettingsModel>('/settings').pipe(
@@ -37,8 +37,8 @@ export class AppEffects {
         }),
       );
     }),
-  );
-  @Effect() getAppInfo = this.actions$.pipe(
+  ));
+   getAppInfo = createEffect(() => this.actions$.pipe(
     ofType<AppActions.GetAppInfo>(AppActionTypes.GET_APP_INFO),
     switchMap(() => {
       return this.httpClient
@@ -59,12 +59,12 @@ export class AppEffects {
           }),
         );
     }),
-  );
-  @Effect({dispatch: false}) systemSubscriptionIsTriggered = this.actions$.pipe(
+  ));
+   systemSubscriptionIsTriggered = createEffect(() => this.actions$.pipe(
     ofType(AppActionTypes.SYSTEM_SUBSCRIPTION_IS_TRIGGERED),
     share(),
-  );
-  @Effect() getCurrencies = this.actions$.pipe(
+  ), {dispatch: false});
+   getCurrencies = createEffect(() => this.actions$.pipe(
     ofType(AppActionTypes.GET_CURRENCIES),
     switchMap(() => {
       return this.httpClient
@@ -78,8 +78,8 @@ export class AppEffects {
           }),
         );
     }),
-  );
-  @Effect() showLoginAlert = this.actions$.pipe(
+  ));
+   showLoginAlert = createEffect(() => this.actions$.pipe(
     ofType<AppActions.ShowLoginAlert>(AppActionTypes.SHOW_LOGIN_ALERT),
     // switchMap(() => this.appStore.pipe(select(getAppState))),
     // filter(appState => !appState.preventRequests),
@@ -96,8 +96,8 @@ export class AppEffects {
         },
       });
     }),
-  );
-  @Effect({dispatch: false}) offerToSaveFile = this.actions$.pipe(
+  ));
+   offerToSaveFile = createEffect(() => this.actions$.pipe(
     ofType<AppActions.OfferToSaveFile>(AppActionTypes.OFFER_TO_SAVE_FILE),
     tap((action) => {
       const blob = new Blob([action.payload.data], {type: action.payload.fileType.toString()});
@@ -107,9 +107,9 @@ export class AppEffects {
       a.href = blobURL;
       a.click();
     }),
-  );
+  ), {dispatch: false});
   private stop_system_subscription$ = new Subject();
-  @Effect() addSystemSubscription = this.actions$.pipe(
+   addSystemSubscription = createEffect(() => this.actions$.pipe(
     ofType(AppActionTypes.ADD_SYSTEM_SUBSCRIPTION),
     switchMap(() => {
       return this._ngZone.runOutsideAngular<Observable<any>>(() => {
@@ -125,15 +125,15 @@ export class AppEffects {
         );
       });
     }),
-  );
-  @Effect({dispatch: false}) stopSystemSubscription = this.actions$.pipe(
+  ));
+   stopSystemSubscription = createEffect(() => this.actions$.pipe(
     ofType(AppActionTypes.STOP_SYSTEM_SUBSCRIPTION),
     tap(() => {
       this.stop_system_subscription$.next(true);
       this.stop_system_subscription$.complete();
     }),
-  );
-  @Effect({}) startListeningVisibilityChange = this.actions$.pipe(
+  ), {dispatch: false});
+   startListeningVisibilityChange = createEffect(() => this.actions$.pipe(
     ofType(AppActionTypes.START_LISTENING_VISIBILITY_CHANGE),
     tap(() => {
       this.appStore.dispatch(
@@ -152,7 +152,7 @@ export class AppEffects {
         }),
       );
     }),
-  );
+  ), {});
 
   constructor(
     private actions$: Actions,

@@ -1,6 +1,6 @@
 import {HttpClient} from '@angular/common/http';
 import {Injectable} from '@angular/core';
-import {Actions, Effect, ofType} from '@ngrx/effects';
+import {Actions, createEffect, ofType} from '@ngrx/effects';
 import {Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
 import {throwError} from 'rxjs';
@@ -14,7 +14,7 @@ import {StreamQueryActionTypes} from './stream-query.actions';
 
 @Injectable()
 export class StreamQueryEffects {
-  @Effect() getStreamsQuery = this.actions$.pipe(
+   getStreamsQuery = createEffect(() => this.actions$.pipe(
     ofType<StreamQueryActions.GetStreamsQuery>(StreamQueryActionTypes.GET_STREAMS_QUERY),
     switchMap((action) => {
       return this.httpClient
@@ -52,8 +52,8 @@ export class StreamQueryEffects {
           }),
         );
     }),
-  );
-  @Effect() getStreamsQueryDescribe = this.actions$.pipe(
+  ));
+   getStreamsQueryDescribe = createEffect(() => this.actions$.pipe(
     ofType<StreamQueryActions.GetStreamsQueryDescribe>(
       StreamQueryActionTypes.GET_STREAMS_QUERY_DESCRIBE,
     ),
@@ -69,15 +69,15 @@ export class StreamQueryEffects {
           }),
         );
     }),
-  );
-  @Effect({dispatch: false}) clearStreamsQuery = this.actions$.pipe(
+  ));
+   clearStreamsQuery = createEffect(() => this.actions$.pipe(
     ofType<StreamQueryActions.ClearStreamsQuery>(StreamQueryActionTypes.CLEAR_STREAMS_QUERY),
     share(),
-  );
-  @Effect({dispatch: false}) hideLoader = this.actions$.pipe(
+  ), {dispatch: false});
+   hideLoader = createEffect(() => this.actions$.pipe(
     ofType<StreamQueryActions.HideLoader>(StreamQueryActionTypes.HIDE_LOADER),
     share(),
-  );
+  ), {dispatch: false});
 
   constructor(
     private actions$: Actions,

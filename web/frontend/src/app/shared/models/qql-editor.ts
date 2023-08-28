@@ -39,6 +39,7 @@ export enum QqlToken {
   text = 'text',
   stream = 'stream',
   field = 'field',
+  functions = 'functions',
   dateLiteral = 'dateLiteral',
   dataType = 'dataType',
 }

@@ -1,12 +1,14 @@
-import {HttpClient} from '@angular/common/http';
-import {Injectable} from '@angular/core';
-import {Observable} from 'rxjs';
-import {map, shareReplay, startWith, switchMap} from 'rxjs/operators';
-import {PropsModel} from '../../pages/streams/models/props.model';
-import {StreamModel} from '../../pages/streams/models/stream.model';
-import {StreamUpdatesService} from '../../pages/streams/services/stream-updates.service';
-import * as fromStreamProps from '../../pages/streams/store/stream-props/stream-props.reducer';
-import {CacheRequestService} from './cache-request.service';
+import {HttpClient}                                    from '@angular/common/http';
+import {Injectable}                                    from '@angular/core';
+import {Observable, Subject, of}                           from 'rxjs';
+import {map, shareReplay, startWith, switchMap, tap}        from 'rxjs/operators';
+import { streamNameUpdateData, StreamPeriodicityUpdateData } from 'src/app/pages/streams/models/stream-update-data.model';
+import {PropsModel}                                    from '../../pages/streams/models/props.model';
+import { StreamDescribeModel }                         from '../../pages/streams/models/stream.describe.model';
+import {StreamModel}                                   from '../../pages/streams/models/stream.model';
+import {StreamUpdatesService}                          from '../../pages/streams/services/stream-updates.service';
+import * as fromStreamProps                            from '../../pages/streams/store/stream-props/stream-props.reducer';
+import {CacheRequestService}                           from './cache-request.service';
 
 @Injectable({
   providedIn: 'root',
@@ -14,6 +16,14 @@ import {CacheRequestService} from './cache-request.service';
 export class StreamsService {
   private cachedList$: Observable<StreamModel[]>;
   private listWithUpdates$: Observable<StreamModel[]>;
+  private cashedRanges = {};
+
+  streamNameUpdated = new Subject<streamNameUpdateData>();
+  streamPeriodicityUpdated = new Subject<StreamPeriodicityUpdateData>();
+  updatedPeriodicity = {};
+  nonExistentStreamNavigated = new Subject<string>();
+
+  streamRemoved = new Subject<string>();
 
   constructor(
     private httpClient: HttpClient,
@@ -57,17 +67,21 @@ export class StreamsService {
     spaceName: string,
     barSize = null,
   ): Observable<{end: string; start: string}> {
-    const params = this.rangeParams(symbol, spaceName, barSize);
-    return this.cacheRequestService.cache(
-      {action: 'StreamsService.range', stream, params},
-      this.range(stream, symbol, spaceName, barSize),
-      1000,
-    );
+    if (!stream) {
+      return of(null);
+    }
+    const key = stream + symbol + spaceName + barSize;
+    if (this.cashedRanges[key]) {
+      return of(this.cashedRanges[key]);
+    } else {
+      return this.range(stream, symbol, spaceName, barSize)
+        .pipe(tap(range => this.cashedRanges[key] = range));
+    }
   }
 
   getListWithUpdates(): Observable<StreamModel[]> {
     if (!this.listWithUpdates$) {
-      this.listWithUpdates$ = this.streamUpdatesService.onUpdates().pipe(
+      this.listWithUpdates$ = this.streamUpdatesService.onUpdates(['changed']).pipe(
         startWith(null),
         switchMap(() => this.getList(false)),
         shareReplay(1),
@@ -122,8 +136,11 @@ export class StreamsService {
           headers: {customError: 'true'},
         })
         .pipe(map((resp) => ({props: resp || null, opened: false}))),
-      1000,
     );
+  }
+  
+  describe(streamId: string): Observable<StreamDescribeModel> {
+    return this.httpClient.get<StreamDescribeModel>(`${encodeURIComponent(streamId)}/describe`);
   }
 
   private rangeParams(symbol: string, spaceName: string, barSize: number) {
@@ -132,5 +149,9 @@ export class StreamsService {
       ...(typeof spaceName === 'string' ? {spaceName} : {}),
       ...(barSize ? {barSize} : {}),
     };
+  }
+
+  updateStreamProperties(streamId: string, props) {
+    return this.httpClient.put(`${encodeURIComponent(streamId)}/options`, props);
   }
 }

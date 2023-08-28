@@ -1,6 +1,6 @@
 import {HttpClient, HttpResponse} from '@angular/common/http';
 import {Injectable, NgZone} from '@angular/core';
-import {Actions, Effect, ofType} from '@ngrx/effects';
+import {Actions, createEffect, ofType} from '@ngrx/effects';
 import {Store} from '@ngrx/store';
 
 import {TranslateService} from '@ngx-translate/core';
@@ -35,15 +35,15 @@ import * as fromStreams from './streams.reducer';
   providedIn: 'root',
 })
 export class StreamsEffects {
-  @Effect() getStreams = this.actions$.pipe(
+   getStreams = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.GetStreams>(StreamsActionTypes.GET_STREAMS),
     switchMap((action) => {
       return this.streamsService
         .getList(false, action.payload.props?._filter, action.payload.props?._spaces)
         .pipe(map((streams) => new StreamsActions.SetStreams({streams: streams || []})));
     }),
-  );
-  @Effect() getSymbols = this.actions$.pipe(
+  ));
+   getSymbols = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.GetSymbols>(StreamsActionTypes.GET_SYMBOLS),
     concatMap((action) => {
       const url = `/${encodeURIComponent(action.payload.streamKey)}/symbols`;
@@ -74,8 +74,8 @@ export class StreamsEffects {
           }),
         );
     }),
-  );
-  @Effect() getSpaces = this.actions$.pipe(
+  ));
+   getSpaces = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.GetSpaces>(StreamsActionTypes.GET_SPACES),
     concatMap((action) => {
       const url = `/${encodeURIComponent(action.payload.streamKey)}/spaces`;
@@ -120,8 +120,8 @@ export class StreamsEffects {
           }),
         );
     }),
-  );
-  @Effect() showStreamSymbols = this.actions$.pipe(
+  ));
+   showStreamSymbols = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.ShowStreamSymbols>(StreamsActionTypes.SHOW_STREAM_SYMBOLS),
     switchMap((action) => [
       new StreamsActions.SetStreamState({
@@ -138,8 +138,8 @@ export class StreamsEffects {
           : {}),
       }),
     ]),
-  );
-  @Effect() showStreamSpaces = this.actions$.pipe(
+  ));
+   showStreamSpaces = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.ShowStreamSpaces>(StreamsActionTypes.SHOW_STREAM_SPACES),
     switchMap((action) => [
       new StreamsActions.SetStreamState({
@@ -153,8 +153,8 @@ export class StreamsEffects {
         props: action.payload.props,
       }),
     ]),
-  );
-  @Effect() truncateStream = this.actions$.pipe(
+  ));
+   truncateStream = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.TruncateStream>(StreamsActionTypes.TRUNCATE_STREAM),
     switchMap((action) => {
       return this.httpClient
@@ -177,8 +177,8 @@ export class StreamsEffects {
           }),
         );
     }),
-  );
-  @Effect() purgeStream = this.actions$.pipe(
+  ));
+   purgeStream = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.PurgeStream>(StreamsActionTypes.PURGE_STREAM),
     switchMap((action) => {
       return this.httpClient
@@ -201,8 +201,8 @@ export class StreamsEffects {
           }),
         );
     }),
-  );
-  @Effect() getStreamDescribe = this.actions$.pipe(
+  ));
+   getStreamDescribe = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.GetStreamDescribe>(StreamsActionTypes.GET_STREAM_DESCRIBE),
     switchMap((action) => {
       return this.httpClient
@@ -213,8 +213,8 @@ export class StreamsEffects {
           }),
         );
     }),
-  );
-  @Effect() deleteStream = this.actions$.pipe(
+  ));
+   deleteStream = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.AskToDeleteStream>(StreamsActionTypes.ASK_TO_DELETE_STREAM),
     switchMap((action) => {
       let url = '/delete';
@@ -266,8 +266,8 @@ export class StreamsEffects {
         }),
       );
     }),
-  );
-  @Effect() askToRenameStream = this.actions$.pipe(
+  ));
+   askToRenameStream = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.AskToRenameStream>(StreamsActionTypes.ASK_TO_RENAME_STREAM),
     switchMap((action) => {
       const data = new FormData();
@@ -327,8 +327,8 @@ export class StreamsEffects {
         }),
       );
     }),
-  );
-  @Effect() askToRenameSymbol = this.actions$.pipe(
+  ));
+   askToRenameSymbol = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.AskToRenameSymbol>(StreamsActionTypes.ASK_TO_RENAME_SYMBOL),
     switchMap((action) => {
       const data = new FormData();
@@ -361,12 +361,12 @@ export class StreamsEffects {
           }),
         );
     }),
-  );
-  @Effect({dispatch: false}) closeModal = this.actions$.pipe(
+  ));
+   closeModal = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.CloseModal>(StreamsActionTypes.CLOSE_MODAL),
     share(),
-  );
-  @Effect({dispatch: false}) setStreamStatesSubscription = this.actions$.pipe(
+  ), {dispatch: false});
+   setStreamStatesSubscription = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.SetStreamStatesSubscription>(
       StreamsActionTypes.SET_STREAM_STATES_SUBSCRIPTION,
     ),
@@ -405,8 +405,8 @@ export class StreamsEffects {
         this.streamsStore.dispatch(new StreamsActions.GetStreams({}));
       }
     }),
-  );
-  @Effect() downloadQSMSGFile = this.actions$.pipe(
+  ), {dispatch: false});
+   downloadQSMSGFile = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.DownloadQSMSGFile>(StreamsActionTypes.DOWNLOAD_QSMSG_FILE),
     switchMap((action) => {
       return this.httpClient
@@ -427,8 +427,8 @@ export class StreamsEffects {
           }),
         );
     }),
-  );
-  @Effect() sendMessage = this.actions$.pipe(
+  ));
+   sendMessage = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.SendMessage>(StreamsActionTypes.SEND_MESSAGE),
     switchMap((action) => {
       return this.httpClient
@@ -449,9 +449,9 @@ export class StreamsEffects {
           }),
         );
     }),
-  );
+  ));
   private stop_streams_state_subscription$ = new Subject();
-  @Effect() addStreamStatesSubscription = this.actions$.pipe(
+   addStreamStatesSubscription = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.AddStreamStatesSubscription>(
       StreamsActionTypes.ADD_STREAM_STATES_SUBSCRIPTION,
     ),
@@ -479,8 +479,8 @@ export class StreamsEffects {
         );
       });
     }),
-  );
-  @Effect({dispatch: false}) stopStreamStatesSubscription = this.actions$.pipe(
+  ));
+   stopStreamStatesSubscription = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.StopStreamStatesSubscription>(
       StreamsActionTypes.STOP_STREAM_STATES_SUBSCRIPTION,
     ),
@@ -488,7 +488,7 @@ export class StreamsEffects {
       this.stop_streams_state_subscription$.next(true);
       this.stop_streams_state_subscription$.complete();
     }),
-  );
+  ), {dispatch: false});
 
   constructor(
     private actions$: Actions,

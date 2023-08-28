@@ -6,10 +6,11 @@
     </p>
     <div class="w-100 symbols-list">
       <span class="font-weight-bold w-100">{{ 'titles.symbolsToTruncate' | translate }}:</span>
-      <ng-multiselect-dropdown
-          [(ngModel)]="selectedSymbols"
-          [data]="symbolsList$ | async"
-          [settings]="dropdownSettingsSymbols"></ng-multiselect-dropdown>
+      <app-multi-select
+          [flat]="true"
+          [formControl]="symbolsControl"
+          [items]="symbolsList$ | async"
+      ></app-multi-select>
     </div>
     <div *ngIf="endDate && startDate" class="w-100">
       <span class="font-weight-bold w-100"

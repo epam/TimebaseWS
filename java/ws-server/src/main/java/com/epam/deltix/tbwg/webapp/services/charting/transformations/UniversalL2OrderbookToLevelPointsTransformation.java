@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,21 +14,19 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 
-import com.epam.deltix.common.orderbook.MarketSide;
-import com.epam.deltix.common.orderbook.OrderBook;
-import com.epam.deltix.common.orderbook.OrderBookQuote;
-import com.epam.deltix.common.orderbook.impl.OrderBookFactory;
-import com.epam.deltix.common.orderbook.options.OrderBookOptionsBuilder;
-import com.epam.deltix.common.orderbook.options.OrderBookType;
-import com.epam.deltix.common.orderbook.options.UpdateMode;
 import com.epam.deltix.dfp.Decimal64Utils;
+import com.epam.deltix.orderbook.core.api.*;
+import com.epam.deltix.orderbook.core.impl.L2OrderBookFactory;
+import com.epam.deltix.orderbook.core.options.OrderBookOptionsBuilder;
+import com.epam.deltix.orderbook.core.options.OrderBookType;
+import com.epam.deltix.orderbook.core.options.UpdateMode;
 import com.epam.deltix.tbwg.messages.*;
+import com.epam.deltix.timebase.messages.MarketMessageInfo;
 import com.epam.deltix.timebase.messages.MessageInfo;
 import com.epam.deltix.timebase.messages.service.FeedStatus;
-import com.epam.deltix.timebase.messages.universal.DataModelType;
-import com.epam.deltix.timebase.messages.MarketMessageInfo;
 import com.epam.deltix.timebase.messages.universal.QuoteSide;
 import com.epam.deltix.timebase.messages.universal.*;
 import com.epam.deltix.util.collections.generated.ObjectArrayList;
@@ -38,7 +36,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 
 /**
- * The transformation builds order book for instrument and sends snapshots with specified periodicity and max level.
+ * The transformation builds quoteflow order book for instrument and sends snapshots with specified periodicity and max level.
  * The output messages are time series line points for each side and level of book.
  */
 public class UniversalL2OrderbookToLevelPointsTransformation extends AbstractChartTransformation<OrderBookLinePoint, MessageInfo> {
@@ -102,6 +100,28 @@ public class UniversalL2OrderbookToLevelPointsTransformation extends AbstractCha
                 }
             }
         }
+    }
+
+
+    private PackageHeaderInfo createPackageHeader(long exchangeId) {
+        PackageHeader packageHeader = new PackageHeader();
+        packageHeader.setPackageType(PackageType.VENDOR_SNAPSHOT);
+
+        ObjectArrayList<BaseEntryInfo> entries = new ObjectArrayList<>();
+        entries.add(createBookResetEntry(exchangeId, QuoteSide.BID));
+        entries.add(createBookResetEntry(exchangeId, QuoteSide.ASK));
+        packageHeader.setEntries(entries);
+
+        return packageHeader;
+    }
+
+    private BookResetEntry createBookResetEntry(long exchangeId, QuoteSide side) {
+        BookResetEntry resetEntry = new BookResetEntry();
+        resetEntry.setSide(side);
+        resetEntry.setModelType(book.getQuoteLevels());
+        resetEntry.setExchangeId(exchangeId);
+
+        return resetEntry;
     }
 
     private void flushMessages(long timestamp) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,15 +14,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.charting.provider;
 
-import com.epam.deltix.tbwg.webapp.services.charting.queries.ChartingResult;
-import com.epam.deltix.tbwg.webapp.services.charting.queries.ChartingResultImpl;
-import com.epam.deltix.tbwg.webapp.services.charting.queries.LinesQuery;
-import com.epam.deltix.tbwg.webapp.services.charting.queries.LinesQueryResult;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.config.ChartingConfiguration;
+import com.epam.deltix.tbwg.webapp.services.charting.queries.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

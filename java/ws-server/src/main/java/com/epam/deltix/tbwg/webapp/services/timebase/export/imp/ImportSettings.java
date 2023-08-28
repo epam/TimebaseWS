@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,24 +14,23 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.timebase.export.imp;
 
+import com.epam.deltix.qsrv.hf.tickdb.pub.LoadingOptions;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.util.time.Periodicity;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
 
-@Getter @Setter
-@AllArgsConstructor
-public class ImportSettings {
+public interface ImportSettings {
 
-    private String streamKey;
-    private String description;
-    private String[] symbols;
-    private IdentityKey[] instruments;
-    private long startTime;
-    private long endTime;
-    private Periodicity periodicity;
+    String getStreamKey();
+    String getDescription();
+    String[] getSymbols();
+    IdentityKey[] getInstruments();
+    long getStartTime();
+    long getEndTime();
+    Periodicity getPeriodicity();
+    boolean isFileBySymbol();
+    LoadingOptions.WriteMode getWriteMode();
 
 }

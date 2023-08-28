@@ -30,6 +30,7 @@ export enum SchemaEditorActionTypes {
 
   EDIT_SCHEMA_RESET_STATE = '[EditSchema] ResetState',
   EDIT_SCHEMA_UPDATE_STATE = '[EditSchema] UpdateState',
+  EDIT_SCHEMA_MERGE_STATE = '[EditSchema] MergeState',
 
   GET_SCHEMA_DIFF = '[EditSchema] Get schema diff',
   SET_SCHEMA_DIFF = '[EditSchema] Set schema diff',
@@ -151,3 +152,11 @@ export const EditSchemaUpdateState = createAction(
     enums: SchemaClassTypeModel[];
   }>(),
 );
+
+export const EditSchemaMergeState = createAction(
+  SchemaEditorActionTypes.EDIT_SCHEMA_MERGE_STATE,
+  props<{
+    classes: SchemaClassTypeModel[];
+    enums: SchemaClassTypeModel[];
+  }>(),
+)

@@ -1,0 +1,153 @@
+@import 'src/app/core/styles/variables';
+
+.import-file-content {
+  min-width: 268 * $ss;
+}
+
+.range-labels {
+  display: flex;
+
+  label {
+    flex-grow: 1;
+
+    &:first-child {
+      margin-right: 10 * $ss;
+    }
+  }
+}
+
+.form-control-cb-wr {
+  display: inline-block;
+}
+
+app-file-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  &::ng-deep {
+    label {
+      margin-bottom: 5px;
+    }
+  }
+}
+
+.upload-status {
+  margin-bottom: 15px;
+}
+
+.upload-cancel {
+  margin-top: 15px;
+  display: flex;
+  justify-content: center;
+}
+
+.upload-progress-bar {
+  width: 100%;
+  background-color: $bg-blue;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 15px;
+
+  &, &__fill {
+    height: 25px;
+  }
+
+  &__fill {
+    background-color: $blue;
+  }
+
+  &__label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%) translateY(-50%);
+  }
+}
+
+.upload-messages {
+  background: $bg-blue;
+  padding: 15px 10px 5px;
+  border-radius: 4px;
+  max-height: 300px;
+  overflow: auto;
+
+  .upload-message {
+    margin-bottom: 10px;
+    display: flex;
+
+    &__left {
+      min-width: 70px;
+      text-align: right;
+      margin-right: 10px;
+    }
+
+    &__right {
+      flex-grow: 1;
+    }
+
+    &.warning {
+      color: $warning;
+    }
+
+    &.error {
+      color: $danger;
+    }
+  }
+}
+
+.error-buttons {
+  button:first-child {
+    margin-right: 10px;
+  }
+}
+
+.periodicity-group {
+  display: flex;
+
+  app-multi-select {
+    width: 120px;
+  }
+
+  .periods-form-group {
+    margin-left: 10px;
+
+
+    ::ng-deep input {
+      height: 32px;
+    }
+  }
+}
+
+.spacer {
+  height: 35px;
+}
+
+.timezone-dropdown {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.files-form-group {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  min-height: 81px;
+  margin-bottom: 10px
+}
+
+.radio-group {
+  margin-top: 28px;
+  white-space: nowrap;
+}
+
+.hint {
+  margin-top: 5px;
+  opacity: 0.7;
+  font-size: 12px;
+}
+
+app-write-modes-control {
+  display: block;
+}

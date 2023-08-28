@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,13 +14,14 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.charting;
 
-import com.epam.deltix.tbwg.webapp.services.charting.queries.ChartingResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.model.charting.line.LineElementDef;
+import com.epam.deltix.tbwg.webapp.services.charting.queries.ChartingResult;
 import com.epam.deltix.tbwg.webapp.services.charting.queries.LineResult;
 import com.epam.deltix.tbwg.webapp.services.charting.queries.LinesQueryResult;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
@@ -76,6 +77,8 @@ public class ChartStreamingResponseBody implements StreamingResponseBody {
                             }
 
                             point.writeTo(sb);
+
+                            lineResult.pointsCount().incrementAndGet();
                         }
                     }
                 });
@@ -107,7 +110,7 @@ public class ChartStreamingResponseBody implements StreamingResponseBody {
 
                     // write line
                     // line name
-                    writer.append("\"").append(lineResult.getName().replace("[]", "[" + lineNum + "]")).append("\":");
+                    writer.append("\"").append(lineResult.getName(lineNum)).append("\":");
 
                     // start line
                     writer.append("{");

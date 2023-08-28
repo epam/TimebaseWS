@@ -11,6 +11,7 @@ export enum NotificationsActionTypes {
 
   ADD_NOTIFICATION = '[Notifications] Add Notification',
   REMOVE_NOTIFICATION = '[Notifications] Remove Notification',
+  REMOVE_WEBSOCKET_NOTIFICATIONS = '[Notifications] Remove WebSocket Notification'
 }
 
 export class AddAlert implements Action {
@@ -55,6 +56,12 @@ export class RemoveNotification implements Action {
   constructor(public payload: number) {}
 }
 
+export class RemoveWebSocketNotifications implements Action {
+  readonly type = NotificationsActionTypes.REMOVE_WEBSOCKET_NOTIFICATIONS;
+
+  constructor() {}
+}
+
 export type NotificationsActions =
   | AddAlert
   | RemoveAlert
@@ -62,4 +69,5 @@ export type NotificationsActions =
   | AddWarn
   | RemoveWarn
   | AddNotification
-  | RemoveNotification;
+  | RemoveNotification
+  | RemoveWebSocketNotifications;

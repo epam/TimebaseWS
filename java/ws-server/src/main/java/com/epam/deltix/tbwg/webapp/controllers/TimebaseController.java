@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,44 +14,41 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.controllers;
 
-import com.epam.deltix.gflog.api.Log;
-import com.epam.deltix.gflog.api.LogFactory;
-import com.epam.deltix.gflog.api.LogLevel;
-import com.epam.deltix.tbwg.webapp.Application;
-import com.epam.deltix.tbwg.webapp.model.*;
-import com.epam.deltix.tbwg.webapp.model.input.*;
-import com.epam.deltix.tbwg.webapp.model.schema.*;
-import com.epam.deltix.tbwg.webapp.services.timebase.exc.*;
-import com.epam.deltix.tbwg.webapp.services.timebase.export.ExportService;
-import com.epam.deltix.tbwg.webapp.services.timebase.export.FileResponseBody;
-import com.epam.deltix.tbwg.webapp.services.timebase.export.QueryExportSourceFactory;
-import com.epam.deltix.tbwg.webapp.services.timebase.export.StreamsExportSourceFactory;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.timebase.messages.InstrumentKey;
 import com.epam.deltix.timebase.messages.InstrumentMessage;
+import com.epam.deltix.timebase.messages.TimeStamp;
 import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.epam.deltix.gflog.api.Log;
+import com.epam.deltix.gflog.api.LogFactory;
+import com.epam.deltix.gflog.api.LogLevel;
 import com.epam.deltix.qsrv.hf.pub.*;
 import com.epam.deltix.qsrv.hf.pub.md.*;
 import com.epam.deltix.qsrv.hf.tickdb.client.Version;
 import com.epam.deltix.qsrv.hf.tickdb.comm.client.TickDBClient;
 import com.epam.deltix.qsrv.hf.tickdb.lang.pub.Token;
 import com.epam.deltix.qsrv.hf.tickdb.pub.*;
+import com.epam.deltix.qsrv.hf.tickdb.pub.lock.DBLock;
 import com.epam.deltix.qsrv.hf.tickdb.pub.query.InstrumentMessageSource;
 import com.epam.deltix.qsrv.hf.tickdb.ui.tbshell.TickDBShell;
 import com.epam.deltix.qsrv.util.json.JSONRawMessageParser;
-
-import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
+import com.epam.deltix.tbwg.webapp.Application;
+import com.epam.deltix.tbwg.webapp.model.*;
+import com.epam.deltix.tbwg.webapp.model.charting.ChartTypeDef;
 import com.epam.deltix.tbwg.webapp.model.filter.FilterFactory;
+import com.epam.deltix.tbwg.webapp.model.input.*;
 import com.epam.deltix.tbwg.webapp.model.orderbook.L2PackageDto;
 import com.epam.deltix.tbwg.webapp.model.qql.FunctionDef;
+import com.epam.deltix.tbwg.webapp.model.qql.ShortFunctionDef;
+import com.epam.deltix.tbwg.webapp.model.schema.*;
 import com.epam.deltix.tbwg.webapp.model.schema.changes.StreamMetaDataChangeDef;
-import com.epam.deltix.tbwg.webapp.model.smd.CurrencyDef;
 import com.epam.deltix.tbwg.webapp.model.smd.InstrumentDef;
 import com.epam.deltix.tbwg.webapp.services.InstrumentsService;
 import com.epam.deltix.tbwg.webapp.services.OptionsService;
@@ -60,8 +57,8 @@ import com.epam.deltix.tbwg.webapp.services.orderbook.OrderBookSnapshotRequest;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.timebase.base.SchemaManipulationService;
 import com.epam.deltix.tbwg.webapp.services.timebase.base.SelectService;
-import com.epam.deltix.tbwg.webapp.services.timebase.export.imp.ImportService;
-import com.epam.deltix.tbwg.webapp.services.timebase.export.imp.ImportSettings;
+import com.epam.deltix.tbwg.webapp.services.timebase.exc.*;
+import com.epam.deltix.tbwg.webapp.services.timebase.export.*;
 import com.epam.deltix.tbwg.webapp.utils.MessageSource2ResponseStream;
 import com.epam.deltix.tbwg.webapp.utils.ObjectMappingUtils;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
@@ -79,7 +76,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import javax.validation.Valid;
@@ -123,23 +119,20 @@ public class TimebaseController {
     private final SelectService selectService;
     private final InstrumentsService instrumentsService;
     private final ExportService exportService;
-    private final ImportService importService;
     private final OptionsService optionsService;
     private final OrderBookDebugger orderBookDebugger;
 
     private final AtomicLong idGenerator = new AtomicLong(System.currentTimeMillis());
 
     @Autowired
-    public TimebaseController(TimebaseService service, SchemaManipulationService schemaManipulationService,
-                              SelectService selectService, InstrumentsService instrumentsService,
-                              ExportService exportService, ImportService importService,
-                              OptionsService optionsService, OrderBookDebugger orderBookDebugger) {
+    public TimebaseController(TimebaseService service, SelectService selectService, ExportService exportService,
+                              SchemaManipulationService schemaManipulationService, OptionsService optionsService,
+                              InstrumentsService instrumentsService, OrderBookDebugger orderBookDebugger) {
         this.service = service;
         this.schemaManipulationService = schemaManipulationService;
         this.selectService = selectService;
         this.instrumentsService = instrumentsService;
         this.exportService = exportService;
-        this.importService = importService;
         this.optionsService = optionsService;
         this.orderBookDebugger = orderBookDebugger;
     }
@@ -338,7 +331,7 @@ public class TimebaseController {
         }
 
         if (streams.isEmpty())
-            throw new NoStreamsException(select.streams);;
+            throw new NoStreamsException(select.streams);
 
         HashSet<IdentityKey> instruments = null;
 
@@ -374,7 +367,7 @@ public class TimebaseController {
         return ResponseEntity.ok(new DownloadId(
             exportService.prepareExport(
                 new StreamsExportSourceFactory(service, startTime, options, tickStreams, select.getTypes(), ids),
-                select, startTime, select.getEndTime(), startIndex, endIndex, periodicity, select.convertNamespaces, descriptors
+                select, startTime, select.getEndTime(), startIndex, endIndex, periodicity, descriptors
             )
         ));
     }
@@ -390,6 +383,9 @@ public class TimebaseController {
             @RequestParam(required = false) Instant to,
             @RequestParam(required = false, defaultValue = "0") long offset,
             @RequestParam(required = false, defaultValue = "-1") int rows,
+            @RequestParam(required = false) boolean skipEmpty,
+            @RequestParam(required = false, defaultValue = "true") boolean enableStaticFields,
+            @RequestParam(required = false) String datetimeFormat,
             @RequestParam(required = false) boolean reverse) throws NoStreamsException {
 
         ExportStreamsRequest request = new ExportStreamsRequest();
@@ -401,6 +397,9 @@ public class TimebaseController {
         request.rows = rows;
         request.offset = offset;
         request.reverse = reverse;
+        request.skipEmpty = skipEmpty;
+        request.enableStaticFields = enableStaticFields;
+        request.datetimeFormat = datetimeFormat;
 
         return export(request);
     }
@@ -432,7 +431,7 @@ public class TimebaseController {
             exportService.prepareExport(
                 new StreamsExportSourceFactory(service, startTime, options, new DXTickStream[]{stream}, select.getTypes(), ids),
                 select, startTime, select.getEndTime(), startIndex, endIndex, periodicity,
-                select.convertNamespaces, stream.getTypes()
+                stream.getTypes()
             )
         ));
     }
@@ -447,6 +446,9 @@ public class TimebaseController {
             @RequestParam(required = false) Instant to,
             @RequestParam(required = false, defaultValue = "0") long offset,
             @RequestParam(required = false, defaultValue = "-1") int rows,
+            @RequestParam(required = false) boolean skipEmpty,
+            @RequestParam(required = false, defaultValue = "true") boolean enableStaticFields,
+            @RequestParam(required = false) String datetimeFormat,
             @RequestParam(required = false) boolean reverse) throws NoStreamsException, UnknownStreamException {
         if (TextUtils.isEmpty(streamId))
             throw new NoStreamsException();
@@ -460,6 +462,9 @@ public class TimebaseController {
         request.reverse = reverse;
         request.setTypes(types);
         request.symbols = symbols;
+        request.skipEmpty = skipEmpty;
+        request.enableStaticFields = enableStaticFields;
+        request.datetimeFormat = datetimeFormat;
 
         return export(streamId, request);
     }
@@ -493,54 +498,9 @@ public class TimebaseController {
         return ResponseEntity.ok(new DownloadId(
             exportService.prepareExport(
                 new QueryExportSourceFactory(service, options, query.query),
-                request, Long.MIN_VALUE, Long.MAX_VALUE, 0, -1, null, false, rcds
+                request, Long.MIN_VALUE, Long.MAX_VALUE, 0, -1, null, rcds
             )
         ));
-    }
-
-    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
-    @RequestMapping(value = "/startImport", method = {RequestMethod.POST})
-    public long startImport(@Valid @RequestBody ImportRequest importRequest) {
-        return importService.startImport(
-            importRequest.fileName, importRequest.fileSize,
-            new ImportSettings(
-                importRequest.stream, importRequest.description,
-                importRequest.symbols, null,
-                importRequest.from != null ? importRequest.from.toEpochMilli() : Long.MIN_VALUE,
-                importRequest.to != null ? importRequest.to.toEpochMilli() : Long.MAX_VALUE,
-                getPeriodicity(importRequest.periodicity)
-            )
-        );
-    }
-
-    private Periodicity getPeriodicity(PeriodicityRequest periodicityRequest) {
-        Periodicity periodicity = Periodicity.mkIrregular();
-        if (periodicityRequest != null) {
-            if (periodicityRequest.type == Periodicity.Type.STATIC) {
-                periodicity = Periodicity.mkStatic();
-            } else if (periodicityRequest.type == Periodicity.Type.REGULAR) {
-                periodicity = Periodicity.mkRegular(
-                    Interval.create(periodicityRequest.value, periodicityRequest.unit)
-                );
-            }
-        }
-
-        return periodicity;
-    }
-
-    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
-    @RequestMapping(value = "/importChunk/{id}", method = {RequestMethod.POST})
-    public void importMessages(@PathVariable long id,
-                               @RequestParam MultipartFile file,
-                               @RequestParam long offset) throws IOException
-    {
-        importService.uploadChunk(id, file.getInputStream(), offset, file.getSize());
-    }
-
-    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
-    @RequestMapping(value = "/cancelImport/{id}", method = {RequestMethod.POST})
-    public void importCancel(@PathVariable long id) {
-        importService.cancelImport(id);
     }
 
     /**
@@ -865,6 +825,127 @@ public class TimebaseController {
                 .body(listener);
     }
 
+    @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
+    @RequestMapping(value = "/{streamId}/update", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
+    public synchronized ResponseEntity<StreamingResponseBody> edit(@PathVariable String streamId,
+                                                      @RequestParam(required = false) String[] symbols,
+                                                      @RequestParam(required = false) String[] types,
+                                                      @RequestParam Instant timestamp,
+                                                      @RequestParam Integer offset,
+                                                      @RequestParam boolean reverse,
+                                                      @RequestBody String message) throws UnknownStreamException
+    {
+        ResponseEntity<StreamingResponseBody> entity = checkWritable("Write failed.");
+        if (entity != null) {
+            return entity;
+        }
+
+        DXTickStream stream = service.getStream(streamId);
+        if (stream == null) {
+            throw new UnknownStreamException(streamId);
+        }
+
+        JSONRawMessageParser parser = new JSONRawMessageParser(stream.getTypes(), "$type");
+        RawMessage raw = parser.parse((JsonObject) new JsonParser().parse(message));
+
+        long timestampMs = timestamp.toEpochMilli();
+        IdentityKey[] ids = match(stream, symbols);
+
+        List<RawMessage> messages = readAll(stream, timestampMs, ids, reverse);
+
+        int position = findEditPosition(messages, types, offset);
+        if (position >= messages.size() || position < 0) {
+            throw new IllegalArgumentException("Can't find message with id " + offset + " of timestamp: " + timestamp);
+        }
+        messages.set(position, raw);
+
+        DBLock lock = null;
+        if (stream.getKey().equals(TimebaseService.SECURITIES_STREAM)) {
+            lock = stream.tryLock(3_000);
+        }
+        try {
+            if (reverse) {
+                Collections.reverse(messages);
+            }
+            if (ids == null)
+                ids = new IdentityKey[0];
+
+            stream.delete(TimeStamp.fromMilliseconds(timestampMs), TimeStamp.fromMilliseconds(timestampMs), ids);
+            ErrorWriter listener = insertMessages(stream, messages);
+            return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON_UTF8)
+                .body(listener);
+        } finally {
+            if (lock != null) {
+                lock.release();
+            }
+        }
+    }
+
+    private List<RawMessage> readAll(DXTickStream stream, long timestampMs, IdentityKey[] ids, boolean reverse) {
+        List<RawMessage> messages = new ArrayList<>();
+        SelectionOptions selectionOptions = new SelectionOptions();
+        selectionOptions.raw = true;
+        selectionOptions.live = false;
+        selectionOptions.reversed = reverse;
+        try (TickCursor cursor = stream.select(timestampMs, selectionOptions, null, ids)) {
+            while (cursor.next()) {
+                RawMessage currentMessage = (RawMessage) cursor.getMessage();
+                if (currentMessage.getTimeStampMs() != timestampMs) {
+                    break;
+                }
+
+                messages.add((RawMessage) currentMessage.clone());
+            }
+        }
+
+        return messages;
+    }
+
+    private int findEditPosition(List<RawMessage> messages, String[] types, int defaultOffset) {
+        if (types == null) {
+            return defaultOffset;
+        }
+
+        Set<String> typesSet = new HashSet<>(Arrays.asList(types));
+        int offset = 0;
+        for (int i = 0; i < messages.size(); ++i) {
+            RawMessage message = messages.get(i);
+            if (typesSet.contains(message.type.getName())) {
+                if (offset == defaultOffset) {
+                    return i;
+                }
+
+                ++offset;
+            }
+        }
+
+        return -1;
+    }
+
+    private ErrorWriter insertMessages(DXTickStream stream, List<RawMessage> messages) {
+        int count = 0;
+        ErrorWriter listener = new ErrorWriter();
+        LoadingOptions options = new LoadingOptions(true);
+        options.writeMode = LoadingOptions.WriteMode.INSERT;
+        try (TickLoader loader = stream.createLoader(options)) {
+            loader.addEventListener(listener);
+            for (int i = 0; i < messages.size(); i++) {
+                RawMessage msg = messages.get(i);
+                try {
+                    loader.send(msg);
+                    count++;
+                } catch (Exception e) {
+                    listener.onError(new LoadingError("Message is invalid:" + msg.toString().replace("\"", "'"), e));
+                }
+            }
+
+            LOGGER.log(LogLevel.INFO, "WRITE [" + stream.getKey() + "] " + count + " messages.");
+        }
+
+        return listener;
+    }
+
     ResponseEntity<StreamingResponseBody> checkWritable(String error) {
         if (service.isReadonly()) {
 
@@ -1090,39 +1171,20 @@ public class TimebaseController {
         return ResponseEntity.ok().body(schemaManipulationService.schema(streamId, tree));
     }
 
-    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
-    @RequestMapping(value = "/currencies", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<CurrencyDef[]> currencies() {
-
-//        LOGGER.log(LogLevel.INFO, "GET CURRENCIES() ");
-//
-//        DXTickStream stream = service.getCurrenciesStream();
-//
-//        ArrayList<CurrencyDef> currencies = new ArrayList<CurrencyDef>();
-//
-//        if (stream == null) {
-//            Collection<CurrencyMessage> list = service.getProviderCurrencyInfo();
-//            for (CurrencyMessage msg : list)
-//                currencies.add(new CurrencyDef(msg.getAlphabeticCode().toString(), msg.getNumericCode()));
-//        } else {
-//            try (TickCursor cursor = service.getConnection().select(
-//                    Long.MIN_VALUE, new SelectionOptions(),
-//                    new String[]{deltix.timebase.api.messages.currency.CurrencyMessage.CLASS_NAME},
-//                    stream)) {
-//                while (cursor.next()) {
-//                    deltix.timebase.api.messages.currency.CurrencyMessage currencyMessage =
-//                            (deltix.timebase.api.messages.currency.CurrencyMessage) cursor.getMessage();
-//                    currencies.add(new CurrencyDef(currencyMessage.getSign().toString(), currencyMessage.getCode()));
-//                }
-//            }
-//        }
-
-//        return ResponseEntity.ok(currencies.toArray(new CurrencyDef[currencies.size()]));
-        return ResponseEntity.ok(new CurrencyDef[0]);
+    /**
+     * Returns schema for the specified message type.
+     *
+     * @param key                message type key
+     * @return schema for message type
+     */
+    @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
+    @GetMapping(value = "/schema", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<SchemaDef> getSchema(@RequestParam String key) {
+        return ResponseEntity.ok(schemaManipulationService.getSchema(key));
     }
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
-    @RequestMapping(value = "/instruments/{id}", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/instruments/{id}/info", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<InstrumentDef> instruments(@PathVariable String id, @RequestParam(required = false) String[] hiddenExchanges) {
         return ResponseEntity.ok(
             instrumentsService.getInstrument(
@@ -1198,6 +1260,17 @@ public class TimebaseController {
             return ResponseEntity.badRequest().build();
 
         return ResponseEntity.ok().body(optionsService.streamOptions(stream));
+    }
+
+    @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
+    @PutMapping(value = "/{streamId}/options", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StreamOptionsDef> updateOptions(@PathVariable String streamId, @RequestBody StreamOptionsDef options) {
+        DXTickStream stream = service.getStream(streamId);
+
+        if (stream == null)
+            return ResponseEntity.badRequest().build();
+
+        return ResponseEntity.ok().body(optionsService.updateStreamOptions(stream, options));
     }
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
@@ -1276,7 +1349,7 @@ public class TimebaseController {
         else
             range = ids != null && ids.length > 0 ? stream.getTimeRange(ids) : stream.getTimeRange();
 
-        if (barSize != null) {
+        if (barSize != null && range != null && range.length >= 2) {
             range[1] = roundEndTime(range[1], barSize);
         }
 
@@ -1338,7 +1411,7 @@ public class TimebaseController {
             DXTickStream stream = streams[i];
             result[i] = new StreamDef(stream.getKey(), stream.getName(), stream.listEntities().length);
 
-            ChartType[] chartTypes = TBWGUtils.chartTypes(stream);
+            ChartTypeDef[] chartTypes = TBWGUtils.chartTypes(stream);
             if (chartTypes.length > 0)
                 result[i].chartType = chartTypes;
         }
@@ -1347,7 +1420,8 @@ public class TimebaseController {
     }
 
     /**
-     * Returns data from specified QQL getQuery. See timebase QQL documentation for more information. For example: "SELECT * FROM level1Stream WHERE (this is not deltix.qsrv.hf.pub.BestBidOfferMessage) or (isNational=10)"
+     * Returns data from specified QQL getQuery. See timebase QQL documentation for more information. For example:
+     * "SELECT * FROM level1Stream WHERE (this is not deltix.qsrv.hf.pub.BestBidOfferMessage) or (isNational=10)"
      *
      * @param select selection options
      * @return streams list
@@ -1389,14 +1463,16 @@ public class TimebaseController {
             "stateful.id as 'name',\n" +
             "stateful.returnType as 'returnType',\n" +
             "stateful.arguments as 'arguments',\n" +
-            "stateful.initArguments as 'initArguments'\n" +
-            "ARRAY JOIN  stateful_functions() as 'stateful'\n" +
+            "stateful.initArguments as 'initArguments',\n" +
+            "(size([1]) == 1) as 'isStateful' \n" +
+            "ARRAY JOIN stateful_functions() as 'stateful'\n" +
             "UNION\n" +
             "select\n" +
             "stateless.id as 'name',\n" +
             "stateless.returnType as 'returnType',\n" +
-            "stateless.arguments as 'arguments'\n" +
-            "ARRAY JOIN  stateless_functions() as 'stateless'",
+            "stateless.arguments as 'arguments,'\n" +
+            "(size([1]) == 0) as 'isStateful' \n" +
+            "ARRAY JOIN stateless_functions() as 'stateless'",
             options
         );
 
@@ -1417,29 +1493,39 @@ public class TimebaseController {
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ')")
     @RequestMapping(value = "/query-info/functions-short", method = {RequestMethod.GET})
-    public Set<String> queryFunctionsShort() {
+    public Set<ShortFunctionDef> queryFunctionsShort() {
         SelectionOptions options = new SelectionOptions();
         options.raw = true;
         options.live = false;
 
         InstrumentMessageSource cursor = service.getConnection().executeQuery(
-        "select stateful.id as 'name' ARRAY JOIN  stateful_functions() as 'stateful'\n" +
+        "select stateful.id as 'name', (size([1]) == 1) as 'isStateful' ARRAY JOIN stateful_functions() as 'stateful'\n" +
             "UNION \n" +
-            "select stateless.id as 'name' ARRAY JOIN  stateless_functions() as 'stateless'",
+            "select stateless.id as 'name', (size([1]) == 0) as 'isStateful' ARRAY JOIN stateless_functions() as 'stateless'",
             options
         );
 
         RawMessageHelper rawMessageHelper = new RawMessageHelper();
-        Set<String> result = new LinkedHashSet<>();
+        Set<ShortFunctionDef> result = new LinkedHashSet<>();
         while (cursor.next()) {
             InstrumentMessage message = cursor.getMessage();
             if (message instanceof RawMessage) {
+                ShortFunctionDef functionDef = new ShortFunctionDef();
+
                 RawMessage rawMessage = (RawMessage) message;
                 Map<String, Object> values = rawMessageHelper.getValues(rawMessage);
+
                 Object nameObj = values.get("name");
                 if (nameObj instanceof String) {
-                    result.add(nameObj.toString());
+                    functionDef.setName(nameObj.toString());
                 }
+
+                Object isStatefulObj = values.get("isStateful");
+                if (isStatefulObj instanceof Boolean) {
+                    functionDef.setStateful((Boolean) isStatefulObj);
+                }
+
+                result.add(functionDef);
             }
         }
 
@@ -1579,26 +1665,34 @@ public class TimebaseController {
             else
                 empty = false;
 
-            sb.append('{').append("\"description\":\"");
+            sb.append('{').append("\"message\":\"");
             String message = e.getMessage();
             if (message != null)
                 encoder.quoteAsString(message, sb);
             sb.append("\",").append("\"error\":");
             appendError(sb, e);
+            sb.append(",").append("\"stacktrace\":");
+            appendStacktrace(sb, e);
             sb.append('}');
         }
 
         private void appendError(StringBuilder sb, Throwable ex) {
             Throwable x = ex.getCause() != null ? ex.getCause() : ex;
-            StackTraceElement[] trace = x.getStackTrace();
 
             sb.append("\"");
             sb.append(x.getClass().getName()).append(":");
             sb.append(encoder.quoteAsString(x.getMessage()));
+            sb.append("\"");
+        }
 
-            if (trace != null && trace.length > 2)
-                sb.append(" \n").append(trace[0]).append("\n").append(trace[1]).append("\n").append(trace[2]);
+        private void appendStacktrace(StringBuilder sb, Throwable ex) {
+            Throwable x = ex.getCause() != null ? ex.getCause() : ex;
+            StackTraceElement[] trace = x.getStackTrace();
 
+            sb.append("\"");
+            if (trace != null && trace.length > 2) {
+                sb.append("\\n").append(trace[0]).append("\\n").append(trace[1]).append("\\n").append(trace[2]);
+            }
             sb.append("\"");
         }
     }

@@ -39,12 +39,14 @@ export const COLOR_TRAFFIC: {[type in ColorTrafficType]: string} = {
 
 export class ShortTrafficNodeModel {
   name: string;
+  text: string;
   type?: string;
   color?: string;
 
   constructor(node: TrafficNodeModel) {
     this.name = node.name;
     this.type = node.class;
+    this.text = `${node.name} (${this.type})`;
     this.color = COLOR_TRAFFIC[node.class] || '';
   }
 }

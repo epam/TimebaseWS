@@ -1,5 +1,9 @@
 @import '~src/app/core/styles/variables';
 
+:host {
+  min-width: 940px;
+}
+
 ::ng-deep {
   .hasErrors {
     background-color: $danger;

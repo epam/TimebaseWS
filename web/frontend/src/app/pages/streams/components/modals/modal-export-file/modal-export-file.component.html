@@ -8,8 +8,24 @@
         [maxDate]="maxDate"
         [minDate]="minDate"
         formControlName="range"></app-date-range-picker>
+    <label>{{ 'exportToFile.headers.datetimeFormat' | translate }}:</label>
+    <deltix-ng-autocomplete
+      cssClass="in-modal"
+      [values]="dateTimeFormats"
+      [free]="true"
+      formControlName="datetimeFormat">
+    </deltix-ng-autocomplete>
+    <div class="form-group">
+      <div class="form-control-cb-wr">
+        <label class="container-ch">
+          <input type="checkbox" formControlName="exportStaticFields"/>
+          <span class="checkmark"></span>
+          {{ 'exportToFile.labels.exportStaticFields' | translate }}
+        </label>
+      </div>
+    </div>
     <accordion [closeOthers]="true">
-      <accordion-group [heading]="symbolsHeader$ | async">
+      <accordion-group [isOpen]="!!symbols" [heading]="symbolsHeader$ | async">
         <app-multi-select-autocomplete
             [autocompleteProvider]="autoCompleteProvider"
             formControlName="symbols"

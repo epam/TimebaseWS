@@ -26,7 +26,7 @@ export class StorageService {
     this.setData(`queryFilter${tabId}`, data);
   }
 
-  getQueryFilter(tabId: string): object {
+  getQueryFilter(tabId: string): {query: string} {
     return this.getData(`queryFilter${tabId}`);
   }
 

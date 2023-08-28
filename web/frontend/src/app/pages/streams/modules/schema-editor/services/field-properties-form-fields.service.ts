@@ -1,5 +1,5 @@
 import {Injectable} from '@angular/core';
-import {FormControl} from '@angular/forms';
+import {UntypedFormControl} from '@angular/forms';
 import {select, Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
 import {combineLatest, merge, Observable, ReplaySubject} from 'rxjs';
@@ -310,7 +310,7 @@ export class FieldPropertiesFormFieldsService {
     }
   }
 
-  private getErrorsText(isName = false): (control: FormControl) => Observable<string> {
+  private getErrorsText(isName = false): (control: UntypedFormControl) => Observable<string> {
     return (control) => {
       return this.translateService.get('forms').pipe(
         map((messages) => {

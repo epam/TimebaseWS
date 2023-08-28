@@ -1,6 +1,124 @@
-.metadata {
+@import 'src/app/core/styles/variables';
+
+:host:not(.in-modal) {
+  cursor: pointer;
+}
+
+.detailWr {
+  background-color: $body-bg;
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 14px;
+  min-width: 450px;
+
+  .connection-info {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+    font-size: 11px;
+  }
+
+  .detailsHeader {
+    user-select: none;
+    display: flex;
+    align-items: center;
+  }
+
+  .source-target-arrow {
+    position: relative;
+    height: 2px;
+    background-color: currentColor;
+    flex-grow: 1;
+    margin: 0 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &::after {
+      content: "";
+      display: block;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(-45deg);
+      width: 6px;
+      height: 6px;
+      position: absolute;
+      right: 0;
+      margin-top: -1px;
+    }
+
+    .arrow-info {
+      width: 100px;
+      height: 50px;
+      background-color: black;
+    }
+  }
+}
+
+.detailWr {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.detailsHeader {
   position: relative;
   display: flex;
-  width: 100%;
+  align-items: flex-start;
   justify-content: space-between;
+  width: 100%;
+}
+
+.detailsName {
+  line-height: 12 * $ss;
+  position: relative;
+  width: 100%;
+  margin-bottom: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  &:not(:last-child) {
+    margin-right: 2 * $ss;
+  }
+}
+
+.tables {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-top: 20px;
+
+  .connection-table-title {
+    margin-bottom: 5px;
+  }
+
+  .connection-table-wrapper {
+    flex-grow: 1;
+  }
+
+  .connection-table {
+    border: 1px solid $grid-border;
+
+    &__header, &__row {
+      display: flex;
+
+      div {
+        width: 50%;
+        padding: 5px;
+
+        &:not(:last-child) {
+          border-right: 1px solid $grid-border;
+        }
+      }
+    }
+
+    &__row:not(:last-child) {
+      border-bottom: 1px solid $grid-border;
+    }
+
+    &__header {
+      font-weight: bold;
+      background-color: $body-bg;
+    }
+  }
 }

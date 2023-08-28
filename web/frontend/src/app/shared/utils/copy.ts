@@ -1,6 +1,7 @@
 import {Observable} from 'rxjs';
 import {fromPromise} from 'rxjs/internal-compatibility';
-
+const clipboardWrite = 'clipboard-write' as PermissionName;
+const clipboardRead = 'clipboard-read' as PermissionName;
 export function copyToClipboard(text: string): Observable<void> {
   function manually(): void {
     const textArea = window.document.createElement('textarea');
@@ -25,7 +26,7 @@ export function copyToClipboard(text: string): Observable<void> {
       return Promise.reject();
     }
 
-    return window.navigator.permissions.query({name: 'clipboard-write'}).then((result) => {
+    return window.navigator.permissions.query({name: clipboardWrite}).then((result) => {
       if (result.state === 'granted' || result.state === 'prompt') {
         return window.navigator.clipboard.writeText(text);
       } else {
@@ -43,7 +44,7 @@ export function supportsReadFromClipboard(): boolean {
 
 export function getClipboard(): Observable<string> {
   return fromPromise(
-    window.navigator.permissions.query({name: 'clipboard-read'}).then((result) => {
+    window.navigator.permissions.query({name: clipboardRead}).then((result) => {
       if (result.state === 'granted' || result.state === 'prompt') {
         return window.navigator.clipboard.readText();
       } else {

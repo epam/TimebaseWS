@@ -1,0 +1,48 @@
+.row {
+  margin-top: 0.5rem;
+}
+
+.col-md-4 {
+  margin-top: 0.1rem;
+}
+
+.time-params-container {
+  padding: 0.5rem 2rem 1rem;
+  border-top: 1px solid rgb(99, 99, 99);
+}
+
+.col-md-8 {
+  .form-control {
+    padding: 0.3rem;
+    height: 1.6rem;
+  }
+}
+
+.form-check {
+  margin-bottom: 0.3rem;
+  .form-check-label {
+    margin-top: 0.1rem;
+  }
+}
+
+:host ::ng-deep deltix-ng-autocomplete {
+  .autocomplete-input {
+    background-color: rgba(0, 255, 255, 0);
+    padding: 0.3rem;
+    height: 1.6rem;
+    border: 1px solid #adadad;
+    border-radius: 0.1875rem;
+  }
+
+  .edited {
+    background-color:  rgba(255, 192, 203, 0.15);
+  }
+
+  .invalid {
+    background-color: rgba(255, 82, 88, 0.15);
+  }
+}
+
+.edited {
+  background-color:  rgba(255, 192, 203, 0.15);
+}

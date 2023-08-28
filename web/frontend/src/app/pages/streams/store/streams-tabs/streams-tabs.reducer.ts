@@ -1,6 +1,7 @@
 import {uuid} from '../../../../shared/utils/uuid';
 import {TabModel} from '../../models/tab.model';
 import {StreamsTabsActions, StreamsTabsActionTypes} from './streams-tabs.actions';
+import LZString                     from 'lz-string';
 
 export interface State {
   tabs: TabModel[];
@@ -21,7 +22,7 @@ export function createTab(existedTabs: TabModel[], tab: TabModel): TabModel {
       if (a.id > b.id) return 1;
       if (a.id < b.id) return -1;
     });
-
+    
     return new TabModel({
       ...tab,
       id: uuid(),

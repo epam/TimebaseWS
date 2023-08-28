@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,6 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.utils;
 
 import com.epam.deltix.containers.AlphanumericUtils;
@@ -27,6 +28,8 @@ import com.epam.deltix.timebase.messages.universal.*;
 import com.epam.deltix.util.collections.generated.ObjectArrayList;
 
 import java.util.Random;
+
+import static com.epam.deltix.tbwg.webapp.utils.TimeBaseUtils.introspectClasses;
 
 public class InvalidPackageHeaderGenerator {
 
@@ -98,7 +101,6 @@ public class InvalidPackageHeaderGenerator {
                             updateMessage.setOriginalTimestamp(updateTimestamp);
                             updateMessage.setSymbol(symbol);
 
-
                             ObjectArrayList<BaseEntryInfo> updateEntries = new ObjectArrayList<>();
                             for (int j = 0; j < random.nextInt(3) + 1; j++) {
                                 L2EntryUpdate entryUpdate = new L2EntryUpdate();
@@ -154,7 +156,7 @@ public class InvalidPackageHeaderGenerator {
             LOGGER.info().append("Stream ").append(key).append(" not found.").commit();
             LOGGER.info("Creating new stream.");
             StreamOptions options = new StreamOptions(scope, key, "", 1);
-            options.setPolymorphic(TimeBaseUtils.introspectClasses(classes));
+            options.setPolymorphic(introspectClasses(classes));
             stream = db.createStream(key, options);
             LOGGER.info().append("Stream ").append(key).append(" created.").commit();
         } else {

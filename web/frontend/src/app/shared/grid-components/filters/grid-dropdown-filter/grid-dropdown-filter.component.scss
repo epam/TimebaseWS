@@ -1,0 +1,17 @@
+@import "src/app/core/styles/variables";
+
+:host {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0 5px;
+}
+
+select {
+  width: 100%;
+  padding: 0 3px;
+  background: $body-bg;
+  border-color: $input-border;
+  border-radius: $border-radius;
+  height: 25px;
+}

@@ -1,0 +1,31 @@
+<form [formGroup]="formGroup" class="time-params-container">
+  <div class="row">
+    <div class="col-md-4">{{ 'importFromFile.timeParameters.dateTimeFormat' | translate }}</div>
+    <div class="col-md-8">
+      <deltix-ng-autocomplete
+        [edited]="settingEdited('dataTimeFormat')"
+        [invalid]="settingInvalid('dataTimeFormat')"
+        cssClass="in-modal"
+        (click)="setDropDownStyle()"
+        (changeInput)="onTimeFormatChange($event)"
+        (selectItem)="onTimeFormatChange($event)"
+        [values]="dropdownListTimeFormats"
+        [free]="true"
+        [size]="6"
+        formControlName="dataTimeFormat">
+      </deltix-ng-autocomplete>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-4">{{ 'importFromFile.timeParameters.timeZone' | translate }}</div>
+    <div class="col-md-8">
+      <app-multi-select
+        [class.edited]="settingEdited('timeZone')"
+        formControlName="timeZone"
+        [items]="dropdownListTimeZones"
+        [single]="true"
+        placeholder="Timezone"
+      ></app-multi-select>
+    </div>
+  </div>
+</form>

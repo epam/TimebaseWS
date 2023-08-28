@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,11 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.charting;
 
-import com.epam.deltix.tbwg.webapp.services.charting.provider.LinesProvider;
-import com.epam.deltix.tbwg.webapp.services.charting.queries.*;
-import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.model.ErrorDef;
@@ -26,8 +24,11 @@ import com.epam.deltix.tbwg.webapp.model.charting.ChartingFrameDef;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartingLineDef;
 import com.epam.deltix.tbwg.webapp.model.charting.line.LineElement;
 import com.epam.deltix.tbwg.webapp.model.charting.line.LineElementDef;
+import com.epam.deltix.tbwg.webapp.services.charting.provider.LinesProvider;
+import com.epam.deltix.tbwg.webapp.services.charting.queries.*;
 import com.epam.deltix.tbwg.webapp.services.tasks.StompSubscriptionTask;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
+import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
 
 import java.util.*;
 import java.util.concurrent.ScheduledFuture;
@@ -85,7 +86,6 @@ public class LiveChartingStompSubscriptionTask extends StompSubscriptionTask {
                     chartingSettings.getSymbol(),
                     chartingSettings.getType(),
                     chartingSettings.getInterval(),
-                    0,
                     chartingSettings.getPointInterval(),
                     chartingSettings.getLevels(),
                     true
@@ -94,7 +94,6 @@ public class LiveChartingStompSubscriptionTask extends StompSubscriptionTask {
                     chartingSettings.getQql(),
                     chartingSettings.getType(),
                     chartingSettings.getInterval(),
-                    0,
                     chartingSettings.getPointInterval(),
                     true
                 )
@@ -152,8 +151,8 @@ public class LiveChartingStompSubscriptionTask extends StompSubscriptionTask {
         List<List<LineElement>> elements = lineElements.snapshot();
         for (int i = 0; i < elements.size(); ++i) {
             lines.put(
-                    lineResult.getName().replace("[]", "[" + i + "]"),
-                    new ChartingLineDef(lineResult.getAggregation(), lineResult.getNewWindowSize(), elements.get(i))
+                lineResult.getName(i),
+                new ChartingLineDef(lineResult.getAggregation(), lineResult.getNewWindowSize(), elements.get(i))
             );
         }
     }

@@ -1,205 +1,62 @@
 @import 'src/app/core/styles/variables';
 
-::ng-deep{
-  @import '/src/app/pages/order-book/order-book-page/order-book-page.component';
-}
 .flow-header-control {
   position: relative;
   display: flex;
   align-items: center;
-
   min-height: 15 * $ss;
   z-index: 10;
 }
 
-.vizceralWr {
+vizceral {
   z-index: 9;
   position: absolute;
-  top: calc(7.5 * #{$ss} + 31px);
-  right: 7.2 * $ss;
-
-  //padding-top: 30px;
-  //bottom: calc(7.5*#{$ss} + 31px);
-  bottom: 7.2 * $ss;
-  left: 7.2 * $ss;
+  top: 0;
+  right: 10px;
+  bottom: 15px;
+  left: 10px;
   display: block;
   overflow: hidden;
   box-sizing: border-box;
+  width: auto !important;
 }
 
-.btnsWr {
-  position: relative;
+as-split-area {
   display: flex;
-  justify-content: flex-end;
-  width: 100%;
+  flex-direction: column;
 }
 
-.btnsFooterWr {
-  position: absolute;
-  right: 7.2 * $ss;
-  bottom: 7.2 * $ss;
+.vizceral-wrapper {
+  flex-grow: 1;
+  position: relative;
 }
 
-.input-group {
-  width: auto;
-}
-
-.panContainer {
-  position: static;
-}
-
-:host {
+app-right-info-wrapper {
   ::ng-deep {
-    .panContainer > .detailWr {
-      z-index: 20;
-      position: absolute;
-      top: 2 * $ss;
-      left: 2 * $ss;
-      display: block;
-
-      //padding-top: 18 * $ss;
-      overflow: hidden;
-      overflow-y: auto;
-      box-sizing: border-box;
-      width: 250 * $ss;
-
-      //padding-top: 0;
-      max-height: calc(100% - 2 * 2 * #{$ss});
-      padding: 0 2 * $ss;
-      background-color: rgba($body-bg, 1);
-
-      & > .detailsHeader {
-        position: sticky;
-        z-index: 10;
-        top: 0;
-        padding-top: 2 * $ss;
-        user-select: none;
-        background-color: rgba($body-bg, 1);
-
-        .detailsName {
-          padding: 0;
-        }
-      }
-
-      & > .detailsContent {
-        z-index: 1;
-      }
-
-      &:after {
-        position: sticky;
-        z-index: 10;
-        bottom: 0;
-        display: block;
-        width: 100%;
-        padding-bottom: 2 * $ss;
-        content: '';
-        background-color: rgba($body-bg, 1);
-      }
+    .stream-props {
+      min-height: auto;
+      height: 100%;
     }
 
-    .detailWr {
-      position: relative;
-      display: block;
-      width: 100%;
-
-      &:active {
-        opacity: 0.6;
-      }
-    }
-
-    .detailsHeader {
-      position: relative;
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      width: 100%;
-      background-color: rgba($black, 0.1);
-    }
-
-    .detailsName {
-      line-height: 12 * $ss;
-      position: relative;
-      z-index: 1;
-      display: block;
-      overflow: hidden;
-      flex-shrink: 1;
-      width: 100%;
-      height: 12 * $ss;
-      margin-bottom: 0;
-      padding: 0 $ss;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-
-      &:not(:last-child) {
-        margin-right: 2 * $ss;
-      }
-    }
-
-    .panEventHolder {
-      position: absolute;
-      z-index: 10;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      left: 0;
-      display: block;
-      cursor: move;
-    }
-
-    app-details-modal-settings {
-      flex-shrink: 0;
-    }
-
-    .detailsContent {
-      position: relative;
-      display: block;
-    }
-
-    .detailsName,
-    .subSectionName {
-      font-weight: bold;
-    }
-
-    .subSection {
-      position: relative;
-      display: block;
-      box-sizing: border-box;
-      width: 100%;
-      padding: 2 * $ss;
-      background-color: $dark-blue;
-    }
-
-    .subSectionHeader {
-      position: relative;
-      display: flex;
-      align-items: center;
-      width: 100%;
-
-      p {
-        margin-bottom: 0;
-      }
-    }
-
-    .subSectionTitle,
-    .subSectionName {
-      position: relative;
-      display: block;
-    }
-
-    .subSectionTitle {
-      color: rgba($white, 0.7);
-    }
-
-    .subSectionName:not(:first-child) {
-      margin-left: 2 * $ss;
-    }
-
-    .grid {
-      height: 100 * $ss;
-    }
-
-    hr {
-      margin: $ss 0;
+    .btn.close {
+      height: 15px;
     }
   }
+}
+
+app-right-info-wrapper, app-right-area {
+  height: 100%;
+}
+
+.filters-left {
+  flex-grow: 1;
+  margin-bottom: 15px;
+}
+
+app-flow-breadcrumbs {
+  margin-left: 15px;
+}
+
+.reset-btn {
+  min-width: 124px;
 }

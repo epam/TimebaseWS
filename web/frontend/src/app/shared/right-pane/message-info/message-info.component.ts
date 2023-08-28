@@ -8,7 +8,7 @@ import {
   OnInit,
   ViewChild,
 }                               from '@angular/core';
-import { FormControl }          from '@angular/forms';
+import { UntypedFormControl }          from '@angular/forms';
 import { IL2Package }           from '@deltix/hd.components-order-book/lib/l2';
 import {
   select,
@@ -51,7 +51,7 @@ import { RightPaneService }     from '../right-pane.service';
   styleUrls: ['./message-info.component.scss'],
 })
 export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
-  @ViewChild('infoContentWrapper') infoContentWrapper: ElementRef<HTMLElement>;
+  @ViewChild('infoContentWrapper', {read: ElementRef}) infoContentWrapper: ElementRef<HTMLElement>;
 
   @Input() showOrderBook = true;
 
@@ -67,7 +67,7 @@ export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
     readOnly: true,
   };
   editorValue$: Observable<string>;
-  viewControl = new FormControl('view');
+  viewControl = new UntypedFormControl('view');
   orderBookStreams$: Observable<string[]>;
   orderBookSymbol$: Observable<string>;
   orderBookFeed$ = new ReplaySubject<IL2Package>(1);
@@ -113,19 +113,25 @@ export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
         this.hideOrderBook$.next(true);
       });
 
-    this.message$ = this.tabStorageService.flow('rightPanel').getData(['selectedMessage']);
+    this.message$ = this.tabStorageService.flow<HasRightPanel>('rightPanel').getData(['selectedMessage'])
 
     this.props$ = combineLatest([
       this.message$,
       this.messageInfoService.onColumns(),
       this.globalFiltersService.getFilters(),
-    ]).pipe(map(([data, columns]) => this.getProps(data.selectedMessage, columns)));
+    ]).pipe(
+      map(([data, columns]) => {
+        return this.getProps(data.selectedMessage, columns)
+          .filter(prop => prop.key !== 'time' && !(prop.key === 'nanoTime' && !prop.value));
+      })
+    );
+
     this.editorValue$ = this.message$.pipe(
       map((message) => JSON.stringify(message.selectedMessage, null, '\t')),
     );
 
     const storageMessageView$ = this.tabStorageService
-      .flow('rightPanel')
+      .flow<HasRightPanel>('rightPanel')
       .getData(['messageView'])
       .pipe(map((data) => data?.messageView || 'view'));
 
@@ -136,7 +142,7 @@ export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
     this.viewControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((messageView) => {
       this.tabSwitching$.next(true);
       this.hideOrderBook$.next(true);
-      this.tabStorageService.flow('rightPanel').updateDataSync((data) => ({...data, messageView}));
+      this.tabStorageService.flow<HasRightPanel>('rightPanel').updateDataSync((data) => ({...data, messageView}));
     });
 
     this.orderBookStreams$ = this.tab$.pipe(map((tab) => [tab.stream]));
@@ -217,7 +223,7 @@ export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
       map(([feed, symbol]) => feed),
     );
   }
-
+  
   onOrderBookReady() {
     timer(100).subscribe(() => this.hideOrderBook$.next(false));
   }
@@ -226,10 +232,6 @@ export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
     this.elementWidth$ = this.resizeObserveService
       .observe(this.infoContentWrapper.nativeElement)
       .pipe(map(() => this.infoContentWrapper.nativeElement.offsetWidth - 40));
-  }
-
-  onCloseMSGInfo() {
-    this.messageInfoService.closeRightPanel();
   }
 
   ngOnDestroy(): void {
@@ -278,5 +280,9 @@ export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
       MSG_ARRAY.push(MSG);
     });
     return MSG_ARRAY.reverse();
+  }
+  
+  onOrderBookReRun() {
+    this.hideOrderBook$.next(true);
   }
 }

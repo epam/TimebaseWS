@@ -1,21 +1,92 @@
 @import '../../../core/styles/variables';
 
-.stream-props {
-  background: $nav-bg;
-  padding-top: calc(7.5 * #{$ss});
-  padding-bottom: calc(7.5 * #{$ss});
-  border-radius: calc(4 * #{$ss});
-  min-height: calc(100vh - 40 * #{$ss});
-  overflow: hidden;
-  position: relative;
-}
-
 .table {
+  tr { 
+    height: 1.35rem; 
+  }
+  tr th:first-child {
+    font-size: 12px;
+    width: 35%;
+  }
   tr td:first-child {
     padding-left: calc(5 * #{$ss});
+  }
+  td {
+    font-size: 12px;
+    color: rgb(239, 248, 255);
   }
 }
 
 h4 {
+  font-size: 16px;
   word-wrap: break-word;
+}
+
+.editable-value {
+  display: flex;
+  justify-content: space-between;
+}
+
+.pencil-icon {
+  display: block;
+  color: rgba(255, 255, 255, 0.7);
+  background-color: transparent;
+  border: none;
+  -webkit-transform: rotate(90deg);
+  -moz-transform: rotate(90deg);
+  -o-transform: rotate(90deg);
+  -ms-transform: rotate(90deg);
+  transform: rotate(90deg);
+}
+
+.changed-property {
+  color: #ffc107;
+}
+
+.tick-icon, .cross-icon {
+  background-color: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+input.form-control {
+  display: inline-block;
+  width: 7rem;
+  height: 1.15rem;
+  margin: 0.1rem 0.1rem;
+  padding: 0.1rem 0.2rem;
+}
+
+input[type='number'].form-control {
+  width: 3rem;
+}
+
+:host ::ng-deep deltix-ng-autocomplete {
+  display: inline-block;
+  .autocomplete-input {
+    height: 1.15rem;
+    background-color: rgba(0, 255, 255, 0);
+    border: 1px solid #adadad;
+    border-radius: 0.1875rem;
+  }
+  
+  .invalid {
+    background-color: rgba(255, 0, 68, 0.4);
+  }
+}
+
+.prop-value {
+  white-space: pre;
+}
+
+input.invalid {
+  background-color: rgba(255, 0, 68, 0.4);
+}
+
+.error-message {
+  color: rgb(250, 118, 153);
+}
+
+h6 {
+  text-transform: uppercase;
 }

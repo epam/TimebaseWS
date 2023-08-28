@@ -1,37 +1,43 @@
 <app-modal>
   <ng-container title>{{ title }}</ng-container>
-  <ng-container content>
+  <ng-container [formGroup]="formGroup" content>
+    <div class="section-header">{{ 'globalSettingsModal.headers.dateTime' | translate }}</div>
     <div class="row">
       <div class="col-md-6">
-        <ng-multiselect-dropdown
-            (onDeSelect)="globalSettingsFilter()"
-            (onSelect)="globalSettingsFilter()"
-            [(ngModel)]="selectedDateFormat"
-            [settings]="dropdownSettingsDateFormat"
-            [data]="dropdownListDateFormats"
-            appMultiselectNormalize
-            placeholder="Date Format"></ng-multiselect-dropdown>
+        <app-multi-select
+            formControlName="dateFormat"
+            [items]="dropdownListDateFormats"
+            [single]="true"
+            [search]="false"
+            placeholder="Date Format"
+        ></app-multi-select>
       </div>
       <div class="col-md-6">
-        <ng-multiselect-dropdown
-            (onDeSelect)="globalSettingsFilter()"
-            (onSelect)="globalSettingsFilter()"
-            [(ngModel)]="selectedTimeFormat"
-            [settings]="dropdownSettingsTimeFormat"
-            [data]="dropdownListTimeFormats"
-            appMultiselectNormalize
-            placeholder="Time Format"></ng-multiselect-dropdown>
+        <app-multi-select
+            formControlName="timeFormat"
+            [items]="dropdownListTimeFormats"
+            [single]="true"
+            [search]="false"
+            placeholder="Time Format"
+        ></app-multi-select>
       </div>
       <div class="col-md-12">
-        <ng-multiselect-dropdown
-            (onDeSelect)="globalSettingsFilter()"
-            (onSelect)="globalSettingsFilter()"
-            [(ngModel)]="selectedTimeZone"
-            [settings]="dropdownSettingsTimeZone"
-            [data]="dropdownListTimeZones"
-            appMultiselectNormalize
-            placeholder="Timezone">
-        </ng-multiselect-dropdown>
+        <app-multi-select
+            formControlName="timezone"
+            [items]="dropdownListTimeZones"
+            [single]="true"
+            placeholder="Timezone"
+        ></app-multi-select>
+      </div>
+    </div>
+    <div class="section-header">{{ 'globalSettingsModal.headers.tree' | translate }}</div>
+    <div class="row">
+      <div class="col-md-12">
+        <label class="container-ch">
+          <input type="checkbox" formControlName="showSpaces" />
+          <span class="checkmark"></span>
+          {{ 'globalSettingsModal.labels.showSpaces' | translate }}
+        </label>
       </div>
     </div>
   </ng-container>

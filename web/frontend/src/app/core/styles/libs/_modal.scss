@@ -4,7 +4,7 @@
 
 .modal-dialog.scroll-content-modal {
   @media (min-width: 0) {
-    max-width: none;
+    max-width: 800px;
   }
 
   &,
@@ -18,5 +18,17 @@
 
   .modal-body {
     overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.wide-modal {
+  width: 90%;
+
+  .modal-body {
+    padding-top: 0;
+    padding-bottom: 0;
   }
 }

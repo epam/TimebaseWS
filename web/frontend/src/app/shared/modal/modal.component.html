@@ -3,6 +3,7 @@
     <ng-content select="[title]"></ng-content>
   </h4>
   <button
+      placement="left"
       [tooltip]="'buttons.close' | translate"
       *ngIf="!withoutCloseBtn"
       appModalHideBtn

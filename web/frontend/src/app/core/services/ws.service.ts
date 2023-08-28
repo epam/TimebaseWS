@@ -1,11 +1,37 @@
-import {Injectable} from '@angular/core';
-import {RxStomp} from '@stomp/rx-stomp';
+import {Injectable, OnDestroy} from '@angular/core';
+import { Store } from '@ngrx/store';
+import {RxStomp, RxStompState} from '@stomp/rx-stomp';
 import {Message, StompHeaders, StompSubscription} from '@stomp/stompjs';
-import {Observable, Observer, Subscription} from 'rxjs';
-import {map, share} from 'rxjs/operators';
+import {Observable, Observer, Subscription, Subject, fromEvent} from 'rxjs';
+import {map, share, filter, first, takeUntil} from 'rxjs/operators';
+import * as NotificationsActions from 'src/app/core/modules/notifications/store/notifications.actions';
+import { AppState } from '../store';
 
 @Injectable()
-export class WSService extends RxStomp {
+export class WSService extends RxStomp implements OnDestroy {
+  private destroy$ = new Subject();
+  private notificationTime: number;
+  private beforeUnload: boolean = false;
+  private isTabActive: boolean = true;
+
+  constructor(private appStore: Store<AppState>) {
+    super();
+    fromEvent(window, "beforeunload")
+      .pipe(first(), takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.beforeUnload = true;
+        this.appStore.dispatch(new NotificationsActions.RemoveNotification(1));
+      });
+
+    fromEvent(window, 'focus')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.isTabActive = true)
+
+    fromEvent(window, 'blur')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.isTabActive = false)
+  }
+
   public watch(
     destination: string,
     headers: StompHeaders = {},
@@ -31,6 +57,9 @@ export class WSService extends RxStomp {
 
       let stompConnectedSubscription: Subscription;
       stompConnectedSubscription = this.connected$.subscribe(() => {
+        this.appStore.dispatch(
+          new NotificationsActions.RemoveWebSocketNotifications(),
+        );
         this._debug(`Will subscribe to ${destination}`);
         stompSubscription = this._stompClient.subscribe(
           destination,
@@ -38,6 +67,33 @@ export class WSService extends RxStomp {
             messages.next(message);
           },
           headers,
+        );
+
+        this.connectionState$
+          .pipe(
+            filter((currentState: RxStompState) => currentState === RxStompState.CLOSED && this.isTabActive && !document.hidden),
+            first(),
+            takeUntil(this.destroy$)
+          )
+          .subscribe(() => {
+            stompSubscription = this._stompClient.subscribe(
+              destination,
+              (message: Message) => {
+                messages.next(message);
+              },
+              headers,
+            )
+
+            if (!this.beforeUnload && (!this.notificationTime || Date.now() - this.notificationTime > 3000)) {
+              this.appStore.dispatch(
+                new NotificationsActions.AddWarn({
+                  message: 'Websocket connection was closed unexpectedly',
+                  dismissible: true,
+                }),
+              );
+              this.notificationTime = Date.now();
+            }
+          }
         );
       });
 
@@ -64,5 +120,14 @@ export class WSService extends RxStomp {
     return this.watch(destination, headers, unsubscribeHeaders).pipe(
       map(({body}) => JSON.parse(body)),
     );
+  }
+
+  socketDisconnected() {
+    return this.connectionState$.pipe(filter((currentState: RxStompState) => currentState === RxStompState.CLOSED));
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

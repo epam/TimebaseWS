@@ -4,4 +4,5 @@ export interface GlobalFilters {
   dateFormat: string[];
   timeFormat: string[];
   timezone: GlobalFilterTimeZone[];
+  showSpaces: boolean;
 }

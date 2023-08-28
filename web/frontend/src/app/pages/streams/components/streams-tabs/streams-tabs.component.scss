@@ -9,6 +9,10 @@ $tabs-scroll-margin: 10 * $ss;
   align-items: center;
 }
 
+.tab-title {
+  white-space: pre;
+}
+
 .close-btn {
   border: none;
   outline: none;
@@ -59,6 +63,7 @@ $tabs-scroll-margin: 10 * $ss;
 
     &:before {
       left: 0;
+      z-index: 1000;
       background: linear-gradient(275deg, transparent 0%, rgba($body-bg, 1) 50%);
     }
 

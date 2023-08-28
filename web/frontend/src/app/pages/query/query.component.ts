@@ -1,4 +1,4 @@
-import {HttpErrorResponse} from '@angular/common/http';
+import { HttpClient }       from '@angular/common/http';
 import {
   AfterViewInit,
   ChangeDetectorRef,
@@ -6,13 +6,15 @@ import {
   ElementRef,
   OnInit,
   ViewChild,
-} from '@angular/core';
-import {FormBuilder, FormControl, FormGroup} from '@angular/forms';
-import {ActivatedRoute} from '@angular/router';
-import {Store} from '@ngrx/store';
-import {TranslateService} from '@ngx-translate/core';
-import {GridOptions} from 'ag-grid-community';
-import {IOutputData} from 'angular-split/lib/interface';
+}                                              from '@angular/core';
+import { UntypedFormBuilder, UntypedFormControl, UntypedFormGroup } from '@angular/forms';
+import { ActivatedRoute, Router }              from '@angular/router';
+import { select, Store }                       from '@ngrx/store';
+import { TranslateService }                    from '@ngx-translate/core';
+import { GridOptions }                         from 'ag-grid-community';
+import { IOutputData }                         from 'angular-split/lib/interface';
+import { BsDropdownDirective }                 from 'ngx-bootstrap/dropdown';
+import { BsModalService }                      from 'ngx-bootstrap/modal';
 import {
   BehaviorSubject,
   combineLatest,
@@ -21,48 +23,51 @@ import {
   ReplaySubject,
   Subscription,
   throwError,
-} from 'rxjs';
+}                                              from 'rxjs';
 import {
   catchError,
+  distinctUntilChanged,
   filter,
   finalize,
   map,
-  mapTo,
-  skip,
-  startWith,
   switchMap,
   take,
   takeUntil,
   tap,
   withLatestFrom,
-} from 'rxjs/operators';
-import {AppState} from '../../core/store';
-import {GridContextMenuService} from '../../shared/grid-components/grid-context-menu.service';
+}                                 from 'rxjs/operators';
+import { AppState }               from '../../core/store';
+import { GridTotalService }       from '../../shared/components/grid-total/grid-total.service';
+import { GridContextMenuService } from '../../shared/grid-components/grid-context-menu.service';
 import {
   ExportTypes,
   GridDataStoreModel,
   GridTypes,
-} from '../../shared/models/grid-data-store.model';
-import {LastQuery} from '../../shared/models/last-query';
-import {LiveGridFilters} from '../../shared/models/live-grid-filters';
-import {MonacoEditorOptions} from '../../shared/models/qql-editor';
-import {SchemaTypeModel} from '../../shared/models/schema.type.model';
-import {RightPaneService} from '../../shared/right-pane/right-pane.service';
-import {ExportService} from '../../shared/services/export.service';
-import {GlobalResizeService} from '../../shared/services/global-resize.service';
-import {GridService} from '../../shared/services/grid.service';
-import {MonacoQqlConfigService} from '../../shared/services/monaco-qql-config.service';
-import {ResizeObserveService} from '../../shared/services/resize-observe.service';
-import {SchemaService} from '../../shared/services/schema.service';
-import {StorageService} from '../../shared/services/storage.service';
-import {StreamModelsService} from '../../shared/services/stream-models.service';
-import {StreamsService} from '../../shared/services/streams.service';
-import {TabStorageService} from '../../shared/services/tab-storage.service';
-import {GridStateModel} from '../streams/models/grid.state.model';
-import {StreamDetailsModel} from '../streams/models/stream.details.model';
-import {StreamModel} from '../streams/models/stream.model';
-import {LastQueriesService} from './services/last-queries.service';
-import {QueryService} from './services/query.service';
+}                                 from '../../shared/models/grid-data-store.model';
+import { LastQuery }              from '../../shared/models/last-query';
+import { LiveGridFilters }        from '../../shared/models/live-grid-filters';
+import { MonacoEditorOptions }    from '../../shared/models/qql-editor';
+import { SchemaTypeModel }        from '../../shared/models/schema.type.model';
+import { HasRightPanel }            from '../../shared/right-pane/has-right-panel';
+import { RightPaneService }         from '../../shared/right-pane/right-pane.service';
+import { ExportService }            from '../../shared/services/export.service';
+import { GridService }              from '../../shared/services/grid.service';
+import { MonacoQqlConfigService }   from '../../shared/services/monaco-qql-config.service';
+import { MonacoQqlTokensService }   from '../../shared/services/monaco-qql-tokens.service';
+import { PermissionsService }       from '../../shared/services/permissions.service';
+import { SchemaService }            from '../../shared/services/schema.service';
+import { ShareLinkService }         from '../../shared/services/share-link.service';
+import { StorageService }           from '../../shared/services/storage.service';
+import { StreamModelsService }      from '../../shared/services/stream-models.service';
+import { TabStorageService }        from '../../shared/services/tab-storage.service';
+import { copyToClipboard }          from '../../shared/utils/copy';
+import { GridStateModel }           from '../streams/models/grid.state.model';
+import { StreamDetailsModel }       from '../streams/models/stream.details.model';
+import { getActiveTab }             from '../streams/store/streams-tabs/streams-tabs.selectors';
+import { CreateViewQueryComponent } from './create-view/create-view-query.component';
+import { LastQueriesService }       from './services/last-queries.service';
+import { QueryService }             from './services/query.service';
+import * as NotificationsActions    from '../../core/modules/notifications/store/notifications.actions';
 
 @Component({
   selector: 'app-query',
@@ -71,23 +76,28 @@ import {QueryService} from './services/query.service';
   providers: [
     GridService,
     MonacoQqlConfigService,
+    MonacoQqlTokensService,
     TabStorageService,
     GridContextMenuService,
     RightPaneService,
+    GridTotalService,
   ],
 })
 export class QueryComponent implements OnInit, AfterViewInit {
-  form: FormGroup;
+  
+  @ViewChild('topSplitAreaContainer') topSplitAreaContainer: ElementRef<HTMLElement>;
+  @ViewChild('sendQueryDropDown', {read: BsDropdownDirective}) sendQueryDropDown: BsDropdownDirective;
+  @ViewChild('lastQueriesDropdown', {read: BsDropdownDirective}) lastQueriesDropdown: BsDropdownDirective;
+  @ViewChild('exportDropdown', {read: BsDropdownDirective}) exportDropdown: BsDropdownDirective;
+  
+  form: UntypedFormGroup;
   loading$ = new BehaviorSubject(false);
   pending$ = new BehaviorSubject(false);
   exporting$ = new BehaviorSubject(false);
-  qqlError$ = new BehaviorSubject(false);
   gridOptions$: Observable<GridOptions>;
   gridState: GridStateModel;
   showGrid = false;
-  queryError: string;
   sendBtnDisabled$: Observable<boolean>;
-  exportBtnDisabled$: Observable<boolean>;
   sendBtnText$: Observable<string>;
   exportBtnText$: Observable<string>;
   editorOptions: MonacoEditorOptions;
@@ -98,19 +108,24 @@ export class QueryComponent implements OnInit, AfterViewInit {
   gridTypes = GridTypes;
   gridType$ = new BehaviorSubject<GridTypes>(GridTypes.view);
   exportType$ = new BehaviorSubject<ExportTypes>(ExportTypes.qsmsg);
-  rawSchema: {types: SchemaTypeModel[]; all: SchemaTypeModel[]};
+  rawSchema: { types: SchemaTypeModel[]; all: SchemaTypeModel[] };
   liveGridName$: Observable<string>;
   gridLiveFilters: LiveGridFilters;
-  showLiveGrid$: Observable<boolean>;
+  isLiveGrid: boolean;
   gridTypesArray = Object.values(GridTypes);
   exportTypesArray = Object.values(ExportTypes);
-  @ViewChild('editorWrapper') private editorWrapper: ElementRef;
+  shareUrl: string;
+  shareUrlValid = false;
+  isWriter$: Observable<boolean>;
+  queryError = false;
+  private serverErrorQueries = this.queryService.serverErrorQueries;
+  
   private destroy$ = new ReplaySubject(1);
   private currentQuery: Subscription;
   private schema: SchemaTypeModel[];
-
+  
   constructor(
-    private fb: FormBuilder,
+    private fb: UntypedFormBuilder,
     private gridService: GridService,
     private queryService: QueryService,
     private storageService: StorageService,
@@ -120,87 +135,100 @@ export class QueryComponent implements OnInit, AfterViewInit {
     private monacoQqlConfigService: MonacoQqlConfigService,
     private schemaService: SchemaService,
     private translateService: TranslateService,
-    private streamsService: StreamsService,
     private appStore: Store<AppState>,
-    private globalResizeService: GlobalResizeService,
     private streamModelsService: StreamModelsService,
     private lastQueriesService: LastQueriesService,
-    private resizeObserveService: ResizeObserveService,
     private exportService: ExportService,
     private messageInfoService: RightPaneService,
+    private router: Router,
+    private httpClient: HttpClient,
+    private bsModalService: BsModalService,
+    private permissionsService: PermissionsService,
+    private shareLinkService: ShareLinkService,
+    private gridTotalService: GridTotalService,
   ) {}
-
+  
   ngOnInit() {
+    this.isWriter$ = this.permissionsService.isWriter();
+    
     this.showDetails$ = this.tabStorageService
-      .flow('rightPanel')
+      .flow<HasRightPanel>('rightPanel')
       .getData(['selectedMessage'])
       .pipe(map((data) => !!data?.selectedMessage));
-
-    this.showLiveGrid$ = this.gridType$.pipe(
-      map((type) => [GridTypes.live, GridTypes.monitor].includes(type)),
-    );
-
+    
+    this.gridType$
+      .pipe(
+        map((type) => [GridTypes.live, GridTypes.monitor].includes(type)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(isLiveGrid => this.isLiveGrid = isLiveGrid);
+    
     this.createForm();
     this.gridService
       .infinityScroll((start, end) => {
         return this.tabId().pipe(
           take(1),
           switchMap((tabId) =>
-            this.queryService.query(this.storageService.getExecutedQuery(tabId), start, end),
+            this.queryService.query(this.storageService.getExecutedQuery(tabId), start, end - start),
           ),
           map((data) => this.mapResponseData(data)),
         );
       })
       .pipe(takeUntil(this.destroy$))
       .subscribe();
-
+    
     this.liveGridName$ = this.tabId().pipe(map((id) => `gridLive${id}`));
     this.gridOptions$ = this.tabId().pipe(map((tabId) => this.gridService.options(tabId)));
     this.gridService
       .onRowClicked()
       .pipe(takeUntil(this.destroy$))
       .subscribe((event) => this.messageInfoService.cellClicked(event));
-
+    
     this.gridService
       .onPinnedChanged()
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.messageInfoService.onPinnedRowDataChanged());
-
+    
     this.gridService
       .onDoubleClicked()
       .pipe(takeUntil(this.destroy$))
       .subscribe((event) => {
         this.messageInfoService.doubleClicked(event.data);
       });
-
+    
     this.tabStorageService
       .getData(['exportType'])
       .pipe(takeUntil(this.destroy$))
       .subscribe((data) => {
         this.exportType$.next(data?.exportType || ExportTypes.qsmsg);
       });
-
+    
     this.tabStorageService
       .getData()
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
         this.messageInfoService.tabChanged();
+        this.setQueryError();
       });
+  
+    this.tabStorageService.getData().pipe(take(1)).subscribe((storage) => {
+      if (storage?.data?.[1]) {
+        this.gridTotalService.loadedFromCache(storage.data[1].length);
+      }
+    });
 
+    this.setQueryError();
+    
     this.tabStorageService
       .getData(['data', 'error', 'hideColumnsByDefault', 'gridType', 'query'])
       .pipe(
-        tap((model) => {
-          this.queryError = model?.error;
-          this.qqlError$.next(!!model?.error);
-          this.toggleGrid(!!model?.data);
-        }),
+        tap((model) => this.toggleGrid(!!model?.data)),
         filter((model) => !!model?.data),
         takeUntil(this.destroy$),
       )
       .subscribe(({data: [schema, data, rawSchema], query, hideColumnsByDefault, gridType}) => {
         this.gridType$.next(gridType);
-
+        
         switch (this.gridType$.getValue()) {
           case GridTypes.monitor:
           case GridTypes.live:
@@ -212,7 +240,7 @@ export class QueryComponent implements OnInit, AfterViewInit {
                 this.gridType$.getValue() === GridTypes.live ? new Date().toISOString() : null,
               types: null,
               destination: `/user/topic/monitor-qql`,
-              qql: query,
+              qql: query?.replace(/\r/g, '\\r').replace(/\n/g, '\\n'),
             };
             this.toggleGrid(true);
             return;
@@ -223,39 +251,40 @@ export class QueryComponent implements OnInit, AfterViewInit {
             return;
         }
       });
-
-    this.exportBtnDisabled$ = combineLatest([
-      this.qqlError$,
-      this.exporting$,
-      this.form.valueChanges.pipe(startWith(null)),
-    ]).pipe(map(([qqlError, exporting]) => qqlError || exporting || this.form.invalid));
-
+    
     this.sendBtnDisabled$ = combineLatest([
       this.loading$,
       this.pending$,
-      this.exportBtnDisabled$,
     ]).pipe(
-      map(([loading, pending, exportBtnDisabled]) => (loading && !pending) || exportBtnDisabled),
+      map(([loading, pending]) => (loading && !pending)),
     );
-
+    
     this.editorOptions = this.monacoQqlConfigService.options();
     this.sendBtnText$ = combineLatest([this.pending$, this.gridType$]).pipe(
       switchMap(([pending, gridType]) =>
         this.translateService.get(`qqlEditor.buttons.${pending ? 'cancel' : gridType}`),
       ),
     );
-
+    
     this.exportBtnText$ = this.exportType$.pipe(
       switchMap((type) => this.translateService.get(`qqlEditor.buttons.export.${type}`)),
     );
-
+    
     this.lastQueries$ = this.lastQueriesService.getQueries();
+    
     this.monacoQqlConfigService
-      .onChange()
-      .pipe(skip(1), takeUntil(this.destroy$))
-      .subscribe(() => this.qqlError$.next(false));
+      .onColumns()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((columns) => {
+        this.gridService.hideColumnsByDefault(columns.includes('*'));
+      });
+    
+    this.monacoQqlConfigService
+      .onCtrlEnter()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.onSubmit());
   }
-
+  
   ngAfterViewInit() {
     this.editorSize$ = this.tabStorageService.getData(['editorSize']).pipe(
       map((data) => {
@@ -263,60 +292,65 @@ export class QueryComponent implements OnInit, AfterViewInit {
       }),
     );
     this.gridSize$ = this.editorSize$.pipe(map((size) => 100 - size));
-    this.resizeObserveService
-      .observe(this.editorWrapper.nativeElement)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.fitEditor());
+    
+    const dropdowns = [this.sendQueryDropDown, this.lastQueriesDropdown, this.exportDropdown];
+    dropdowns.forEach(dropdown => {
+      dropdown.isOpenChange.pipe(takeUntil(this.destroy$), distinctUntilChanged()).subscribe(isOpen => {
+        if (isOpen) {
+          dropdowns.filter(d => d !== dropdown).forEach(d => d.hide());
+        }
+      });
+    });
   }
-
+  
   onDragEnd({sizes}: IOutputData) {
     this.tabStorageService
       .updateData((data) => ({...data, editorSize: sizes[0] as number}))
       .subscribe();
   }
-
-  fitEditor() {
-    if (!this.editorWrapper) {
-      return;
-    }
-
-    const wrapperRect = this.editorWrapper.nativeElement.getBoundingClientRect();
-    this.monacoQqlConfigService.setSize({width: wrapperRect.width, height: wrapperRect.height});
-  }
-
+  
   onSubmit(gridType: GridTypes = null) {
     if (gridType) {
       this.gridType$.next(gridType);
     }
-
+    
     if (this.pending$.getValue()) {
       this.currentQuery.unsubscribe();
       return;
     }
-
+    
     if (this.form.invalid) {
       return;
     }
-
+    
     this.loading$.next(true);
     this.cdRef.detectChanges();
     const formData = this.form.getRawValue();
     this.messageInfoService.clearSelectedMessage();
-    this.currentQuery = this.compileQuery()
+    this.pending$.next(true);
+    this.cdRef.detectChanges();
+    this.gridTotalService.startLoading();
+    this.currentQuery = combineLatest([
+      this.queryService.describe(formData.query),
+      ![GridTypes.live, GridTypes.monitor].includes(this.gridType$.getValue())
+        ? this.queryService.query(formData.query, 0, 100).pipe(tap((data) => this.gridTotalService.endLoading(data.length)))
+        : of([]),
+    ])
       .pipe(
-        tap(() => {
-          this.pending$.next(true);
-          this.cdRef.detectChanges();
+        catchError((err) => {
+          this.appStore.dispatch(
+            new NotificationsActions.AddNotification({
+              message: err.error.message,
+              dismissible: true,
+              closeInterval: 5000,
+              type: 'danger',
+              fullErrorText: JSON.stringify(err.error, null, ' ')
+            }),
+          );
+          this.queryError = true;
+          this.serverErrorQueries.add(this.form.get('query').value);
+          return throwError(err);
         }),
-        switchMap(() =>
-          combineLatest([
-            this.queryService.describe(formData.query),
-            ![GridTypes.live, GridTypes.monitor].includes(this.gridType$.getValue())
-              ? this.queryService.query(formData.query, 0, 100)
-              : of([]),
-          ]),
-        ),
-        catchError(this.onError()),
         finalize(() => {
           this.loading$.next(false);
           this.pending$.next(false);
@@ -336,7 +370,13 @@ export class QueryComponent implements OnInit, AfterViewInit {
             error: null,
           })),
         ),
-        switchMap(() => this.tabId().pipe(take(1))),
+        switchMap(() => this.gridService.onGridReady()),
+        switchMap(gridReady => {
+          if (!this.isLiveGrid) {
+            gridReady.api.ensureIndexVisible(0);
+          }
+          return this.tabId().pipe(take(1));
+        }),
       )
       .subscribe((tabId) => {
         const query = this.form.getRawValue().query;
@@ -348,7 +388,7 @@ export class QueryComponent implements OnInit, AfterViewInit {
         this.cdRef.detectChanges();
       });
   }
-
+  
   insertRecentQuery(query: LastQuery) {
     this.monacoQqlConfigService
       .onChangePosition()
@@ -357,77 +397,7 @@ export class QueryComponent implements OnInit, AfterViewInit {
         this.monacoQqlConfigService.insertValue(query.query, position);
       });
   }
-
-  onInit(editor) {
-    const streams$ = this.streamsService
-      .getListWithUpdates()
-      .pipe(map((streams: StreamModel[]) => streams.map((stream) => stream.name)));
-
-    this.monacoQqlConfigService.init(
-      editor,
-      streams$,
-      (stream) =>
-        this.schemaService.getSchema(stream).pipe(
-          map(({types, all}) => {
-            const result = [];
-            const fieldNamesCount = {};
-            const shortTypeNameCount = {};
-            const shortTypeName = (typeName: string, fieldName: string) =>
-              `${typeName.split('.').pop()}:${fieldName}`;
-            all.forEach((type) => {
-              type.fields.forEach((field) => {
-                fieldNamesCount[field.name] =
-                  fieldNamesCount[field.name] !== undefined ? fieldNamesCount[field.name] + 1 : 1;
-                const alias = shortTypeName(type.name, field.name);
-                shortTypeNameCount[alias] =
-                  shortTypeNameCount[alias] !== undefined ? shortTypeNameCount[alias] + 1 : 1;
-              });
-            });
-
-            types.forEach((type) => {
-              type.fields.forEach((field) => {
-                const shortAlias = shortTypeName(type.name, field.name);
-                if (fieldNamesCount[field.name] === 1) {
-                  result.push(field.name);
-                } else if (shortTypeNameCount[shortAlias] === 1) {
-                  result.push(shortAlias);
-                } else {
-                  result.push(`"${type.name}":${field.name}`);
-                }
-              });
-            });
-            return result;
-          }),
-        ),
-      [
-        'int8',
-        'int16',
-        'int32',
-        'int64',
-        'decimal64',
-        'decimal',
-        'float32',
-        'float64',
-        'char',
-        'boolean',
-      ],
-    );
-
-    this.monacoQqlConfigService
-      .onColumns()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((columns) => {
-        this.gridService.hideColumnsByDefault(columns.includes('*'));
-      });
-
-    this.monacoQqlConfigService
-      .onCtrlEnter()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.onSubmit());
-
-    this.fitEditor();
-  }
-
+  
   export(type: ExportTypes = null) {
     if (type) {
       this.exportType$.next(type);
@@ -442,8 +412,6 @@ export class QueryComponent implements OnInit, AfterViewInit {
             exportType,
           })),
         ),
-        switchMap(() => this.compileQuery()),
-        catchError(this.onError()),
         switchMap(() =>
           this.queryService.export(this.form.get('query').value, this.exportType$.getValue()),
         ),
@@ -456,46 +424,7 @@ export class QueryComponent implements OnInit, AfterViewInit {
         location.href = url;
       });
   }
-
-  private compileQuery(): Observable<null> {
-    return this.queryService.compile(this.form.get('query').value).pipe(
-      switchMap((response) => {
-        if (response.error) {
-          if (response.errorLocation) {
-            this.monacoQqlConfigService.setError({
-              startLineNumber: response.errorLocation.startLine + 1,
-              endLineNumber: response.errorLocation.endLine + 1,
-              startColumn: response.errorLocation.startPosition + 1,
-              endColumn: response.errorLocation.endPosition + 1,
-            });
-          }
-          return throwError({error: {message: response.error}});
-        }
-
-        return this.tabStorageService
-          .updateData((storageData) => ({
-            ...storageData,
-            error: null,
-          }))
-          .pipe(mapTo(null));
-      }),
-    );
-  }
-
-  private onError() {
-    return (errorResponse: HttpErrorResponse) => {
-      return this.tabStorageService
-        .updateData((data) => ({
-          ...data,
-          hideColumnsByDefault: this.gridService.columnsHiddenByDefault,
-          data: null,
-          query: null,
-          error: errorResponse.error.message,
-        }))
-        .pipe(switchMap(() => throwError(errorResponse.error.message)));
-    };
-  }
-
+  
   private setGridData(schema: SchemaTypeModel[], data: StreamDetailsModel[]) {
     this.gridService
       .setColumnsFromSchemaAndData(schema, this.mapResponseData(data))
@@ -508,37 +437,69 @@ export class QueryComponent implements OnInit, AfterViewInit {
         this.messageInfoService.setGridApi(gridReady);
       });
   }
-
+  
   private mapResponseData(data: StreamDetailsModel[]): StreamDetailsModel[] {
     return this.streamModelsService.getStreamModels(data, this.schema);
   }
-
+  
   private toggleGrid(state: boolean) {
     this.showGrid = state;
     this.cdRef.detectChanges();
   }
-
+  
   private tabId(): Observable<string> {
     return this.activatedRoute.params.pipe(map(({id}) => id));
   }
-
+  
   private createForm() {
     this.form = this.fb.group({
       query: [
         null,
-        (control: FormControl) => (control.value?.trim()?.length > 0 ? null : {required: true}),
+        (control: UntypedFormControl) => (control.value?.trim()?.length > 0 ? null : {required: true}),
       ],
     });
-
+    
     this.tabId()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((tabId) => {
+      .pipe(takeUntil(this.destroy$), withLatestFrom(this.appStore.pipe(select(getActiveTab))))
+      .subscribe(([tabId, tab]) => {
         const stored = this.storageService.getQueryFilter(tabId);
-        this.form.patchValue(stored || {query: null}, {emitEvent: false});
+        let tabQuery = tab.queryStream ? `SELECT * FROM "${tab.queryStream}" ` : '';
+        if (tab.querySymbol) {
+          tabQuery += `WHERE symbol == '${tab.querySymbol}'`;
+        }
+        const formValue = stored || {query: tab.queryInitialQuery || tabQuery};
+        this.updateShareUrl(formValue.query);
+        this.form.patchValue(formValue, {emitEvent: false});
       });
-
+    
     this.form.valueChanges
       .pipe(takeUntil(this.destroy$), withLatestFrom(this.tabId()))
-      .subscribe(([data, tabId]) => this.storageService.setQueryFilter(tabId, data));
+      .subscribe(([data, tabId]) => {
+        this.storageService.setQueryFilter(tabId, data);
+        this.updateShareUrl(data.query);
+      });
+  }
+  
+  share() {
+    this.shareLinkService.copyUrlByString(this.shareUrl);
+  }
+  
+  private updateShareUrl(query: string) {
+    this.shareUrl = this.shareLinkService.getShareUrl({query: true, queryInitialQuery: query});
+    this.shareUrlValid = !!query?.trim() && this.shareUrl.length <= 2000;
+  }
+  
+  createView() {
+    this.bsModalService.show(CreateViewQueryComponent, {initialState: {query: this.form.get('query').value}});
+  }
+  
+  onValidUpdate() {
+    this.cdRef.detectChanges();
+  }
+
+  setQueryError() {
+    if (this.serverErrorQueries.has(this.form.get('query').value)) {
+      this.queryError = true;
+    }
   }
 }

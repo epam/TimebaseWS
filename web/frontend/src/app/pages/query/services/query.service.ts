@@ -1,25 +1,18 @@
-import {HttpClient} from '@angular/common/http';
-import {Injectable} from '@angular/core';
-import {Observable} from 'rxjs';
-import {ExportTypes} from '../../../shared/models/grid-data-store.model';
-import {SchemaTypeModel} from '../../../shared/models/schema.type.model';
+import {HttpClient}         from '@angular/common/http';
+import {Injectable}         from '@angular/core';
+import {Observable}         from 'rxjs';
+import {ExportTypes}        from '../../../shared/models/grid-data-store.model';
+import { CompileResponse }  from '../../../shared/models/query';
+import {SchemaTypeModel}    from '../../../shared/models/schema.type.model';
 import {StreamDetailsModel} from '../../streams/models/stream.details.model';
-
-interface CompileResponse {
-  error: string;
-  errorLocation: {
-    startPosition: number;
-    endPosition: number;
-    startLine: number;
-    endLine: number;
-  };
-}
 
 @Injectable({
   providedIn: 'root',
 })
 export class QueryService {
   constructor(private httpClient: HttpClient) {}
+
+  serverErrorQueries = new Set<string>();
 
   describe(query: string): Observable<{types: SchemaTypeModel[]; all: SchemaTypeModel[]}> {
     return this.httpClient.post<{types: SchemaTypeModel[]; all: SchemaTypeModel[]}>(

@@ -1,5 +1,5 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
-import {FormBuilder, FormControl, FormGroup, Validators} from '@angular/forms';
+import {UntypedFormBuilder, UntypedFormControl, UntypedFormGroup, Validators} from '@angular/forms';
 import {select, Store} from '@ngrx/store';
 import {BsModalService} from 'ngx-bootstrap/modal';
 import {combineLatest, merge, Observable, of, ReplaySubject, timer} from 'rxjs';
@@ -22,6 +22,7 @@ import {
 import {PermissionsService} from '../../../../../../shared/services/permissions.service';
 import {FieldModel} from '../../../../../../shared/utils/dynamic-form-builder/field-builder/field-model';
 import {uniqueName} from '../../../../../../shared/utils/validators';
+import { SchemaEditorService } from '../../services/add-class.service';
 import {FieldPropertiesFormFieldsService} from '../../services/field-properties-form-fields.service';
 import {SeFieldFormsService} from '../../services/se-field-forms.service';
 import {SeFormPreferencesService} from '../../services/se-form-preferences.service';
@@ -42,7 +43,7 @@ import {RelativeToModalComponent} from '../relative-to-modal/relative-to-modal.c
   providers: [FieldPropertiesFormFieldsService],
 })
 export class FieldPropertiesComponent implements OnInit, OnDestroy {
-  formGroup: FormGroup;
+  formGroup: UntypedFormGroup;
   fields$: Observable<FieldModel[]>;
   revertDisabled$ = this.seFieldFormsService.hasChanges().pipe(map((hasChanges) => !hasChanges));
   isWriter$: Observable<boolean>;
@@ -50,12 +51,13 @@ export class FieldPropertiesComponent implements OnInit, OnDestroy {
   private destroy$ = new ReplaySubject(1);
 
   constructor(
-    private fb: FormBuilder,
+    private fb: UntypedFormBuilder,
     private appStore: Store<AppState>,
     private fieldPropertiesFormFieldsService: FieldPropertiesFormFieldsService,
     private seFieldFormsService: SeFieldFormsService,
     private permissionsService: PermissionsService,
     private modalService: BsModalService,
+    private schemaEditorService: SchemaEditorService
   ) {}
 
   ngOnInit() {
@@ -127,7 +129,10 @@ export class FieldPropertiesComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$),
         distinctUntilChanged((c, p) => JSON.stringify(c) === JSON.stringify(p)),
         debounceTime(150),
-        switchMap(() => this.checkRelativeTo()),
+        switchMap(formaData => {
+          this.schemaEditorService.editedFieldNames.add(formaData.name);
+          return this.checkRelativeTo();
+        }),
       )
       .subscribe(() => this.updateStoreValueFromForm());
 
@@ -281,8 +286,8 @@ export class FieldPropertiesComponent implements OnInit, OnDestroy {
     }
   }
 
-  private typesFieldValidator(): (control: FormControl) => object | null {
-    return (control: FormControl) => {
+  private typesFieldValidator(): (control: UntypedFormControl) => object | null {
+    return (control: UntypedFormControl) => {
       if (!this.formGroup) {
         return null;
       }
@@ -344,8 +349,8 @@ export class FieldPropertiesComponent implements OnInit, OnDestroy {
     );
   }
 
-  private staticFieldValidator(): (control: FormControl) => object | null {
-    return (control: FormControl) => {
+  private staticFieldValidator(): (control: UntypedFormControl) => object | null {
+    return (control: UntypedFormControl) => {
       if (!this.formGroup) {
         return null;
       }

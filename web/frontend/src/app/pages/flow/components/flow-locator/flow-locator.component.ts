@@ -1,5 +1,5 @@
 import { Component, EventEmitter, OnDestroy, OnInit, Output } from '@angular/core';
-import { FormControl }                                        from '@angular/forms';
+import { UntypedFormControl }                                        from '@angular/forms';
 import equal                                                  from 'fast-deep-equal';
 import { Observable, Subject }                                from 'rxjs';
 import { auditTime, distinctUntilChanged, map, takeUntil }    from 'rxjs/operators';
@@ -14,7 +14,7 @@ import { FlowDataService }                                    from '../../servic
 export class FlowLocatorComponent implements OnInit, OnDestroy {
   @Output() locate = new EventEmitter<string>();
   public controlValue = '';
-  public inputControl: FormControl;
+  public inputControl: UntypedFormControl;
   public suggestions$: Observable<string[]>;
   private input$: Subject<string> = new Subject<string>();
   private destroy$ = new Subject<any>();

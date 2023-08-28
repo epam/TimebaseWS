@@ -11,7 +11,7 @@ import {
   Output,
   ViewChild,
 } from '@angular/core';
-import {HdDate} from '@assets/hd-date/hd-date';
+import {UntypedFormControl} from '@angular/forms';
 import {Store} from '@ngrx/store';
 import {BsDatepickerConfig} from 'ngx-bootstrap/datepicker';
 import {BsModalRef} from 'ngx-bootstrap/modal';
@@ -31,36 +31,45 @@ import {getTimeZones, getTimeZoneTitle} from '../../utils/timezone.utils';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TimeBarPickerComponent implements OnInit, OnDestroy {
+  @ViewChild('eventArea') eventArea: ElementRef;
+
   @Input() selectedDate: Date;
-  @Output() selectedDateChange = new EventEmitter<Date>();
   @Input() startDate: Date;
   @Input() endDate: Date;
   @Input() method: string;
-  public format: string;
-  public visibleSelectedDate: Date;
-  public startDate_title: string;
-  public endDate_title: string;
-  public selectorCursorTitle: string;
-  @ViewChild('eventArea') eventArea: ElementRef;
-  public cursorLeft = 0;
-  public selectorCursorLeft = 0;
-  public bsConfig: Partial<BsDatepickerConfig> = {
+
+  @Output() selectedDateChange = new EventEmitter<Date>();
+
+  format: string;
+  visibleSelectedDate: Date;
+  startDate_title: string;
+  endDate_title: string;
+  selectorCursorTitle: string;
+  cursorLeft = 0;
+  selectorCursorLeft = 0;
+  bsConfig: Partial<BsDatepickerConfig> = {
     containerClass: 'theme-default',
   };
-  public dropdownListTimeZones: {
+
+  dropdownListTimeZones: {
     nameTitle: string;
     name: string;
     offset: number;
   }[] = [];
-  public dropdownSettingsTimeZone = {
+
+  timezones: {id: string; name: string}[];
+
+  dropdownSettingsTimeZone = {
     singleSelection: true,
     idField: 'name',
     textField: 'nameTitle',
     allowSearchFilter: true,
     closeDropDownOnSelection: true,
   };
-  public selectedTimeZone = [];
+  selectedTimeZone = [];
   datePickerTimeZone: object;
+  timeZoneControl = new UntypedFormControl();
+
   private destroy$ = new Subject();
   private hd_format: string;
   private avoidBSPickerTriggering = false;
@@ -77,6 +86,12 @@ export class TimeBarPickerComponent implements OnInit, OnDestroy {
     this.dropdownListTimeZones = getTimeZones().map((item) => {
       return {nameTitle: this.getTimeZoneName(item), name: item.name, offset: item.offset};
     });
+
+    this.timezones = getTimeZones().map((item) => ({
+      id: item.name,
+      name: this.getTimeZoneName(item),
+    }));
+
     if (!this.selectedDate) {
       this.selectedDate = new Date(this.endDate.toISOString());
       this.selectedDateChange.emit(this.selectedDate);
@@ -84,12 +99,17 @@ export class TimeBarPickerComponent implements OnInit, OnDestroy {
 
     this.manualUpdateCursorPosition();
 
+    this.timeZoneControl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.onTimeZoneSelected());
+
     this.globalFiltersService
       .getFilters()
       .pipe(takeUntil(this.destroy$))
       .subscribe((filters) => {
         const filter_date_format = filters.dateFormat[0];
         const filter_time_format = filters.timeFormat[0];
+        this.timeZoneControl.patchValue(filters.timezone[0].name);
         this.selectedTimeZone = filters.timezone;
         this.datePickerTimeZone = this.getSelectedTZ();
         this.format = filter_date_format.toUpperCase() + ' ' + filter_time_format;
@@ -125,6 +145,10 @@ export class TimeBarPickerComponent implements OnInit, OnDestroy {
   }
 
   public onTimeZoneSelected() {
+    this.selectedTimeZone = this.dropdownListTimeZones.filter(
+      (tz) => tz.name === this.timeZoneControl.value,
+    );
+
     if (this.selectedTimeZone) {
       this.visibleSelectedDate = this.getDateUsingSelectedTZ(this.selectedDate);
       this.startDate_title = formatDate(
@@ -137,14 +161,6 @@ export class TimeBarPickerComponent implements OnInit, OnDestroy {
       );
       this.datePickerTimeZone = this.getSelectedTZ();
     }
-  }
-
-  public onTimeZoneDeSelected() {
-    const tzName = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    this.selectedTimeZone = [
-      this.dropdownListTimeZones.find((timezone) => timezone.name === tzName),
-    ];
-    this.onTimeZoneSelected();
   }
 
   public onSetDate(event: MouseEvent, percent: number = null) {
@@ -190,7 +206,7 @@ export class TimeBarPickerComponent implements OnInit, OnDestroy {
 
   private getDateWithoutSelectedTZ(date: Date, offset: number): Date {
     const newDate = new Date(date.getTime()),
-      localOffset = -new HdDate().getTimezoneOffset();
+      localOffset = -new Date().getTimezoneOffset();
     newDate.setMilliseconds(newDate.getMilliseconds() - (offset - localOffset) * 60 * 1000);
     return newDate;
   }

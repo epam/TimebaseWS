@@ -1,0 +1,18 @@
+<div>
+  <form [formGroup]="form">
+    <app-multi-select
+      formControlName="fields"
+      [class.edited]="mappingChanged()"
+      [selectedItem]="selectedItem"
+      [items]="fieldList"
+      [single]="true"
+      [menuItemHeight]="22"
+      [contextMenuWidth]="420"
+      [contextMenuHeight]="280"
+      [hierarchy]="true"
+    ></app-multi-select>
+  </form>
+  <div class="ag-header-cell-label header-title">
+    {{ displayName.trim() === '' ? '[empty header]' : displayName }}
+  </div>
+</div>

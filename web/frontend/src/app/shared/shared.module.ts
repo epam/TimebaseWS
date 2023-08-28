@@ -16,6 +16,7 @@ import {TabsRouterProxyComponent} from './components/tabs-router-proxy/tabs-rout
 import {TimeBarPickerComponent} from './components/timebar-picker/time-bar-picker.component';
 
 import {SafeDatePickerModule} from './directives/safe-date-picker/safe-date-picker.module';
+import {MultiSelectModule} from './components/multi-select/multi-select.module';
 
 @NgModule({
   declarations: [TimeBarPickerComponent, TabsRouterProxyComponent],
@@ -33,6 +34,7 @@ import {SafeDatePickerModule} from './directives/safe-date-picker/safe-date-pick
     MonacoEditorModule,
     SafeDatePickerModule,
     BtnDatePickerModule,
+    MultiSelectModule,
   ],
   exports: [
     CommonModule,

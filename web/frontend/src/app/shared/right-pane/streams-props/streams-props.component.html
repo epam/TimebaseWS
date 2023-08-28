@@ -1,49 +1,134 @@
-<div class="col-md-12 stream-props">
-  <h4>{{ title$ | async | translate }}</h4>
-  <button
-      (click)="closeProps()"
-      [adaptivePosition]="false"
-      [tooltip]="'buttons.close' | translate"
-      class="btn btn-link close"
-      container="body"
-      placement="left">
-    <svg
-        fill="none"
-        height="8"
-        id="i-close"
-        stroke="currentcolor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 32 32"
-        width="8"
-        xmlns="http://www.w3.org/2000/svg">
-      <path d="M2 30 L30 2 M30 30 L2 2" />
-    </svg>
-  </button>
-  <div *ngIf="props$ | async as props" class="table-responsive">
-    <table class="table">
-      <tbody>
-      <ng-container *ngTemplateOutlet="propsTpl; context: { props: props }"></ng-container>
-      </tbody>
-    </table>
-  </div>
-  <ng-template #propsTpl let-isChild="isChild" let-props="props">
-    <ng-container *ngFor="let prop of props">
-      <tr>
-        <td *ngIf="isChild">{{ prop.key }}</td>
-        <th *ngIf="!isChild">{{ prop.key }}</th>
-        <td>
-          <ng-container> {{ prop.value }}</ng-container>
-        </td>
-      </tr>
-      <ng-container *ngIf="prop.children?.length">
-        <ng-container
-            *ngTemplateOutlet="
+<app-right-info-wrapper>
+  <ng-container title >
+    <h4>{{ 'Properties' | translate }}</h4>
+  </ng-container>
+  <ng-container content >
+    <div *ngIf="propsSubject | async as props" class="table-responsive">
+      <ng-container *ngIf="!(isSymbol$ | async)">
+        <h6 *ngIf="!(notView$ | async)">{{ 'Stream Properties' | translate }}</h6>
+        <table class="table">
+          <tbody>
+            <ng-container *ngTemplateOutlet="propsTpl; context: { props: props }"></ng-container>
+          </tbody>
+        </table>
+        <ng-container *ngIf="!(notView$ | async) && (infoFormatted$ | async) as info">
+          <ng-container *ngTemplateOutlet="viewProperties"></ng-container>
+        </ng-container>
+      </ng-container>
+      
+      <ng-container *ngIf="isSymbol$ | async">
+        <h6>{{ 'Stream Properties' | translate }}</h6>
+        <table class="table">
+          <tbody>
+            <ng-container *ngTemplateOutlet="propsTpl; context: { props: streamProps }"></ng-container>
+          </tbody>
+        </table>
+        <ng-container>
+          <h6>{{ 'Symbol Properties' | translate }}</h6>
+          <table class="table">
+            <tbody>
+              <ng-container *ngTemplateOutlet="propsTpl; context: { props: symbolProps }"></ng-container>
+            </tbody>
+          </table>
+        </ng-container>
+        <ng-container *ngIf="!(notView$ | async)">
+          <ng-container *ngTemplateOutlet="viewProperties"></ng-container>
+        </ng-container>
+      </ng-container>
+    </div>
+    <ng-template #propsTpl let-isChild="isChild" let-props="props">
+      <ng-container *ngFor="let prop of props">
+        <tr [formGroup]="form" *ngIf="prop.key !== 'milliseconds'">
+            <td *ngIf="isChild">{{ prop.key }}</td>
+            <th *ngIf="!isChild">{{ prop.key }}</th>
+            <td>
+              <ng-container
+                *ngIf="!['key', 'name', 'description', 'interval', 'type'].includes(prop.key); else editableValue">{{ prop.value }}
+              </ng-container>
+
+              <ng-template #editableValue>
+                <ng-container 
+                *ngIf="!editingProps.has(prop.key) && (periodisityType === 'REGULAR' || prop.key !== 'interval'); else editPropInput">
+                  <div class="editable-value">
+                    <div class="prop-value"> {{ prop.value }}<span *ngIf="prop.key === 'interval'">(S)</span> </div>
+                    <button *ngIf="(notView$ | async) && streamId && !(prop.key === 'interval' 
+                      && savedPeriodicityType !== 'REGULAR') && (this.isWriter$ | async)" 
+                      (click)="togglePropertyEditing(prop.key)" [disabled]="validationErrors"
+                      [ngClass]="{ 'pencil-icon': true, 'changed-property': changedProps.has(prop.key) }">&#9998;</button>
+                  </div>
+                </ng-container>
+
+                <ng-template #editPropInput>
+                  <ng-container *ngIf="!isChild; else periodicityEditing">
+                    <input #propertyInput formControlName="{{ prop.key }}"
+                      [ngClass]="{ 'form-control': true, 'invalid': !!errorMessages[prop.key] }">
+                    <button class="tick-icon" (click)="saveProperty(prop.key, propertyInput.value)"
+                      [disabled]="errorMessages[prop.key]"> &#10003;</button>
+                    <button class="cross-icon" (click)="togglePropertyEditing(prop.key)">&#10539;</button>
+                  </ng-container>
+                  <ng-template #periodicityEditing>
+                    <form [formGroup]="periodicityForm">
+                      <ng-container *ngIf="prop.key === 'interval' && periodisityType === 'REGULAR'">
+                        <input type="number" value="1" min="1" pattern="[1-9]{1}[0-9]{8}"
+                          [ngClass]="{ 'form-control': true, 'invalid': !!errorMessages.interval }"
+                          formControlName="intervalNumber">
+                        <deltix-ng-autocomplete
+                          cssClass="in-modal"
+                          [values]="timeIntervals"
+                          [free]="true"
+                          [size]="6"
+                          [invalid]="!!errorMessages.timeUnit"
+                          formControlName="timeUnit">
+                        </deltix-ng-autocomplete>
+                      </ng-container>
+            
+                      <ng-container *ngIf="prop.key === 'type'">
+                        <deltix-ng-autocomplete
+                          cssClass="in-modal"
+                          [values]="periodicityTypes"
+                          [free]="true"
+                          [size]="8"
+                          [invalid]="!!errorMessages.interval"
+                          [filterDisabled]="true"
+                          formControlName="type">
+                        </deltix-ng-autocomplete>
+                      </ng-container>
+                      <ng-container *ngIf="periodisityType === 'REGULAR' || prop.key !== 'interval'">
+                      <button  type="button" class="tick-icon" (click)="saveProperty(prop.key)" 
+                        [disabled]="(prop.key === 'interval' && editingProps.has('type')) || errorMessages.interval || errorMessages.timeUnit">
+                        &#10003;</button>
+                        <button class="cross-icon" (click)="togglePropertyEditing(prop.key)">&#10539;</button>
+                      </ng-container>
+                      </form>
+                    </ng-template>
+                </ng-template>
+              </ng-template>
+            </td>
+        </tr>
+        <ng-container *ngIf="prop.children?.length">
+          <ng-container
+              *ngTemplateOutlet="
             propsTpl;
             context: { props: prop.children, isChild: true }
           "></ng-container>
+        </ng-container>
       </ng-container>
-    </ng-container>
+    </ng-template>
+    <div class="error-message" *ngFor="let message of errorMessages | keyvalue">
+      {{ message.value | titlecase }}
+    </div>
+  </ng-container>
+  <ng-template #viewProperties>
+    <h6>{{ 'View Properties' | translate }}</h6>
+    <table *ngIf="infoFormatted$ | async as info" class="table">
+      <tbody>
+      <ng-container *ngFor="let field of viewFields">
+        <tr *ngIf="info[field]" >
+          <th>{{ 'viewInfo.fields.' + field | translate }}</th>
+          <td>{{ info[field] }}</td>
+        </tr>
+      </ng-container>
+      </tbody>
+    </table>
   </ng-template>
-</div>
+</app-right-info-wrapper>

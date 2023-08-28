@@ -13,8 +13,10 @@
   justify-content: center;
   margin: 0 0 10px;
 
-  &.active i {
-    color: $white;
+  &.active {
+    i, .settings-icon {
+      color: $white;
+    }
   }
 }
 
@@ -28,4 +30,9 @@ i {
   height: 20px;
   font-weight: 700;
   line-height: 18px;
+}
+
+.settings-icon {
+  width: 20px;
+  color: $table-th;
 }

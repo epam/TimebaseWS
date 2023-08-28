@@ -1,7 +1,7 @@
 <div class="col-md-12 streams-tabs">
   <div class="left-menu">
     <div class="left-btns-wrapper">
-      <ng-container *ngIf="tabs$ | async as tabs">
+      <ng-container *ngIf="tabs">
         <ng-container *ngIf="tabs.length">
           <div (appClickOutside)="closeTabList()" class="dropdown-wrapper">
             <button
@@ -23,13 +23,13 @@
                     fill-rule="evenodd" />
               </svg>
             </button>
-            <div *ngIf="openTabsList" class="dropdown-menu show">
+            <div *ngIf="openTabsList" class="dropdown-menu show tabs-context-menu">
               <perfect-scrollbar [config]="config" class="perf-scroll scroll-dropdown">
                 <div
                     *ngFor="let tab of tabs; trackBy: streamsTrack"
                     class="dropdown-item"
                     routerLinkActive="active">
-                  <a [routerLink]="tab.linkArray" routerLinkActive="active">
+                  <a [routerLink]="tab.linkArray" routerLinkActive="active" (click)="scrollToActiveTab(tab.id)">
                     <ng-container *ngTemplateOutlet="tabIcon; context: { tab: tab }"></ng-container>
                   </a>
                   <button
@@ -50,7 +50,7 @@
         </ng-container>
       </ng-container>
     </div>
-    <div *ngIf="tabs$ | async as tabs" class="perf-scroll-wrap">
+    <div *ngIf="tabs" class="perf-scroll-wrap">
       <perfect-scrollbar #tabsScrollBar (psScrollX)="onTabsScroll()">
         <div
             (cdkDropListDropped)="onDropped($event)"
@@ -65,6 +65,7 @@
               (contextmenu)="openTabContextMenu(index, $event)"
               (mousedown)="onDragClick($event)"
               *ngFor="let tab of tabs; let index = index"
+              [attr.tab-id]="tab.id"
               [class.active]="tab.active"
               cdkDrag
               cdkDragPreviewClass="tab-preview"
@@ -217,7 +218,7 @@
         <path d="M4 16 L11 16 14 29 18 3 21 16 28 16" />
       </svg>
     </ng-template>
-    {{ tab.title }}
+    <span class="tab-title">{{ tab.title }}</span>
   </ng-template>
   <ng-template [ngIf]="tab.query">
     <svg
@@ -279,7 +280,7 @@
     <path d="M2 30 L30 2 M30 30 L2 2" />
   </svg>
 </ng-template>
-<context-menu menuClass="grid-context-menu">
+<context-menu menuClass="grid-context-menu no-max-width-context-menu">
   <ng-template (execute)="closeToLeft($event.item)" contextMenuItem>
     {{ 'tabs.closeLeft' | translate }}
   </ng-template>
@@ -288,5 +289,9 @@
   </ng-template>
   <ng-template (execute)="closeOthers($event.item)" contextMenuItem>
     {{ 'tabs.closeOthers' | translate }}
+  </ng-template>
+  <ng-template contextMenuItem divider="true" passive="true"></ng-template>
+  <ng-template (execute)="shareTab($event.item)" contextMenuItem>
+    {{ 'tabs.shareTab' | translate }}
   </ng-template>
 </context-menu>

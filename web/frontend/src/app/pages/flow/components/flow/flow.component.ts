@@ -1,6 +1,5 @@
 import {
   AfterViewInit,
-  ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   ElementRef,
@@ -11,198 +10,241 @@ import {
 import { VizceralComponent } from '@deltix/ngx-vizceral';
 import { select, Store }     from '@ngrx/store';
 import equal                 from 'fast-deep-equal';
-
-import { Observable, Subject, timer } from 'rxjs';
+import { BehaviorSubject, combineLatest, interval, Observable, of, ReplaySubject, Subject, timer } from 'rxjs';
 import {
-  auditTime,
-  debounceTime,
+  auditTime, delay,
   distinctUntilChanged,
   filter,
-  map,
-  takeUntil,
-  withLatestFrom,
-}                                     from 'rxjs/operators';
-import { AppState }                   from '../../../../core/store';
-import { SplitterSizesDirective }     from '../../../../shared/components/splitter-sizes/splitter-sizes.directive';
-import { ResizeObserveService }       from '../../../../shared/services/resize-observe.service';
+  map, startWith, switchMap,
+  takeUntil, tap,
+  withLatestFrom, pluck
+}                                                                                                  from 'rxjs/operators';
+import { AppState }                                                                                from '../../../../core/store';
+import { RightPaneService }                                                                        from '../../../../shared/right-pane/right-pane.service';
+import { TabStorageService }                                                                       from '../../../../shared/services/tab-storage.service';
+import { filterNodesWithCloseCoordinate } from '../../helpers/flow.helpers';
 import {
   ConnectionDetailsModel,
   NodeDetailsModel,
   ShortConnectionDetailsModel,
   ShortNodeDetailsModel,
-}                                     from '../../models/details.model';
-import { TrafficModel }               from '../../models/traffic.model';
-import { COLOR_TRAFFIC }              from '../../models/traffic.node.model';
+}                                                                                                  from '../../models/details.model';
+import { FlowFilter }                                                                              from '../../models/flow-filter';
+import { 
+  InitialNodePositions,
+  NodeCoordinates, 
+  NodeCoordinatesOutOfView, 
+  NodePositions,
+  NodesOutOfView,
+} from '../../models/node-positions.types';
+import { TrafficModel }                                                                            from '../../models/traffic.model';
+import { COLOR_TRAFFIC }                                                                           from '../../models/traffic.node.model';
 import {
   VizceralConnection,
   VizceralNode,
-}                                     from '../../models/vizceral.extended.models';
-import { FlowDataService }            from '../../services/flow-data.service';
+}                                                                                                  from '../../models/vizceral.extended.models';
+import { FlowDataService }                                                                         from '../../services/flow-data.service';
 import {
   ClearActiveNode,
   LoadDataFilter,
   SetActiveNode,
-}                                     from '../../store/flow.actions';
-import {
-  getActiveNode,
-  getDataFilter,
-  getFilteredNodes,
-}                                     from '../../store/flow.selectors';
+}                                                                                                  from '../../store/flow.actions';
+import { getActiveNode }                                                                           from '../../store/flow.selectors';
 
 @Component({
   selector: 'app-flow',
   templateUrl: './flow.component.html',
   styleUrls: ['./flow.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [RightPaneService, TabStorageService],
 })
 export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
-  @ViewChild(VizceralComponent, {static: false}) vizceralComponent: VizceralComponent;
-  @ViewChild('vizceralRef', {static: false}) vizceralRef: ElementRef;
-  @ViewChild('filterPanel') private filterPanel: ElementRef;
-  @ViewChild('pageDivider') private pageDivider: ElementRef;
-  public vizceralTopPosition = 100;
-  // public traffic: any = {};
-  public traffic$: Subject<TrafficModel> = new Subject<TrafficModel>();
-  // public flowFilter$: Observable<VizceralFilterModel>;
-  public flowFilter$: Observable<string[]>;
-  public particleSystemEnabled = false;
-  public path: string[] = [];
-  public renderVars = {
-    resetLayout: true,
-  };
-  public detailsOff = true;
-  public initialSize: {
-    width: number;
-    height: number;
-  };
+  @ViewChild(VizceralComponent) vizceralComponent: VizceralComponent;
+  vizceralDefStyles = {colorTraffic: COLOR_TRAFFIC};
+  traffic$: Observable<TrafficModel>;
+  particleSystemEnabled = false;
+  path: string[] = [];
+  detailsOff = true;
+  initialSize: { width: number, height: number };
+  selectedNode$: Subject<VizceralConnection | VizceralNode | null> = new Subject();
+  selectedNodeView$: Observable<ConnectionDetailsModel | NodeDetailsModel | null>;
+  renderVisceral = true;
+  vizceralFilters$: Observable<any>;
+  canvasSidesRatio: number;
   
-  public objectToHighlight;
-  public selectedNode$: Subject<VizceralConnection | VizceralNode | null> = new Subject();
-  public selectedNodeView$: Observable<ConnectionDetailsModel | NodeDetailsModel | null>;
-  
+  private objectHighlighted$ = new ReplaySubject<{ type: string, name: string }>(1);
   private destroy$ = new Subject<any>();
-  private currentGraph: any = null;
-  private typedText = '';
-  
+  private currentGraphChange$ = new BehaviorSubject<any>(null);
+  private vizceralInit$ = new ReplaySubject<boolean>(1);
+  private viewUpdated$ = new Subject<void>();
+
+  private flowFilter: FlowFilter;
+  private graphIndexName: string | null = null;
+  private applicationNodes = new Set<string>();
+  private defaultViewNodesSeparated: boolean = false;
+ 
   constructor(
     private flowDataService: FlowDataService,
     private cdRef: ChangeDetectorRef,
     private appStore: Store<AppState>,
-    private parentSplitterSizes: SplitterSizesDirective,
-    private resizeObserveService: ResizeObserveService,
+    private rightPaneService: RightPaneService,
+    private tabStorageService: TabStorageService<FlowFilter>,
+    private hostElement: ElementRef,
   ) {}
-  
-  get graph() {
-    return this.currentGraph;
-  }
-  
-  ngOnDestroy() {
-    this.destroy$.next(true);
-    this.destroy$.complete();
-    this.flowDataService.stopFlowDataSubscription();
-  }
-  
-  ngAfterViewInit(): void {
-    // (this.vizceralComponent?.vizceral() as VizceralGraph)?.setFilters([
-    //   {
-    //     name: 'Name filter', // A unique name for the filter
-    //     type: 'connection', // What object type the filter applies to ('node' or 'connection')
-    //     passes: (object, value) => { // The function to compare a value of object to the current value
-    //       // debugger
-    //       return object.source.name.match(".*m.*")?.length > 0 || object.target.name.match(".*m.*")?.length > 0;
-    //       // return value < 0 || object.src <= value;
-    //     },
-    //     value: -1 // The current value of the filter
-    //   }
-    // ])
-    this.updateSize();
-    this.resizeObserveService
-      .observe(this.filterPanel.nativeElement)
-      .pipe(takeUntil(this.destroy$), debounceTime(100))
-      .subscribe(() => {
-        this.updateSize();
-      });
-    
-    this.appStore
-      .pipe(select(getDataFilter), filter(Boolean), takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.renderVars = {
-          ...this.renderVars,
-          resetLayout: true,
-        };
-        this.cdRef.detectChanges();
-        this.renderVars = {
-          ...this.renderVars,
-          resetLayout: false,
-        };
-        this.cdRef.detectChanges();
-        setTimeout(() => {
-          this.initialSize = {
-            width: this.vizceralRef.nativeElement.offsetWidth * 2,
-            height: this.vizceralRef.nativeElement.offsetHeight * 1.5,
-          };
-          this.getTrafficFlow();
-          this.subscribeWs();
-          timer().subscribe(() => this.parentSplitterSizes.setChildMinSize(1, 500));
-        }, 100);
-      });
-  }
-  
-  updateSize() {
-    const pageDividerEl = this.pageDivider.nativeElement;
-    this.vizceralTopPosition = pageDividerEl.offsetTop + pageDividerEl.offsetHeight;
-  }
-  
-  updateGraph() {}
-  
-  filterNodeByConnection(node, value: string[]): boolean {
-    const CONNECTIONS = [...(node.incomingConnections || []), ...(node.outgoingConnections || [])];
-    const result = CONNECTIONS.some(connection => {
-      return (connection?.source?.name && value.some(name => name === connection.source.name)) ||
-        (connection?.target?.name && value.some(name => name === connection.target.name));
-    });
-    return result;
-  }
   
   ngOnInit(): void {
     this.appStore.dispatch(LoadDataFilter());
     this.selectedNodeView$ = this.appStore.pipe(select(getActiveNode));
-    this.flowFilter$ = this.appStore.pipe(
-      select(getFilteredNodes),
-      // tap(nodes => console.log('filtered_nodes', nodes)),
-      // map(nodes => nodes.map(node => new VizceralFilterModel(node))),
-      map((nodes) => nodes.map((node) => node.name)),
-    );
     
-    this.flowFilter$
-      .pipe()
-      .subscribe(filterNodes => {
-        (this.vizceralComponent?.vizceral() as any)?.setFilters(
-          [{
-            name: 'name', // A unique name for the filter
-            type: 'node', // What object type the filter applies to ('node' or 'connection')
-            passes: (node, value: string[]) => { // The function to compare a value of object to the current value
-              if (!value?.length) return true;
-              const node_filtered_by_name = value.some(name => name === node.name);
-              const node_filtered_by_connection = this.filterNodeByConnection(node, value);
-              return node_filtered_by_name || node_filtered_by_connection;
-            },
-            value: filterNodes, // The current value of the filter
-          }],
-        );
-      });
-    this.selectedNodeView$
-      .pipe(
-        filter((node) => node === null),
-        takeUntil(this.destroy$),
-      )
-      .subscribe(() => {
-        (this.vizceralComponent?.vizceral() as any)?.setHighlightedNode(undefined);
-      });
+    this.objectHighlighted$.pipe(
+      takeUntil(this.destroy$),
+      distinctUntilChanged(equal),
+    ).subscribe(event => this.rightPaneService.toggleProp('showFlowNode', event || false));
     
-    this.selectedNodeView$.pipe(takeUntil(this.destroy$)).subscribe((node) => {
-      console.log('selected node', node);
+    combineLatest([
+      this.currentGraphChange$.pipe(distinctUntilChanged((g1, g2) => !!g1 === !!g2)),
+      this.tabStorageService.flow<{ showFlowNode: { type: string, name: string } }>('rightPanel').getData(['showFlowNode']),
+      this.vizceralInit$.pipe(distinctUntilChanged()),
+    ]).pipe(
+      filter(([graph]) => !!graph),
+      distinctUntilChanged(equal),
+      map(([graph, storage]) => {
+        const typeKey = storage?.showFlowNode?.type === 'node' ? 'nodes' : 'connections';
+        return graph[typeKey]?.[storage?.showFlowNode.name] || null;
+      }),
+      takeUntil(this.destroy$),
+    ).subscribe(trafficNode => {
+      this.selectedNode$.next(trafficNode);
+      timer(0).subscribe(() => this.vizceralComponent?.vizceral().setHighlightedNode(trafficNode));
     });
+  }
+  
+  ngAfterViewInit(): void {
+    this.traffic$ = this.flowDataService.flow();
+
+    this.traffic$.pipe(takeUntil(this.destroy$), pluck('connections'))
+      .subscribe(connections => {
+        this.flowDataService.startMetadataSubscription({
+          connections: JSON.stringify(connections.map(c => ({ target: c.target, source: c.source })))
+        })
+      })
+    
+    const init$ = this.vizceralInit$
+      .pipe(
+        distinctUntilChanged(),
+        filter(Boolean),
+      );
+    
+    const setPositions = (positions, graph) => {
+      if (!this.vizceralComponent) {
+        return timer(0).pipe(switchMap(() => setPositions(positions, graph)));
+      }
+      Object.keys(graph.nodes).forEach(nodeName => {
+        if (positions[nodeName]) {
+          this.vizceralComponent.vizceral().moveNodeInteraction._setDraggableObjectPosition(
+            graph.nodes[nodeName],
+            positions[nodeName].x,
+            positions[nodeName].y,
+          );
+        }
+      });
+      return of(null);
+    };
+    
+    const reInit$ = this.vizceralInit$.pipe(filter(i => !i));
+    combineLatest([
+      this.tabStorageService.flow<NodePositions>('node-positions').getData().pipe(delay(100)),
+      init$,
+    ]).pipe(
+      switchMap(data => this.viewUpdated$.pipe(startWith(null), map(() => data), takeUntil(reInit$))),
+      filter(([data]) => !!data),
+      switchMap(([data]) => this.currentGraphChange$.pipe(filter(g => !!g), map(g => [data, g]))),
+      switchMap(([positions, graph]) => setPositions(positions, graph).pipe(map(() => graph))),
+      takeUntil(this.destroy$),
+    ).subscribe();
+    
+    init$.pipe(
+      switchMap(() => this.currentGraphChange$.pipe(filter(g => !!g), distinctUntilChanged(equal))),
+      switchMap(g => interval(300).pipe(map(() => g), takeUntil(reInit$))),
+      map(graph => {
+        let positions = {};
+        this.graphIndexName = graph.graphIndex.length ? graph.graphIndex[0] : null;
+
+        Object.keys(graph.nodes).forEach(nodeName => {
+          positions[nodeName] = {...graph.nodes[nodeName].position};
+
+          if (graph.nodes[nodeName].class === 'application' && !this.applicationNodes.has(nodeName)) {
+            this.applicationNodes.add(nodeName);
+          }
+        });
+
+        if (this.graphIndexName && !this.flowDataService[`initialPositions_${this.flowFilter.topology}`][this.graphIndexName]) {
+          this.flowDataService[`initialPositions_${this.flowFilter.topology}`][this.graphIndexName] = positions;
+        } else if (!this.flowDataService[`initialPositions_${this.flowFilter.topology}`].generalView) {
+          this.flowDataService[`initialPositions_${this.flowFilter.topology}`].generalView = positions;
+        }
+
+        this.flowFilter.topology === 'ltrTree' ? 
+          this.flowDataService.lastTreeTopologyPositions = positions : 
+          this.flowDataService.lastStarTopologyPositions = positions;
+        
+        return this.adjustNodePositions(positions) ?? positions;
+      }),
+      distinctUntilChanged(equal),
+      switchMap(positions => this.updatePositions(positions)),
+      takeUntil(this.destroy$),
+    ).subscribe();
+
+    combineLatest([
+      this.tabStorageService.getData().pipe(filter(f => !!f)),
+      init$,
+    ]).pipe(
+      tap(([{topology}]) => {
+        if (this.flowFilter && topology !== this.flowFilter?.topology) {
+          topology === 'ltrTree' ? 
+            this.reInitVizceral(this.flowDataService.lastTreeTopologyPositions) : 
+            this.reInitVizceral(this.flowDataService.lastStarTopologyPositions);
+        }
+      }),
+      map(([{topology, nodes, rpsType, rpsVal}]) => {
+        this.flowFilter = {topology, nodes, rpsType, rpsVal};
+        return [
+          {
+            name: 'name',
+            type: 'node',
+            passes: (node, value: string[]) => !value.length || value.some(name => name === node.name) || this.filterNodeByConnection(node, value),
+            value: (nodes || []).map(({id}) => id),
+          },
+          {
+            name: 'rpsFilter',
+            type: 'connection',
+            passes: (connection: ConnectionDetailsModel, filter: {
+              type: 'all' | 'more' | 'less' | 'equal';
+              value: number;
+            }) => {
+              if ([null, undefined].includes(filter.value)) {
+                return connection;
+              }
+              
+              switch (filter.type) {
+                case 'more':
+                  return connection.volumeTotal > filter.value ? connection : null;
+                case 'less':
+                  return connection.volumeTotal < filter.value ? connection : null;
+                case 'equal':
+                  return connection.volumeTotal === filter.value ? connection : null;
+                default:
+                  return connection;
+              }
+            },
+            value: {
+              type: rpsType,
+              value: rpsVal,
+            },
+          },
+        ];
+      }),
+      takeUntil(this.destroy$),
+    ).subscribe(filters => this.vizceralComponent?.vizceral().setFilters(filters));
     
     this.selectedNode$
       .pipe(
@@ -237,198 +279,304 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
         withLatestFrom(this.traffic$),
       )
       .subscribe(([selectedItem, traffic]: [VizceralNode | VizceralConnection | null, any]) => {
-        switch (selectedItem?.type) {
-          case 'connection':
-            this.appStore.dispatch(
-              SetActiveNode({
-                node: new ConnectionDetailsModel(selectedItem, traffic),
-              }),
-            );
-            break;
-          case 'node':
-            this.appStore.dispatch(
-              SetActiveNode({
-                node: new NodeDetailsModel(selectedItem, traffic),
-              }),
-            );
-            break;
-          default:
-            this.appStore.dispatch(ClearActiveNode());
+        if (!selectedItem?.type) {
+          this.appStore.dispatch(ClearActiveNode());
+          return;
         }
+        
+        const node = selectedItem?.type === 'connection' ?
+          new ConnectionDetailsModel(selectedItem, traffic) :
+          new NodeDetailsModel(selectedItem, traffic);
+        
+        this.appStore.dispatch(SetActiveNode({node}));
       });
   }
+
+
+  private adjustNodePositions(positions: NodePositions) {
+    const allNodeNames = Object.keys(positions);
+
+    const nodesOutOfView = {};
+    const nodesOverlappedWithGraphIndex = [];
+    const nodesAtTheCenter = [];
+    const stickyNodes = {};
+
+    const {width, height} = this.hostElement.nativeElement.querySelector('canvas').closest('div').getBoundingClientRect();
+    const canvasSidesRatio = width && height ? + (width / height).toFixed(2) : 0;
+    
+    allNodeNames.forEach(nodeName => {
+      // nodes out of view
+      nodesOutOfView[nodeName] = {x: false, y: false};
+      if (!this.canvasSidesRatio || canvasSidesRatio !== this.canvasSidesRatio) {
+        const coordinateY = Math.abs(positions[nodeName].y);
+        if (coordinateY >= (nodeName === this.graphIndexName ? 430 : 530) && canvasSidesRatio > this.canvasSidesRatio) {
+          nodesOutOfView[nodeName].y = true;
+        }
+        const coordinateX = Math.abs(positions[nodeName].x);
+        if (coordinateX >= (nodeName === this.graphIndexName ? 600 : 700) && canvasSidesRatio < this.canvasSidesRatio) {
+          nodesOutOfView[nodeName].x = true;
+        }
+      }
+
+      // nodes overlapping with index node
+      if (this.graphIndexName) {
+        const params = {
+          positions,
+          nodeName,
+          targetNodeName: this.graphIndexName,
+          targetIsIndexNode: true,
+        }
+        if (filterNodesWithCloseCoordinate({...params, coordinate: 'x'}) && 
+          filterNodesWithCloseCoordinate({...params, coordinate: 'y'}) && nodeName !== this.graphIndexName) {
+            nodesOverlappedWithGraphIndex.push(nodeName);
+        }
+      }
+
+      // nodes at the center (default view)
+      if (!this.flowFilter.nodes.length && !this.flowFilter.rpsVal && !this.graphIndexName) {
+        if (Math.abs(positions[nodeName].x) < 100 && Math.abs(positions[nodeName].y) < 100) {
+          nodesAtTheCenter.push(nodeName);
+        }
+      }
+
+      // sticky nodes
+      const closeNode = Object.keys(stickyNodes).find(targetNodeName => {
+        const params = {
+          positions,
+          nodeName,
+          targetNodeName,
+        }
+        return (filterNodesWithCloseCoordinate({...params, coordinate: 'x'}) && 
+              filterNodesWithCloseCoordinate({...params, coordinate: 'y'}));
+      })
+      if (closeNode) {
+        stickyNodes[closeNode] = (!stickyNodes[closeNode] || !stickyNodes[closeNode].length) ? 
+          [nodeName] : [...stickyNodes[closeNode], nodeName]
+      } else {
+        stickyNodes[nodeName] = [];
+      }
+    })
+
+    if (!Object.keys(nodesOutOfView).length && !nodesOverlappedWithGraphIndex.length && 
+      this.defaultViewNodesSeparated && !Object.keys(stickyNodes).length) {
+        return null;
+    }
+
+    if (!!Object.keys(nodesOutOfView).length) {
+      positions = this.setNodesIntoView(nodesOutOfView, positions);
+    }
+
+    if (!!nodesOverlappedWithGraphIndex.length) {
+      positions = this.fixIndexNodeOverlapping(positions, nodesOverlappedWithGraphIndex);
+    }
+
+    if (!this.defaultViewNodesSeparated) {
+      positions = this.setDefaultPositions(positions, nodesAtTheCenter);
+    } else if (!!Object.keys(stickyNodes).length) {
+      positions = this.separateStickyNodes(positions, stickyNodes);
+    }
+
+    this.canvasSidesRatio = canvasSidesRatio;
+    return positions;
+  }
+
+  private setNodesIntoView(nodesOutOfView: NodesOutOfView, positions: NodePositions) {
+    let maxX = 700;
+    let maxY = 530;
+    const step = 30;
+    Object.entries(nodesOutOfView).forEach(([nodeName, coords]) => {
+      if ((coords as NodeCoordinatesOutOfView).y) {
+        if (nodeName === this.graphIndexName) {
+          positions[nodeName].y = positions[nodeName].y < 0 ? -400 : 400;
+        } else {
+          positions[nodeName].y = positions[nodeName].y < 0 ? -maxY : maxY;
+        }
+      }
+      if ((coords as NodeCoordinatesOutOfView).x) {
+        if (nodeName === this.graphIndexName) {
+          positions[nodeName].x = positions[nodeName].x < 0 ? -600 : 600;
+        } else {
+          positions[nodeName].x = positions[nodeName].x < 0 ? -maxX : maxX;
+        }
+      }
+    })
+    return positions;
+  }
+
+  private fixIndexNodeOverlapping(positions: NodePositions, nodesOverlappedWithGraphIndex: string[]) {
+    nodesOverlappedWithGraphIndex.forEach(nodeName => {
+      positions[nodeName].y >= 0 ? positions[nodeName].y -= 300 : positions[nodeName].y += 300;
+      positions[nodeName].x >= 0 ? positions[nodeName].x -= 15 : positions[nodeName].x += 15;
+    });
+    return positions;
+  }
+
+  private setDefaultPositions(positions: NodePositions, nodesAtTheCenter: string[]) {
+    if (!nodesAtTheCenter.length) {
+      this.defaultViewNodesSeparated = true;
+      return positions;
+    }
+
+    const allCoordinates = Object.values(positions)
+      .map((coords: NodeCoordinates) => ({ x: Math.round(coords.x), y: Math.round(coords.y) }));
+      
+    if (this.flowFilter.topology === 'ltrTree') {
+    
+      const centeredNodesYCoords = allCoordinates
+        .filter((coords: NodeCoordinates) => coords.x === 0)
+        .map((coords: NodeCoordinates) => coords.y);
+      const [minY, maxY] = [Math.min(...centeredNodesYCoords), Math.max(...centeredNodesYCoords)];
+    
+      const step = (maxY - minY) / (nodesAtTheCenter.length + 1);
+      let tempY = minY + step;
+    
+      nodesAtTheCenter.forEach(nodeName => {
+        positions[nodeName] = {x: -100, y: tempY};
+        tempY += step;
+      })
+    
+      Array.from(this.applicationNodes).forEach(nodeName => positions[nodeName] = {...positions[nodeName], x: 100});
+    } else {
+      const allXCoords = Object.values(positions).map((coords: NodeCoordinates) => coords.x);
+      const allYCoords = Object.values(positions).map((coords: NodeCoordinates) => coords.y);
+
+      let upSideNode: NodeCoordinates,
+          downSideNode: NodeCoordinates,
+          rightSideNode: NodeCoordinates
+    
+      upSideNode = allCoordinates.find((coords: NodeCoordinates) => coords.y > 100 && coords.x < 150 && coords.x > -150);
+      if (upSideNode) {
+        downSideNode = allCoordinates.find((coords: NodeCoordinates) => coords.y < -100 && coords.x < 150 && coords.x > -150);
+      }
+      if (upSideNode && downSideNode) {
+        rightSideNode = allCoordinates.find((coords: NodeCoordinates) => coords.x > 100 && coords.y < 100 && coords.y > -100);
+      }
+    
+      const stepsNumber = nodesAtTheCenter.length - 1;
+      let tempX: number, 
+          tempY: number, 
+          stepX: number, 
+          stepY: number
+    
+      if (!upSideNode) {
+        tempY = Math.max(...allYCoords) - 40;
+        tempX = 0;
+        stepY = (Math.round(tempY) - 100) / stepsNumber;
+        stepX = 100 / stepsNumber;
+      } else if (!downSideNode) {
+        tempY = Math.min(...allYCoords) + 40;
+        tempX = 0;
+        stepY = (Math.round(tempY) + 100) / stepsNumber;
+        stepX = -100 / stepsNumber;
+      } else if (!rightSideNode) {
+        tempX = Math.max(...allXCoords) - 40;
+        tempY = 150;
+        stepX = (Math.round(tempX) - 100) / stepsNumber;
+        stepY = 300 / stepsNumber;
+      } else {
+        tempX = Math.min(...allXCoords) + 40;
+        tempY = 100;
+        stepX = (Math.round(tempX) + 100) / stepsNumber;
+        stepY = 300 / stepsNumber;
+      }
+      nodesAtTheCenter.forEach(nodeName => {
+        positions[nodeName] = {x: tempX, y: tempY};
+        tempY -= stepY;
+        tempX -= stepX;
+      })
+    }
+    this.defaultViewNodesSeparated = true;
+    return positions;
+  }
+
+  private separateStickyNodes(positions: NodePositions, stickyNodes: {[key: string]: string[]}) {
+    Object.entries(stickyNodes).forEach(([targetNode, closeNodes]) => {
+      if (!(closeNodes as string[])?.length) {
+        return;
+      }
+      const {x, y} = positions[targetNode]
+      const stepX = +x <= 0 ? 40 : -30;
+      const stepY = +y <= 0 ? 60 : -50;
+      let tempX = +x + stepX;
+      let tempY = +y + stepY;
+
+      (closeNodes as string[]).forEach((nodeName: string) => {
+        positions[nodeName] = { x: tempX, y: tempY };
+        tempX += stepX;
+        tempY += stepY;
+      })
+    })
+    return positions;
+  }
   
-  
-  viewUpdated(event) {
-    // no arguments
-    // console.log(`[view Updated]`, event);
+  filterNodeByConnection(node, value: string[]): boolean {
+    const CONNECTIONS = [...(node.incomingConnections || []), ...(node.outgoingConnections || [])];
+    const result = CONNECTIONS.some(connection => {
+      return (connection?.source?.name && value.some(name => name === connection.source.name)) ||
+        (connection?.target?.name && value.some(name => name === connection.target.name));
+    });
+    return result;
   }
   
   objectHighlighted(event: VizceralNode | VizceralConnection | null) {
-    // event = node or connection
-    // console.log(`object highlighted`, event);
-    this.objectToHighlight = event;
-    this.selectedNode$.next(event);
-    // if (event) {
-    // }
+    this.objectHighlighted$.next(event ? {type: event.type, name: event.name} : null);
   }
   
   viewChanged(event) {
-    console.log(`[view changed]`, event);
-    
     this.path = event.view;
-    
     const graph: any = event.graph as any;
     if (!!graph) {
-      // console.log("GRAPH:");
-      // console.log(graph);
-      this.currentGraph = event.graph;
-      
-      graph.setPhysicsOptions({
-        ...graph.getPhysicsOptions(),
-        isEnabled: this.particleSystemEnabled,
-      });
+      this.currentGraphChange$.next(event.graph);
+      graph.setPhysicsOptions({...graph.getPhysicsOptions(), isEnabled: false});
     } else {
-      this.currentGraph = null;
+      this.currentGraphChange$.next(null);
     }
-    
-    (this.vizceralComponent?.vizceral() as any)?.updateStyles({
-      colorTraffic: COLOR_TRAFFIC,
-    });
-    
-    // this.cdRef.detectChanges();
-  }
-  
-  toggleParticleSystem() {
-    this.particleSystemEnabled = !this.particleSystemEnabled;
-    
-    if (!!this.currentGraph) {
-      this.currentGraph.setPhysicsOptions({
-        ...this.currentGraph.getPhysicsOptions(),
-        isEnabled: this.particleSystemEnabled,
-      });
-    }
-  }
-  
-  matchesFound() {
-    // console.log('matches found');
-  }
-  
-  nodeContextSizeChanged() {
-    // console.log('node Context Size Changed');
-  }
-  
-  public onLocate(searchText: string) {
-    this.vizceralComponent.locate(searchText);
+    this.defaultViewNodesSeparated = false;
   }
   
   breadCrumbClicked(newPath: string[]) {
-    // console.log(`Changing view to [${newPath}]`);
     this.path = newPath;
     this.vizceralComponent.setView(newPath);
   }
   
-  configureParticleSystem() {
-    // this.simpleModalService
-    //   .addModal(CreateOrderComponent, {
-    //     // title: `Leave page`,
-    //     // message: `Are you sure you want to leave page without saving changes?`,
-    //     // confirmWord: 'Stay and continue editing',
-    //     // rejectWord: 'Leave without saving',
-    //   }).subscribe();
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
   
-  resetLayout() {
-    this.typedText = null;
-    if (this.currentGraph) {
-      this.currentGraph._relayout();
+  onViewUpdated() {
+    this.viewUpdated$.next();
+    this.vizceralInit$.next(true);
+  }
+
+  reInitVizceral(positions = {}, resetLayout = false) {
+    this.currentGraphChange$.next(null);
+    this.renderVisceral = false;
+    this.cdRef.detectChanges();
+    this.vizceralInit$.next(false);
+    let positionsToUpdate: NodePositions;
+    if (resetLayout) {
+      positionsToUpdate = this.flowDataService[`initialPositions_${this.flowFilter.topology}`][this.graphIndexName ?? 'generalView'];
+      if (!positionsToUpdate) {
+        positionsToUpdate = this.flowDataService['initialPositions_ltrTree']['generalView'];
+        this.tabStorageService.updateDataSync((data) => ({
+          ...data,
+          topology: 'ltrTree',
+        }))
+      }
+    } else {
+      positionsToUpdate = positions;
     }
-    
-    this.renderVars = {
-      ...this.renderVars,
-      resetLayout: true,
-    };
-    this.cdRef.detectChanges();
-    this.renderVars = {
-      ...this.renderVars,
-      resetLayout: false,
-    };
-    this.cdRef.detectChanges();
+
+    (this.updatePositions(positionsToUpdate)).pipe(
+      delay(100),
+    ).subscribe(() => {
+      this.renderVisceral = true;
+      this.cdRef.detectChanges();
+    });
   }
   
-  public hideDetailsPanel() {
-    this.toggleDetailsPanel(false);
-  }
-  
-  private getTrafficFlow() {
-    console.log('Requesting traffic from server: ');
-    this.flowDataService
-      .getFlowDataByRequest$()
-      .pipe(
-        // withLatestFrom(this.flowFilter$.pipe(filter(Boolean))),
-        // map(([trafficData, flowFilter]: [TrafficModel, string[]]) => {
-        //   return trafficData;
-        //   // if (!flowFilter?.length) return trafficData;
-        //   // return {
-        //   //   ...trafficData,
-        //   //   nodes: trafficData.nodes.filter((node) =>
-        //   //     flowFilter.some((name) => name === node.name),
-        //   //   ),
-        //   //   connections: trafficData.connections.filter((connection) =>
-        //   //     flowFilter.some((name) => name === connection.source || name === connection.target),
-        //   //   ),
-        //   // };
-        // }),
-        takeUntil(this.destroy$),
-      )
-      .subscribe(
-        (trafficData: TrafficModel) => {
-          // this.ngxService.stopLoader('loader-07');
-          // console.log('HTTP: Received traffic from server');
-          this.traffic$.next({...trafficData});
-          // this.cdRef.detectChanges();
-        },
-        (e) => {
-          // this.alertsService.processError('Error getting flow chart!', e);
-          console.error(e);
-        },
-      ); // , () => {this.updateGraph()}
-  }
-  
-  private subscribeWs() {
-    // combineLatest([this.flowDataService.getFlowData$(), this.flowFilter$.pipe(filter(Boolean))])
-    //   .pipe(
-    //     map(([trafficData, flowFilter]: [TrafficModel, string[]]) => {
-    //       if (!flowFilter?.length) return trafficData;
-    //       return {
-    //         ...trafficData,
-    //         nodes: trafficData.nodes.filter((node) =>
-    //           flowFilter.some((name) => name === node.name),
-    //         ),
-    //         connections:
-    //           flowFilter.length <= 1
-    //             ? []
-    //             : trafficData.connections.filter((connection) =>
-    //                 flowFilter.some(
-    //                   (name) =>
-    //                     name === connection.source &&
-    //                     flowFilter.some((name) => name === connection.target),
-    //                 ),
-    //               ),
-    //       };
-    //     }),
-    //   )
-    this.flowDataService.getFlowData$()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((trafficData: TrafficModel) => {
-        // console.log('WS (pooling): Received traffic snapshot from server');
-        // console.log(trafficData?.nodes?.filter(data => data.name === '<none>')[0]); // TODO: Delete this before checkIN
-        this.traffic$.next({...trafficData});
-        // this.cdRef.detectChanges();
-      });
-  }
-  
-  private toggleDetailsPanel(show: boolean): void {
-    this.detailsOff = !show;
+  private updatePositions(positions: NodePositions): Observable<boolean> {
+    return this.tabStorageService.flow('node-positions').updateData(() => positions);
   }
 }

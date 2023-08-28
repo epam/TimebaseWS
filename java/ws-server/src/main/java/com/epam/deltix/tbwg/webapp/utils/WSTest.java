@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,25 +14,26 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.utils;
+package com.epam.deltix.tbwg.webapp.utils;
 
 import com.epam.deltix.spring.apikeys.ApiKeysAuthenticationService;
-import org.asynchttpclient.AsyncHttpClient;
-import org.asynchttpclient.Request;
-import org.asynchttpclient.RequestBuilder;
-import org.asynchttpclient.ws.WebSocket;
-import org.asynchttpclient.ws.WebSocketListener;
-import org.asynchttpclient.ws.WebSocketUpgradeHandler;
+import org.springframework.web.socket.*;
+import org.springframework.web.socket.client.WebSocketClient;
+import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 
+import javax.websocket.ContainerProvider;
+import javax.websocket.WebSocketContainer;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.URI;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.asynchttpclient.Dsl.asyncHttpClient;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
  * Created by Alex Karpovich on 7/11/2018.
@@ -45,7 +46,7 @@ public class WSTest {
     private static final String API_KEY = "TEST_API_KEY";
     private static final String API_SECRET = "TEST_API_SECRET";
 
-    public static void main(String[] args) throws InterruptedException, IOException, ExecutionException {
+    public static void main(String[] args) throws InterruptedException, IOException, ExecutionException, TimeoutException {
         Properties values = SimpleArgsParser.process(args);
         toFile = Boolean.parseBoolean(values.getProperty("-tofile", "False"));
         String url = values.getProperty("-url", "ws://localhost:8099/ws/v0/BINANCE/select");
@@ -55,23 +56,23 @@ public class WSTest {
         }
         final Statistics stats = new Statistics();
         long start = System.currentTimeMillis();
-        AsyncHttpClient client = asyncHttpClient();
         CountDownLatch latch = new CountDownLatch(clients);
 
         final String signature = ApiKeyUtils.buildSignature("GET", "/ws/v0/BINANCE/select", null, API_SECRET);
 
-        Request request = new RequestBuilder()
-            .setUrl(url)
-            .setMethod("GET")
-//            .addHeader("Authorization", "bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MzU0OTYzNjIsInVzZXJfbmFtZSI6ImFkbWluIiwiYXV0aG9yaXRpZXMiOlsiVEJfQUxMT1dfUkVBRCIsIlRCX0FMTE9XX1dSSVRFIl0sImp0aSI6ImJkNGY2NmM5LWUwM2YtNDVhYS1hNDE5LWFmNDVhMjA2M2RmYyIsImNsaWVudF9pZCI6IndlYiIsInNjb3BlIjpbInRydXN0Il19.b_hbqgGsbt3vN6pWeUPh97SdXTuYyf5xS5D6spX0bEAi1U31PLEZ4OL7O3WNgJ40xmjLf9hFhsHBkfU5iZBcpNREfhRYeKFMZr_k4ePUypx6FYeosUCEKCHXQpcDLv1rNyOC3EjVcST3iwQky9RnsX-5mRGQmJWAC692-yd1cLKvKMbK29TEyfSgsUzniQr8qaBFmAXzh4MzmK0ldl41Ac66TPApyt6Xl6iVrQL_LP4jdE9AB_L9mZPWltUT_kcs-u0w6qrjc9q7hE1b5pPDFL3f7wCs2-n5tKpNwE4_vm-_Xe7-f8jSK00X5WOVsBE25RhfHyIgjs0_yhL4rB0lFG8HMP7vnKcUm1z2B7bPE9ckTowx2QNpVXMQlYSf3OqWfOt44ln3kXY-roW1XyY1hiHDAYkGqCI9iDr_iJ6TcMILz9-GWCQ4C87zOFrQlpJ6VwlSWLxAsgtweSEbWLvXLyx-TB_5pUcnLmzTRz4Rm0mNj5xWFcX1tT44qYrKUsUC0i2HgFy-j0SWiKE1Q0WrMk_GYGg10XMBL_w4xrAl3ZIalWg-o3lYNEUNGIMU8TAe_RxDMKFqiCbC2ImQK__TJLdk78zOvlSVmeVmIG3rRqtPvpxOn15m0eScN3MUvVdsDJnmgjHJunPDiLV5UiRi1BlEiKhygm9_06JwaC_xqE4")
-            .setHeader(ApiKeysAuthenticationService.API_KEY_HEADER, API_KEY)
-            .setHeader(ApiKeysAuthenticationService.SIGNATURE_HEADER, signature)
-            .build();
+        WebSocketClient client = createWebSocketClient();
+
+        WebSocketHttpHeaders headers = new WebSocketHttpHeaders();
+//        headers.add(ApiKeysAuthenticationService.API_KEY_HEADER, API_KEY);
+//        headers.add(ApiKeysAuthenticationService.SIGNATURE_HEADER, signature);
+        // todo: request token by user and password
+        headers.add("Authorization", "bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NzA4NDQ3NTYsInVzZXJfbmFtZSI6ImFkbWluIiwiYXV0aG9yaXRpZXMiOlsiVEJfQUxMT1dfUkVBRCIsIlRCX0FMTE9XX1dSSVRFIl0sImp0aSI6InlST2pra0ZxRDVFbFRPRW9yY1oxQ0pKYmV5ayIsImNsaWVudF9pZCI6IndlYiIsInNjb3BlIjpbInRydXN0Il19.LT-qG_Ph9s8XmW7zgAXqRF1ufJkaYUrMACucejFByxLe_5ZQq7M9pbqopUpJ1ELTzy-0oXPG_CA-8uBUVD6VoNOFn0coDxBedO0qrkGL0oy7ozQVwYk4P7sgkvNUOoUAgPgvb9L0yF-QDLiDV3pjNeWC75zZ758jns_5HfsmZy4yd6DPjaFQYnb5m7fMxxJiJWdT-8NQzLImVWxks9Rx45g4V-rCaXoT1bZ4LS1ZIyCBD5RsAWkYwmsY4KviJuvLdjcG0eH0IfuYyDLDusyxO9xauowSYRAxNuNBQ0Dymlya9GXlc_X8yNITA8panxh1ZKJWUb7N7VsBjBfgPf_BnQ");
         for (int i = 0; i < clients; i++) {
-                client.prepareRequest(request)
-                        .execute(new WebSocketUpgradeHandler.Builder()
-                                .addWebSocketListener(new WebSocketClient(stats, latch))
-                                .build()).toCompletableFuture().join();
+            client.doHandshake(
+                new Handler(stats, latch),
+                headers,
+                URI.create(url)
+            ).get(100, SECONDS);
         }
         latch.await();
         stats.print(start);
@@ -79,6 +80,13 @@ public class WSTest {
             writer.close();
         }
         System.exit(0);
+    }
+
+    private static WebSocketClient createWebSocketClient() {
+        final WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+        container.setDefaultMaxBinaryMessageBufferSize(512 * 1024);
+        container.setDefaultMaxTextMessageBufferSize(512 * 1024);
+        return new StandardWebSocketClient(container);
     }
 
     public final static class Statistics {
@@ -113,7 +121,7 @@ public class WSTest {
         }
     }
 
-    public static class WebSocketClient implements WebSocketListener {
+    public static class Handler implements WebSocketHandler {
 
         private static long ID = 0;
         private long id;
@@ -123,19 +131,32 @@ public class WSTest {
         private long start = 0;
         private final CountDownLatch latch;// = new CountDownLatch(1);
 
-        public WebSocketClient(Statistics stats, CountDownLatch latch) {
+        public Handler(Statistics stats, CountDownLatch latch) {
             this.stats = stats;
             id = ID++;
             this.latch = latch;
         }
 
         @Override
-        public void onOpen(WebSocket websocket) {
+        public void afterConnectionEstablished(WebSocketSession session) throws Exception {
             start = System.currentTimeMillis();
         }
 
         @Override
-        public void onClose(WebSocket websocket, int code, String reason) {
+        public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
+            stats.addMessages();
+            stats.addBytes(message.getPayloadLength());
+            count++;
+            bytes += message.getPayloadLength();
+        }
+
+        @Override
+        public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
+            exception.printStackTrace();
+        }
+
+        @Override
+        public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
             double s = (System.currentTimeMillis() - start) * 0.001;
             System.out.printf(
                     "Session[%d]: %d messages in %.3fs; speed: %.3f msg/s, %.3f Mib/sec\n",
@@ -157,18 +178,9 @@ public class WSTest {
         }
 
         @Override
-        public void onError(Throwable t) {
-            t.printStackTrace();
-        }
-
-        @Override
-        public void onTextFrame(String payload, boolean finalFragment, int rsv) {
-            stats.addMessages();
-            stats.addBytes(payload.length());
-            count++;
-            bytes += payload.length();
+        public boolean supportsPartialMessages() {
+            return false;
         }
     }
-
 
 }

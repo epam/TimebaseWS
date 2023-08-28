@@ -9,7 +9,7 @@ import {AngularSplitModule} from 'angular-split';
 import {AccordionModule} from 'ngx-bootstrap/accordion';
 import {BsDropdownModule} from 'ngx-bootstrap/dropdown';
 import {ModalModule} from 'ngx-bootstrap/modal';
-import {ContextMenuModule} from 'ngx-contextmenu';
+import {ContextMenuModule} from '@perfectmemory/ngx-contextmenu';
 import {MonacoEditorModule} from 'ngx-monaco-editor';
 import {AppRoutingModule} from './app-routing.module';
 import {AppComponent} from './core/components/app/app.component';

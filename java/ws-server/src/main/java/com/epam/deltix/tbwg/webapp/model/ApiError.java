@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,20 +14,62 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model;
+package com.epam.deltix.tbwg.webapp.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import org.springframework.http.HttpStatus;
+
+import java.time.Instant;
+import java.util.Arrays;
 
 public class ApiError {
 
+    private Instant timestamp;
+    private String type;
+    private String message;
+    private String[] stackTrace;
+    private int status;
     private String error;
 
-    @JsonProperty("error_description")
-    private String errorDescription;
+    public ApiError() {
+    }
 
-    public ApiError(String error, String errorDescription) {
-        this.error = error;
-        this.errorDescription = errorDescription;
+    public ApiError(Exception e, HttpStatus status) {
+        this.timestamp = Instant.now();
+        this.type = e.getClass().getTypeName();
+        this.message = e.getMessage();
+        this.stackTrace = getStackTrace(e);
+        this.status = status.value();
+        this.error = status.getReasonPhrase();
+    }
+
+    private static String[] getStackTrace(Exception e) {
+        return Arrays.stream(e.getStackTrace())
+                .map(StackTraceElement::toString)
+                .toArray(String[]::new);
+    }
+
+    public Instant getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Instant timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String errorMessage) {
+        this.message = errorMessage;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
     }
 
     public String getError() {
@@ -38,16 +80,19 @@ public class ApiError {
         this.error = error;
     }
 
-    public String getErrorDescription() {
-        return errorDescription;
+    public String[] getStackTrace() {
+        return stackTrace;
     }
 
-    public void setErrorDescription(String errorDescription) {
-        this.errorDescription = errorDescription;
+    public void setStackTrace(String[] stackTrace) {
+        this.stackTrace = stackTrace;
     }
 
-    public static ApiError from(final String error, final Throwable exception) {
-        return new ApiError(error, exception.getMessage());
+    public String getType() {
+        return type;
     }
 
+    public void setType(String type) {
+        this.type = type;
+    }
 }

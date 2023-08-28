@@ -1,0 +1,12 @@
+<div class="control-panel d-flex">
+  <div *ngIf="view"  [formControl]="viewControl" btnRadioGroup class="btn-group radio-group">
+    <button btnRadio="query" class="btn btn-default">
+      {{ 'describeModal.switcher.query' | translate }}
+    </button>
+    <button btnRadio="schema" class="btn btn-default">
+      {{ 'describeModal.switcher.schema' | translate }}
+    </button>
+  </div>
+  <ng-content></ng-content>
+</div>
+<pre>{{ content$ | async }}</pre>

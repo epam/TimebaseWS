@@ -6,9 +6,8 @@ import {SimpleModalModule} from '../../../modal/simple-modal.module';
 import {ConfirmModalComponent} from './confirm-modal.component';
 
 @NgModule({
-  declarations: [ConfirmModalComponent],
-  exports: [ConfirmModalComponent],
-  entryComponents: [ConfirmModalComponent],
-  imports: [SimpleModalModule, TooltipModule, TranslateModule, CommonModule],
+    declarations: [ConfirmModalComponent],
+    exports: [ConfirmModalComponent],
+    imports: [SimpleModalModule, TooltipModule, TranslateModule, CommonModule]
 })
 export class ConfirmModalModule {}

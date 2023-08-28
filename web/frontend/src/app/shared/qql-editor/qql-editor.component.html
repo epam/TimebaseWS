@@ -1,0 +1,18 @@
+<div class="monaco-wrapper">
+  <ngx-monaco-editor
+      [formControl]="control"
+      (onInit)="editorInit($event)"
+      [options]="editorOptions"
+  ></ngx-monaco-editor>
+  <div *ngIf="selfControl" [class.alert-danger]="selfControl.invalid || selfControl.pending" [class.alert-success]="selfControl.valid" class="alert qql-alert">
+    <ng-container *ngIf="selfControl.hasError('queryError') || selfControl.pending">
+      {{ queryError }}
+    </ng-container>
+    <ng-container *ngIf="selfControl.hasError('required')">
+      {{ 'createViewModal.queryIsEmpty' | translate }}
+    </ng-container>
+    <ng-container *ngIf="selfControl.valid">
+      {{ 'createViewModal.queryIsValid' | translate }}
+    </ng-container>
+  </div>
+</div>

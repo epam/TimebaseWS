@@ -126,7 +126,7 @@ export function timeZoneOffsetToString(offset: number): string {
 
 export function isoToHdDate(dateStr: string, tz: string): HdDate {
   const date = new HdDate(dateStr);
-  const deviceOffset: number = date.getTimezoneOffset();
+  const deviceOffset: number = new Date().getTimezoneOffset();
   const timezoneOffset = getTimeZoneOffset(tz, dateStr);
   date.setMinutes(date.getMinutes() + timezoneOffset + deviceOffset);
   return date;
@@ -144,7 +144,7 @@ export function hdDateToISO(date: HdDate, tz: string): string {
     date.getMicroseconds(),
     date.getNanoseconds(),
   );
-  temp.setMinutes(temp.getMinutes() - temp.getTimezoneOffset());
+  temp.setMinutes(temp.getMinutes() - new Date().getTimezoneOffset());
   const offset = getTimeZoneOffset(tz, date.getEpochMillis());
   temp.setMinutes(temp.getMinutes() - offset);
   return temp.toHdISOString();
@@ -160,7 +160,7 @@ export function hdDateToUTC(date: HdDate, tz: string): HdDate {
     date.getSeconds(),
     date.getMilliseconds(),
   );
-  temp.setMinutes(temp.getMinutes() - temp.getTimezoneOffset());
+  temp.setMinutes(temp.getMinutes() - new Date().getTimezoneOffset());
   const offset = getTimeZoneOffset(tz, date.getEpochMillis());
   temp.setMinutes(temp.getMinutes() - offset);
   return temp;
@@ -168,7 +168,7 @@ export function hdDateToUTC(date: HdDate, tz: string): HdDate {
 
 export function dateToUTC(date: Date, tz: string): Date {
   const temp = new HdDate(date.getTime());
-  temp.setMinutes(temp.getMinutes() - temp.getTimezoneOffset());
+  temp.setMinutes(temp.getMinutes() - new Date().getTimezoneOffset());
   const offset = getTimeZoneOffset(tz, date.getTime());
   temp.setMinutes(temp.getMinutes() - offset);
   return new Date(temp.getEpochMillis());
@@ -177,7 +177,7 @@ export function dateToUTC(date: Date, tz: string): Date {
 export const setTimeZone = (date: HdDate, offset: number = 0) => {
   const newDate = new HdDate(date);
   newDate.setMilliseconds(
-    newDate.getMilliseconds() + (new HdDate().getTimezoneOffset() + offset) * 60 * 1000,
+    newDate.getMilliseconds() + (new Date().getTimezoneOffset() + offset) * 60 * 1000,
   );
   return newDate;
 };
@@ -194,7 +194,7 @@ export function hdDateTZ(date: HdDate, tz: string): HdDate {
     date.getMicroseconds(),
     date.getNanoseconds(),
   );
-  temp.setMinutes(temp.getMinutes() - temp.getTimezoneOffset());
+  temp.setMinutes(temp.getMinutes() - new Date().getTimezoneOffset());
   const offset = getTimeZoneOffset(tz, date.getEpochMillis());
   temp.setMinutes(temp.getMinutes() + offset);
   return temp;
@@ -212,7 +212,7 @@ export function hdDateToTZ(date: HdDate, tz: string): HdDate {
     date.getMicroseconds(),
     date.getNanoseconds(),
   );
-  temp.setMinutes(temp.getMinutes() + temp.getTimezoneOffset());
+  temp.setMinutes(temp.getMinutes() + new Date().getTimezoneOffset());
   const offset = getTimeZoneOffset(tz, date.getEpochMillis());
   temp.setMinutes(temp.getMinutes() + offset);
   return temp;

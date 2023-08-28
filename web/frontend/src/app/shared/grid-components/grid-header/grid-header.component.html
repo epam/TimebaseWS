@@ -1,12 +1,19 @@
 <div [class.dropdown-open]="dropdownOpen" class="ag-cell-label-container">
   <div>
     <i
-        (click)="onDropDownToggle($event)"
-        *ngIf="displayName && !(disableColumns$ | async)"
-        class="ag-icon ag-icon-menu columns-icon"></i>
+      (click)="onDropDownToggle($event)"
+      *ngIf="displayName && !(disableColumns$ | async)"
+      class="ag-icon ag-icon-menu columns-icon"></i>
   </div>
   <div class="ag-header-cell-label">
-    {{ displayName }}
+    <span>{{ displayName }}</span>
+    <button *ngIf="sortable" class="toggle-sorting-button" (click)="toggleSortingType()">
+      <span [ngSwitch]="sorting">
+        <span *ngSwitchCase="'none'" class="toggle-sorting-button-arrow">&#8597;</span>
+        <span *ngSwitchCase="'ascending'" class="toggle-sorting-button-arrow">&#8593;</span>
+        <span *ngSwitchCase="'descending'" class="toggle-sorting-button-arrow">&#8595;</span>
+      </span>
+    </button>
   </div>
 </div>
 

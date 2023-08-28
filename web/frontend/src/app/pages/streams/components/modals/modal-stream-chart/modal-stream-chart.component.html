@@ -1,0 +1,27 @@
+<app-modal>
+  <ng-container title>
+    {{ 'streamChartModal.openChartOfStream' | translate : {stream: item} }}
+  </ng-container>
+  <ng-container [formGroup]="form" content>
+    <div class="form-group">
+      <label>{{ 'streamChartModal.symbol' | translate }}</label>
+      <app-multi-select
+          formControlName="symbol"
+          [placeholder]="'streamChartModal.chooseSymbol' | translate"
+          [flat]="true"
+          [single]="true"
+          [items]="symbols$ | async"
+      ></app-multi-select>
+    </div>
+    <label class="container-ch">
+      <input formControlName="newTab" type="checkbox" />
+      <span class="checkmark"></span>
+      {{ 'buttons.open_in_new_tab' | translate }}
+    </label>
+  </ng-container>
+  <ng-container footer>
+    <button [disabled]="form.invalid" (click)="open()" class="btn btn-primary">
+      {{ 'streamChartModal.open' | translate }}
+    </button>
+  </ng-container>
+</app-modal>

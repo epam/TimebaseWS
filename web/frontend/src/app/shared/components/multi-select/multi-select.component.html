@@ -1,46 +1,85 @@
-<div (click)="toggleOpen()" [class.has-data]="showSelected.length" class="header">
+<div (click)="toggleOpen()" [class.has-data]="showSelected.length" [class.multiple]="!single" class="header"
+ [class.disabled]="selectionDisabled">
   <div class="header__content">
     <ng-container *ngIf="!showSelected.length">
       {{ placeholder }}
     </ng-container>
-    <ng-container *ngIf="showSelected.length">
-      <span *ngFor="let item of showSelected" class="selected-item">
-        <span>{{ item.name }}</span>
+    <ng-container *ngIf="!single">
+      <ng-container *ngIf="showSelected.length">
+      <span *ngFor="let item of showSelected" [title]="item.name" class="selected-item">
+        <span class="selected-item__name" >{{ item.name }}</span>
         <span (click)="remove(item)" class="remove-icon">x</span>
       </span>
+      </ng-container>
+    </ng-container>
+    <ng-container *ngIf="single">
+      {{ showSelected[0]?.name }}
     </ng-container>
   </div>
   <div class="header__right">
-    <i class="caret"></i>
+    <i [class.open]="open" class="caret"></i>
     <div *ngIf="hiddenSelected > 0" class="hidden-selected">+{{ hiddenSelected }}</div>
   </div>
 </div>
-<div *ngIf="open" class="dropdown">
-  <div (click)="selectAll()" [class.selected]="allSelected" class="option">
+<div *cdkPortal
+    [style.height.px]="contextMenuHeight ?? dropDownHeight"
+    [style.top.px]="dropDownTop"
+    [style.left.px]="dropDownLeft"
+    [style.width.px]="contextMenuWidth ?? dropDownWidth"
+    [class.flat]="flat"
+    [class.single]="single"
+    class="dropdown"
+>
+  <div *ngIf="!single" (click)="selectAll()" [class.selected]="allSelected" 
+    [style.height.px]="menuItemHeight ?? itemHeight" class="option select-all">
     <ng-container
         *ngTemplateOutlet="
         itemTpl;
         context: { title: allSelected ? 'Unselect all' : 'Select all' }
       "></ng-container>
   </div>
-  <div class="search">
-    <input [formControl]="searchControl" placeholder="Search" />
+  <div *ngIf="search" class="search">
+    <input [style.height.px]="menuItemHeight ?? itemHeight" #searchInput [formControl]="searchControl" placeholder="Search" />
   </div>
-  <cdk-virtual-scroll-viewport [itemSize]="40" maxBufferPx="300" minBufferPx="300">
-    <div
-        (click)="onClick(item)"
-        *cdkVirtualFor="let item of filteredItems"
-        [class.selected]="isSelected[item.name]"
-        class="option">
-      <ng-container *ngTemplateOutlet="itemTpl; context: { title: item.name }"></ng-container>
-    </div>
+  <cdk-virtual-scroll-viewport [itemSize]="menuItemHeight ?? itemHeight" maxBufferPx="320" minBufferPx="320">
+    <ng-container *cdkVirtualFor="let item of filteredItems">
+      <div
+          (click)="onClick(item)"
+          [class.selected]="isSelected[item.id]"
+          [class.single]="single"
+          [class.childSelected]="matchedField && matchedField.parentItem === item.id"
+          [style.height.px]="menuItemHeight ?? itemHeight"
+          class="option">
+        <ng-container 
+          *ngTemplateOutlet="itemTpl; context: { title: item.name, isParent: item.hasChildren, parent: item.parentItem }">
+        </ng-container>
+      </div>
+    </ng-container>
   </cdk-virtual-scroll-viewport>
 </div>
-<ng-template #itemTpl let-title="title">
-  <label class="container-ch">
+<ng-template #itemTpl let-title="title" let-isParent="isParent" let-parent="parent">
+  <label *ngIf="!single" class="container-ch">
     <span class="checkmark"></span>
   </label>
-  <div class="item-name">
-    {{ title }}
+  <div [ngClass]="{'child-item-name': parent, 'item-name': true }">
+    <ng-container *ngIf="!hierarchy; else custom_content">{{ title }}</ng-container>
+
+    <ng-template #custom_content>
+      <ng-container *ngIf="title === 'None' || title === 'Keyword'; else typesAndVariables">
+        <div class="item-icon none-icon" *ngIf="title === 'None'">&#10006;</div>
+        <div class="item-icon" *ngIf="title === 'Keyword'">&#107;</div>
+      </ng-container>
+
+      <ng-template #typesAndVariables>
+        <ng-container *ngIf="title === 'Variables' || parent === 'Variables'; else default">
+          <div class="item-icon">&#118;</div>
+        </ng-container>
+        <ng-template #default>
+          <div class="item-icon" *ngIf="!isParent">&#102;</div>
+          <div class="item-icon parent-icon" *ngIf="isParent">&#43;</div>
+        </ng-template>
+      </ng-template>
+      <div class="item-text">  {{ title }}</div>
+    </ng-template>
   </div>
 </ng-template>

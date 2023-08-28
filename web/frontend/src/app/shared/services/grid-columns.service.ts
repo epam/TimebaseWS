@@ -32,6 +32,10 @@ export class GridColumnsService {
 
   saveStateInLS(gridStateLS: GridStateModel, resizedEvent: ColumnResizedEvent, tabName) {
     resizedEvent.columns.forEach((column) => {
+      const index = (gridStateLS.autoSized || []).findIndex(a => a === column['colId']);
+      if (index > -1) {
+        gridStateLS.autoSized.splice(index, 1);
+      }
       const item = gridStateLS.resizedArray.find((item) => item.colId === column['colId']);
       if (gridStateLS.resizedArray.length && item) {
         item.actualWidth = column.getActualWidth();

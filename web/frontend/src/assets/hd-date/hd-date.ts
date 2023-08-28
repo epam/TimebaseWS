@@ -73,6 +73,10 @@ export class HdDate {
     }
   }
 
+  public getTimezoneOffset() {
+    return this.date.getTimezoneOffset();
+  }
+
   public getDay(): number {
     return this.date.getDay();
   }
@@ -97,6 +101,10 @@ export class HdDate {
     return Math.floor(this.nanoSeconds / DENOMINATOR);
   }
 
+  public getTime(): number {
+    return this.date.getTime();
+  }
+
   public getMilliseconds(): number {
     return this.date.getMilliseconds();
   }
@@ -119,13 +127,6 @@ export class HdDate {
 
   public getSeconds(): number {
     return this.date.getSeconds();
-  }
-
-  public getTimezoneOffset(): number {
-    // Fix summer time timezones
-    const jul = new Date(this.date.toISOString());
-    jul.setMonth(6);
-    return jul.getTimezoneOffset();
   }
 
   public getUTCDate(): number {
@@ -356,8 +357,12 @@ export class HdDate {
   }
 
   public toLocaleFormat(format: string, locale?: string): string {
-    const values = getValueDigit(this, format.match(REGULAR_LETTERS));
-    return getStringByFormat(values, format, locale);
+    if (!format) {
+      return '';
+    } else {
+      const values = getValueDigit(this, format.match(REGULAR_LETTERS));
+      return getStringByFormat(values, format, locale);
+    }
   }
 
   public toLocaleString(): string {

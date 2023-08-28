@@ -7,6 +7,7 @@ import {getDefaultsTypes, getSchemaDiff} from '../store/schema-editor.selectors'
 
 @Injectable()
 export class SeDataService {
+  
   constructor(private appStore: Store<AppState>) {}
 
   showClassListGrid(): Observable<boolean> {

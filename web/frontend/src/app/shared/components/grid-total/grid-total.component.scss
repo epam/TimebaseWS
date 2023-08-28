@@ -1,0 +1,10 @@
+@import "src/app/core/styles/variables";
+
+:host {
+  display: flex;
+  width: 100%;
+  background: $body-bg;
+  border: 1px solid $grid-border-color;
+  border-top: none;
+  padding: 2px 5px;
+}

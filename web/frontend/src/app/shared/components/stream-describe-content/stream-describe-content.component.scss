@@ -1,0 +1,22 @@
+@import '~src/app/core/styles/variables';
+
+:host {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+pre {
+  flex-grow: 1;
+  color: $white;
+  overflow: auto;
+  max-width: 100%;
+  margin-bottom: 0;
+  box-sizing: border-box;
+  padding: 1rem;
+}
+
+.control-panel {
+  justify-content: space-between;
+}

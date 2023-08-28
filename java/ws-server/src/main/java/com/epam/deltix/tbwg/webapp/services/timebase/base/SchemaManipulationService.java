@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,14 +14,14 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.timebase.base;
+package com.epam.deltix.tbwg.webapp.services.timebase.base;
 
-import com.epam.deltix.tbwg.webapp.model.schema.*;
-import com.epam.deltix.tbwg.webapp.services.timebase.exc.UnknownStreamException;
-import com.epam.deltix.tbwg.webapp.services.timebase.exc.WriteOperationsException;
 import com.epam.deltix.tbwg.webapp.model.input.QueryRequest;
+import com.epam.deltix.tbwg.webapp.model.schema.*;
 import com.epam.deltix.tbwg.webapp.model.schema.changes.StreamMetaDataChangeDef;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.InvalidSchemaChangeException;
+import com.epam.deltix.tbwg.webapp.services.timebase.exc.UnknownStreamException;
+import com.epam.deltix.tbwg.webapp.services.timebase.exc.WriteOperationsException;
 
 import javax.annotation.Nonnull;
 
@@ -89,4 +89,11 @@ public interface SchemaManipulationService {
     SchemaDef changeSchema(@Nonnull String key, @Nonnull ChangeSchemaRequest changeSchemaRequest)
             throws UnknownStreamException, WriteOperationsException, InvalidSchemaChangeException;
 
+    /**
+     * Returns schema for the specified message type.
+     *
+     * @param key                message type key
+     * @return schema for message type
+     */
+    SchemaDef getSchema(String key);
 }

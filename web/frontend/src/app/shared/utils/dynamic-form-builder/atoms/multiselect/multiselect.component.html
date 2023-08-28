@@ -3,9 +3,9 @@
     <ng-multiselect-dropdown
         (ngModelChange)="onModelChange($event)"
         [class.disabled]="disabled"
+        [settings]="dropdownSettings"
         [data]="dropdownList"
         [ngModel]="model"
-        [settings]="dropdownSettings"
         class="control-multiselect"></ng-multiselect-dropdown>
   </ng-container>
 </div>

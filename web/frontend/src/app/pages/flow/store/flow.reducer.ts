@@ -25,6 +25,10 @@ export const initialState: State = {
         type: 'ringCenter',
       },
     ],
+    rpsFilter: {
+      type: 'all',
+      value: 0,
+    },
   },
 };
 
@@ -35,6 +39,9 @@ export const reducer = createReducer(
   on(SetFlowFilter, (state, {filteredNodes}) => ({...state, filteredNodes})),
   on(SetDataFilter, (state, {dataFilter}) => ({
     ...state,
-    dataFilter: dataFilter || initialState.dataFilter,
+    dataFilter: dataFilter ? {
+      ...dataFilter,
+      rpsFilter: dataFilter.rpsFilter || initialState.dataFilter.rpsFilter,
+    } : initialState.dataFilter,
   })),
 );

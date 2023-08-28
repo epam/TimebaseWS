@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,9 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.timebase;
 
-import com.epam.deltix.tbwg.webapp.services.timebase.exc.UnknownStreamException;
 import com.epam.deltix.data.stream.DXChannel;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
@@ -25,6 +25,7 @@ import com.epam.deltix.qsrv.hf.spi.conn.DisconnectEventListener;
 import com.epam.deltix.qsrv.hf.spi.conn.Disconnectable;
 import com.epam.deltix.qsrv.hf.tickdb.comm.client.TickDBClient;
 import com.epam.deltix.qsrv.hf.tickdb.pub.*;
+import com.epam.deltix.tbwg.webapp.services.timebase.exc.UnknownStreamException;
 import com.epam.deltix.tbwg.webapp.settings.TimebaseSettings;
 import com.epam.deltix.util.collections.generated.ObjectArrayList;
 import com.epam.deltix.util.collections.generated.ObjectToObjectHashMap;
@@ -38,9 +39,9 @@ import org.springframework.util.Base64Utils;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -70,8 +71,6 @@ public class TimebaseServiceImpl implements TimebaseService {
         this.timebaseSettings = timebaseSettings;
         this.systemMessagesService = systemMessagesService;
     }
-
-    //public final InstrumentMetadataProvider provider = InstrumentMetadataFactory.createProvider();
 
     public String getServerVersion() {
         if (serverVersion == null) {
@@ -203,6 +202,7 @@ public class TimebaseServiceImpl implements TimebaseService {
         LOGGER.info("Closing TickDBClient connection to %s.")
                 .with(dbUrl);
         Util.close(db);
+        LOGGER.info("Closing Security metadata provider.");
     }
 
     public boolean          isReadonly() {
@@ -223,6 +223,22 @@ public class TimebaseServiceImpl implements TimebaseService {
         return Arrays.stream(streams).filter(x -> !x.getKey().contains("#")).toArray(DXChannel[]::new);
     }
 
+    public DXTickStream getStreamChecked(String key) throws UnknownStreamException {
+        DXTickStream stream = getStream(key);
+        if (stream == null)
+            throw new UnknownStreamException(key);
+        return stream;
+    }
+
+    public DXTickStream getSystemStream(String key) throws UnknownStreamException {
+        DXTickStream stream = getConnection().getStream(key);
+        if (stream == null)
+            throw new UnknownStreamException(key);
+
+        return stream;
+    }
+
+
     public DXTickStream     getStream(String key) {
         DXTickStream stream = getConnection().getStream(key);
         if (stream != null && timebaseSettings.isMatched(key))
@@ -232,29 +248,41 @@ public class TimebaseServiceImpl implements TimebaseService {
     }
 
     public DXTickStream getOrCreateStream(String key, Class<?>... classes) {
-        return getOrCreateStream(key, StreamScope.DURABLE, classes);
+        return getOrCreateStream(key, (options) -> options.scope = StreamScope.DURABLE, classes);
     }
 
-    public DXTickStream getOrCreateStream(String key, StreamScope scope, Class<?>... classes) {
+    @Override
+    public DXTickStream getOrCreateStream(String key, RecordClassDescriptor... descriptors) {
+        return getOrCreateStream(key, (options) -> options.scope = StreamScope.DURABLE, descriptors);
+    }
+
+    public DXTickStream getOrCreateStream(String key, Consumer<StreamOptions> optionsProcessor, Class<?>... classes) {
         DXTickStream stream = db.getStream(key);
         if (stream == null) {
-            LOGGER.info().append("Stream ").append(key).append(" not found.").commit();
-            LOGGER.info("Creating new stream.");
-            StreamOptions options = new StreamOptions(scope, key, "", 1);
-            options.setPolymorphic(introspectClasses(classes));
-            stream = db.createStream(key, options);
-            LOGGER.info().append("Stream ").append(key).append(" created.").commit();
-        } else {
-            LOGGER.info("Found stream: " + key);
+            stream = createStream(key, optionsProcessor, introspectClasses(classes));
         }
+
         return stream;
     }
 
+    public DXTickStream getOrCreateStream(String key, Consumer<StreamOptions> optionsProcessor, RecordClassDescriptor... descriptors) {
+        DXTickStream stream = db.getStream(key);
+        if (stream == null) {
+            stream = createStream(key, optionsProcessor, descriptors);
+        }
 
-    public DXTickStream getStreamChecked(String key) throws UnknownStreamException {
-        DXTickStream stream = getStream(key);
-        if (stream == null)
-            throw new UnknownStreamException(key);
+        return stream;
+    }
+
+    private DXTickStream createStream(String key, Consumer<StreamOptions> optionsProcessor, RecordClassDescriptor... descriptors) {
+        LOGGER.info().append("Stream ").append(key).append(" not found.").commit();
+        LOGGER.info("Creating new stream.");
+        StreamOptions options = new StreamOptions(StreamScope.DURABLE, key, "", 1);
+        optionsProcessor.accept(options);
+        options.setPolymorphic(descriptors);
+        DXTickStream stream = db.createStream(key, options);
+        LOGGER.info().append("Stream ").append(key).append(" created.").commit();
+
         return stream;
     }
 
@@ -301,11 +329,6 @@ public class TimebaseServiceImpl implements TimebaseService {
     public DXTickStream     getCurrenciesStream() {
         return timebaseSettings.getCurrencies() != null ? getStream(timebaseSettings.getCurrencies()) : null;
     }
-
-//    @Override
-//    public Collection<CurrencyMessage> getProviderCurrencyInfo() {
-//        return provider.getCurrencyInfo();
-//    }
 
     public ObjectToObjectHashMap<RecordClassDescriptor, List<DataField>> numericFields(DXTickStream stream) {
         ObjectToObjectHashMap<RecordClassDescriptor, List<DataField>> numericFields = new ObjectToObjectHashMap<>();

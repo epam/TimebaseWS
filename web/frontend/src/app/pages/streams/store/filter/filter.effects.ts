@@ -1,5 +1,5 @@
 import {Injectable} from '@angular/core';
-import {Actions, Effect, ofType} from '@ngrx/effects';
+import {Actions, createEffect, ofType} from '@ngrx/effects';
 import {select, Store} from '@ngrx/store';
 import {map, switchMap, take} from 'rxjs/operators';
 import {AppState} from '../../../../core/store';
@@ -13,7 +13,7 @@ import {filterState} from './filter.selectors';
 export class FilterEffects {
   // private destroy
 
-  @Effect() loadFilters = this.actions$.pipe(
+   loadFilters = createEffect(() => this.actions$.pipe(
     ofType<FilterActions.AddFilters>(
       FilterActionTypes.SET_FILTER,
       FilterActionTypes.ADD_FILTER,
@@ -26,7 +26,7 @@ export class FilterEffects {
         filter: state || {},
       });
     }),
-  );
+  ));
 
   constructor(
     private actions$: Actions,

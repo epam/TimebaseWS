@@ -5,6 +5,7 @@ export interface SchemaClassTypeModel {
   name: string;
   parent: string;
   title: string;
+  isConcrete?: boolean;
 
   _props?: SchemaClassTypePropsModel;
 }

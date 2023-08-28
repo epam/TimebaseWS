@@ -1,0 +1,79 @@
+@import 'src/app/core/styles/variables';
+
+.general-params-container {
+  padding: 0.5rem 2rem;
+}
+
+.row {
+  margin-top: 0.5rem;
+}
+
+.col-md-4 {
+  margin-top: 0.1rem;
+}
+
+.col-md-8 {
+  position: relative;
+  .form-control {
+    padding: 0.3rem;
+    height: 1.6rem;
+  }
+}
+
+.add-symbol-btn {
+  position: absolute;
+  right: 1rem;
+  border: none;
+  background-color: transparent;
+  color: rgb(150, 150, 150);
+  font-size: 18px;
+  max-height: 1.6rem;
+  padding: 0rem 0.4rem;
+  z-index: 10;
+}
+
+.interpret-as-null-drop-down {
+  position: absolute;
+  top: 2rem;
+  width: calc(100% - 2rem + 2px);;
+  background-color: $dark-blue;
+  border: 1px solid #adadad;
+  border-radius: 0.2rem;
+  z-index: 105000;
+  padding: 0.5rem;
+  box-shadow: rgba(128, 128, 128, 0.758) 1.95px 1.95px 2.6px;
+  visibility: hidden;
+}
+
+.button-container {
+  display: flex;
+  justify-content: flex-end;
+  button {
+    margin: 0.3rem;
+  }
+}
+
+.add-symbol-comment {
+  margin-top: 0.3rem;
+  font-size: 11px;
+  color: rgb(186, 186, 186);
+}
+
+.highlighted-character {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+textarea {
+  background-color: rgba(128, 128, 128, 0.15);
+  margin-bottom: 0.3rem;
+  min-height: 3rem;
+}
+
+.edited {
+  background-color:  rgba(255, 192, 203, 0.15);
+}
+
+.invalid {
+  background-color: rgba(255, 82, 88, 0.15);
+}

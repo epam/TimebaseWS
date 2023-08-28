@@ -5,6 +5,10 @@
 }
 
 ::ng-deep {
+  context-menu-content .grid-columns-context-menu {
+    overflow-x: hidden;
+  }
+
   app-tree-checkboxes.columns-checkboxes {
     display: block;
     padding: 7 * $ss;
@@ -32,7 +36,11 @@
       min-width: 12px;
 
       &::before {
-        margin-top: -2px;
+        height: 6px;
+      }
+
+      &::after {
+        width: 6px;
       }
     }
 

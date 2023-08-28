@@ -1,57 +1,42 @@
-<div
-    *ngIf="selectedConnectionView$ | async as selectedConnectionView"
-    [cdkDragDisabled]="!isParent"
-    cdkDrag
-    cdkDragBoundary=".page-block"
-    class="detailWr">
-  <div (dblclick)="showContent = !showContent" class="detailsHeader">
-    <h4 class="detailsName">
-      <span *ngIf="isParent" cdkDragHandle class="panEventHolder"></span>
-      <span [style.color]="selectedConnectionView.source.metadata.color">{{
-        selectedConnectionView.source.name
-        }}</span>
-      ->
-      <span [style.color]="selectedConnectionView.target.metadata.color">{{
-        selectedConnectionView.target.name
-        }}</span>
-    </h4>
-    <app-details-modal-settings [(expanded)]="showContent" [hideAllButExpand]="!!nodeConnection">
-    </app-details-modal-settings>
-  </div>
-  <div *ngIf="showContent" class="detailsContent">
+<div *ngIf="selectedConnectionView$ | async as selectedConnectionView" class="detailWr">
+  <div class="detailsHeader">
     <app-source-target
         [nodeType]="'source'"
         [node]="selectedConnectionView.source"></app-source-target>
+    <div class="source-target-arrow"></div>
     <app-source-target
         [nodeType]="'target'"
         [node]="selectedConnectionView.target"></app-source-target>
-    <div class="metadata">
-      <div class="loadersList subSection">
-        <div class="subSectionHeader">
-          <p [style.color]="colors['loader']" class="subSectionTitle">
-            {{ 'titles.flow.loaders' | translate }} ({{
-            getMetadataLength(selectedConnectionView, 'loaders')
-            }})
-          </p>
-        </div>
-        <div class="subsectionContent">
-          <ag-grid-angular [gridOptions]="gridLoadersOptions" class="grid ag-theme-balham-dark">
-          </ag-grid-angular>
-        </div>
-      </div>
-      <div class="cursorsList subSection">
-        <div class="subSectionHeader">
-          <p [style.color]="colors['cursor']" class="subSectionTitle">
-            {{ 'titles.flow.cursors' | translate }} ({{
-            getMetadataLength(selectedConnectionView, 'cursors')
-            }})
-          </p>
-        </div>
-        <div class="subsectionContent">
-          <ag-grid-angular [gridOptions]="gridCursorsOptions" class="grid ag-theme-balham-dark">
-          </ag-grid-angular>
-        </div>
-      </div>
+  </div>
+  <div *ngIf="!showTables" class="connection-info">
+    <div *ngIf="loadersLength$ | async" [style.color]="colors['loader']">
+      {{ 'titles.flow.loaders' | translate }} {{ loadersLength$ | async }}, RPS: {{ loadersRPS$ | async }}
+    </div>
+    <div *ngIf="cursorsLength$ | async" [style.color]="colors['cursor']">
+      {{ 'titles.flow.cursors' | translate }} {{ cursorsLength$ | async }}, RPS: {{ cursorsRPS$ | async }}
     </div>
   </div>
 </div>
+<div *ngIf="showTables" class="tables">
+  <ng-container *ngIf="loadersLength$ | async">
+    <ng-container *ngTemplateOutlet="table; context: {title: 'Loaders', items$: loaders$, color: colors.loader}"></ng-container>
+  </ng-container>
+  <ng-container *ngIf="cursorsLength$ | async">
+    <ng-container *ngTemplateOutlet="table; context: {title: 'Cursors', items$: cursors$, color: colors.cursor}"></ng-container>
+  </ng-container>
+</div>
+<ng-template #table let-title="title" let-items$="items$" let-color="color">
+  <div *ngIf="items$ | async as items" class="connection-table-wrapper">
+    <div [style.color]="color" class="connection-table-title">{{ title }} ({{ items.length }})</div>
+    <div *ngIf="items.length" class="connection-table">
+      <div class="connection-table__header">
+        <div>ID</div>
+        <div>RPS</div>
+      </div>
+      <div *ngFor="let loader of items" class="connection-table__row">
+        <div>{{ loader.id }}</div>
+        <div>{{ loader.rps }}</div>
+      </div>
+    </div>
+  </div>
+</ng-template>

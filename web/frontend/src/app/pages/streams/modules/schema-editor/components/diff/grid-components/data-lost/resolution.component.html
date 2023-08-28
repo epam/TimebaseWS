@@ -7,7 +7,7 @@
     </p>
   </ng-template>
   
-  <ng-template [ngIf]="ifDefaultValueRequired()">
+  <ng-template *ngIf="ifDefaultValueRequired()">
     <p class="cb-label-title">
       {{ 'text.' + data.resolution | translate }}
     </p>
@@ -22,6 +22,6 @@
   </ng-template>
 </div>
 
-<ng-template [ngIf]="data && !(data && data._props && data._props.hasErrors)">
+<ng-template *ngIf="data.resolution && !(data && data._props && data._props.hasErrors)">
   {{ 'text.' + data.resolution | translate }}
 </ng-template>

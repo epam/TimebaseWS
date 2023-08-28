@@ -41,3 +41,44 @@
     }
   }
 }
+
+.dropdown-items {
+  position: fixed;
+  visibility: hidden;
+  z-index: 100;
+  background-color: rgb(39, 56, 77);
+  top: 5.6rem;
+  width: 7.7rem;
+  border: 1px solid #28a745;
+  border-radius: 0.1875rem;
+}
+
+.dropdown-item {
+  padding: 2px 15px;
+  font-weight: bold;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #28a745;
+  border: none;
+  border-bottom: 0.1px solid #28a74632;
+  &:hover {
+    background-color: #28a745;
+    color: white;
+  }
+
+  &.disabled {
+    color: #86978a;
+    background-color: #91a49513;
+  }
+}
+
+ul {
+  margin-left: 1rem;
+  color: rgba(245, 245, 245, 0.8);
+  .class-title {
+    color: #28a745;
+  }
+  .field-title {
+    color: #66a174;
+  }
+}

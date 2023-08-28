@@ -163,7 +163,7 @@ ng-multiselect-dropdown {
 
         .multiselect-item-checkbox,
         .filter-textbox {
-          border-bottom: 1px solid rgba(39, 56, 77, 0.4) !important;
+          border-bottom: 1px solid $dropdown-separator !important;
         }
       }
     }

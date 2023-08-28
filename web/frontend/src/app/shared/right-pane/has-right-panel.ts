@@ -5,6 +5,8 @@ export interface HasRightPanel {
   selectedMessage: StreamDetailsModel;
   showProps: boolean;
   showMessageInfo: boolean;
+  showViewInfo: boolean;
+  showDescription: boolean;
   from: string;
   messageView: string;
   rowIndex: number;

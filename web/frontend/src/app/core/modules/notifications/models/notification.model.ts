@@ -17,6 +17,7 @@ export class NotificationModel {
   };
 
   public alias?: string;
+  public fullErrorText?: string;
 
   constructor(notification: NotificationModel) {
     Object.assign(this, notification || {});

@@ -8,6 +8,8 @@ export interface SchemaTypeModel {
   fields?: SchemaTypeModel[];
   hide?: boolean;
   parent?: string;
+  static?: boolean;
+  value?: string | number | boolean;
 }
 
 export interface SchemaAllTypeModel {

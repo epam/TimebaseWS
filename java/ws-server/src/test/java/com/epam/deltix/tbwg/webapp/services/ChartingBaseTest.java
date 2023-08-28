@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -133,7 +133,7 @@ public abstract class ChartingBaseTest {
 
         ReactiveMessageSource reactiveMessageSource = new ReactiveMessageSourceImpl(messageProducer.run(), messageProducer.getObservable());
         Mockito.when(messageSourceFactory.buildSource(any(), any(), anyBoolean(), anyBoolean())).thenReturn(reactiveMessageSource);
-        Mockito.when(messageSourceFactory.buildSource(any(), any(), any(), any(), anyBoolean())).thenReturn(reactiveMessageSource);
+        //Mockito.when(messageSourceFactory.buildSource(any(), any(), any(), any(), anyBoolean())).thenReturn(reactiveMessageSource);
     }
 
     public long runTestFullResponseCheck(long pointInterval, Instant startTime, Instant endTime, String resultFilename,

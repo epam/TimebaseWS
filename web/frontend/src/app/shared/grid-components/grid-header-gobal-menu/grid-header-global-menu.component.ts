@@ -7,7 +7,7 @@ import {
   Optional,
   ViewChild,
 } from '@angular/core';
-import {FormControl} from '@angular/forms';
+import {UntypedFormControl} from '@angular/forms';
 import {StorageMap} from '@ngx-pwa/local-storage';
 import {IHeaderAngularComp} from 'ag-grid-angular';
 import {
@@ -16,7 +16,7 @@ import {
   IHeaderParams,
   OriginalColumnGroup,
 } from 'ag-grid-community';
-import {ContextMenuComponent} from 'ngx-contextmenu';
+import {ContextMenuComponent} from '@perfectmemory/ngx-contextmenu';
 import {fromEvent, Observable, of, Subject, timer} from 'rxjs';
 import {
   distinctUntilChanged,
@@ -41,7 +41,7 @@ import {GridContextMenuService} from '../grid-context-menu.service';
 })
 export class GridHeaderGlobalMenuComponent implements OnInit, OnDestroy, IHeaderAngularComp {
   columnsTree: TreeItem[];
-  columnsControl = new FormControl([]);
+  columnsControl = new UntypedFormControl([]);
   cellMenuItems: GridContextMenuItemData[];
   copyJsonEnabled: boolean;
   disableColumns$: Observable<boolean>;
@@ -122,11 +122,11 @@ export class GridHeaderGlobalMenuComponent implements OnInit, OnDestroy, IHeader
   }
 
   copy(cellEvent: CellContextMenuEvent) {
-    copyToClipboard(cellEvent.value).pipe(take(1)).subscribe();
+    copyToClipboard(this.getValue(cellEvent)).pipe(take(1)).subscribe();
   }
 
   copyWithHeaders(cellEvent: CellContextMenuEvent) {
-    copyToClipboard(`${cellEvent.colDef.headerName}: ${cellEvent.value}`).pipe(take(1)).subscribe();
+    copyToClipboard(`${cellEvent.colDef.headerName}: ${this.getValue(cellEvent)}`).pipe(take(1)).subscribe();
   }
 
   copyJSON(cellEvent: CellContextMenuEvent) {
@@ -142,6 +142,11 @@ export class GridHeaderGlobalMenuComponent implements OnInit, OnDestroy, IHeader
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+  
+  private getValue(cellEvent: CellContextMenuEvent) {
+    const formatter = cellEvent.column.getUserProvidedColDef().valueFormatter;
+    return formatter ? formatter(cellEvent) : cellEvent.value;
   }
 
   private setColumnsSize(data: string[]) {

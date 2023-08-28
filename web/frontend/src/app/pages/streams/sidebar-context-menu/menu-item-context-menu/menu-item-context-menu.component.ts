@@ -1,7 +1,6 @@
 import {ChangeDetectorRef, Component, HostListener, Input} from '@angular/core';
 import {take} from 'rxjs/operators';
 import {MenuItem} from '../../../../shared/models/menu-item';
-import {StreamsNavigationUrlPipe} from '../../streams-navigation/streams-navigation-url.pipe';
 import {StreamsNavigationService} from '../../streams-navigation/streams-navigation.service';
 import {SidebarContextMenuService} from '../sidebar-context-menu.service';
 

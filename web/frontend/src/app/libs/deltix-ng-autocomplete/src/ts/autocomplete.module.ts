@@ -4,18 +4,12 @@ import {FormsModule} from '@angular/forms';
 import {ClickOutsideModule} from '../../../../shared/directives/click-outside/click-outside.module';
 
 import {AutocompleteComponent} from './components/autocomplete.component';
-import {ExtendedTextareaComponent} from './components/extended-textarea.component';
-import {MultiAutocompleteComponent} from './components/multi-autocomplete.component';
 import {SafeHtmlPipe} from './pipes/safe-html.pipe';
+import {ScrollingModule} from '@angular/cdk/scrolling';
 
 @NgModule({
-  imports: [FormsModule, CommonModule, ClickOutsideModule],
-  exports: [AutocompleteComponent, MultiAutocompleteComponent, ExtendedTextareaComponent],
-  declarations: [
-    AutocompleteComponent,
-    MultiAutocompleteComponent,
-    ExtendedTextareaComponent,
-    SafeHtmlPipe,
-  ],
+  imports: [FormsModule, CommonModule, ClickOutsideModule, ScrollingModule],
+  exports: [AutocompleteComponent],
+  declarations: [AutocompleteComponent, SafeHtmlPipe],
 })
 export class AutocompleteModule {}

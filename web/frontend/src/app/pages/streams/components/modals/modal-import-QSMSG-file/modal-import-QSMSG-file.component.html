@@ -1,0 +1,151 @@
+<app-modal [withoutCloseBtn]="uploading" [withoutFooter]="uploading">
+  <ng-container title>
+    {{ 'importFromFile.title.QSMSG' | translate }}
+  </ng-container>
+  <div [formGroup]="form" class="import-file-content" content>
+    <ng-container *ngIf="!uploading">
+      <div class="form-group files-form-group">
+        <div>
+          <label>{{ 'importFromFile.labels.file' | translate }}</label>
+          <app-file-btn [accept]="['.gz', '.zip', '.qsmsg']" formControlName="file">
+            {{ 'importFromFile.labels.chooseFile' | translate }}
+          </app-file-btn>
+        </div>
+        <div *ngIf="showFileBy$ | async" formControlName="fileBy" btnRadioGroup class="btn-group radio-group">
+          <button
+              *ngFor="let button of fileByConfig"
+              [btnRadio]="button"
+              class="btn btn-default">
+            {{ 'importFromFile.fileBy.' + button | translate }}
+          </button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>{{ 'importFromFile.labels.stream' | translate }}</label>
+        <deltix-ng-autocomplete
+            (changeInput)="onStreamChange($event)"
+            [values]="autocomplete$ | async"
+            [placeholder]="'importFromFile.placeholders.stream' | translate"
+            cssClass="in-modal"
+            formControlName="stream">
+        </deltix-ng-autocomplete>
+      </div>
+      <div class="form-group">
+        <label>{{ 'importFromFile.labels.writeMode' | translate }}</label>
+        <app-write-modes-control formControlName="writeMode"></app-write-modes-control>
+      </div>
+      <div class="form-group">
+        <label>{{ 'importFromFile.labels.description' | translate }}</label>
+        <input class="form-control form-control--flat" formControlName="description" />
+      </div>
+      <div class="form-group">
+        <label>{{ 'importFromFile.labels.symbols' | translate }}</label>
+        <app-multi-select-autocomplete
+            cssClass="flat-select"
+            formControlName="symbols"
+            notFoundText="No symbols found"
+        ></app-multi-select-autocomplete>
+        <div class="hint">{{ 'importFromFile.symbolHint' | translate }}</div>
+      </div>
+      <div formGroupName="periodicity" class="form-group">
+        <div class="periodicity-group">
+          <div>
+            <label>{{ 'importFromFile.labels.periodicity' | translate }}</label>
+            <app-multi-select
+                *ngIf="periodicityTypes$ | async as periodicityTypes"
+                [items]="periodicityTypes"
+                [single]="true"
+                [search]="false"
+                [flat]="true"
+                formControlName="type"
+            ></app-multi-select>
+          </div>
+          <div class="periods-form-group" *ngIf="form?.get('periodicity.type').value === periodicityTypes.regular">
+            <label>{{ 'importFromFile.labels.interval' | translate }}</label>
+            <app-bars-period-filter
+                [fillOnNull]="false"
+                cssClass="in-modal"
+                formControlName="value"
+            ></app-bars-period-filter>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="form-control-cb-wr">
+          <label class="container-ch">
+            <input formControlName="setRange" type="checkbox" />
+            <span class="checkmark"></span>
+            {{ 'importFromFile.labels.setRange' | translate }}
+          </label>
+        </div>
+      </div>
+      <div *ngIf="form.get('setRange').value; else spacer" class="form-group">
+        <app-multi-select
+            [items]="timezones"
+            [single]="true"
+            [flat]="true"
+            formControlName="timezone"
+            class="timezone-dropdown"
+        ></app-multi-select>
+        <div class="range-labels">
+          <label>{{ 'importFromFile.labels.startTime' | translate }}</label>
+          <label>{{ 'importFromFile.labels.endTime' | translate }}</label>
+        </div>
+        <app-date-range-picker [clearBtn]="true" [timezone]="nullTimezone.name" formControlName="range"></app-date-range-picker>
+      </div>
+      <ng-template #spacer>
+        <div class="spacer"></div>
+      </ng-template>
+    </ng-container>
+    <ng-container *ngIf="uploading">
+      <ng-container *ngIf="!importError">
+        <div class="upload-status">
+          <ng-container *ngIf="!importFinished">
+            {{ (uploadingFile ? 'importFromFile.uploadingFile' : 'importFromFile.importingFile') | translate }}...
+          </ng-container>
+          <ng-container *ngIf="importFinished">
+            {{ 'importFromFile.importFinished' | translate }}
+          </ng-container>
+        </div>
+        <div class="upload-progress-bar">
+          <div [style.width.%]="progress$ | async" class="upload-progress-bar__fill"></div>
+          <div class="upload-progress-bar__label">{{ progress$ | async }}%</div>
+        </div>
+      </ng-container>
+      <div *ngIf="messages.length" class="upload-messages">
+        <div *ngFor="let message of messages"
+            class="upload-message"
+            [class.info]="importProgressTypes.info === message.type"
+            [class.warning]="importProgressTypes.warning === message.type"
+            [class.error]="importProgressTypes.error === message.type"
+        >
+          <div class="upload-message__left">{{ message.type }}:</div>
+          <div class="upload-message__right">{{ message.message }}</div>
+        </div>
+      </div>
+      <div class="upload-cancel">
+        <ng-container *ngIf="!importError">
+          <button *ngIf="!importFinished" (click)="cancelImport()" class="btn btn-default">
+            {{ 'importFromFile.cancel' | translate }}
+          </button>
+          <button *ngIf="importFinished" (click)="finish()" class="btn btn-primary">
+            {{ 'importFromFile.close' | translate }}
+          </button>
+        </ng-container>
+        <div class="error-buttons" *ngIf="importError">
+          <button (click)="return()" class="btn btn-primary">
+            {{ 'importFromFile.return' | translate }}
+          </button>
+          <button (click)="finish()" class="btn btn-default">
+            {{ 'importFromFile.close' | translate }}
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+  <ng-container footer>
+    <button [disabled]="form.invalid" (click)="import()" class="btn btn-primary">
+      {{ 'importFromFile.import' | translate }}
+    </button>
+  </ng-container>
+</app-modal>

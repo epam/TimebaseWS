@@ -1,0 +1,37 @@
+@import 'src/app/core/styles/variables';
+
+:host {
+  width: 600px;
+
+  .controlWr {
+    display: flex;
+
+    input {
+      flex-grow: 1;
+    }
+  }
+
+}
+
+app-qql-editor {
+  min-height: 200px;
+}
+
+.alert {
+  padding: 3px 10px;
+}
+
+::ng-deep .modal-xl {
+  min-width: 600px;
+  min-height: 500px;
+}
+
+.live-view-checkbox {
+  padding-right: 2rem;
+  label {
+    text-transform: uppercase;
+  }
+  .form-check-input {
+    margin-top: 0.2rem;
+  }
+}

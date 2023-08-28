@@ -1,7 +1,15 @@
-<label [ngClass]="classes || 'btn btn-primary'">
-  <ng-content></ng-content>
-  <input #inputEl (change)="onChange($event.target)" [accept]="accept" type="file" />
-</label>
-<span>
+<div class="file-input-container">
+  <label [ngClass]="classes || 'btn btn-primary'" [class.disabled]="inputDisabled">
+    <ng-content></ng-content>
+    <input #inputEl (change)="onChange($event.target, false)" [accept]="accept" type="file" 
+      [multiple]="importMultiple" [disabled]="inputDisabled"/>
+  </label>
+  <label *ngIf="folderInput" [ngClass]="classes || 'btn btn-primary'" [class.disabled]="inputDisabled">
+    <span>{{ 'importFromFile.labels.addFolder' | translate }}</span>
+    <input #folderInputEl (change)="onChange($event.target, true)" type="file" webkitdirectory directory
+      [disabled]="inputDisabled">
+  </label>
+</div>
+<span *ngIf="showFileNames">
   {{ displayName }}
 </span>

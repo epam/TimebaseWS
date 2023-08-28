@@ -4,4 +4,5 @@ export interface SidebarContextMenuItem {
   stream: MenuItem;
   symbol?: string;
   space?: MenuItem;
+  isView?: boolean;
 }

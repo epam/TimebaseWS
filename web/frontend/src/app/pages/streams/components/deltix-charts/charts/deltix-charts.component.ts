@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -8,11 +9,12 @@ import {
   OnDestroy,
   OnInit,
   ViewChild,
-}                 from '@angular/core';
-import { HdDate } from '@assets/hd-date/hd-date';
+}                            from '@angular/core';
+
 
 import { IFormattedNumber }                                                                                from '@deltix/hd.components-common/lib/common';
 import {
+  everChartChangeConfigurationAction,
   EverChartEmbeddableKernel,
   EverChartIntervalType,
   EverChartLineItemDrawType,
@@ -22,23 +24,26 @@ import {
   IEverChartIntervalItem,
   IEverChartPad,
   ZOOM,
-}                                                                                                          from '@deltix/hd.components-everchart';
-import { IEverChartShapeItem }                                                                             from '@deltix/hd.components-everchart/lib/Store/everChartParams';
-import { IEverChartDataItem }                                                                              from '@deltix/hd.components-everchart/lib/Store/everChartState';
+}                             from '@deltix/hd.components-everchart';
+import {
+  IEverChartPadItem,
+  IEverChartShapeItem,
+}                             from '@deltix/hd.components-everchart/lib/Store/everChartParams';
+import { IEverChartDataItem } from '@deltix/hd.components-everchart/lib/Store/everChartState';
 import {
   embeddableAppUpdatePositionAction,
   MultiAppFacade,
-}                                                                                                          from '@deltix/hd.components-multi-app';
+}                             from '@deltix/hd.components-multi-app';
 import {
   select,
   Store,
-}                                                                                                          from '@ngrx/store';
+}                             from '@ngrx/store';
 import equal
-                                                                                                           from 'fast-deep-equal';
+                              from 'fast-deep-equal';
 import {
   ContextMenuComponent,
   ContextMenuService,
-}                                                                                                          from 'ngx-contextmenu';
+}                                                                                                          from '@perfectmemory/ngx-contextmenu';
 import { BehaviorSubject, combineLatest, fromEvent, merge, Observable, of, ReplaySubject, Subject, timer } from 'rxjs';
 import {
   auditTime,
@@ -59,21 +64,27 @@ import { AppState }                                                             
 import { getFormatSeparator }                                                                              from '../../../../../shared/locale.timezone';
 import { BarChartPeriod }                                                                                  from '../../../../../shared/models/bar-chart-period';
 import { GlobalFilters }                                                                                   from '../../../../../shared/models/global-filters';
-import { DebugService }                                                                                    from '../../../../../shared/services/debug.service';
+import {
+  LinearChartService,
+  StoredColorsMap,
+}                                                                                                          from '../../../../../shared/services/linear-chart.service';
 import { GlobalFiltersService }                                                                            from '../../../../../shared/services/global-filters.service';
 import { ResizeObserveService }                                                                            from '../../../../../shared/services/resize-observe.service';
 import { StreamsService }                                                                                  from '../../../../../shared/services/streams.service';
 import { TabStorageService }                                                                               from '../../../../../shared/services/tab-storage.service';
 import { formatDateTime }                                                                                  from '../../../../../shared/utils/formatDateTime';
 import { appRoute }                                                                                        from '../../../../../shared/utils/routes.names';
-import { ChartTypes }                                                                                      from '../../../models/chart.model';
+import {
+  barChartTypes,
+  ChartTypes,
+}                                                                                                          from '../../../models/chart.model';
 import {
   DEFAULT_ZOOM_TABLE,
   DeltixChartFormattedData,
-  DeltixChartRequestModel,
 }                                                                                                          from '../../../models/deltix-chart.models';
 import { GlobalFilterTimeZone }                                                                            from '../../../models/global.filter.model';
 import { TabModel }                                                                                        from '../../../models/tab.model';
+import { ChartExchangeService }                                                                            from '../../../services/chart-exchange.service';
 import { ChartTrackService }                                                                               from '../../../services/chart-track.service';
 import * as StreamsTabsActions
                                                                                                            from '../../../store/streams-tabs/streams-tabs.actions';
@@ -81,10 +92,25 @@ import {
   getActiveOrFirstTab,
   getActiveTabFilters,
 }                                                                                                          from '../../../store/streams-tabs/streams-tabs.selectors';
+import { ChartsHttpService }                                                                               from '../chart-parts/charts.http.service';
 import { DeltixChartStorage }                                                                              from '../chart-parts/deltix-chart-storage';
 import { DeltixChartFeedService }                                                                          from '../chart-parts/detix-chart-feed.service';
 import { EverChartExtension }                                                                              from '../chart-parts/EverChartExtension';
 import { zoomRestrictions }                                                                                from './deltix-chart-zoom-limits';
+import {
+  day,
+  month,
+  year,
+}                                                                                                          from './units-in-ms';
+import { TabNavigationService } from 'src/app/shared/services/tab-navigation.service';
+
+interface MouseMoveEvent {
+  time: number;
+  y: number;
+  points: any;
+  yVal: number;
+  yTime?: number;
+}
 
 @Component({
   selector: 'app-deltix-charts',
@@ -108,38 +134,65 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
     point: unknown;
     isBars: boolean;
     isL2: boolean;
+    isLinear: boolean;
     isBBO: boolean;
     yVal: number;
     borderGreen: boolean;
     borderRed: boolean;
     borderBlue: boolean;
+    borderColor: string;
+    from: string;
+    to: string;
+    linearData: {
+      name: string;
+      value: string;
+      isHighlight: boolean;
+      highlightColor: string;
+    }[]
   }>;
-  tooltipPosition$: Observable<{top: number; left: number; width: number; height: number}>;
+  tooltipPosition$: Observable<{ top: number; left: number; width: number; height: number }>;
   dragging$ = new BehaviorSubject<boolean>(false);
   hideLine$: Observable<boolean>;
   endOfStreamOutOfRange$ = new BehaviorSubject(true);
   showNoData$ = new BehaviorSubject(false);
-  viewDataRoute: {route: string[]; params: object};
-
+  viewDataRoute: { route: string[]; params: object };
+  chartDate$: Observable<string>;
+  httpError$: Observable<HttpErrorResponse>;
+  httpErrorText$: Observable<string>;
+  noPoints$: Observable<boolean>;
+  magnetCoordinates$: Observable<{x: number, y: number, yInPx: number}>;
+  
   private appFacade: MultiAppFacade;
   private destroy$ = new Subject();
   private LEVELS_COUNT = 10;
   private chartDestroy$ = new Subject<void>();
-  private resize$ = new Subject<{width: number; height: number}>();
-  private mouseMove$ = new ReplaySubject<{
-    time: number;
-    y: number;
-    points: any;
-    yVal: number;
-    yTime?: number;
-  }>(1);
+  private resize$ = new Subject<{ width: number; height: number }>();
+  private mouseMove$ = new ReplaySubject<MouseMoveEvent>(1);
   private filter_timezone: GlobalFilterTimeZone;
   private hideTooltip$ = new BehaviorSubject(false);
-
+  private retry$ = new Subject();
+  
+  // @HostListener('document:keydown', ['$event']) keydown(event) {
+  //   if (event.key === 'd') {
+  //     this.tabStorageService.getData().pipe(take(1)).subscribe(storage => {
+  //       const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(storage));
+  //       const dlAnchorElem = document.createElement('a');
+  //       dlAnchorElem.setAttribute('href',     dataStr     );
+  //       dlAnchorElem.setAttribute('download', 'storage.json');
+  //       dlAnchorElem.click();
+  //     });
+  //   }
+  //
+  // }
+  @HostListener('click', ['$event']) onClick() {
+    this.tabNavigationService
+      .focusFirstFocusableElement(this.elementRef.nativeElement.closest('as-split-area'));
+  }
+  
   @HostListener('contextmenu', ['$event']) onRightClick(event: MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
-
+    
     combineLatest([this.currentTab$, this.mouseMove$])
       .pipe(take(1))
       .subscribe(([tab, move]) => {
@@ -147,6 +200,8 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
         const params = {
           chartType: tab.chartType,
           newTab: 1,
+          isView: tab.isView,
+          streamName: tab.streamName,
           space: tab.space,
           'tabFilters:from': new Date(move.yTime).toISOString(),
           'tabFilters:manuallyChanged': true,
@@ -159,25 +214,32 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
         });
       });
   }
-
+  
   constructor(
     private appStore: Store<AppState>,
     private zone: NgZone,
     private everChartFeedService: DeltixChartFeedService,
     private tabStorageService: TabStorageService<DeltixChartStorage>,
     private resizeObserveService: ResizeObserveService,
-    private debugService: DebugService,
     private streamsService: StreamsService,
     private elementRef: ElementRef<HTMLElement>,
     private globalSettingService: GlobalFiltersService,
     private chartTrackService: ChartTrackService,
     private contextMenuService: ContextMenuService,
+    private chartExchangeService: ChartExchangeService,
+    private linearChartsService: LinearChartService,
+    private chartsHttpService: ChartsHttpService,
+    private tabNavigationService: TabNavigationService,
   ) {}
-
+  
   ngOnInit() {
     this.globalSettings$ = this.globalSettingService.getFilters();
     this.currentTab$ = this.appStore.pipe(select(getActiveOrFirstTab));
-    this.debugService.start('deltix-charts');
+    this.httpError$ = this.everChartFeedService.onHttpError();
+    this.httpErrorText$ = this.httpError$.pipe(map(httpError => httpError.error.message || httpError.error.error));
+    
+    this.noPoints$ = this.everChartFeedService.onNoPoints();
+    
     this.globalSettings$.pipe(takeUntil(this.destroy$)).subscribe((filters) => {
       const filter_date_format = filters.dateFormat[0];
       const filter_time_format = filters.timeFormat[0];
@@ -185,24 +247,44 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
       this.date_format = filter_date_format;
       this.time_format = filter_time_format;
       this.datetime_separator = getFormatSeparator(this.date_format);
-
+      
       this.format = filter_date_format + ' ' + filter_time_format;
       this.bsFormat = filter_date_format.toUpperCase() + ' ' + filter_time_format;
       this.bsFormat = this.bsFormat.replace('tt', 'A');
       this.bsFormat = this.bsFormat.replace(/f/g, 'S');
     });
-
+    
+    this.chartExchangeService
+      .onManuallyCHanged()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.retry();
+      });
+    
+    this.chartDate$ = combineLatest([this.globalSettings$, this.currentTab$]).pipe(
+      filter(([settings, tab]) => Boolean(tab?.filter?.from && tab?.filter?.to)),
+      map(([settings, tab]) => {
+        if (
+          new Date(tab.filter.to).getTime() - new Date(tab.filter.from).getTime() >
+          1000 * 60 * 60 * 24
+        ) {
+          return '';
+        }
+        return formatDateTime(tab.filter.from, settings.dateFormat[0], settings.timezone[0].name);
+      }),
+    );
+    
     this.resize$
       .pipe(debounceTime(350), distinctUntilChanged(equal), takeUntil(this.destroy$))
       .subscribe(({width, height}) => {
         this.everChartFeedService.setWidth(width);
         this.onContainerResize(width, height);
       });
-
+    
     this.tooltipData$ = combineLatest([
       this.mouseMove$.pipe(
         distinctUntilChanged(
-          (p: {time: number; points: any; yVal: number}, c) =>
+          (p: { time: number; points: any; yVal: number }, c) =>
             `${p.time}-${p.yVal}` === `${c.time}-${c.yVal}`,
         ),
       ),
@@ -210,73 +292,168 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
       this.hideTooltip$,
     ]).pipe(
       auditTime(75),
-      map(([moveEvent, tab, hideTooltip]) => {
+      switchMap(([moveEvent, tab, hideTooltip]) => {
+        const storageAndColors$: Observable<[{ colors: StoredColorsMap, showLines: string[] }, Partial<DeltixChartStorage> | null]> = moveEvent.points && tab.filter.chart_type === ChartTypes.LINEAR ?
+          combineLatest([this.linearChartsService.showLinesAndColors(), this.everChartFeedService.storage$.pipe(filter(s => !!s?.data))]) :
+          of([{colors: {}, showLines: []}, null]);
+        
+        return storageAndColors$.pipe(
+          map(([linesAndColors, storage]) => [moveEvent, tab, hideTooltip, linesAndColors, storage]),
+        );
+      }),
+      
+      map(([moveEvent, tab, hideTooltip, linesAndColors, storage]: [MouseMoveEvent, TabModel, boolean, { colors: StoredColorsMap, showLines: string[] }, Partial<DeltixChartStorage> | null]) => {
         if (!moveEvent.time || hideTooltip) {
           return null;
         }
-
+        
         const point = JSON.parse(JSON.stringify(moveEvent.points));
-        const isBars = tab?.filter.chart_type === ChartTypes.BARS;
+        const isBars = barChartTypes.includes(tab?.filter.chart_type);
         const isBBO = tab?.filter.chart_type === ChartTypes.TRADES_BBO;
-
+        const isLinear = tab.filter.chart_type === ChartTypes.LINEAR;
+        
         if (this.pointIsTrade(point, moveEvent.yVal)) {
           delete point.BBO;
         } else {
           delete point.TRADES;
         }
-
+        
         const borderGreen =
           (point.BARS && point.BARS.open < point.BARS.close) ||
           (point.BBO && point.BBO.askPrice > point.BBO.bidPrice);
         const borderRed =
           (point.BARS && point.BARS.open > point.BARS.close) ||
           (point.BBO && point.BBO.askPrice < point.BBO.bidPrice);
+        
         const borderBlue = !borderRed && !borderGreen;
-
+        
+        let borderColor = null;
+        const colorNames = {};
+        Object.keys(linesAndColors.colors).forEach(key => colorNames[this.linearId(key)] = key);
+        if (isLinear) {
+          const lineName = Object.keys(point).find(key => moveEvent.yVal === point[key].value);
+          if (lineName) {
+            borderColor = this.colorToString(linesAndColors.colors[colorNames[lineName]]);
+          }
+        }
+        
+        let from;
+        let to;
+        
+        if (point.BARS) {
+          const aggregation = tab.filter.period.aggregation;
+          from = this.formatTooltipBarTime(aggregation, moveEvent.time - tab.filter.period.aggregation);
+          to = this.formatTooltipBarTime(aggregation, moveEvent.time);
+        }
+        
+        const values = {};
+        
+        if (isLinear) {
+          const firstKey = Object.keys(point)[0];
+          storage.data?.find(p => {
+            const isCurrent = p.time === point[firstKey].time;
+            Object.keys(p.points).forEach(key => {
+              values[key] = p.points[key].value;
+            });
+            return isCurrent;
+          });
+        }
+  
+        const linearData = linesAndColors.showLines.map(line => {
+          let value = values[this.linearId(line)];
+      
+          if (value === undefined || isNaN(value)) {
+            value = '-';
+          }
+    
+          return {
+            name: line,
+            value,
+            isHighlight: moveEvent.yVal === point[this.linearId(line)]?.value,
+            highlightColor: this.colorToString(linesAndColors.colors[line]),
+          };
+        });
+        
         return {
           time: formatDateTime(moveEvent.time, this.format, this.filter_timezone.name),
           point,
+          from,
+          to,
           yVal: moveEvent.yVal,
           isBars,
           isL2: tab?.filter.chart_type === ChartTypes.PRICES_L2,
+          isLinear,
+          linearData,
           isBBO,
           borderGreen,
           borderRed,
           borderBlue,
+          borderColor,
         };
       }),
     );
-
-    this.tooltipPosition$ = combineLatest([
+  
+    this.magnetCoordinates$ = combineLatest([
       this.mouseMove$,
-      this.tooltipDimensions(),
       this.currentTab$.pipe(
         map((tab) => ({
           from: tab?.filter ? new Date(tab.filter.from).getTime() : 0,
           to: tab?.filter ? new Date(tab.filter.to).getTime() : 0,
         })),
       ),
+    ]).pipe(map((([data, {from, to}]) => {
+      const {width, height} = this.getSize();
+      if (!data.time) {
+        return null;
+      }
+      
+      let yInPx = 0;
+      const widthInMs = to - from;
+      const xCoordRatio = data.time <= to ? (data.time - from) / widthInMs : 0.95;
+      const x = Math.max(0, Math.round(xCoordRatio * width));
+      
+      const pads = this.appFacade.getStateFor('everChart', '1').app.pads;
+      if (pads.LINEAR) {
+        const pad = pads.LINEAR;
+        const decimalsL = pad.max.next.toString().split('.')[1]?.length || 0;
+        const multi = Math.pow(10, decimalsL);
+        
+        yInPx = this.getYCoordinate(data.yVal * multi, height, pad.min.next * multi, pad.max.next * multi);
+      }
+     
+      return {
+        x,
+        y: data.y,
+        yInPx,
+      };
+    })));
+    
+    this.tooltipPosition$ = combineLatest([
+      this.magnetCoordinates$,
+      this.tooltipDimensions(),
+      this.mouseMove$,
     ]).pipe(
-      map(([data, dimensions, {from, to}]) => {
-        const {height, width} = this.getSize();
-        const bottomPadding = 25;
-        const mousePadding = 10;
-        if (!data.time) {
+      map(([coordinates, dimensions, data]) => {
+        if (!coordinates || !data.time) {
           return null;
         }
-
+  
+        const {height} = this.getSize();
+        const bottomPadding = 25;
+        const mousePadding = 10;
+        
         const dimensionHeight =
           typeof dimensions.height === 'function' ? dimensions.height(data) : dimensions.height;
-
+        
         const dimensionWidth =
           typeof dimensions.width === 'function' ? dimensions.width(data) : dimensions.width;
-        const widthInMs = to - from;
-        const xInPx = Math.max(0, ((data.time - from) / widthInMs) * width) - mousePadding;
-        const left = xInPx - dimensionWidth < 0 ? xInPx + mousePadding * 2 : xInPx - dimensionWidth;
 
+        const xInPx = coordinates.x - mousePadding;
+        const left = xInPx - dimensionWidth < 0 ? xInPx + mousePadding * 2 : xInPx - dimensionWidth;
+        
         return {
           top: Math.min(
-            Math.max(0, data.y - dimensionHeight - mousePadding),
+            Math.max(0, coordinates.y - dimensionHeight - mousePadding),
             height - bottomPadding - dimensionHeight,
           ),
           left,
@@ -285,41 +462,89 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
         };
       }),
     );
-
+    
     this.tooltipPosition$.pipe(takeUntil(this.destroy$)).subscribe((position) => {
       if (!position) {
         return;
       }
-
+      
       this.elementRef.nativeElement.style.setProperty('--tooltip-top', `${position.top}px`);
       this.elementRef.nativeElement.style.setProperty('--tooltip-left', `${position.left}px`);
       this.elementRef.nativeElement.style.setProperty('--tooltip-height', `${position.height}px`);
       this.elementRef.nativeElement.style.setProperty('--tooltip-width', `${position.width}px`);
     });
-
+    
     this.hideLine$ = combineLatest([
       this.dragging$.pipe(distinctUntilChanged()),
       this.endOfStreamOutOfRange$,
-    ]).pipe(map(([dragging, outOfRange]) => dragging || outOfRange));
+      this.httpError$,
+      this.noPoints$,
+    ]).pipe(
+      map(
+        ([dragging, outOfRange, httpError, noPoints]) =>
+          dragging || outOfRange || !!httpError || noPoints,
+      ),
+    );
   }
-
+  
+  private getYCoordinate = (
+    value: number,
+    height: number,
+    min: number,
+    max: number,
+  ) => {
+    const yOffset = (height * 0.1) / 2;
+  
+    const domain = { from: min, to: max };
+    const range = { from: height - yOffset, to: yOffset };
+    const rise = range.from - range.to;
+  
+    const run = domain.from - domain.to;
+  
+    if (rise === 0 || run === 0) {
+      return 0;
+    }
+  
+    const slope = rise / run;
+  
+    const intercept = range.from - slope * domain.from;
+  
+    return slope * value + intercept;
+  };
+  
+  private formatTooltipBarTime(aggregation: number, time: number) {
+    switch (true) {
+      case aggregation < day:
+        return formatDateTime(time, this.format, this.filter_timezone.name);
+      case aggregation < month:
+        return formatDateTime(time, this.date_format, this.filter_timezone.name);
+      case aggregation < year:
+        const separator = this.date_format.replace(/M|y|d/ig, '')[0];
+        const first = this.date_format.indexOf('yyyy') < this.date_format.indexOf('MM') ? 'yyyy' : 'MM';
+        const second = first === 'yyyy' ? 'MM' : 'yyyy';
+        return formatDateTime(time, `${first}${separator}${second}`, this.filter_timezone.name);
+    }
+    
+    return formatDateTime(time, `yyyy`, this.filter_timezone.name);
+  }
+  
   private pointIsTrade(point, yVal) {
     if (!point.BBO && point.TRADES) {
       return true;
     }
-
+    
     if (!point.TRADES && point.BBO) {
       return false;
     }
-
+    
     if (point.TRADES && point.BBO) {
       return yVal === point.TRADES.value;
     }
   }
-
+  
   ngAfterViewInit(): void {
     const ELEMENT = this.container.nativeElement;
-
+    
     const chartKernel = new EverChartEmbeddableKernel();
     chartKernel.addExtension(new EverChartExtension(this.everChartFeedService));
     fromEvent(ELEMENT, 'mousedown')
@@ -327,13 +552,13 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
       .subscribe(() => {
         ELEMENT?.classList?.add('isGrabbing');
       });
-
+    
     merge(fromEvent(ELEMENT, 'mouseleave'), fromEvent(ELEMENT, 'mouseup'))
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
         ELEMENT?.classList?.remove('isGrabbing');
       });
-
+    
     this.appFacade = new MultiAppFacade(
       [chartKernel],
       this.container.nativeElement,
@@ -345,7 +570,7 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
         },
       },
     );
-
+    
     this.appFacade
       .getActionStream()
       .pipe(
@@ -361,7 +586,7 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
             if (action.payload.drag) {
               this.chartTrackService.track(false);
             }
-
+            
             this.dragging$.next(action.payload.drag);
             break;
           case '@EC/ZOOM':
@@ -381,8 +606,8 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
             break;
           case '@EC/WINDOW_TIME_BORDERS_CHANGE':
             this.everChartFeedService.bordersChange(
-              action.payload.startTime,
-              action.payload.endTime,
+              Math.floor(action.payload.startTime),
+              Math.ceil(action.payload.endTime),
             );
             this.appStore.dispatch(
               new StreamsTabsActions.SetFilters({
@@ -400,7 +625,33 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
             break;
         }
       });
-
+    
+    this.runChart();
+  }
+  
+  onChartMouseLeave() {
+    this.hideTooltip();
+  }
+  
+  onChartMouseEnter() {
+    this.hideTooltip$.next(false);
+  }
+  
+  retry() {
+    this.retry$.next();
+    this.runChart();
+  }
+  
+  ngOnDestroy(): void {
+    this.destroyChart();
+    this.destroy$.next(true);
+    this.destroy$.complete();
+    this.everChartFeedService.chartDestroy();
+    this.appFacade.destroy();
+    this.appFacade = null;
+  }
+  
+  private runChart() {
     combineLatest([this.globalSettings$, this.currentTab$])
       .pipe(
         distinctUntilChanged(([settings1, tab1], [settings2, tab2]) => {
@@ -408,8 +659,20 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
           const compareTab2 = JSON.parse(JSON.stringify(tab2));
           delete compareTab1?.filter.chart_width_val;
           delete compareTab2?.filter.chart_width_val;
+          delete compareTab1?.filter.silent;
           delete compareTab2?.filter.silent;
-          delete compareTab2?.filter.silent;
+          
+          delete compareTab1?.filter.width;
+          delete compareTab2?.filter.width;
+          
+          delete compareTab1?.key;
+          delete compareTab2?.key;
+          
+          delete compareTab1?.symbols;
+          delete compareTab2?.symbols;
+          
+          delete compareTab1?.active;
+          delete compareTab2?.active;
           return (
             JSON.stringify([settings1, compareTab1]) === JSON.stringify([settings2, compareTab2])
           );
@@ -420,79 +683,83 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
         ),
         filter(({filter}) => !!filter.chart_type),
         filter(({filter}) => !(filter.chart_type === ChartTypes.PRICES_L2 && !filter.levels)),
-        filter(({filter}) => !(filter.chart_type === ChartTypes.BARS && !filter.period)),
+        filter(({filter}) => !(barChartTypes.includes(filter.chart_type) && !filter.period)),
         switchMap((tab: TabModel) => {
+          this.everChartFeedService.resetHttpError();
+          this.hideTooltip();
           return combineLatest([
             this.streamsService.rangeCached(
               tab.stream,
               tab.symbol,
               tab.space,
-              tab.filter.chart_type === ChartTypes.BARS ? tab.filter.period.aggregation : null,
+              barChartTypes.includes(tab.filter.chart_type) ? tab.filter.period.aggregation : null,
             ),
             this.streamsService.rangeCached(tab.stream, tab.symbol, tab.space),
           ]).pipe(map(([range, pureRange]) => [range, pureRange.end, tab]));
         }),
         debounceTime(300),
         takeUntil(this.destroy$),
+        takeUntil(this.retry$),
+        switchMap(([range, pureRangeEnd, tab]) => {
+          const lines$ = tab.filter.chart_type === ChartTypes.LINEAR ?
+            this.chartsHttpService.linesInfo(tab.stream) :
+            of([]);
+          
+          return lines$.pipe(
+            switchMap(lines => {
+              this.linearChartsService.setLines(lines);
+              return this.linearChartsService.linesAndColor().pipe(take(1), withLatestFrom(this.currentTab$));
+            }),
+            map(([linesAndColors, currentTab]) => [range, pureRangeEnd, currentTab, linesAndColors]),
+          );
+        }),
       )
       .subscribe(
-        ([{end, start}, pureRangeEnd, tab]: [{end: string; start: string}, string, TabModel]) => {
+        ([{
+          end,
+          start,
+        }, pureRangeEnd, tab, linesAndColors]: [{ end: string; start: string }, string, TabModel, { colors: StoredColorsMap, lines: string[] }]) => {
           if (!tab.filter.chart_type) {
             return;
           }
-
+          
           this.endOfStreamOutOfRange$.next(true);
           this.LEVELS_COUNT = tab.filter.levels;
-          this.destroyChart();
           if (!this.appFacade) {
             return;
           }
-
-          this.initChart(
-            {
-              stream: tab.stream,
-              symbol: tab.symbol,
-              levels: tab.filter.levels,
-              to: new HdDate(tab.filter.to).getEpochMillis(),
-              from: new HdDate(tab.filter.from).getEpochMillis(),
-              streamRange: {start: new Date(start).getTime(), end: new Date(end).getTime()},
-              pureRangeEnd: new Date(pureRangeEnd).getTime(),
-              ...(tab.space ? {space: tab.space} : {}),
-            },
-            tab,
+          
+          this.destroyChart();
+          this.setZoomAndIntervals(tab.filter.chart_type, tab.filter.period);
+          this.everChartFeedService.setWidth(this.getSize().width);
+          this.everChartFeedService.chartInit(
+            new Date(tab.filter.from).getTime(),
+            new Date(tab.filter.to).getTime(),
+            tab.filter.period?.aggregation,
+            tab.filter.levels,
+            tab.filter.chart_type,
+            new Date(pureRangeEnd).getTime(),
+            new Date(end).getTime(),
+            this.tabStorageService,
           );
-        },
-      );
+          
+          this.initChart(tab, new Date(start).getTime(), linesAndColors.colors, linesAndColors.lines);
+        });
   }
-
-  onChartMouseLeave() {
+  
+  private hideTooltip() {
     this.hideTooltip$.next(true);
     timer(100).subscribe(() =>
       this.mouseMove$.next({time: null, y: null, points: null, yVal: null}),
     );
   }
-
-  onChartMouseEnter() {
-    this.hideTooltip$.next(false);
-  }
-
-  ngOnDestroy(): void {
-    this.destroyChart();
-    this.destroy$.next(true);
-    this.destroy$.complete();
-    this.everChartFeedService.chartDestroy();
-    this.appFacade.destroy();
-    this.appFacade = null;
-    this.debugService.end('deltix-charts');
-  }
-
-  private getSize(): {width: number; height: number} {
-    const el = this.container.nativeElement.parentElement.parentElement;
+  
+  private getSize(): { width: number; height: number } {
+    const el = this.container.nativeElement;
     return {width: el.clientWidth, height: el.clientHeight};
   }
-
+  
   private onContainerResize(width: number, height: number) {
-    this.debugService.log(() => ({action: 'resize', payload: {width, height}}));
     this.appFacade.dispatch(
       embeddableAppUpdatePositionAction('everChart', '1', {
         width: width,
@@ -502,37 +769,26 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
       }),
     );
   }
-
-  private destroyChart() {
+  
+  private updatePads(chartType: ChartTypes, colors: StoredColorsMap, showLines: string[]) {
+    const pads: IEverChartPad[] = this.getPads(chartType, colors, showLines);
+    this.appFacade.dispatchTo(everChartChangeConfigurationAction(pads), 'everChart', '1');
+  }
+  
+  destroyChart() {
     if (this.appFacade?.destroyApp) {
       this.everChartFeedService.chartDestroy();
       this.appFacade.destroyApp('everChart', '1');
       this.chartDestroy$.next();
     }
   }
-
-  private initChart(requestData: DeltixChartRequestModel, TAB: TabModel) {
-    this.setZoomAndIntervals(TAB.filter.chart_type, TAB.filter.period);
-    this.hideTooltip$.next(true);
+  
+  private initChart(TAB: TabModel, streamRangeStart: number, colors: StoredColorsMap, showLines: string[]) {
+    this.hideTooltip();
     const fromTime = new Date(TAB.filter.from).getTime();
-    const minTime = Math.min(requestData.streamRange.start, fromTime);
-    this.debugService.log(() => ({
-      action: 'init',
-      payload: {
-        initialTime: [
-          new Date(TAB.filter.from).toISOString(),
-          new Date(TAB.filter.to).toISOString(),
-        ],
-        minTime: new Date(minTime).toISOString(),
-        filters: {
-          ...TAB.filter,
-          from: new Date(TAB.filter.from).toISOString(),
-          to: new Date(TAB.filter.from).toISOString(),
-        },
-      },
-    }));
+    const minTime = Math.min(streamRangeStart, fromTime);
     const chartConfig = {
-      pads: this.getPads(TAB.filter.chart_type),
+      pads: this.getPads(TAB.filter.chart_type, colors, showLines),
       maxBucketSize: 1000,
       initialTime: [new Date(TAB.filter.from).getTime(), new Date(TAB.filter.to).getTime()] as [
         number,
@@ -551,34 +807,38 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
           return formatted_date_string + ' ';
         },
         xAxis: (tick: number, interval: number): string => {
+          if (!tick) {
+            return '';
+          }
+          
           let format = 'ss.fff';
-
+          
           if (interval >= 1000) {
             format = 'HH:mm:ss';
           }
-
+          
           if (interval >= 60 * 1000) {
             format = 'HH:mm';
           }
-
+          
           if (interval >= 60 * 60 * 1000) {
             format = 'dd/MM HH';
           }
-
+          
           if (interval >= 24 * 60 * 60 * 1000) {
             format = 'dd/MM';
           }
-
+          
           return formatDateTime(tick, format, this.filter_timezone.name);
         },
         yAxis: (numberToFormat: string, an): IFormattedNumber => {
           const decimals = this.everChartFeedService.maxDecimals$.getValue();
-
+          
           const split = parseFloat(numberToFormat.toString())
             .toFixed(decimals || 1)
             .toString()
             .split('.');
-
+          
           return {
             integerPart: split[0],
             fractionalPart: split[1],
@@ -587,20 +847,11 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
         },
       },
     };
-
-    this.everChartFeedService.chartInit(
-      new Date(TAB.filter.from).getTime(),
-      new Date(TAB.filter.to).getTime(),
-      this.tabStorageService,
-      TAB.filter.period?.aggregation,
-      TAB.filter.levels,
-      TAB.filter.chart_type,
-      requestData.pureRangeEnd,
-      requestData.streamRange.end,
-    );
-
+    
+    this.everChartFeedService.runChart();
+    
     const {width, height} = this.getSize();
-    this.everChartFeedService.setWidth(width);
+    
     this.appFacade
       .createApp(
         'everChart',
@@ -619,18 +870,19 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
           console.log(e);
           return of();
         }),
+        takeUntil(this.chartDestroy$),
       )
       .subscribe((value) => {
         if (value === 'initialized') {
           this.hideTooltip$.next(false);
           this.resize$.next(this.getSize());
           this.resizeObserveService
-            .observe(this.container.nativeElement.parentElement.parentElement)
+            .observe(this.container.nativeElement)
             .pipe(takeUntil(this.chartDestroy$))
             .subscribe(() => {
               this.resize$.next(this.getSize());
             });
-
+          
           const borders$ = this.appStore.pipe(
             select(getActiveTabFilters),
             filter((f) => !!f),
@@ -638,14 +890,16 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
             distinctUntilChanged(equal),
             map(([from, to]) => [new Date(from).getTime(), new Date(to).getTime()]),
           );
-
+          
+          this.linearChartsService.colors().pipe(takeUntil(this.chartDestroy$)).subscribe(colors => {
+            this.updatePads(TAB.filter.chart_type, colors, showLines);
+          });
+          
           combineLatest([borders$, this.everChartFeedService.onEndOfStream()])
             .pipe(
               takeUntil(this.chartDestroy$),
               withLatestFrom(this.chartTrackService.onTrack()),
-              switchMap(([data, track]) => {
-                return timer(track ? 300 : 0).pipe(map(() => data));
-              }),
+              switchMap(([data, track]) => timer(track ? 300 : 0).pipe(map(() => data))),
               distinctUntilChanged(equal),
               map(([[from, to], end]) => {
                 const length = to - from;
@@ -659,7 +913,7 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
               this.endOfStreamOutOfRange$.next([0, 100].includes(right));
               this.showNoData$.next(right === 100);
             });
-
+          
           this.everChartFeedService
             .onEndOfStream()
             .pipe(
@@ -673,7 +927,7 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
             .subscribe(() => {
               this.elementRef.nativeElement.style.setProperty('--end-of-stream-opacity', '0.1');
             });
-
+          
           const stopTrack$ = this.chartTrackService.onTrack().pipe(filter((s) => !s));
           const loading$ = this.everChartFeedService.onLoading();
           this.chartTrackService
@@ -698,12 +952,10 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
               takeUntil(this.chartDestroy$),
             )
             .subscribe(([[time], tab]) => {
-              const halfScreen = Math.ceil(
-                (new Date(tab.filter.to).getTime() - new Date(tab.filter.from).getTime()) / 2,
-              );
-
+              const screenSize =
+                new Date(tab.filter.to).getTime() - new Date(tab.filter.from).getTime();
               this.appFacade.dispatchTo(
-                everChartScrollToTimeAction(time + halfScreen),
+                everChartScrollToTimeAction(time + screenSize * 0.15),
                 'everChart',
                 '1',
               );
@@ -711,25 +963,49 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       });
   }
-
+  
   private setZoomAndIntervals(chartType: ChartTypes, period: BarChartPeriod): void {
-    ZOOM.zoom =
-      chartType === ChartTypes.BARS ? zoomRestrictions(period.aggregation) : DEFAULT_ZOOM_TABLE;
+    ZOOM.zoom = barChartTypes.includes(chartType)
+      ? zoomRestrictions(period.aggregation)
+      : DEFAULT_ZOOM_TABLE;
     ZOOM.intervals = Object.keys(ZOOM.zoom).map((key) => parseInt(key, 0));
   }
-
-  private tooltipDimensions(): Observable<{width: number | Function; height: number | Function}> {
+  
+  private tooltipDimensions(): Observable<{ width: number | Function; height: number | Function }> {
     return combineLatest([
       this.currentTab$.pipe(filter(Boolean)),
       this.globalSettingService.getFilters(),
+      this.tooltipData$,
     ]).pipe(
-      map(([tab, filters]: [TabModel, GlobalFilters]) => {
-        const dateLength = `${filters.dateFormat[0]} ${filters.timeFormat[0]}`.length * 7 + 20;
+      map(([tab, filters, tooltipData]: [TabModel, GlobalFilters, any]) => {
+        const isBars = [ChartTypes.BARS, ChartTypes.BARS_BID, ChartTypes.BARS_ASK].includes(tab.filter.chart_type);
+        const date = isBars ? this.formatTooltipBarTime(tab.filter.period?.aggregation, 0) : `${filters.dateFormat[0]} ${filters.timeFormat[0]}`;
+        const dateLength = date.length * 7 + 20 + (isBars ? 30 : 0);
+        
         switch (tab.filter.chart_type) {
           case ChartTypes.BARS:
+          case ChartTypes.BARS_BID:
+          case ChartTypes.BARS_ASK:
             return {
-              width: dateLength,
-              height: 125,
+              width: (data) => {
+                const barsData = data.points.BARS;
+                const barValuesLengths = [
+                  `High: ${barsData?.high}`,
+                  `Low: ${barsData?.low}`,
+                  `Open: ${barsData?.open}`,
+                  `Close: ${barsData?.close}`,
+                ].map(val => `${val}`.length * 7.5);
+                return Math.max(dateLength, ...barValuesLengths);
+              },
+              height: 145,
+            };
+          case ChartTypes.LINEAR:
+            return {
+              width: Math.max(
+                Math.max(...(tooltipData?.linearData || []).map(item => `${item.name}: ${item.value}`.length)) * 7.5,
+                dateLength,
+              ),
+              height: (tooltipData?.linearData || []).length * 20 + 50,
             };
           case ChartTypes.PRICES_L2:
             return {
@@ -746,8 +1022,8 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
       filter((dimensions) => !!dimensions),
     );
   }
-
-  private getPads(chartType: ChartTypes): IEverChartPad[] {
+  
+  private getPads(chartType: ChartTypes, colors: StoredColorsMap, showLines: string[]): IEverChartPad[] {
     switch (chartType) {
       case ChartTypes.TRADES_BBO:
         return [
@@ -757,24 +1033,55 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
           },
         ];
       case ChartTypes.BARS:
+      case ChartTypes.BARS_BID:
+      case ChartTypes.BARS_ASK:
         return [
           {
             id: `1_${ChartTypes.BARS}`,
             items: [this.getBarCharLine(ChartTypes.BARS)],
           },
         ];
-      case 'PRICES_L2':
+      case ChartTypes.PRICES_L2:
         return [
           {
             id: `1_${ChartTypes.PRICES_L2}`,
             items: [...this.getLines('ASK'), ...this.getLines('BID'), this.getShape('TRADES')],
           },
         ];
+      case ChartTypes.LINEAR:
+        return [
+          {
+            id: ChartTypes.LINEAR,
+            items: this.getLinearLines(colors, showLines),
+          },
+        ];
       default:
         return [];
     }
   }
-
+  
+  private getLinearLines(colors: StoredColorsMap, showLines: string[]): IEverChartPadItem[] {
+    
+    return showLines.map(lineKey => ({
+      id: this.linearId(lineKey),
+      type: EverChartPadItem.LINE,
+      lineWidth: 2,
+      color: this.colorToString(colors[lineKey]),
+      getY: (item: DeltixChartFormattedData) => {
+        return item.points?.[this.linearId(lineKey)]?.value as number;
+      },
+    }));
+  }
+  
+  private colorToString(color: number[]): string {
+    const colorPrefix = color.length > 3 ? 'rgba' : 'rgb';
+    return `${colorPrefix}(${color.join(',')})`;
+  }
+  
+  private linearId(line: string) {
+    return this.linearChartsService.linearId(line);
+  }
+  
   private getLines(lineKey: string) {
     const LINES = [];
     for (let i = 0; i < this.LEVELS_COUNT; i++) {
@@ -786,13 +1093,13 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
         drawType: EverChartLineItemDrawType.beforeWithoutLink,
         color: this.getLineColor(lineKey, this.LEVELS_COUNT, i),
         getY: (item: DeltixChartFormattedData) => {
-          return item.points?.[LINE_ID]?.value /* || NaN*/;
+          return item.points?.[LINE_ID]?.value;
         },
       });
     }
     return LINES;
   }
-
+  
   private getAreaLine(linesBaseKey: string, [askPrice, bidPrice]: [string, string]): any[] {
     return [
       {
@@ -810,7 +1117,7 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
       },
     ];
   }
-
+  
   private getShape(lineKey: string): IEverChartShapeItem {
     return {
       id: lineKey,
@@ -827,7 +1134,7 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
       },
     };
   }
-
+  
   private getBarCharLine(lineKey: string): IEverChartIntervalItem {
     const green = '#008000';
     const red = '#dc0000';
@@ -841,14 +1148,14 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
         if (!data.points?.[lineKey]) {
           return null;
         }
-
+        
         return parseFloat(data.points[lineKey].low);
       },
       getHigh: (data: DeltixChartFormattedData | IEverChartDataItem) => {
         if (!data.points?.[lineKey]) {
           return null;
         }
-
+        
         return parseFloat(data.points[lineKey].high);
       },
       getOpen: (data: DeltixChartFormattedData | IEverChartDataItem) => {
@@ -861,22 +1168,22 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy {
         if (!data.points?.[lineKey]) {
           return null;
         }
-
+        
         return parseFloat(data.points[lineKey].close);
       },
       getIntervalWidth: (data: DeltixChartFormattedData | IEverChartDataItem) => {
         if (!data.points?.[lineKey]) {
           return null;
         }
-
+        
         return data.points[lineKey].width;
       },
     };
   }
-
+  
   private getLineColor(lineKey: string, maxLevels: number, currentLvl: number, update?: boolean) {
     let lvlStep = 70;
-
+    
     if (/ASK/.test(lineKey)) {
       if (maxLevels > 0) lvlStep = Math.round((255 - lvlStep) / maxLevels);
       // '#f70063';

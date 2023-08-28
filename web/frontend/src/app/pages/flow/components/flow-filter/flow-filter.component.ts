@@ -1,17 +1,20 @@
-import { Component, OnDestroy, OnInit }                 from '@angular/core';
-import { FormBuilder, FormGroup }                       from '@angular/forms';
-import { select, Store }                                from '@ngrx/store';
-import equal                                            from 'fast-deep-equal';
-import { IDropdownSettings }                            from 'ng-multiselect-dropdown/multiselect.model';
-import { Observable, Subject }                          from 'rxjs';
-import { distinctUntilChanged, filter, map, takeUntil } from 'rxjs/operators';
-import { AppState }                                     from '../../../../core/store';
-import { TopologyTypeModel }                            from '../../models/topologyType.model';
-import { TrafficModel }                                 from '../../models/traffic.model';
-import { ShortTrafficNodeModel }                        from '../../models/traffic.node.model';
-import { FlowDataService }                              from '../../services/flow-data.service';
-import { SetActiveTopologyType, SetFlowFilter }         from '../../store/flow.actions';
-import { getActiveTopology, getTopologies }             from '../../store/flow.selectors';
+import { Component, OnDestroy, OnInit }        from '@angular/core';
+import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
+import equal                                   from 'fast-deep-equal';
+import { Observable, Subject }                 from 'rxjs';
+import { map, switchMap, take, takeUntil }     from 'rxjs/operators';
+import { TabStorageService }                   from '../../../../shared/services/tab-storage.service';
+import { FlowFilter }                          from '../../models/flow-filter';
+import { TrafficModel }                        from '../../models/traffic.model';
+import { FlowDataService }                     from '../../services/flow-data.service';
+
+
+interface Form {
+  topology: FormControl<string>;
+  nodes: FormControl<{ id: string, name: string }[]>;
+  rpsType: FormControl<string>;
+  rpsVal: FormControl<number>;
+}
 
 @Component({
   selector: 'app-flow-filter',
@@ -19,74 +22,76 @@ import { getActiveTopology, getTopologies }             from '../../store/flow.s
   styleUrls: ['./flow-filter.component.scss'],
 })
 export class FlowFilterComponent implements OnInit, OnDestroy {
-  public nodesList$: Observable<ShortTrafficNodeModel[]>;
-  public topologies$: Observable<TopologyTypeModel[]>;
-  public dropdownSettings: IDropdownSettings = {
-    idField: 'name',
-    textField: 'name',
-    allowSearchFilter: true,
-    // enableCheckAll: false,
-    closeDropDownOnSelection: false,
-    itemsShowLimit: 10,
-  };
-  public selectedNodes: ShortTrafficNodeModel[] = [];
-  public dataFilterForm: FormGroup;
-
+  nodesList$: Observable<{ id: string, name: string }[]>;
+  topologies = ['ltrTree', 'ringCenter'];
+  rpsFilterTypeVal$: Subject<string> = new Subject();
+  form: FormGroup<Form>;
+  rpsTypeValues = ['all', 'more', 'less', 'equal'];
+  rpsValues = [0, 1, 5, 10, 20, 50, 100, 200, 500, 1000];
+  
   private destroy$ = new Subject<any>();
-
+  
   constructor(
     private flowDataService: FlowDataService,
-    private appStore: Store<AppState>,
     private fb: FormBuilder,
+    private tabStorage: TabStorageService<FlowFilter>,
   ) {}
-
+  
+  ngOnInit(): void {
+    this.form = this.fb.group({
+      topology: null,
+      nodes: null,
+      rpsType: null,
+      rpsVal: null,
+    }) as FormGroup<Form>;
+    
+    this.tabStorage.updateData((data) => (data || {
+      topology: this.topologies[0],
+      nodes: [],
+      rpsType: 'all',
+      rpsVal: null,
+    })).pipe(
+      take(1),
+      switchMap(() => this.tabStorage.getData()),
+      takeUntil(this.destroy$),
+    ).subscribe(data => {
+      this.flowDataService.updateLayout(data.topology);
+      Object.keys(data).forEach(key => {
+        if (this.form.get(key).value !== data[key]) {
+          this.form.get(key).patchValue(data[key], {emitEvent: false});
+        }
+      });
+      
+      if (data.rpsType === 'all') {
+        this.form.get('rpsVal').setValue(null, {emitEvent: false});
+        this.form.get('rpsVal').disable({emitEvent: false});
+      } else {
+        this.form.get('rpsVal').enable({emitEvent: false});
+      }
+    });
+    
+    this.form.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(formData => {
+      this.tabStorage.updateDataSync(() => formData);
+    });
+    
+    this.nodesList$ = this.flowDataService.flow().pipe(
+      map((flow: TrafficModel) => flow?.nodes?.map(
+        (node) => ({id: node.name, name: `${node.name} (${node.class})`}),
+      ) || []),
+    );
+  }
+  
+  onRPSFilterChangeInput(text: string) {
+    const number = text === '' ? NaN : Number(text);
+    this.form.get('rpsVal').patchValue(isFinite(number) ? number : null);
+  }
+  
   ngOnDestroy() {
     this.destroy$.next(true);
     this.destroy$.complete();
   }
-
-  ngOnInit(): void {
-    this.appStore
-      .pipe(
-        select(getActiveTopology),
-        filter(Boolean),
-        filter((activeTopology: TopologyTypeModel) => {
-          const CURRENT_TYPE = this.dataFilterForm?.get('topologyType').value;
-          return CURRENT_TYPE !== activeTopology?.type;
-        }),
-        takeUntil(this.destroy$),
-      )
-      .subscribe((activeTopology) => {
-        if (this.dataFilterForm) {
-          this.dataFilterForm.get('topologyType').setValue(activeTopology.type);
-        } else {
-          this.dataFilterForm = this.fb.group({
-            topologyType: [activeTopology.type],
-          });
-        }
-      });
-    this.nodesList$ = this.flowDataService.getFlowDataLink$().pipe(
-      map((flow: TrafficModel) => {
-        return flow?.nodes?.map((node) => new ShortTrafficNodeModel(node)) || [];
-      }),
-      distinctUntilChanged(equal),
-      takeUntil(this.destroy$),
-    );
-    this.topologies$ = this.appStore.pipe(select(getTopologies));
-  }
-
-  public onSelectedNodesChanged(filteredNodes: ShortTrafficNodeModel[]) {
-    this.appStore.dispatch(SetFlowFilter({filteredNodes}));
-  }
-
-  public onTopologySelect() {
-    const topologyType = this.dataFilterForm.get('topologyType').value;
-    if (topologyType) {
-      this.appStore.dispatch(SetActiveTopologyType({topologyType}));
-    }
-  }
-
-  public topologiesTrackBy(idx, topology) {
-    return topology.type;
+  
+  topologyManuallyChanged() {
+    this.flowDataService.topologyManuallyChanged();
   }
 }

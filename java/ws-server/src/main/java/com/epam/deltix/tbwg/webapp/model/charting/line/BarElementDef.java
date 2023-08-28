@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model.charting.line;
+package com.epam.deltix.tbwg.webapp.model.charting.line;
 
 import java.util.Objects;
 
@@ -25,6 +25,7 @@ public class BarElementDef extends LineElementDef {
     private String low;
     private String high;
     private String volume;
+    private String exchange;
 
     public BarElementDef() {
     }
@@ -69,6 +70,14 @@ public class BarElementDef extends LineElementDef {
         this.volume = volume;
     }
 
+    public String getExchange() {
+        return exchange;
+    }
+
+    public void setExchange(String exchange) {
+        this.exchange = exchange;
+    }
+
     @Override
     public BarElementDef copyFrom(LineElement template) {
         super.copyFrom(template);
@@ -79,6 +88,7 @@ public class BarElementDef extends LineElementDef {
             low = t.low;
             high = t.high;
             volume = t.volume;
+            exchange = t.exchange;
         }
 
         return this;
@@ -98,7 +108,8 @@ public class BarElementDef extends LineElementDef {
         str.append(",\"close\":\"").append(close).append("\"");
         str.append(",\"low\":\"").append(low).append("\"");
         str.append(",\"high\":\"").append(high).append("\"");
-        str.append(",\"volume\":\"").append(volume).append("\"}");
+        str.append(",\"volume\":\"").append(volume).append("\"");
+        str.append(",\"exchange\":\"").append(exchange).append("\"}");
 
         return str;
     }
@@ -113,11 +124,12 @@ public class BarElementDef extends LineElementDef {
             Objects.equals(close, that.close) &&
             Objects.equals(low, that.low) &&
             Objects.equals(high, that.high) &&
-            Objects.equals(volume, that.volume);
+            Objects.equals(volume, that.volume) &&
+            Objects.equals(exchange, that.exchange);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), open, close, low, high, volume);
+        return Objects.hash(super.hashCode(), open, close, low, high, volume, exchange);
     }
 }

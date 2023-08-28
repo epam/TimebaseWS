@@ -79,6 +79,12 @@
   }
 }
 
+.no-max-width-context-menu {
+  .dropdown-menu {
+    min-width: 0;
+  }
+}
+
 .grid-column-pin-submenu {
   margin-top: -10px;
 }

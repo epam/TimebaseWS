@@ -3,6 +3,7 @@ import {DeltixChartFormattedData} from '../../../models/deltix-chart.models';
 
 export interface DeltixChartStorage {
   interval: number;
+  savedSchema: {key: string, unique: number}[];
   knownRanges: [number, number][];
   data: DeltixChartFormattedData[];
   barsAggregation: number;
@@ -10,4 +11,5 @@ export interface DeltixChartStorage {
   levels: number;
   pointInterval: number;
   track?: boolean;
+  exchange?: {id: string, name: string};
 }

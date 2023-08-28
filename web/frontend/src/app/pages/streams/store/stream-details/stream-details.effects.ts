@@ -1,6 +1,6 @@
 import {HttpClient} from '@angular/common/http';
 import {Injectable} from '@angular/core';
-import {Actions, Effect, ofType} from '@ngrx/effects';
+import {Actions, createEffect, ofType} from '@ngrx/effects';
 import {Subject} from 'rxjs';
 import {
   distinctUntilChanged,
@@ -22,21 +22,21 @@ import {StreamDetailsActionTypes} from './stream-details.actions';
 
 @Injectable()
 export class StreamDetailsEffects {
-  @Effect({dispatch: false}) setSchema = this.actions$.pipe(
+   setSchema = createEffect(() => this.actions$.pipe(
     ofType<StreamDetailsActions.SetSchema>(StreamDetailsActionTypes.SET_SCHEMA),
     share(),
-  );
-  @Effect({dispatch: false}) cleanStreamData = this.actions$.pipe(
+  ), {dispatch: false});
+   cleanStreamData = createEffect(() => this.actions$.pipe(
     ofType<StreamDetailsActions.CleanStreamData>(StreamDetailsActionTypes.CLEAN_STREAM_DATA),
     share(),
-  );
+  ), {dispatch: false});
 
-  @Effect({dispatch: false}) setSymbols = this.actions$.pipe(
+   setSymbols = createEffect(() => this.actions$.pipe(
     ofType<StreamDetailsActions.SetSymbols>(StreamDetailsActionTypes.SET_SYMBOLS),
     share(),
-  );
+  ), {dispatch: false});
 
-  @Effect({dispatch: false}) saveGlobalFilterState = this.actions$.pipe(
+   saveGlobalFilterState = createEffect(() => this.actions$.pipe(
     ofType<StreamDetailsActions.SaveGlobalFilterState>(
       StreamDetailsActionTypes.SAVE_GLOBAL_FILTER_STATE,
     ),
@@ -47,15 +47,15 @@ export class StreamDetailsEffects {
       return false;
     }),
     share(),
-  );
-  @Effect({dispatch: false}) setGlobalFilterState = this.actions$.pipe(
+  ), {dispatch: false});
+   setGlobalFilterState = createEffect(() => this.actions$.pipe(
     ofType<StreamDetailsActions.SetGlobalFilterState>(
       StreamDetailsActionTypes.SET_GLOBAL_FILTER_STATE,
     ),
     share(),
-  );
+  ), {dispatch: false});
 
-  @Effect({dispatch: false}) clearGlobalFilterState = this.actions$.pipe(
+   clearGlobalFilterState = createEffect(() => this.actions$.pipe(
     ofType<StreamDetailsActions.ClearGlobalFilterState>(
       StreamDetailsActionTypes.CLEAR_GLOBAL_FILTER_STATE,
     ),
@@ -65,17 +65,17 @@ export class StreamDetailsEffects {
       return false;
     }),
     share(),
-  );
-  @Effect() getStreamRange = this.actions$.pipe(
+  ), {dispatch: false});
+   getStreamRange = createEffect(() => this.actions$.pipe(
     ofType<StreamDetailsActions.GetStreamRange>(StreamDetailsActionTypes.GET_STREAM_RANGE),
     switchMap((action) => {
       return this.streamsService
         .rangeCached(action.payload.streamId, action.payload.symbol, action.payload.spaceName)
         .pipe(map((streamRange) => new StreamDetailsActions.SetStreamRange({streamRange})));
     }),
-  );
+  ));
   private stop_subscription$ = new Subject();
-  @Effect() getSchema = this.actions$.pipe(
+   getSchema = createEffect(() => this.actions$.pipe(
     ofType<StreamDetailsActions.GetSchema>(StreamDetailsActionTypes.GET_SCHEMA),
     map((action) => action.payload.streamId),
     // distinctUntilChanged(),
@@ -101,16 +101,16 @@ export class StreamDetailsEffects {
         }),
       );
     }),
-  );
-  @Effect({dispatch: false}) stopSubscriptions = this.actions$.pipe(
+  ));
+   stopSubscriptions = createEffect(() => this.actions$.pipe(
     ofType(StreamDetailsActionTypes.STOP_SUBSCRIPTIONS),
     tap(() => {
       this.stop_subscription$.next(true);
       this.stop_subscription$.complete();
       this.stop_subscription$ = new Subject();
     }),
-  );
-  @Effect() getSymbols = this.actions$.pipe(
+  ), {dispatch: false});
+   getSymbols = createEffect(() => this.actions$.pipe(
     ofType<StreamDetailsActions.GetSymbols>(StreamDetailsActionTypes.GET_SYMBOLS),
     map((action) => action.payload),
     distinctUntilChanged(
@@ -126,9 +126,9 @@ export class StreamDetailsEffects {
         }),
       );
     }),
-  );
+  ));
   private tabs_activated: boolean;
-  @Effect() subscribeTabChanges = this.actions$.pipe(
+   subscribeTabChanges = createEffect(() => this.actions$.pipe(
     ofType<StreamDetailsActions.SubscribeTabChanges>(
       StreamDetailsActionTypes.SUBSCRIBE_TAB_CHANGES,
     ),
@@ -151,7 +151,7 @@ export class StreamDetailsEffects {
         }),
       ];
     }),
-  );
+  ));
 
   constructor(
     private actions$: Actions,

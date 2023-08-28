@@ -1,3 +1,4 @@
+import {SimpleChanges} from '@angular/core';
 import {
   Component,
   ElementRef,
@@ -11,6 +12,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import {ControlValueAccessor, NG_VALUE_ACCESSOR} from '@angular/forms';
+import {timer} from 'rxjs';
 
 import {AutocompleteBase} from './autocomplete-base';
 
@@ -26,8 +28,11 @@ import {AutocompleteBase} from './autocomplete-base';
           [(ngModel)]="selectedText"
           [title]="selectedText"
           [disabled]="disabled"
+          [size]="size"
           [maxlength]="maxlength"
           [placeholder]="placeholder"
+          [class.edited]="edited"
+          [class.invalid]="invalid"
           (focus)="onFocus($event)"
           (input)="onInput($event)"
           (keyup)="onKeyUp($event)"
@@ -42,19 +47,26 @@ import {AutocompleteBase} from './autocomplete-base';
         <div class="autocomplete-dropdown-container" #dropdownContainer>
           <div class="autocomplete-dropdown" *ngIf="!disabled">
             <div class="autocomplete-dropdown-menu-wrapper" *ngIf="isShowDropdown()">
-              <ul class="autocomplete-dropdown-menu">
-                <li
-                  *ngFor="let item of values"
-                  class="autocomplete-dropdown-item"
-                  [class.autocomplete-active]="isSelected(item)"
-                  [title]="getTitleAttrValueForItem(item)">
-                  <a
-                    href="#"
-                    (click)="select(item, $event)"
-                    (keyup)="onElementKeyUp($event)"
-                    [innerHTML]="highlightTitle(item) | safeHtml"></a>
-                </li>
-              </ul>
+              <cdk-virtual-scroll-viewport
+                [style.height.px]="autoCompleteHeight"
+                style="pointer-events: initial"
+                maxBufferPx="320"
+                minBufferPx="320"
+                [itemSize]="itemHeight">
+                <ul>
+                  <li
+                    *cdkVirtualFor="let item of filteredValues"
+                    class="autocomplete-dropdown-item"
+                    [class.autocomplete-active]="isSelected(item)"
+                    [title]="getTitleAttrValueForItem(item)">
+                    <a
+                      href="#"
+                      (click)="select(item, $event)"
+                      (keyup)="onElementKeyUp($event)"
+                      [innerHTML]="highlightTitle(item) | safeHtml"></a>
+                  </li>
+                </ul>
+              </cdk-virtual-scroll-viewport>
             </div>
           </div>
         </div>
@@ -69,49 +81,58 @@ import {AutocompleteBase} from './autocomplete-base';
     },
   ],
 })
-// tslint:enable:max-line-length
 export class AutocompleteComponent
   extends AutocompleteBase
   implements OnInit, ControlValueAccessor, OnDestroy, OnChanges
 {
-  @Input()
-  public dropdown = false;
-  @Input()
-  public placeholder = '';
-  @Input()
-  public maxlength: number;
-  @Input()
-  protected required = false;
-  @Input()
-  protected free = false;
-  @Output()
-  protected changeInput: EventEmitter<string> = new EventEmitter<string>();
-  @Input()
-  public cssClass: string;
-  @Input()
-  protected descriptionGetter: (value: any, highlightFunc: (str: string) => string) => string;
-  @Input()
-  public disabled = false;
-  @ViewChild('dropdownContainer')
-  protected dropdownContainer: ElementRef;
-  @Input()
-  protected highlight = true;
+  @ViewChild('dropdownContainer') dropdownContainer: ElementRef;
 
-  public isSelected(value: any): boolean {
+  @Input() dropdown = false;
+  @Input() placeholder = '';
+  @Input() maxlength: number;
+  @Input() required = false;
+  @Input() free = false;
+  @Input() cssClass: string;
+  @Input() descriptionGetter: (value: any, highlightFunc: (str: string) => string) => string;
+  @Input() disabled = false;
+  @Input() stripTags = true;
+  @Input() highlight = true;
+  @Input() valueGetter: (value: any) => string;
+  @Input() values: Array<any>;
+  @Input() size: number = 20;
+  @Input() allOptionsOnClick: boolean = false;
+  @Input() edited: boolean = false;
+  @Input() invalid: boolean = false;
+  @Input() filterDisabled: boolean = false;
+
+  @Output() changeInput: EventEmitter<string> = new EventEmitter<string>();
+  @Output() showDropdownChange: EventEmitter<boolean> = new EventEmitter<boolean>();
+  @Output() selectItem: EventEmitter<any> = new EventEmitter<any>();
+
+  selectedValue: any;
+  filteredValues: any[];
+  autoCompleteHeight = 0;
+  itemHeight = 25;
+
+  isSelected(value: any): boolean {
     return this.selectedValue === value;
   }
 
-  public onBlur(event: Event) {
-    if (this.free && !this.dropdown) {
-      return;
-    }
-    this.selectedText = this.getValueForItem(this.selectedValue);
+  onBlur(event: Event) {
+    timer().subscribe(() => {
+      if (this.free && !this.dropdown) {
+        return;
+      }
+      this.selectedText = this.getValueForItem(this.selectedValue);
+    });
   }
 
-  public onFocus(event: Event) {
+  onFocus(event: Event) {
     if (this.dropdown) {
       return;
     }
+    
+    this.countHeight();
     super.onFocus(event);
   }
 
@@ -119,35 +140,33 @@ export class AutocompleteComponent
     return super.isShowDropdown();
   }
 
-  public onInput(event: KeyboardEvent) {
-    if (
-      this.free &&
-      this.selectedValue != null &&
-      this.selectedText !== this.getValueForItem(this.selectedValue)
-    ) {
-      this.selectedValue = null;
-      this.onChange(this.selectedValue);
+  onInputClick(event: Event) {
+    if (!this.filteredValues.length) {
+      this.showDropdown = false;
+      return;
     }
-    super.onInput(event);
-  }
-
-  public onInputClick(event: Event) {
     if (!this.dropdown) {
       return;
     }
     this.showDropdown = !this.showDropdown;
   }
 
-  public onKeyUp(event: KeyboardEvent) {
+  onKeyUp(event: KeyboardEvent) {
     super.onKeyUp(event);
 
     if (this.selectedText.length === 0 && this.required + '' !== 'true') {
       this.selectedValue = null;
       this.onChange(null);
     }
+
+    this.showDropdown = event.keyCode !== 13;
+
+    if (event.keyCode !== 40) {
+      this.filterValues();
+    }
   }
 
-  public select(item: any, event: Event) {
+  select(item: any, event: Event) {
     event.stopPropagation();
     event.preventDefault();
     this.selectedText = this.getValueForItem(item);
@@ -155,28 +174,12 @@ export class AutocompleteComponent
     this.onChange(item);
     this.selectItem.emit(item);
     this.showDropdown = false;
+    this.allOptionsOnClick ? this.showAllValues() : this.filterValues();
   }
 
-  @Output()
-  protected showDropdownChange: EventEmitter<boolean> = new EventEmitter<boolean>();
-  @Input()
-  protected stripTags = true;
-  @Input()
-  protected valueGetter: (value: any) => string;
-  @Input()
-  values: Array<any>;
-
-  public writeValue(obj: any): void {
+  writeValue(obj: any): void {
     this.selectedValue = obj;
     this.selectedText = this.getValueForItem(this.selectedValue);
-  }
-
-  @Output()
-  protected selectItem: EventEmitter<any> = new EventEmitter<any>();
-  protected selectedValue: any;
-
-  constructor(element: ElementRef) {
-    super(element);
   }
 
   closeDropDown() {
@@ -185,5 +188,40 @@ export class AutocompleteComponent
 
   openDropdown() {
     this.showDropdown = true;
+  }
+  
+  onChangePosition() {
+    this.countHeight();
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    super.ngOnChanges(changes);
+    this.allOptionsOnClick ? this.showAllValues() : this.filterValues();
+  }
+
+  private showAllValues() {
+    this.filteredValues = this.values;
+    this.countHeight();
+  }
+
+  private filterValues() {
+    this.filteredValues = this.filterDisabled ? this.values : this.values?.filter(
+      (value) => !this.selectedText || this.unifyValue(value).includes(this.unifyValue(this.selectedText)),
+    );
+    if (!this.filteredValues.length) {
+      this.showDropdown = false;
+    }
+
+    this.countHeight();
+  }
+
+  private countHeight() {
+    const rect: ClientRect = this.element.nativeElement.getBoundingClientRect();
+    const minHeight = Math.min(350, window.innerHeight - (rect.top + rect.height + 10));
+    this.autoCompleteHeight = Math.min(this.filteredValues.length * this.itemHeight, minHeight);
+  }
+  
+  private unifyValue(value: string): string {
+    return value?.toString().replace(/( |\r\n)+/g, ' ').toLowerCase();
   }
 }

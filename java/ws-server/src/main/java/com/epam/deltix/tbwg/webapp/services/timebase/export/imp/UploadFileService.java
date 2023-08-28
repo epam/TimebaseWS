@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,16 +14,25 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.timebase.export.imp;
+package com.epam.deltix.tbwg.webapp.services.timebase.export.imp;
+
+import java.io.File;
 
 public interface UploadFileService {
 
-    ImportFile          newUploadProcess(String fileName, long size, ImportSettings settings);
+    ImportProcess newFileUploadProcess(String fileName, long size, ImportSettings settings);
 
-    ImportFile          uploadProcess(long id);
+    ImportProcess newDirectoryUploadProcess(long size);
 
-    void                freeUpload(long id);
+    ImportProcess uploadProcess(long id);
 
-    boolean             isFreedUpload(long id);
+    void freeUpload(long id);
 
+    boolean isFreedUpload(long id);
+
+    File createLogFile(long processId);
+
+    void deleteLogFile(Long processId);
+
+    File getLogFile(long processId);
 }

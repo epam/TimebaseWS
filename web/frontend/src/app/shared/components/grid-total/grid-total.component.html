@@ -1,0 +1,5 @@
+<ng-container *ngIf="dataCount$ | async as dataCount">
+  {{ 'gridTotal.loaded' | translate : {number: dataCount.number} }}
+  <ng-container *ngIf="dataCount.time" >{{ 'gridTotal.inSec' | translate : {seconds: dataCount.time / 1000} }}</ng-container>
+  <ng-container *ngIf="!dataCount.time" >{{ 'gridTotal.fromCache' | translate }}</ng-container>
+</ng-container>

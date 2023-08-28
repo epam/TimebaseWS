@@ -1,0 +1,75 @@
+@import 'src/app/core/styles/variables';
+
+:host {
+  width: 100%;
+}
+
+.ag-cell-label-container {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-bottom: 0.2rem;
+}
+
+
+.header-title {
+  padding: 0.2rem;
+  width: 100%;
+  text-align: left;
+}
+
+::ng-deep {
+  .ag-header-row {
+    overflow-y: visible;
+  }
+}
+
+.toggle-dropdown-button {
+  width: 146px;
+  padding: 0.1rem 0.2rem 0.3rem;
+  border: none;
+  border-radius: 0.25rem;
+  background-color: rgb(46, 49, 59);
+  color: whitesmoke;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.drop-down-symbol {
+  font-size: 18px;
+}
+
+.dropdown {
+  position: fixed;
+  top: 13rem;
+  z-index: 1000;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+.dropdown-item, .dropdown-item-type {
+  font-weight: normal;
+  color: whitesmoke;
+  &:hover {
+    background-color: rgb(57, 67, 81);
+  }
+}
+
+.dropdown-item {
+  padding: 0.1rem 0.9rem;
+  background-color: rgb(50, 53, 63);
+}
+
+.dropdown-item-type {
+  padding: 0.1rem 0.5rem 0.2rem;
+  background-color: rgb(46, 49, 59);
+  border: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+.active {
+  background-color: rgb(57, 67, 81);
+}
+
+.edited {
+  background-color:  rgba(255, 192, 203, 0.15);
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,9 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.timebase.export;
 
-import com.epam.deltix.qsrv.hf.pub.RawMessage;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
 import com.epam.deltix.qsrv.hf.tickdb.pub.query.InstrumentMessageSource;
 import com.epam.deltix.tbwg.webapp.model.input.ExportMode;
@@ -30,8 +30,10 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import static com.epam.deltix.tbwg.webapp.services.timebase.export.ExportService.CSV_FORMAT;
+import static com.epam.deltix.tbwg.webapp.services.timebase.export.ExportService.ZIP_FORMAT;
 
 public class CSVExporter extends StreamExporter {
 
@@ -39,14 +41,13 @@ public class CSVExporter extends StreamExporter {
                        String fileName, ExportSourceFactory sourceFactory,
                        ExportRequest request, long fromTimestamp, long toTimestamp, long startIndex, long endIndex,
                        RecordClassDescriptor[] descriptors) {
-        super(exportProcesses, fileName, sourceFactory, request, fromTimestamp, toTimestamp, startIndex, endIndex, false, descriptors);
+        super(exportProcesses, fileName, sourceFactory, request, fromTimestamp, toTimestamp, startIndex, endIndex, descriptors);
     }
 
     @Override
     public void writeTo(@NotNull OutputStream outputStream) throws IOException {
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream);
-             CSVWriter writer = createCsvWriter(zipOutputStream);)
-        {
+             CSVWriter writer = createCsvWriter(zipOutputStream)) {
             writer.setCloseDelegate(false);
             CsvLineWriter lineWriter = new CsvLineWriter(writer, request, descriptors);
 
@@ -55,11 +56,7 @@ public class CSVExporter extends StreamExporter {
             } else if (request.mode == ExportMode.FILE_PER_SYMBOL) {
                 exportByKey(this::getSymbols, (symbols) -> exportSymbols(zipOutputStream, lineWriter, symbols));
             } else {
-                // single file
-                zipOutputStream.putNextEntry(new ZipEntry(encodeName(fileName.replace(".zip", "")) + ".csv"));
-                try (InstrumentMessageSource source = sourceFactory.newMessageSource()) {
-                    writeFile(source, lineWriter);
-                }
+                exportSingleFile(zipOutputStream, lineWriter);
             }
         } finally {
             exportProcesses.decrementAndGet();
@@ -79,21 +76,11 @@ public class CSVExporter extends StreamExporter {
     }
 
     private void exportSpaces(ZipOutputStream zipOutputStream, CsvLineWriter lineWriter, List<String> spaces) throws IOException {
-        StreamsExportSourceFactory streamSourceFactory;
-        if (sourceFactory instanceof StreamsExportSourceFactory) {
-            streamSourceFactory = (StreamsExportSourceFactory) sourceFactory;
-        } else {
-            throw new IllegalStateException("Can't select spaces from query source");
-        }
-
         for (String space : spaces) {
-            streamSourceFactory.getOptions().withSpace(space);
-            try (InstrumentMessageSource source = sourceFactory.newMessageSource()) {
-                zipOutputStream.putNextEntry(new ZipEntry(encodeName(space) + ".csv"));
-                writeFile(source, lineWriter);
-            } finally {
-                lineWriter.flush();
-                zipOutputStream.closeEntry();
+            sourceFactory.getOptions().withSpace(space);
+            try (ZipFileWriter writer = new CsvZipEntryFileWriter(this, zipOutputStream, lineWriter);
+                 InstrumentMessageSource source = sourceFactory.newMessageSource()) {
+                writer.writeFile(source, encodeName(space) + CSV_FORMAT);
             }
         }
     }
@@ -101,32 +88,20 @@ public class CSVExporter extends StreamExporter {
     private void exportSymbols(ZipOutputStream zipOutputStream, CsvLineWriter lineWriter, List<String> symbols) throws IOException {
         try (InstrumentMessageSource source = sourceFactory.newMessageSource()) {
             for (String symbol : symbols) {
-                try {
-                    zipOutputStream.putNextEntry(new ZipEntry(encodeName(symbol) + ".csv"));
+                try (ZipFileWriter writer = new CsvZipEntryFileWriter(this, zipOutputStream, lineWriter)) {
                     source.clearAllSymbols();
                     source.addSymbol(symbol);
                     source.reset(fromTimestamp);
-                    writeFile(source, lineWriter);
-                } finally {
-                    lineWriter.flush();
-                    zipOutputStream.closeEntry();
+                    writer.writeFile(source, encodeName(symbol) + CSV_FORMAT);
                 }
             }
         }
     }
 
-    private void writeFile(InstrumentMessageSource source, CsvLineWriter lineWriter) throws IOException {
-        lineWriter.writeHeader();
-        int messageIndex = 0;// inclusive
-        while (source.next() && (endIndex < 0 || messageIndex <= endIndex)) {
-            if (messageIndex >= startIndex) {
-                RawMessage raw = (RawMessage) source.getMessage();
-                if (raw.getTimeStampMs() > toTimestamp)
-                    break;
-
-                lineWriter.writeLine(raw);
-            }
-            messageIndex++;
+    private void exportSingleFile(ZipOutputStream zipOutputStream, CsvLineWriter lineWriter) throws IOException {
+        try (ZipFileWriter writer = new CsvZipEntryFileWriter(this, zipOutputStream, lineWriter);
+             InstrumentMessageSource source = sourceFactory.newMessageSource()) {
+            writer.writeFile(source, encodeName(fileName.replace(ZIP_FORMAT, "")) +CSV_FORMAT);
         }
     }
 

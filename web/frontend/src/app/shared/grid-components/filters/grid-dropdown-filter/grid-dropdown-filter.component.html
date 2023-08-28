@@ -1,0 +1,5 @@
+<select [formControl]="control">
+  <option *ngFor="let item of list$ | async" [ngValue]="item.id">
+    {{ item.name }}
+  </option>
+</select>

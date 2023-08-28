@@ -1,7 +1,7 @@
 import {ChangeDetectorRef, Component, OnDestroy, OnInit} from '@angular/core';
 import {select, Store} from '@ngrx/store';
 import {Observable, ReplaySubject} from 'rxjs';
-import {delay, takeUntil} from 'rxjs/operators';
+import {delay, takeUntil, map} from 'rxjs/operators';
 import {NotificationModel} from '../models/notification.model';
 import * as NotificationsActions from '../store/notifications.actions';
 import * as fromNotifications from '../store/notifications.reducer';
@@ -21,7 +21,17 @@ export class NotificationsComponent implements OnDestroy, OnInit {
   ) {}
 
   ngOnInit() {
-    this.notificationsState = this.notificationsStore.pipe(select('notifications'));
+    this.notificationsState = this.notificationsStore
+      .pipe(
+        select('notifications'),
+        map(notifications => {
+          return {
+            ...notifications,
+            alerts: this.showLastFiveNotifications(notifications.alerts),
+            warns: this.showLastFiveNotifications(notifications.warns)
+          }
+        }));
+        
     this.notificationsState
       .pipe(takeUntil(this.destroy$), delay(0))
       .subscribe(() => this.cdRef.detectChanges());
@@ -49,6 +59,10 @@ export class NotificationsComponent implements OnDestroy, OnInit {
     ) {
     }
     this.notificationsStore.dispatch(new NotificationsActions[actionName](index));
+  }
+
+  private showLastFiveNotifications(notifications: NotificationModel[]) {
+    return notifications.length > 5 ? notifications.slice(0, 5) : notifications;
   }
 
   ngOnDestroy(): void {

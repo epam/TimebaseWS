@@ -1,174 +1,36 @@
-<nav [ngClass]="menuSmall ? 'menu-small' : ''" class="sidebar">
-  <div [ngClass]="!menuLoaded ? 'display-block' : ''" class="loader">Loading...</div>
-  <div class="sidebar-sticky">
-    <div class="navbar-brand-wrapper">
-      <div class="navbar-brand col-auto">
-        <app-logo [menuSmall]="menuSmall"></app-logo>
-      </div>
-      <a (click)="toggleMenu()" class="menu-hide">
-        <svg
-            fill="none"
-            height="12"
-            id="i-caret-left"
-            stroke="currentcolor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            viewBox="0 0 32 32"
-            width="12"
-            xmlns="http://www.w3.org/2000/svg">
-          <path d="M22 30 L6 16 22 2 Z" />
-        </svg>
-      </a>
+<div *ngIf="!menuLoaded" class="loader"></div>
+<div class="d-flex justify-between align-items-center tool-panel">
+  <form class="nav-search w-100 flex-shrink-1" id="searchForm">
+    <app-streams-list-search></app-streams-list-search>
+  </form>
+</div>
+<!--  <div [class.no-visible]="true" class="streams-total-count">-->
+<!--    {{ 'streamsList.totalCount' | translate }}: {{ streamsCount }}-->
+<!--  </div>-->
+<div class="tabs-container">
+  <div class="tabs-wrapper">
+    <div (click)="switchTreeView(treeView.id)" [class.active]="treeViewId === treeView.id" *ngFor="let treeView of treeViews">
+      {{ treeView.title | translate }}
     </div>
-    <div class="top-toolbar">
-      <button
-          (click)="onAskToCreateStream()"
-          *ngIf="isWriter$ | async"
-          [adaptivePosition]="!menuSmall"
-          [placement]="menuSmall ? 'right' : 'top'"
-          [tooltip]="'contextMenu.create_stream' | translate"
-          container="body">
-        <svg
-            fill="currentColor"
-            height="16"
-            viewBox="0 0 512 512"
-            width="16"
-            xmlns="http://www.w3.org/2000/svg">
-          <path
-              d="m368 272h-224c-8.832031 0-16-7.167969-16-16s7.167969-16 16-16h224c8.832031 0 16 7.167969 16 16s-7.167969 16-16 16zm0 0" />
-          <path
-              d="m256 384c-8.832031 0-16-7.167969-16-16v-224c0-8.832031 7.167969-16 16-16s16 7.167969 16 16v224c0 8.832031-7.167969 16-16 16zm0 0" />
-          <path
-              d="m453.332031 512h-394.664062c-32.363281 0-58.667969-26.304688-58.667969-58.667969v-394.664062c0-32.363281 26.304688-58.667969 58.667969-58.667969h394.664062c32.363281 0 58.667969 26.304688 58.667969 58.667969v394.664062c0 32.363281-26.304688 58.667969-58.667969 58.667969zm-394.664062-480c-14.699219 0-26.667969 11.96875-26.667969 26.667969v394.664062c0 14.699219 11.96875 26.667969 26.667969 26.667969h394.664062c14.699219 0 26.667969-11.96875 26.667969-26.667969v-394.664062c0-14.699219-11.96875-26.667969-26.667969-26.667969zm0 0" />
-        </svg>
-      </button>
-      <app-query-btn
-          (click)="onCloseContextMenu()"
-          [adaptivePosition]="!menuSmall"
-          [placement]="menuSmall ? 'right' : 'top'"
-          [showText]="false"
-          [tooltip]="'tooltips.query_mode' | translate"
-          container="body"></app-query-btn>
-      <button
-          (click)="onImportFromQMSG()"
-          *ngIf="isWriter$ | async"
-          [adaptivePosition]="!menuSmall"
-          [placement]="menuSmall ? 'right' : 'top'"
-          [tooltip]="'contextMenu.importFromQMSG' | translate"
-          container="body">
-        <svg
-            enable-background="new 0 0 512 512"
-            fill="currentColor"
-            height="16"
-            version="1.1"
-            viewBox="0 0 512 512"
-            width="16"
-            xmlns="http://www.w3.org/2000/svg">
-          <g>
-            <g>
-              <path
-                  d="m153.7,171.5l81.9-88.1v265.3c0,11.3 9.1,20.4 20.4,20.4 11.3,0 20.4-9.1 20.4-20.4v-265.3l81.9,88.1c7.7,8.3 20.6,8.7 28.9,1.1 8.3-7.7 8.7-20.6 1.1-28.9l-117.3-126.2c-11.5-11.6-25.6-5.2-29.9,0l-117.3,126.2c-7.7,8.3-7.2,21.2 1.1,28.9 8.2,7.6 21.1,7.2 28.8-1.1z" />
-              <path
-                  d="M480.6,341.2c-11.3,0-20.4,9.1-20.4,20.4V460H51.8v-98.4c0-11.3-9.1-20.4-20.4-20.4S11,350.4,11,361.6v118.8    c0,11.3,9.1,20.4,20.4,20.4h449.2c11.3,0,20.4-9.1,20.4-20.4V361.6C501,350.4,491.9,341.2,480.6,341.2z" />
-            </g>
-          </g>
-        </svg>
-      </button>
-      <a
-          (click)="onCloseContextMenu()"
-          [adaptivePosition]="!menuSmall"
-          [placement]="menuSmall ? 'right' : 'top'"
-          [queryParams]="{ newTab: '1' }"
-          [routerLink]="['flow']"
-          [tooltip]="'tooltips.flow' | translate"
-          container="body">
-        <svg
-            fill="currentcolor"
-            height="16"
-            id="i-msg"
-            stroke="none"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            viewBox="0 0 23 23"
-            width="16"
-            xmlns="http://www.w3.org/2000/svg">
-          <path
-              d="M21,8c-1.45,0-2.26,1.44-1.93,2.51l-3.55,3.56c-0.3-0.09-0.74-0.09-1.04,0l-2.55-2.55C12.27,10.45,11.46,9,10,9 c-1.45,0-2.27,1.44-1.93,2.52l-4.56,4.55C2.44,15.74,1,16.55,1,18c0,1.1,0.9,2,2,2c1.45,0,2.26-1.44,1.93-2.51l4.55-4.56 c0.3,0.09,0.74,0.09,1.04,0l2.55,2.55C12.73,16.55,13.54,18,15,18c1.45,0,2.27-1.44,1.93-2.52l3.56-3.55 C21.56,12.26,23,11.45,23,10C23,8.9,22.1,8,21,8z" />
-          <polygon points="15,9 15.94,6.93 18,6 15.94,5.07 15,3 14.08,5.07 12,6 14.08,6.93" />
-          <polygon points="3.5,11 4,9 6,8.5 4,8 3.5,6 3,8 1,8.5 3,9" />
-        </svg>
-      </a>
-      <a
-          (click)="onCloseContextMenu()"
-          [adaptivePosition]="!menuSmall"
-          [placement]="menuSmall ? 'right' : 'top'"
-          [queryParams]="{ newTab: '1' }"
-          [routerLink]="['order-book']"
-          [tooltip]="'contextMenu.orderBook' | translate"
-          container="body">
-        <svg
-            fill="none"
-            height="15"
-            viewBox="0 0 15 15"
-            width="15"
-            xmlns="http://www.w3.org/2000/svg">
-          <path
-              d="m.5 0v14.5h14v-14.5m-14 4.5h2v1h2v3h2v3h1v3-2h2v-2h2v-3h1v-2h2"
-              stroke="currentColor" />
-        </svg>
-      </a>
-    </div>
-    <div class="d-flex justify-between align-items-center tool-panel">
-      <form class="nav-search w-100 flex-shrink-1" id="searchForm">
-        <input
-            [formControl]="searchControl"
-            class="form-control autofill-dark-blue search-input"
-            id="search"
-            name="search"
-            placeholder="Search"
-            type="text" />
-        <div [class.show-clear]="searchControl.value" class="input-group-append search-clear">
-          <a
-              (click)="onClearSearch()"
-              [tooltip]="'buttons.clear' | translate"
-              class="icon-text"
-              id="headerSearchResultsClear">
-            <svg
-                fill="none"
-                height="12"
-                id="i-close"
-                stroke="currentcolor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                viewBox="0 0 32 32"
-                width="12"
-                xmlns="http://www.w3.org/2000/svg">
-              <path d="M2 30 L30 2 M30 30 L2 2" />
-            </svg>
-          </a>
-        </div>
-      </form>
-    </div>
-    <div class="bottom-toolbar">
-      <button
-          (click)="collapseAll()"
-          [tooltip]="'buttons.collapse_all' | translate"
-          class="collapse-all-btn">
-        <svg
-            clip-rule="evenodd"
-            fill="currentColor"
-            fill-rule="evenodd"
-            height="17"
-            style="enable-background: new 0 0 512 512"
-            version="1.1"
-            viewBox="0 0 512 512"
-            width="17"
-            x="0px"
-            xml:space="preserve"
-            y="0px">
+  </div>
+  <button
+      (click)="collapseAll()"
+      [adaptivePosition]="false"
+      container="body"
+      [tooltip]="'buttons.collapse_all' | translate"
+      class="collapse-all-btn">
+    <svg
+        clip-rule="evenodd"
+        fill="currentColor"
+        fill-rule="evenodd"
+        height="17"
+        style="enable-background: new 0 0 512 512"
+        version="1.1"
+        viewBox="0 0 512 512"
+        width="17"
+        x="0px"
+        xml:space="preserve"
+        y="0px">
           <g>
             <path
                 class="st0"
@@ -186,76 +48,30 @@
 		c-7.1,7.2-7.1,18.7,0,25.9c7.2,7.1,18.7,7.1,25.9,0L256,355l60.2,60.2C323.3,422.4,334.9,422.4,342.1,415.2L342.1,415.2z" />
           </g>
         </svg>
-      </button>
-      <button
-          #showSpacesBtn
-          (click)="toggleSpaces()"
-          [class.active]="showSpaces"
-          [tooltip]="'buttons.' + (showSpaces ? 'hide_spaces' : 'show_spaces') | translate"
-          container="body">
-        <svg
-            height="17"
-            preserveAspectRatio="xMidYMid meet"
-            version="1.0"
-            viewBox="0 0 1024.000000 1024.000000"
-            width="17"
-            xmlns="http://www.w3.org/2000/svg">
-          <g
-              fill="currentColor"
-              stroke="none"
-              transform="translate(0.000000,1024.000000) scale(0.100000,-0.100000)">
-            <path
-                d="M2026 9390 c-51 -16 -103 -60 -132 -113 l-29 -52 -3 -3195 c-2 -2163
-1 -3231 8 -3305 26 -281 139 -522 335 -721 135 -136 276 -225 453 -284 179
--60 183 -60 1118 -60 l854 0 0 -40 c0 -78 31 -195 77 -290 38 -80 59 -109 132
--181 71 -71 102 -94 181 -133 164 -80 94 -77 1466 -73 1130 2 1213 4 1268 21
-242 73 424 266 487 516 19 74 20 105 17 442 -4 360 -4 364 -29 440 -82 241
--258 412 -489 475 -60 17 -150 18 -1295 18 -1375 0 -1277 5 -1435 -72 -110
--53 -241 -187 -298 -303 -48 -97 -70 -175 -79 -273 l-6 -68 -866 3 -866 3 -84
-29 c-202 71 -367 235 -437 434 -37 109 -44 218 -44 780 l0 522 1149 0 1148 0
-6 -73 c14 -167 83 -313 202 -432 131 -131 250 -187 435 -206 58 -6 545 -9
-1250 -6 1289 3 1206 -1 1360 75 107 52 240 186 299 299 76 148 81 187 81 578
-0 310 -2 349 -20 421 -56 220 -187 386 -375 476 -150 72 -85 69 -1453 66
-l-1227 -3 -80 -28 c-136 -48 -240 -123 -321 -230 -87 -116 -139 -250 -151
--384 l-6 -73 -1146 2 -1146 3 0 935 0 935 1148 3 1147 2 0 -40 c0 -55 27 -181
-52 -244 33 -84 87 -164 158 -234 80 -80 166 -133 275 -170 l80 -27 1255 0
-1255 0 86 31 c208 74 364 235 437 451 l27 78 0 390 0 390 -31 88 c-42 115 -84
-185 -165 271 -73 77 -172 142 -271 178 l-63 23 -1253 3 c-1392 3 -1316 6
--1460 -65 -127 -62 -257 -202 -318 -340 -31 -69 -64 -204 -64 -260 l0 -43
--1150 0 -1150 0 0 1238 c0 1184 -1 1239 -19 1277 -48 104 -173 158 -285 125z
-m5665 -2445 c27 -19 54 -50 72 -85 l28 -54 -3 -311 c-3 -298 -4 -312 -25 -351
--28 -52 -95 -111 -142 -124 -23 -6 -459 -10 -1189 -10 -1020 0 -1157 2 -1190
-16 -47 19 -88 58 -115 109 -21 38 -22 55 -25 338 -4 342 2 377 64 441 68 70
--23 66 1291 63 l1191 -2 43 -30z m-56 -2326 c52 -14 126 -90 143 -145 19 -65
-17 -587 -3 -645 -21 -60 -66 -113 -118 -138 -43 -21 -47 -21 -1221 -21 -1149
-0 -1178 0 -1215 20 -51 25 -97 90 -111 154 -8 33 -10 150 -8 336 3 272 4 287
-25 327 26 48 85 100 128 112 46 14 2331 13 2380 0z m31 -2266 c51 -27 87 -69
-109 -126 14 -37 16 -83 13 -342 -3 -285 -4 -302 -25 -340 -25 -47 -64 -85
--113 -111 -33 -18 -85 -19 -1180 -22 -826 -2 -1160 0 -1198 8 -62 14 -102 45
--140 109 l-27 46 0 315 0 316 26 49 c27 54 86 102 140 115 19 5 556 7 1194 7
-l1160 -2 41 -22z" />
-          </g>
-        </svg>
-      </button>
-    </div>
-    <div class="streams-navigation">
-      <cdk-virtual-scroll-viewport [itemSize]="22" perfectScrollbar>
-        <div class="sidebar-menu">
-          <ul *ngIf="menu">
-            <li
-                *cdkVirtualFor="let menuItem of flatMenu"
-                [style.padding-left.px]="15 * menuItem.level">
-              <app-menu-item-context-menu [activeTabType]="activeTabType" [item]="menuItem">
-                <i
-                    (click)="toggleMenuItem(menuItem, menuItem.path)"
-                    [class.open]="menuItem.children.length"
-                    [class.visible]="menuItem.childrenCount"
-                    class="sidebar-arrow"></i>
-                <a
-                    [appStreamsNavigationActive]="menuItem.id"
-                    [queryParams]="menuItem | streamsNavigationParams: activeTabType"
-                    [routerLink]="menuItem | streamsNavigationUrl: activeTabType"
-                    class="menu-item-link">
+  </button>
+</div>
+<div *ngIf="menuLoaded" class="streams-navigation">
+  <cdk-virtual-scroll-viewport *ngIf="menu.length" [itemSize]="22" perfectScrollbar>
+    <div class="sidebar-menu">
+      <ul *ngIf="menu">
+        <li
+            *cdkVirtualFor="let menuItem of flatMenu; trackBy: trackMenuItem"
+            [style.padding-left.px]="15 * menuItem.level">
+          <app-menu-item-context-menu [activeTabType]="activeTabType" [item]="menuItem"
+            (contextmenu)="closeOtherDropdowns()">
+            <i
+                (click)="toggleMenuItem($event, menuItem, menuItem.path)"
+                [class.open]="menuItem.children?.length"
+                [class.visible]="menuItem.childrenCount"
+                class="sidebar-arrow"></i>
+            <a
+                (keydown)="toggleMenuItemWithKeys($event, menuItem, menuItem.path)"
+                [appStreamsNavigationActive]="menuItem.id"
+                [queryParams]="menuItem | streamsNavigationParams: activeTabType"
+                [routerLink]="menuItem | streamsNavigationUrl: activeTabType"
+                class="menu-item-link" 
+                [class.selected-item]="selectedItem === menuItem.name || streamSelectedForImport === menuItem.name"
+                tabindex="0">
                   <span
                       [adaptivePosition]="false"
                       [delay]="700"
@@ -265,22 +81,17 @@ l1160 -2 41 -22z" />
                       placement="top">
                     {{ menuItem.name }}
                   </span>
-                  <span *ngIf="menuItem.childrenCount" class="children-count"
-                  >({{ menuItem.childrenCount }})</span
-                  >
-                </a>
-              </app-menu-item-context-menu>
-            </li>
-          </ul>
-          <p *ngIf="menuLoaded && !menu.length" class="d-flex w100 justify-content-center">
-            <span>{{ 'text.streamsListEmpty' | translate }}</span>
-          </p>
-        </div>
-      </cdk-virtual-scroll-viewport>
+              <span *ngIf="menuItem.childrenCount" class="children-count"
+              >({{ menuItem.childrenCount }})</span>
+              <span class="loader view-loader" *ngIf="menuItem.viewMd" [class.visible]="menuItem?.viewMd.state === 'PROCESSING'"></span>
+            </a>
+          </app-menu-item-context-menu>
+        </li>
+      </ul>
     </div>
+  </cdk-virtual-scroll-viewport>
+  <div *ngIf="menuLoaded && !menu.length" class="empty-text">
+    {{ emptyListTitle$ | async }}
   </div>
-  <div class="logo-ver">
-    {{ 'titles.versionPrefix' | translate }}{{ (appInfo | async)?.version }}
-  </div>
-</nav>
+</div>
 <app-sidebar-context-menu [activeTabType]="activeTabType"></app-sidebar-context-menu>

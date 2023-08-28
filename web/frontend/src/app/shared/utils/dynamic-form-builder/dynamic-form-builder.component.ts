@@ -11,8 +11,8 @@ import {
 import {
   AbstractControl,
   AbstractControlOptions,
-  FormControl,
-  FormGroup,
+  UntypedFormControl,
+  UntypedFormGroup,
   ValidatorFn,
   Validators,
 } from '@angular/forms';
@@ -40,7 +40,7 @@ export const PATH_SEPARATOR = '.';
 })
 export class DynamicFormBuilderComponent implements OnInit, OnDestroy {
   public fieldsInfo: any[] = [];
-  @Input() form: FormGroup;
+  @Input() form: UntypedFormGroup;
   @Input() alignLabels = true;
   @Output() formChange = new EventEmitter();
   @Output() formChanged = new EventEmitter();
@@ -72,14 +72,14 @@ export class DynamicFormBuilderComponent implements OnInit, OnDestroy {
     control.updateValueAndValidity();
   }
 
-  public getControl(pathAndNameString: string): FormControl {
+  public getControl(pathAndNameString: string): UntypedFormControl {
     const {groupPath, controlName} = this.parseFormControlPathAndName(pathAndNameString);
     const CURRENT_GROUP = this.getFormGroup(groupPath);
     if (!CURRENT_GROUP.get(controlName)) {
       console.warn(`There is no control with path [${pathAndNameString}] in current form`);
       return null;
     }
-    return CURRENT_GROUP.get(controlName) as FormControl;
+    return CURRENT_GROUP.get(controlName) as UntypedFormControl;
   }
 
   public addControl(pathAndNameString: string, field: FieldModel, index: number = -1) {
@@ -134,7 +134,7 @@ export class DynamicFormBuilderComponent implements OnInit, OnDestroy {
   }
 
   private initForm(fields: FieldModel[]) {
-    this.form = new FormGroup(this.formGenerator(fields));
+    this.form = new UntypedFormGroup(this.formGenerator(fields));
     this.formChange.emit(this.form);
 
     this.form.valueChanges
@@ -152,20 +152,20 @@ export class DynamicFormBuilderComponent implements OnInit, OnDestroy {
     return CONTROLS;
   }
 
-  private createFormControl(field: FieldModel): FormControl | FormGroup {
+  private createFormControl(field: FieldModel): UntypedFormControl | UntypedFormGroup {
     if (field.type !== 'array' && field.type !== 'object') {
-      return new FormControl(this.getValue(field), this.getValidators(field));
+      return new UntypedFormControl(this.getValue(field), this.getValidators(field));
     }
     if (field.type === 'object' && field.childFields) {
-      return new FormGroup(this.formGenerator(field.childFields));
+      return new UntypedFormGroup(this.formGenerator(field.childFields));
     }
   }
 
-  private getFormGroup(groupPath: string[]): FormGroup {
+  private getFormGroup(groupPath: string[]): UntypedFormGroup {
     let currentGroup = this.form;
     groupPath.every((groupName) => {
-      if (currentGroup.get(groupName) instanceof FormGroup) {
-        currentGroup = currentGroup.get(groupName) as FormGroup;
+      if (currentGroup.get(groupName) instanceof UntypedFormGroup) {
+        currentGroup = currentGroup.get(groupName) as UntypedFormGroup;
         return true;
       } else {
         return false;

@@ -1,5 +1,9 @@
 @import '~src/app/core/styles/variables';
 
+.hidden {
+  display: none !important;
+}
+
 ::ng-deep {
   deltix-ng-smart-date-time-picker [bsdatepicker] {
     position: absolute;
@@ -136,4 +140,8 @@ input.ng-invalid.ng-touched {
     height: auto;
     margin: 4px 0 0 0;
   }
+}
+
+.export-btn {
+  margin-right: 10px;
 }

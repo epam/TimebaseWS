@@ -27,6 +27,7 @@ export interface ChartPointModel {
   width?: number;
   askPrice?: number | string;
   bidPrice?: number | string;
+  exchange?: string;
 }
 
 export type ChartData = [
@@ -42,4 +43,9 @@ export enum ChartTypes {
   BARS = 'BARS',
   TRADES_BBO = 'TRADES_BBO',
   PRICES_L2 = 'PRICES_L2',
+  BARS_BID = 'BARS_BID',
+  BARS_ASK = 'BARS_ASK',
+  LINEAR = 'LINEAR',
 }
+
+export const barChartTypes = [ChartTypes.BARS_BID, ChartTypes.BARS, ChartTypes.BARS_ASK];

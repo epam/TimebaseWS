@@ -37,10 +37,6 @@
   user-select: auto;
 }
 
-.bs-datepicker {
-  box-shadow: none;
-}
-
 .clear-btn {
   display: none;
   position: absolute;
@@ -58,4 +54,9 @@
   .clear-btn {
     display: block;
   }
+}
+
+.invalid {
+  border-color: rgba(246, 115, 148, 0.6);
+  background-color: rgba(246, 115, 148, 0.1);
 }

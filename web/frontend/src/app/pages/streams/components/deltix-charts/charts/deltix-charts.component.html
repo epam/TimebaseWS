@@ -3,12 +3,25 @@
     [class.border-blue]="data.borderBlue"
     [class.border-green]="data.borderGreen"
     [class.border-red]="data.borderRed"
+    [style.border-color]="data.borderColor"
     class="chart-tooltip">
   <div class="chart-tooltip__inner">
-    <div>
+    <div *ngIf="!data.isBars">
       {{ data.time }}
       <ng-container *ngIf="data.isL2"> | {{ data.yVal }} </ng-container>
     </div>
+    <div class="linear-data-container" *ngIf="data.isLinear">
+      <div
+          [style.color]="line.isHighlight ? line.highlightColor : null"
+          [class.highlight-line]="line.isHighlight"
+          *ngFor="let line of data.linearData">
+        {{ line.name }}: {{ line.value }}
+      </div>
+    </div>
+    <ng-container *ngIf="data.isBars">
+      <div>Start: {{ data.from }}</div>
+      <div>End: {{ data.to }}</div>
+    </ng-container>
     <div *ngIf="data.isBars || data.isBBO" class="tooltip-content">
       <ng-container *ngIf="data.isBars && data.point.BARS">
         <div>Open: {{ data.point.BARS.open }}</div>
@@ -28,13 +41,37 @@
     </div>
   </div>
 </div>
-<div *ngIf="showNoData$ | async" class="no-data">
+<ng-container *ngIf="tooltipData$ | async as tooltipData">
+  <ng-container *ngIf="tooltipData.isLinear">
+    <ng-container *ngIf="magnetCoordinates$ | async as linearChartCircle">
+      <div
+          *ngIf="!(dragging$ | async)"
+          [style.left.px]="linearChartCircle.x"
+          [style.top.px]="linearChartCircle.yInPx"
+          [style.background-color]="tooltipData.borderColor"
+          class="linear-circle">
+      </div>
+    </ng-container>
+  </ng-container>
+</ng-container>
+<div *ngIf="((showNoData$ | async) || (this.noPoints$ | async)) && !(httpError$ | async)" class="no-data">
   {{ 'charts.noData' | translate }}
 </div>
-<div [class.hide]="hideLine$ | async" class="end-of-stream" ></div>
-<div #chartRef (mouseleave)="onChartMouseLeave()" (mouseenter)="onChartMouseEnter()" class="chartWr"></div>
+<div [class.hide]="(hideLine$ | async)" class="end-of-stream"></div>
+<div #chartRef (mouseleave)="onChartMouseLeave()" (mouseenter)="onChartMouseEnter()" [class.hide-chart]="httpError$ | async" class="chartWr"></div>
+<div [class.hide]="httpError$ | async" class="chart-date">{{ chartDate$ | async }}</div>
 <context-menu menuClass="sidebar-context-menu">
-  <ng-template contextMenuItem >
-    <a [routerLink]="viewDataRoute.route" [queryParams]="viewDataRoute.params" >{{ 'charts.viewData' | translate }}</a>
+  <ng-template contextMenuItem>
+    <a [routerLink]="viewDataRoute.route" [queryParams]="viewDataRoute.params">{{ 'charts.viewData' | translate }}</a>
   </ng-template>
 </context-menu>
+<div *ngIf="httpError$ | async as httpError" class="http-error">
+  <ng-container *ngIf="httpErrorText$ | async as httpErrorText; else unknownError">
+    <div class="error-header">{{ 'charts.httpError' | translate }}:</div>
+    <app-error [error]="httpErrorText"></app-error>
+  </ng-container>
+  <ng-template #unknownError>
+    <div class="error-header">{{ 'charts.httpError' | translate }}</div>
+  </ng-template>
+  <button (click)="retry()" class="btn btn-default">{{ 'charts.retry' | translate }}</button>
+</div>

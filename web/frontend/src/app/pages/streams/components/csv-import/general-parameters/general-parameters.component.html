@@ -1,0 +1,67 @@
+<form [formGroup]="formGroup" class="general-params-container">
+  <div class="row">
+    <div class="col-md-4">{{ 'importFromFile.generalParameters.instrumentType' | translate }}</div>
+    <div class="col-md-8">
+      <app-multi-select
+        [class.edited]="settingEdited('instrumentType')"
+        formControlName="instrumentType"
+        [items]="instrumentTypeOptions"
+        [single]="true"
+        [search]="false"
+        [selectionDisabled]="instrumentTypeInputDisabled()"
+      ></app-multi-select>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-4">{{ 'importFromFile.generalParameters.startImportRow' | translate }}</div>
+    <div class="col-md-8">
+      <input type="number" formControlName="startImportRow" [class.edited]="settingEdited('startImportRow')"
+        [class.invalid]="settingInvalid('startImportRow')" class="form-control">
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-4">{{ 'importFromFile.generalParameters.charset' | translate }}</div>
+    <div class="col-md-8">
+      <app-multi-select
+        [class.edited]="settingEdited('charset')"
+        formControlName="charset"
+        [items]="charsetOptions"
+        [single]="true"
+        [search]="false"
+      ></app-multi-select>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-4">{{ 'importFromFile.generalParameters.nullValues' | translate }}</div>
+    <div class="col-md-8">
+      <button class="add-symbol-btn" (click)="toggleAddSymbolDropdown()">+</button>
+      <input formControlName="nullValues" class="form-control" [class.edited]="settingEdited('nullValues')">
+      <div class="interpret-as-null-drop-down" #asNullDropdown>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" #emptyCellsCheckbox 
+            [checked]="emptyCellsCheckboxIsChecked">
+          <label class="form-check-label" for="defaultCheck1">
+            {{ 'importFromFile.nullValues.checkboxes.emptyCells' | translate }}
+          </label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" #nonEmptyCellsCheckbox 
+            (change)="toggleTextareaIsDisabled($event)" [checked]="nonEmptyCellsCheckboxIsChecked">
+          <label class="form-check-label">
+            {{ 'importFromFile.nullValues.checkboxes.nonEmptyCells' | translate }}
+          </label>
+        </div>
+        <p class="add-symbol-comment">Enter symbols separated by <span class="highlighted-character">;</span></p>
+        <textarea class="form-control" rows="3" #textarea
+          [disabled]="textareaIsDisabled">{{ textareaValue }}</textarea>
+        <div class="button-container">
+          <button class="btn btn-secondary btn-sm" (click)="saveAsnullValues()">OK</button>
+          <button (click)="toggleAddSymbolDropdown()" class="btn btn-secondary btn-sm">
+            {{ 'importFromFile.cancel' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>

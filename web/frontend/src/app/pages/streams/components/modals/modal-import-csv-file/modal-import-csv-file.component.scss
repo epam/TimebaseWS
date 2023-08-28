@@ -1,0 +1,153 @@
+@import 'src/app/core/styles/variables';
+
+.import-file-content {
+  min-width: 368 * $ss;
+  height: 32rem;
+}
+
+::ng-deep .modal-xl {
+  min-width: 800px;
+  min-height: 665px;
+}
+
+.range-labels {
+  display: flex;
+
+  label {
+    flex-grow: 1;
+
+    &:first-child {
+      margin-right: 10 * $ss;
+    }
+  }
+}
+
+.upload-status {
+  margin-bottom: 15px;
+}
+
+.upload-cancel {
+  display: flex;
+  justify-content: center;
+}
+
+.upload-progress-bar {
+  min-height: 25px;
+  width: 100%;
+  background-color: $bg-blue;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 15px;
+
+  &, &__fill {
+    height: 25px;
+  }
+
+  &__fill {
+    background-color: $blue;
+  }
+
+  &__label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%) translateY(-50%);
+  }
+}
+
+.upload-messages {
+  flex-grow: 1;
+  background: $bg-blue;
+  padding: 15px 10px 5px;
+  border-radius: 4px;
+  overflow: auto;
+  min-height: 25rem;
+
+  .upload-message {
+    margin-bottom: 10px;
+    display: flex;
+
+    &__left {
+      min-width: 70px;
+      text-align: right;
+      margin-right: 10px;
+    }
+
+    &__right {
+      flex-grow: 1;
+    }
+
+    &.warning {
+      color: $warning;
+    }
+
+    &.error {
+      color: $danger;
+    }
+  }
+}
+
+.stream-title {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: 0.8rem;
+}
+
+.import-progress-container {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.lds-dual-ring {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+}
+
+.lds-dual-ring:after {
+  content: " ";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin: 1px 5px;
+  border-radius: 50%;
+  border: 6px solid #fff;
+  border-color: #fff transparent #fff transparent;
+  animation: lds-dual-ring 1.2s linear infinite;
+}
+
+@keyframes lds-dual-ring {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.btn-primary {
+  min-width: 90px;
+}
+
+.uploading-text-and-icon {
+  display: flex;
+}
+
+.last-import-step-footer {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+}
+
+div[footer] {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+svg {
+  margin-top: -0.3rem;
+}

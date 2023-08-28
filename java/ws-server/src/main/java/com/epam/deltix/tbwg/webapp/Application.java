@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp;
+
 
 import com.epam.deltix.gflog.core.LogConfigurator;
 import com.epam.deltix.tbwg.webapp.config.LogConfigurer;
@@ -33,7 +35,7 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 
 
 @ServletComponentScan
-@SpringBootApplication(scanBasePackages = { "com.epam.deltix.tbwg", "com.epam.deltix.spring" })
+@SpringBootApplication(scanBasePackages = { "deltix.tbwg", "deltix.spring" })
 @EnableWebSocket
 @EnableScheduling
 @EnableWebSocketMessageBroker
@@ -57,8 +59,6 @@ public class Application {
             application.setRegisterShutdownHook(false);
             context = application.run(args);
             shutdownSignal.await();
-        } catch (Throwable ex) {
-            ex.printStackTrace(System.out);
         } finally {
             CloseHelper.close(context);
             LogConfigurator.unconfigure();

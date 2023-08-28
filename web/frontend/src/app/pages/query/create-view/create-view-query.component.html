@@ -1,0 +1,41 @@
+<app-modal>
+  <ng-container title>
+    {{ 'qqlEditor.createViewModal.title' | translate }}
+  </ng-container>
+  <ng-container content>
+    <div class="controlWr">
+      <label class="btn control-label"> {{ 'qqlEditor.createViewModal.viewName' | translate }} </label>
+      <input [formControl]="titleControl" class="btn input-control"></div>
+    <div class="alert alert-danger error-alert"
+        [class.show]="titleControl.hasError('specialSymbols') || titleControl.hasError('beError')"
+    >
+      <ng-container *ngIf="titleControl.hasError('specialSymbols')">
+        {{ 'qqlEditor.createViewModal.forbiddenSymbolsError' | translate }}
+      </ng-container>
+      <ng-container *ngIf="titleControl.hasError('beError')">
+        {{ beErrorText || ('qqlEditor.createViewModal.duplicateName' | translate) }}
+      </ng-container>
+    </div>
+  </ng-container>
+  <ng-container footer>
+    <div class="form-check live-view-checkbox">
+      <input class="form-check-input" type="checkbox" [formControl]="liveView">
+      <label class="form-check-label">
+        {{ 'qqlEditor.createViewModal.liveView' | translate }}
+      </label>
+    </div>
+    <button
+        (click)="close()"
+        class="btn btn-outline-light pull-right"
+        type="button">
+      {{ 'buttons.cancel' | translate }}
+    </button>
+    <button
+        (click)="create()"
+        [disabled]="titleControl.invalid"
+        class="btn pull-right btn-success"
+        type="button">
+      {{ 'buttons.create' | translate }}
+    </button>
+  </ng-container>
+</app-modal>

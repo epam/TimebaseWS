@@ -22,3 +22,15 @@
     border-color: $body-bg;
   }
 }
+
+app-error {
+  display: block;
+  max-width: 600px;
+  word-break: break-all;
+
+  &::ng-deep {
+    .btn-wrapper {
+      text-align: center;
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import {Component, Input} from '@angular/core';
-import {FormGroup} from '@angular/forms';
+import {UntypedFormGroup} from '@angular/forms';
 
 @Component({
   selector: 'app-radio',
@@ -20,5 +20,5 @@ import {FormGroup} from '@angular/forms';
 })
 export class RadioComponent {
   @Input() field: any = {};
-  @Input() form: FormGroup;
+  @Input() form: UntypedFormGroup;
 }

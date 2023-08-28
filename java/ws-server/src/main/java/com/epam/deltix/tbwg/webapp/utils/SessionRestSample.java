@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,6 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -41,12 +42,11 @@ public class SessionRestSample {
     private final static AtomicLong nonceGenerator = new AtomicLong(System.currentTimeMillis());
 
     public static void main(String[] args) throws JsonProcessingException {
-        // for example with basic api keys
 //        getStreams();
-
-        // for example with sessions api keys
+//        getStreamData();
         SessionLoginSample.SessionDto session = SessionLoginSample.login(TB_URL, SESSION_API_KEY, SESSION_PRIVATE_KEY);
         getStreams(session);
+//        getStreams(session);
     }
 
     private static void getStreams() {
@@ -59,6 +59,14 @@ public class SessionRestSample {
     private static void getStreams(SessionLoginSample.SessionDto session) {
         ResponseEntity<String> response = signedRest(
             HttpMethod.GET, TB_URL, "/api/v0/streams", String.class, session
+        );
+        print(response);
+    }
+
+    private static void getStreamData() throws JsonProcessingException {
+        ResponseEntity<String> response = signedRest(
+            HttpMethod.GET, TB_URL, "/api/v0/bars1min/GOOG/select?reverse=false&types=deltix.timebase.api.messages.BarMessage&offset=0",
+            String.class, API_KEY, API_SECRET
         );
         print(response);
     }

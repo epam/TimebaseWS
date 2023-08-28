@@ -1,0 +1,26 @@
+<div class="container">
+  <div class="settings-header">
+    <div>
+      <h5>{{ 'importFromFile.stepHeaders.setupParameters' | translate }}</h5>
+      <div *ngIf="warning" class="warning alert alert-warning">{{ warning }}</div>
+      <p class="setup-params-comment">{{ 'importFromFile.csvImportComment' | translate }}</p>
+    </div>
+    <div>
+      <button [disabled]="defaultSettingsButtonDisabled | async" class="btn btn-outline-primary btn-sm" 
+        (click)="openResetSettingsConfirmation()">{{ 'importFromFile.labels.resetToDefault' | translate }}</button>
+    </div>
+  </div>
+  <div class="btn-group" role="group">
+    <button *ngFor="let buttonTitle of settingsButtonsList" type="button" 
+      [ngClass]="{'active': buttonTitle === openedSettings, 'btn btn-secondary btn-sm': true}"
+      (click)="openSettings(buttonTitle)">
+      {{ buttonTitle | translate }}
+    </button>
+  </div>
+  <div class="settings-container" [ngSwitch]="openedSettings">
+    <app-grouped-parameters *ngSwitchCase="'General'"></app-grouped-parameters>
+    <app-types-setting *ngSwitchCase="'Types'" [typeToKeywordMappingChanged]="typeToKeywordMappingChangedProp">
+    </app-types-setting>
+    <!-- <app-symbol-setting *ngSwitchCase="'Symbol'"></app-symbol-setting> -->
+  </div>
+</div>

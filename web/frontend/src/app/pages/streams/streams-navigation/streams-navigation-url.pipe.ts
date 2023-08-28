@@ -1,6 +1,5 @@
 import {Pipe, PipeTransform} from '@angular/core';
-import {MenuItem, MenuItemType} from '../../../shared/models/menu-item';
-import {appRoute} from '../../../shared/utils/routes.names';
+import {MenuItem} from '../../../shared/models/menu-item';
 import {StreamsNavigationService} from './streams-navigation.service';
 
 @Pipe({

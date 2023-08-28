@@ -7,6 +7,7 @@ export const authFeatureKey = 'auth';
 
 export interface State {
   tokenIsInitialized: boolean;
+  tokenRefreshTime: number,
   providerSettings: AuthProviderModel;
   SSOConfiguration: AuthorizationServiceConfiguration;
   SSOTokenResponse: TokenResponse;
@@ -15,6 +16,7 @@ export interface State {
 
 export const initialState: State = {
   tokenIsInitialized: false,
+  tokenRefreshTime: null,
   providerSettings: null,
   SSOConfiguration: null,
   SSOTokenResponse: null,
@@ -36,12 +38,17 @@ export function reducer(state = initialState, action: AuthActions): State {
       return {
         ...state,
         tokenIsInitialized: true,
+        tokenRefreshTime: Date.now()
       };
+
+    case AuthActionTypes.TOKEN_UPDATED:
+      return state;
 
     case AuthActionTypes.SILENT_UPDATE_TOKEN:
       const clearedToken = state.providerSettings.custom_provider
         ? {
-            customTokenResponse: null,
+            // После очистки токена при вызове AuthGuard выкидывает на логин, тк запрос за новым токеном еще не прошел
+            // customTokenResponse: null,
           }
         : {
             SSOTokenResponse: null,
@@ -49,6 +56,7 @@ export function reducer(state = initialState, action: AuthActions): State {
       return {
         ...state,
         ...clearedToken,
+        tokenRefreshTime: Date.now()
       };
 
     // case AuthActionTypes.SET_ACCESS_TOKEN:

@@ -3,6 +3,7 @@ import { Actions, createEffect, ofType }                        from '@ngrx/effe
 import { select, Store }                                        from '@ngrx/store';
 import { map, switchMap, tap, withLatestFrom }                  from 'rxjs/operators';
 import { AppState }                                             from '../../../core/store';
+import { DataFilterModel }                                      from '../models/dataFilter.model';
 import { LoadDataFilter, SetActiveTopologyType, SetDataFilter } from './flow.actions';
 import { getDataFilter }                                        from './flow.selectors';
 
@@ -22,14 +23,16 @@ export class FlowEffects {
         }));
         return SetDataFilter({
           dataFilter: {
-            ...(dataFilter || {}),
+            ...(dataFilter || {
+              rpsFilter: null,
+            }),
             topologies,
           },
         });
       }),
     ),
   );
-
+  
   saveDataFilter$ = createEffect(
     () =>
       this.actions$.pipe(
@@ -45,15 +48,16 @@ export class FlowEffects {
       dispatch: false,
     },
   );
-
+  
   loadDataFilter$ = createEffect(() =>
     this.actions$.pipe(
       ofType(LoadDataFilter),
       map(() => localStorage.getItem(FLOW_DATA_FILTER_LS_KEY)),
       map((dataFilterState: string) => {
-        let dataFilter;
+        let dataFilter: DataFilterModel;
         try {
           dataFilter = dataFilterState ? JSON.parse(dataFilterState) : null;
+          dataFilter.rpsFilter = null;
         } catch (e) {
           dataFilter = null;
         }
@@ -61,6 +65,6 @@ export class FlowEffects {
       }),
     ),
   );
-
+  
   constructor(private actions$: Actions, private appStore: Store<AppState>) {}
 }

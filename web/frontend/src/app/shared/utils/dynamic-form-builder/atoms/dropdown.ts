@@ -1,5 +1,5 @@
 import {Component, Input, OnChanges, SimpleChanges} from '@angular/core';
-import {FormGroup} from '@angular/forms';
+import {UntypedFormGroup} from '@angular/forms';
 import {FieldModel} from '../field-builder/field-model';
 
 @Component({
@@ -25,7 +25,7 @@ import {FieldModel} from '../field-builder/field-model';
 })
 export class DropDownComponent implements OnChanges {
   @Input() field: FieldModel;
-  @Input() form: FormGroup;
+  @Input() form: UntypedFormGroup;
 
   isComplexValue = false;
 

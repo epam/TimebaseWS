@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,10 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model;
+package com.epam.deltix.tbwg.webapp.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.epam.deltix.qsrv.hf.tickdb.pub.BufferOptions;
 import com.epam.deltix.qsrv.hf.tickdb.pub.StreamScope;
 import lombok.Data;
 
@@ -29,12 +28,12 @@ public class SymbolOptions {
         streamName = streamOptions.name;
         description = streamOptions.description;
         distributionFactor = streamOptions.distributionFactor;
-        bufferOptions = streamOptions.bufferOptions;
         scope = streamOptions.scope;
         periodicity = streamOptions.periodicity;
         highAvailability = streamOptions.highAvailability;
         owner = streamOptions.owner;
         streamRange = streamOptions.range;
+        version = streamOptions.version;
     }
 
     @JsonProperty
@@ -50,10 +49,7 @@ public class SymbolOptions {
     private String description;
 
     @JsonProperty
-    private int distributionFactor;
-
-    @JsonProperty
-    private BufferOptions bufferOptions;
+    private String distributionFactor;
 
     @JsonProperty
     private StreamScope scope;
@@ -66,6 +62,9 @@ public class SymbolOptions {
 
     @JsonProperty
     private String owner;
+
+    @JsonProperty
+    private String version;
 
     @JsonProperty
     private TimeRangeDef streamRange;

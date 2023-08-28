@@ -1,0 +1,32 @@
+@import "src/app/core/styles/variables";
+
+:host {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0 5px;
+}
+
+.close-icon {
+  position: absolute;
+  right: 15px;
+  display: none;
+  cursor: pointer;
+
+  &.show {
+    display: block;
+  }
+}
+
+input {
+  background: transparent;
+  height: 25px;
+  font-size: inherit;
+  padding: 5px 22px 5px 5px;
+  flex-grow: 1;
+
+  &:focus {
+    border-color: $input-border;
+    box-shadow: none;
+  }
+}

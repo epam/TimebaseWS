@@ -1,18 +1,24 @@
-@import 'src/app/core/styles/variables';
-
-.sourceInfo {
-  padding: 0 2 * $ss;
+:host {
+  max-width: 50%;
 }
 
-.subSectionTitle {
-  flex-shrink: 0;
-  width: 10%;
-}
-
-.subSectionName {
+.wrapper {
+  display: flex;
+  align-items: center;
   overflow: hidden;
-  flex-shrink: 1;
-  width: 100%;
-  white-space: nowrap;
   text-overflow: ellipsis;
+
+  span {
+    white-space: nowrap;
+
+    &:first-child {
+      margin-right: 5px;
+    }
+
+    &:last-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
 }
+

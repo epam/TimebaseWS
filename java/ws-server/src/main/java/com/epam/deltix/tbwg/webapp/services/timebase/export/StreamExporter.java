@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,12 +14,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.timebase.export;
 
-import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
 import com.epam.deltix.qsrv.hf.tickdb.pub.TickStream;
 import com.epam.deltix.tbwg.webapp.model.input.ExportRequest;
+import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.util.collections.CharSequenceSet;
 import com.epam.deltix.util.text.SimpleStringCodec;
 
@@ -40,12 +41,10 @@ public abstract class StreamExporter implements FileResponseBody {
     protected final TickStream[] streams;
     protected final RecordClassDescriptor[] descriptors;
     protected final String fileName;
-    protected final boolean convertNamespaces;
 
     StreamExporter(AtomicLong exportProcesses,
                    String fileName, ExportSourceFactory sourceFactory, ExportRequest request,
                    long fromTimestamp, long toTimestamp, long startIndex, long endIndex,
-                   boolean convertNamespaces,
                    RecordClassDescriptor[] descriptors)
     {
         this.exportProcesses = exportProcesses;
@@ -56,7 +55,6 @@ public abstract class StreamExporter implements FileResponseBody {
         this.toTimestamp = toTimestamp;
         this.startIndex = startIndex;
         this.endIndex = endIndex;
-        this.convertNamespaces = convertNamespaces;
         this.streams = sourceFactory instanceof StreamsExportSourceFactory ?
             ((StreamsExportSourceFactory) sourceFactory).getStreams() : new TickStream[0];
         this.descriptors = descriptors;

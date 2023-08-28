@@ -10,3 +10,23 @@
   <div [style.flex-basis.%]="headerPercents[2]" class="size">{{ 'orderBook.size' | translate }}</div>
   <div [style.flex-basis.%]="headerPercents[3]" class="exchange">{{ 'orderBook.exchange' | translate }}</div>
 </div>
+<div
+    *ngIf="inDepthChart"
+    (appClickOutside)="closeOrientationDropDown()"
+    [style.left.px]="bookWidth + padding"
+    (click)="toggleOrientationDropDown()"
+    class="orientation"
+>
+  {{ 'orderBook.orientation.labels.' + orientation | translate }}
+  <div *ngIf="orientationDropdownOpen" class="orientation__dropdown">
+    <div class="orientation__dropdown-header">
+      {{ 'orderBook.orientation.header' | translate }}
+    </div>
+    <div (click)="changeOrientation(item)" [class.active]="item === orientation" class="orientation__dropdown-item" *ngFor="let item of orientations" >
+      {{ item }}
+    </div>
+  </div>
+</div>
+<div *ngIf="showLastTime" [style.height.px]="lastTimeHeight" class="last-message-time">
+  {{ 'orderBook.lastMessageTime' | translate }} {{ lastMessageTime$ | async }}
+</div>

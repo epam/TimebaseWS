@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,18 +14,18 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.charting;
 
-import com.epam.deltix.tbwg.webapp.services.charting.provider.LinesProvider;
-import com.epam.deltix.tbwg.webapp.services.charting.queries.BookSymbolQueryImpl;
-import com.epam.deltix.tbwg.webapp.services.charting.queries.ChartingResult;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
-import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartingFrameDef;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartingLineDef;
 import com.epam.deltix.tbwg.webapp.model.charting.line.LineElement;
 import com.epam.deltix.tbwg.webapp.model.charting.line.LineElementDef;
+import com.epam.deltix.tbwg.webapp.services.charting.provider.LinesProvider;
+import com.epam.deltix.tbwg.webapp.services.charting.queries.BookSymbolQueryImpl;
+import com.epam.deltix.tbwg.webapp.services.charting.queries.ChartingResult;
 import com.epam.deltix.tbwg.webapp.services.charting.queries.LinesQueryResult;
 import com.epam.deltix.tbwg.webapp.services.charting.queries.QqlQueryImpl;
 import com.epam.deltix.util.collections.generated.LongToLongHashMap;
@@ -66,17 +66,6 @@ public class ChartingServiceImpl implements ChartingService {
     }
 
     @Override
-    public ChartingFrameDef getData(String stream, String symbol, ChartType type,
-                                    TimeInterval interval, int maxPoints, int levels)
-    {
-        ChartingResult result = provider.getLines(
-            new BookSymbolQueryImpl(stream, symbol, type, interval, maxPoints, -1, levels, false)
-        );
-
-        return buildChartingFrames(result);
-    }
-
-    @Override
     public ChartingFrameDef getData(ChartingSettings settings, Long correlationId) {
         ChartingResult result = buildChartingResult(settings);
 
@@ -112,7 +101,6 @@ public class ChartingServiceImpl implements ChartingService {
                     settings.getSymbol(),
                     settings.getType(),
                     settings.getInterval(),
-                    0,
                     settings.getPointInterval(),
                     settings.getLevels(),
                     false
@@ -121,7 +109,6 @@ public class ChartingServiceImpl implements ChartingService {
                     settings.getQql(),
                     settings.getType(),
                     settings.getInterval(),
-                    0,
                     settings.getPointInterval(),
                     false
                 )
@@ -192,7 +179,7 @@ public class ChartingServiceImpl implements ChartingService {
 
             for (int i = 0; i < elements.size(); ++i) {
                 lines.put(
-                    lineResult.getName().replace("[]", "[" + i + "]"),
+                    lineResult.getName(i),
                     new ChartingLineDef(lineResult.getAggregation(), lineResult.getNewWindowSize(), elements.get(i))
                 );
             }

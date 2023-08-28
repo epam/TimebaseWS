@@ -6,7 +6,7 @@
   overflow: auto;
 
   .dropdown-item {
-    padding: 7px 5 * $ss;
+    padding: 0;
 
     &:hover {
       background-color: $blue;
@@ -16,6 +16,7 @@
     a {
       display: block;
       font-size: 13px;
+      padding: 7px 5 * $ss;
     }
   }
 }

@@ -15,11 +15,15 @@ export class ClickOutsideService {
   }
 
   onOutsideClick(target: HTMLElement) {
+    return this.onOutsideClickEls([target]);
+  }
+
+  onOutsideClickEls(targets: HTMLElement[]) {
     return this.documentClick$.pipe(
       filter((clicked) => {
         let el = clicked;
         while (el) {
-          if (el === target) {
+          if (targets.includes(el)) {
             return false;
           }
           el = el.parentElement;

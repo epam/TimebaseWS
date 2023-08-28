@@ -17,3 +17,11 @@ input[type='file'] {
   position: absolute;
   visibility: hidden;
 }
+
+.file-input-container {
+  display: flex;
+}
+
+.disabled {
+  cursor: default;
+}

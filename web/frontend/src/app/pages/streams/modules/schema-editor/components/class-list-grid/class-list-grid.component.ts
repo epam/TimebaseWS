@@ -1,10 +1,10 @@
-import {ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
-import {FormBuilder, FormGroup, Validators} from '@angular/forms';
+import {ChangeDetectionStrategy, Component,  Output, EventEmitter, HostListener, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
 import {ActivatedRoute} from '@angular/router';
 import {select, Store} from '@ngrx/store';
 import {GridOptions, SelectionChangedEvent} from 'ag-grid-community';
 import {BsModalRef, BsModalService} from 'ngx-bootstrap/modal';
-import {Observable, Subject} from 'rxjs';
+import {Observable, Subject } from 'rxjs';
 import {filter, map, switchMap, take, takeUntil, tap, withLatestFrom} from 'rxjs/operators';
 import {AppState} from '../../../../../../core/store';
 import {GridContextMenuService} from '../../../../../../shared/grid-components/grid-context-menu.service';
@@ -34,7 +34,7 @@ import {getAllSchemaItems} from '../../store/schema-editor.selectors';
 export class ClassListGridComponent implements OnInit, OnDestroy {
   @ViewChild('editItemModalTemplate', {static: true}) modalTemplate;
   schemaAll = [];
-  editTypeItemForm: FormGroup;
+  editTypeItemForm: UntypedFormGroup;
   editItemModalRef: BsModalRef;
   editItemModalState: SchemaClassTypeModel;
   gridOptions$: Observable<GridOptions>;
@@ -43,9 +43,14 @@ export class ClassListGridComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject();
   private columnsSet = false;
 
+  @Output() addNewItemEvent = new EventEmitter<HTMLElement>();
+  @HostListener('keydown.insert', ['$event']) onInsertKeyDown(event: KeyboardEvent) {
+    this.addNewItemEvent.emit(event.target as HTMLElement);
+  }
+
   constructor(
     private appStore: Store<AppState>,
-    private fb: FormBuilder,
+    private fb: UntypedFormBuilder,
     private modalService: BsModalService,
     private gridService: GridService,
     private activatedRoute: ActivatedRoute,

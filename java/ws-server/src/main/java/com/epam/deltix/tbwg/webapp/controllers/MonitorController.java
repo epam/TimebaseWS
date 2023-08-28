@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,10 +14,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.controllers;
+package com.epam.deltix.tbwg.webapp.controllers;
 
-import com.epam.deltix.tbwg.webapp.services.timebase.MonitorService;
 import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
+import com.epam.deltix.tbwg.webapp.services.timebase.MonitorService;
 import com.epam.deltix.tbwg.webapp.utils.HeaderAccessorHelper;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.Subscription;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
@@ -27,6 +27,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Controller
@@ -44,7 +46,7 @@ public class MonitorController implements SubscriptionController {
 
     @Override
     public Subscription onSubscribe(SimpMessageHeaderAccessor headerAccessor, SubscriptionChannel channel) {
-        String stream = extractStreamKey(headerAccessor.getDestination());
+        String stream = URLDecoder.decode(extractStreamKey(headerAccessor.getDestination()), StandardCharsets.UTF_8);
         String sessionId = headerAccessor.getSessionId();
         String subscriptionId = headerAccessor.getSubscriptionId();
 

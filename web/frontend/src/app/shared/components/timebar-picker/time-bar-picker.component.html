@@ -49,14 +49,12 @@
       <span class="font-weight-bold w-100">Timezone:</span>
     </div>
     <div class="controlWr datepicker-inputWr timezone-inputWr d-flex align-content-stretch">
-      <ng-multiselect-dropdown
-          (onDeSelect)="onTimeZoneDeSelected()"
-          (onSelect)="onTimeZoneSelected()"
-          [(ngModel)]="selectedTimeZone"
-          [settings]="dropdownSettingsTimeZone"
-          [data]="dropdownListTimeZones"
-          placeholder="Timezone">
-      </ng-multiselect-dropdown>
+      <app-multi-select
+          [flat]="true"
+          [formControl]="timeZoneControl"
+          [items]="timezones"
+          [single]="true"
+      ></app-multi-select>
     </div>
   </div>
 </div>

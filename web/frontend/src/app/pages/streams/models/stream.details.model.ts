@@ -3,8 +3,10 @@ import { SchemaTypesMap } from '../../../shared/models/schema.type.model';
 export class StreamDetailsModel {
   public symbol: string;
   public timestamp: string;
+  public time?: string;
   public type?: string;
   public $type: string;
+  public nanoTime: string;
   public original: Partial<StreamDetailsModel> = {};
 
   constructor(obj: {[index: string]: any}, schema: SchemaTypesMap = null) {
@@ -19,6 +21,8 @@ export class StreamDetailsModel {
 
     this.symbol = obj?.symbol;
     this.timestamp = obj?.timestamp;
+    this.nanoTime = obj?.nanoTime;
+    this.time = obj?.timestamp;
     this.$type = obj?.$type;
     this.original.symbol = this.symbol;
     this.original.timestamp = this.timestamp;

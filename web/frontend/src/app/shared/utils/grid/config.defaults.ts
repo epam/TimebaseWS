@@ -6,18 +6,23 @@ import {
   ColumnPinnedEvent,
   ColumnVisibleEvent,
   GridOptions,
-} from 'ag-grid-community';
-import {take} from 'rxjs/operators';
-import {GridStateModel} from '../../../pages/streams/models/grid.state.model';
-import {IsAbstractCbComponent} from '../../../pages/streams/modules/schema-editor/components/class-list-grid/grid-components/is-abstract-cb/is-abstract-cb.component';
-import {IsUsedCbComponent} from '../../../pages/streams/modules/schema-editor/components/class-list-grid/grid-components/is-used-cb/is-used-cb.component';
-import {TreeDataCellComponent} from '../../../pages/streams/modules/schema-editor/components/class-list-grid/grid-components/tree-data-cell/tree-data-cell.component';
-import {ResolutionComponent} from '../../../pages/streams/modules/schema-editor/components/diff/grid-components/data-lost/resolution.component';
-import {GridContextMenuService} from '../../grid-components/grid-context-menu.service';
-import {GridHeaderGlobalMenuComponent} from '../../grid-components/grid-header-gobal-menu/grid-header-global-menu.component';
-import {GridHeaderComponent} from '../../grid-components/grid-header/grid-header.component';
-import {copyToClipboard} from '../copy';
-import {CustomNoRowOverlayComponent} from './custom-no-rows-overlay.component';
+}                                        from 'ag-grid-community';
+import { timer }                         from 'rxjs';
+import { take }                          from 'rxjs/operators';
+import { GridStateModel }                from '../../../pages/streams/models/grid.state.model';
+import { IsAbstractCbComponent }         from '../../../pages/streams/modules/schema-editor/components/class-list-grid/grid-components/is-abstract-cb/is-abstract-cb.component';
+import { IsUsedCbComponent }             from '../../../pages/streams/modules/schema-editor/components/class-list-grid/grid-components/is-used-cb/is-used-cb.component';
+import { TreeDataCellComponent }         from '../../../pages/streams/modules/schema-editor/components/class-list-grid/grid-components/tree-data-cell/tree-data-cell.component';
+import { ResolutionComponent }           from '../../../pages/streams/modules/schema-editor/components/diff/grid-components/data-lost/resolution.component';
+import { GridDropdownFilterComponent }   from '../../grid-components/filters/grid-dropdown-filter/grid-dropdown-filter.component';
+import { GridTextFilterComponent }       from '../../grid-components/filters/grid-text-filter/grid-text-filter.component';
+import { GridContextMenuService }        from '../../grid-components/grid-context-menu.service';
+import { GridHeaderGlobalMenuComponent } from '../../grid-components/grid-header-gobal-menu/grid-header-global-menu.component';
+import { GridHeaderPreviewComponent } from '../../grid-components/grid-header-preview/grid-header-preview.component';
+import { GridHeaderComponent }           from '../../grid-components/grid-header/grid-header.component';
+import { GridSearchComponent }           from '../../grid-components/grid-search/grid-search.component';
+import { copyToClipboard }               from '../copy';
+import { CustomNoRowOverlayComponent }   from './custom-no-rows-overlay.component';
 
 let gridType = '';
 const FIRST_COLUMN = 'first-column';
@@ -84,7 +89,11 @@ export const defaultGridOptions: GridOptions = {
     treeDataCellComponent: TreeDataCellComponent,
     GridHeaderGlobalMenuComponent: GridHeaderGlobalMenuComponent,
     GridHeaderComponent: GridHeaderComponent,
+    GridHeaderPreviewComponent: GridHeaderPreviewComponent,
     resolutionComponent: ResolutionComponent,
+    GridSearchComponent: GridSearchComponent,
+    GridTextFilterComponent: GridTextFilterComponent,
+    GridDropdownFilterComponent: GridDropdownFilterComponent
   },
 };
 
@@ -94,7 +103,7 @@ export function saveState(props: GridOptions, type: string) {
   }
   const columnState = props.columnApi.getColumnState();
   const columnGroupState = props.columnApi.getColumnGroupState();
-
+  
   localStorage.setItem('columnState' + type, JSON.stringify(columnState));
   localStorage.setItem('columnGroupState' + type, JSON.stringify(columnGroupState));
 }
@@ -216,15 +225,19 @@ export function columnIsMoved(
   }
 }
 
-function getColSeq(columns: {colId: string}[]): Map<string, string> {
+function getColSeq(columns: { colId: string }[]): Map<string, string> {
   let prev = FIRST_COLUMN;
   const seq = new Map();
   columns.forEach((col) => {
     seq.set(prev, col.colId);
     prev = col.colId;
   });
-
+  
   return seq;
+}
+
+export function autosizeFromLS(columnApi: ColumnApi, gridStateLS: GridStateModel) {
+  timer(500).subscribe(() => columnApi.autoSizeColumns(gridStateLS.autoSized || []));
 }
 
 export function gridStateLSInit(
@@ -232,9 +245,10 @@ export function gridStateLSInit(
   tabName: string,
   gridStateLS: GridStateModel,
 ) {
+  
   if (localStorage.getItem('gridStateLS' + tabName)) {
     const allColumns = columnApi.getAllColumns();
-    if (allColumns && allColumns.length) {
+    if (allColumns?.length) {
       gridStateLS = JSON.parse(localStorage.getItem('gridStateLS' + tabName));
       if (gridStateLS.visibleArray.length) {
         for (const item of gridStateLS.visibleArray) {
@@ -246,7 +260,7 @@ export function gridStateLSInit(
           columnApi.setColumnPinned(item.colId, item.pinned);
         }
       }
-
+      
       const positionUpdates = gridStateLS.updatedColumnPrevs;
       if (positionUpdates && Object.keys(positionUpdates).length) {
         const colState = columnApi.getColumnState();
@@ -264,20 +278,20 @@ export function gridStateLSInit(
             removedKeys.set(removeKey, id);
             seq.delete(removeKey);
           }
-
+          
           const col = byId.get(id);
-
+          
           if (!col) {
             return;
           }
-
+          
           newState.push(col);
           newStateIds.add(col.colId);
           buildSeq(col.colId);
         };
-
+        
         buildSeq(FIRST_COLUMN);
-
+        
         // New columns, that were not presented on state saving
         colState
           .filter((c) => !newStateIds.has(c.colId))
@@ -286,35 +300,39 @@ export function gridStateLSInit(
             const index = newState.findIndex((c) => c.colId === insertAfter) + 1;
             newState.splice(index, 0, col);
           });
-
+        
         columnApi.setColumnState(newState);
       }
+      
+      autosizeFromLS(columnApi, gridStateLS);
     }
   }
   return gridStateLS;
 }
 
-export function setMaxColumnWidth(columnApi: ColumnApi) {
+export const autosizeMaxWidth = 500;
+
+export function setMaxColumnWidth(columnApi: ColumnApi, notChangeColWidth: string[] = []) {
   const displayedCols = columnApi.getAllDisplayedColumns();
   if (!displayedCols.length) {
     return;
   }
-
+  
   const cc: any = columnApi['columnController'];
   let gridWidth = cc.leftWidth + cc.rightWidth + cc.scrollWidth;
   const columnWidths = {};
   displayedCols.forEach((col) => {
     const actualWidth = col.getActualWidth();
-    const width = actualWidth > 500 ? 500 : actualWidth;
+    const width = notChangeColWidth.includes(col.getColId()) ? actualWidth : (actualWidth > autosizeMaxWidth ? autosizeMaxWidth : actualWidth);
     const cutWidth = actualWidth - width;
     gridWidth -= width;
     columnWidths[col.getColId()] = {actualWidth, width, cutWidth};
   });
-
+  
   let cutWiths = Object.values(columnWidths)
     .map(({cutWidth}) => cutWidth)
     .filter(Boolean);
-
+  
   if (gridWidth > 0 && cutWiths.length) {
     const shareWidth = () => {
       const colsLength = cutWiths.length;
@@ -329,26 +347,28 @@ export function setMaxColumnWidth(columnApi: ColumnApi) {
         }
       });
       cutWiths = cutWiths.map((cw) => cw - share).filter(Boolean);
-
+      
       if (cutWiths.length && gridWidth > 0) {
         shareWidth();
       }
     };
-
+    
     shareWidth();
   }
-
+  
   Object.keys(columnWidths).forEach((colId) => {
     columnApi.setColumnWidth(colId, columnWidths[colId].width, true);
   });
 }
 
-export function autosizeAllColumns(columnApi: ColumnApi) {
+export function autosizeAllColumns(columnApi: ColumnApi, setMaxWidth = true, notChangeColWidths: string[] = []) {
   columnApi.autoSizeAllColumns();
-  setMaxColumnWidth(columnApi);
+  if (setMaxWidth) {
+    setMaxColumnWidth(columnApi, notChangeColWidths);
+  }
 }
 
-export function columnsVisibleColumn(withChild = true): ColGroupDef | ColDef {
+export function columnsVisibleColumn(withChild = true, withSearch = false): ColGroupDef | ColDef {
   const cell = {
     headerName: '',
     colId: 'GridHeaderGlobalMenuComponent',
@@ -358,12 +378,13 @@ export function columnsVisibleColumn(withChild = true): ColGroupDef | ColDef {
     filter: false,
     lockPosition: true,
   };
+  
   if (!withChild) {
     return {...cell, headerComponent: 'GridHeaderGlobalMenuComponent'};
   }
-
+  
   return {
     headerGroupComponent: 'GridHeaderGlobalMenuComponent',
-    children: [cell],
+    children: [withSearch ? {...cell, headerComponent: 'GridSearchComponent'} : cell],
   };
 }

@@ -96,6 +96,18 @@
     }
   }
 
+  input.form-control[type='number'] {
+    border: none;
+    border-radius: 0.125rem;
+    background-color: rgb(31, 82, 111);
+
+    &:focus {
+      background-color: rgb(31, 82, 111);
+      box-shadow: none;
+      outline: none;
+    }
+  }
+
   select.form-control[disabled] {
     -webkit-appearance: none;
   }

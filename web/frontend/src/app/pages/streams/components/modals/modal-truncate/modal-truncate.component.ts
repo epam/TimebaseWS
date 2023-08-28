@@ -1,4 +1,5 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
+import {UntypedFormControl} from '@angular/forms';
 import {select, Store} from '@ngrx/store';
 import {BsModalRef} from 'ngx-bootstrap/modal';
 import {Observable, Subject} from 'rxjs';
@@ -17,19 +18,21 @@ import {StreamsEffects} from '../../../store/streams-list/streams.effects';
   styleUrls: ['./modal-truncate.component.scss'],
 })
 export class ModalTruncateComponent implements OnInit, OnDestroy {
-  public stream: MenuItem;
-  public startDate: Date;
-  public endDate: Date;
-  public selectedDate: Date;
-  public dropdownSettingsSymbols = {
+  stream: MenuItem;
+  startDate: Date;
+  endDate: Date;
+  selectedDate: Date;
+  dropdownSettingsSymbols = {
     idField: 'field',
     textField: 'field',
     allowSearchFilter: true,
     closeDropDownOnSelection: false,
     itemsShowLimit: 10,
   };
-  public selectedSymbols = [];
-  public symbolsList$: Observable<{field: string}[]>;
+  selectedSymbols = [];
+  symbolsList$: Observable<{id: string; name: string}[]>;
+  symbolsControl = new UntypedFormControl();
+
   private destroy$ = new Subject();
 
   constructor(
@@ -44,7 +47,7 @@ export class ModalTruncateComponent implements OnInit, OnDestroy {
 
     this.symbolsList$ = this.symbolsService
       .getSymbols(this.stream.id)
-      .pipe(map((symbols) => symbols.map((s) => ({field: s}))));
+      .pipe(map((symbols) => symbols.map((s) => ({id: s, name: s}))));
 
     this.appStore
       .pipe(
@@ -64,11 +67,15 @@ export class ModalTruncateComponent implements OnInit, OnDestroy {
       .subscribe(() => this.bsModalRef.hide());
   }
 
+  onSelectedSymbolsChange(symbols) {
+    this.selectedSymbols = symbols;
+  }
+
   public onTruncateSubmit() {
     const params = {timestamp: this.selectedDate.getTime()};
 
-    if (this.selectedSymbols && this.selectedSymbols.length) {
-      params['symbols'] = this.selectedSymbols.map((symbol) => symbol.field);
+    if (this.symbolsControl.value?.length) {
+      params['symbols'] = this.symbolsControl.value.map((symbol) => symbol.id);
     }
 
     this.appStore.dispatch(

@@ -17,10 +17,28 @@ app-sidebar-context-menu-item {
     padding-right: 0;
     color: $white;
     text-align: left;
+    align-items: center;
   }
 
   a {
     display: flex;
     align-items: center;
   }
+}
+
+app-sidebar-context-menu-item {
+  .btn.btn-link {
+    display: flex;
+    align-items: center;
+
+    svg {
+      margin-top: 4px;
+      margin-left: 3px;
+      margin-right: 7px;
+    }
+  }
+}
+
+.chart-item:not(.disabled) {
+  cursor: pointer;
 }

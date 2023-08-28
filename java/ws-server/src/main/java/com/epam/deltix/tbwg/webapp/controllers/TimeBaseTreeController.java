@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,11 +14,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.controllers;
+package com.epam.deltix.tbwg.webapp.controllers;
 
-import com.epam.deltix.tbwg.webapp.model.TimeBaseStructureRequestDef;
-import com.epam.deltix.tbwg.webapp.model.tree.TreeNodeDef;
-import com.epam.deltix.tbwg.webapp.services.tree.TimeBaseTreeService;
+import com.epam.deltix.tbwg.webapp.model.tree.*;
+import com.epam.deltix.tbwg.webapp.services.tree.*;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -40,8 +39,29 @@ public class TimeBaseTreeController {
         produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TreeNodeDef> tree(@RequestBody TimeBaseStructureRequestDef request) {
         return ResponseEntity.ok().body(
-            timeBaseTree.buildTree(request.getPaths(), request.getFilter(), request.isShowSpaces())
+            timeBaseTree.buildTree(request.getPaths(),
+                buildFilter(request.getFilter(), request.getFilterOptions()),
+                request.isShowSpaces(), request.isViews())
         );
+    }
+
+    private TreeFilter buildFilter(String filter, FilterOptionsRequestDef filterOptions) {
+        TreeFilter treeFilter = null;
+        if (filter != null && !filter.isEmpty()) {
+            if (filterOptions == null) {
+                treeFilter = new SearchTreeFilter(filter, FilterMatchType.any);
+            } else {
+                if (filterOptions.getUse() == null) {
+                    treeFilter = new SearchTreeFilter(filter, filterOptions.getMatch());
+                } else if (filterOptions.getUse() == FilterType.regExps) {
+                    treeFilter = new RegexTreeFilter(filter, filterOptions.getMatch());
+                } else if (filterOptions.getUse() == FilterType.wildCards) {
+                    treeFilter = new WildcardTreeFilter(filter, filterOptions.getMatch());
+                }
+            }
+        }
+
+        return treeFilter;
     }
 
 }

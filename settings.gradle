@@ -5,7 +5,6 @@ include 'java:ws-messages',
         'java:grafana-api-impl',
         'java:grafana-basicmath',
         'java:api-keys',
-        'java:orderbook-core',
         'web:frontend'
 
 project(':java:api-keys').name = 'timebase-api-keys'

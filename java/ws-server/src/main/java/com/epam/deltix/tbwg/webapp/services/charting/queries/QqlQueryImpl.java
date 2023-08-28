@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,20 +14,20 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.charting.queries;
+package com.epam.deltix.tbwg.webapp.services.charting.queries;
 
-import com.epam.deltix.tbwg.webapp.services.charting.TimeInterval;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
+import com.epam.deltix.tbwg.webapp.services.charting.TimeInterval;
 
 public class QqlQueryImpl extends LinesQueryImpl implements QqlQuery {
 
     private final String qql;
 
     public QqlQueryImpl(String qql, ChartType type,
-                        TimeInterval interval, int maxPointsCount, long pointInterval,
+                        TimeInterval interval, long pointInterval,
                         boolean isLive)
     {
-        super(type, interval, maxPointsCount, pointInterval, isLive);
+        super(type, interval, pointInterval, isLive);
         this.qql = qql;
     }
 

@@ -2,9 +2,10 @@ import {Injectable, OnDestroy} from '@angular/core';
 import {Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
 import {BehaviorSubject, combineLatest, Observable, of, ReplaySubject, Subject} from 'rxjs';
-import {filter, map, shareReplay, switchMap, take, takeUntil} from 'rxjs/operators';
-import * as NotificationsActions from '../../core/modules/notifications/store/notifications.actions';
+import { delay, filter, map, shareReplay, switchMap, take, takeUntil }          from 'rxjs/operators';
+import * as NotificationsActions                                                from '../../core/modules/notifications/store/notifications.actions';
 import {AppState} from '../../core/store';
+import {QueryFunction} from '../../pages/query/query-function';
 import {MonacoEditorOptions, QqlSequenceKeyWord, QQLSyntaxGroup} from '../models/qql-editor';
 import {getClipboard, supportsReadFromClipboard} from '../utils/copy';
 import {GlobalFiltersService} from './global-filters.service';
@@ -19,8 +20,11 @@ import CompletionList = monaco.languages.CompletionList;
 
 @Injectable()
 export class MonacoQqlConfigService implements OnDestroy {
+  static idCounter = 0;
+  
   private streamsProvider$: Observable<string[]>;
   private columnsProvider: (stream: string) => Observable<string[]>;
+  private functionsProvider$: Observable<QueryFunction[]>;
   private streamColumns: {[index: string]: Observable<string[]>} = {};
   private columns$ = new ReplaySubject<string[]>(1);
   private editor$ = new BehaviorSubject<any>(null);
@@ -31,6 +35,8 @@ export class MonacoQqlConfigService implements OnDestroy {
   private dataTypes: string[];
   private cursorPosition$ = new BehaviorSubject<{lineNumber: number; column: number}>(null);
   private destroy$ = new Subject();
+  private id: number;
+  private tokenizerInit$ = new ReplaySubject<void>(1);
 
   constructor(
     private monacoSqlTokensService: MonacoQqlTokensService,
@@ -39,10 +45,12 @@ export class MonacoQqlConfigService implements OnDestroy {
     private appStore: Store<AppState>,
     private globalFiltersService: GlobalFiltersService,
   ) {
-    this.monacoService.registerLanguage('qql', {wordPattern: /([^\s]+)/g});
-    this.monacoSqlTokensService.init();
+    this.id = MonacoQqlConfigService.idCounter;
+    MonacoQqlConfigService.idCounter ++;
+    this.monacoService.registerLanguage(this.languageKey(), {wordPattern: /([^\s]+)/g});
+    this.monacoSqlTokensService.init(this.languageKey());
     this.disablePaste = !supportsReadFromClipboard();
-    this.monacoService.setAutoCompleteProvider('qql', this.getSuggestions.bind(this));
+    this.monacoService.setAutoCompleteProvider(this.languageKey(), this.getSuggestions.bind(this));
   }
 
   ngOnDestroy(): void {
@@ -54,8 +62,10 @@ export class MonacoQqlConfigService implements OnDestroy {
     editor: any,
     streamsProvider$: Observable<string[]>,
     columnsProvider: (stream: string) => Observable<string[]>,
+    functionsProvider$: Observable<QueryFunction[]>,
     dataTypes: string[],
   ) {
+    this.functionsProvider$ = functionsProvider$;
     this.dataTypes = [
       ...dataTypes.map((t) => t.toLowerCase()),
       ...dataTypes.map((t) => t.toUpperCase()),
@@ -128,23 +138,26 @@ export class MonacoQqlConfigService implements OnDestroy {
     this.getEditor().subscribe((editor) => editor.layout(size));
   }
 
-  setError(range: IRange) {
+  setError(range: IRange, setSelection = true) {
     this.clearDecorations();
     this.getEditor().subscribe((editor) => {
       this.decorations = editor.deltaDecorations(
         [],
         [{range, options: {inlineClassName: 'sql-error'}}],
       );
-      editor.setSelection(range);
-      editor.focus();
-      editor.revealRangeInCenterIfOutsideViewport(range);
+      
+      if (setSelection) {
+        editor.setSelection(range);
+        editor.focus();
+        editor.revealRangeInCenterIfOutsideViewport(range);
+      }
     });
   }
 
   options(): MonacoEditorOptions {
     return {
       theme: 'qqlTheme',
-      language: 'qql',
+      language: this.languageKey(),
       automaticLayout: false,
       extraEditorClassName: this.disablePaste ? 'disable-paste' : null,
       minimap: {
@@ -200,6 +213,10 @@ export class MonacoQqlConfigService implements OnDestroy {
 
   private getEditor(): Observable<any> {
     return this.editor$.pipe(filter(Boolean), take(1));
+  }
+  
+  tokenizerInit(): Observable<void> {
+    return this.tokenizerInit$.asObservable();
   }
 
   private onContentChange(model: ITextModel, position: IPosition) {
@@ -258,6 +275,15 @@ export class MonacoQqlConfigService implements OnDestroy {
               this.monacoSqlTokensService.setFields(columns);
             });
         }
+
+        this.getFunctions()
+          .pipe(take(1))
+          .subscribe((functions) => {
+            this.monacoSqlTokensService.setFunctions(functions.map((f) => f.name));
+            MonacoService.monacoLoad$.pipe(take(1)).subscribe(() => {
+              this.tokenizerInit$.next();
+            });
+          });
       });
   }
 
@@ -273,7 +299,18 @@ export class MonacoQqlConfigService implements OnDestroy {
     const block = this.getUnionBlocks(model).find(
       (block) => block.start <= cursorPosition && block.end >= cursorPosition,
     );
-    return this.getBlockSuggestions(cursorPosition - block.start, block.text);
+    const word = model.getWordUntilPosition(position);
+    const split = word.word.split(/,|\(|\)|\}|\{/gi);
+    const searchWord = split[split.length - 1];
+    const searchOffset = word.word.length - searchWord.length;
+
+    const range = {
+      startLineNumber: position.lineNumber,
+      endLineNumber: position.lineNumber,
+      startColumn: word.startColumn + searchOffset,
+      endColumn: word.endColumn,
+    };
+    return this.getBlockSuggestions(cursorPosition - block.start, block.text, range);
   }
 
   private getUnionBlocks(model: ITextModel) {
@@ -296,13 +333,14 @@ export class MonacoQqlConfigService implements OnDestroy {
   private getBlockSuggestions(
     cursorPosition: number,
     blockText: string,
+    range: IRange,
   ): Observable<CompletionList> {
     const aliases = this.getAliases(blockText, cursorPosition);
     const stream = this.getStream(blockText);
     return this.syntaxGroups().pipe(
       switchMap((syntaxGroups) => {
         const streams$ = this.parseBlock(blockText.toLowerCase(), cursorPosition, syntaxGroups).map(
-          (entry) => this.getEntrySuggestions(entry, stream, aliases),
+          (entry) => this.getEntrySuggestions(entry, stream, aliases, range),
         );
         return streams$.length ? combineLatest(streams$).pipe(map(this.flatArrays)) : of([]);
       }),
@@ -335,6 +373,7 @@ export class MonacoQqlConfigService implements OnDestroy {
     entry: string,
     stream: string,
     aliases: string[],
+    range: IRange,
   ): Observable<CompletionItem[]> {
     if (['{limitExpression}', '{number}'].includes(entry)) {
       return of([]);
@@ -347,7 +386,7 @@ export class MonacoQqlConfigService implements OnDestroy {
           filterText: QqlSequenceKeyWord.select,
           kind: monaco.languages.CompletionItemKind.Snippet,
           insertText: `${QqlSequenceKeyWord.select} * FROM`,
-          range: null,
+          range,
         },
       ]);
     }
@@ -363,31 +402,45 @@ export class MonacoQqlConfigService implements OnDestroy {
           kind: monaco.languages.CompletionItemKind.Snippet,
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           insertText: snippet,
-          range: null,
+          range,
         },
       ]);
     }
 
     if (entry === '{stream}') {
-      return this.getSteamsSuggestions();
+      return this.getSteamsSuggestions(range);
     }
 
     if (entry === '{expressionList}') {
       const columns$ = stream ? this.getColumns(stream) : of([]);
       return combineLatest([
         columns$,
+        this.getFunctions(),
         this.timeFormats(),
         this.globalFiltersService.getFilters(),
       ]).pipe(
         take(1),
-        map(([cols, timeFormats, filters]) => {
+        map(([cols, functions, timeFormats, filters]) => {
           const columns = [...cols, ...aliases].map((col) => ({
             label: col.split('.').pop().replace(/"/g, ''),
             filterText: col,
             kind: monaco.languages.CompletionItemKind.Field,
             insertText: col,
-            range: null,
+            range,
           }));
+
+          const funcs = functions.map((func) => {
+            const labelAppend = func.stateful ? '{}()' : '()';
+            const insertAppend = func.stateful ? '{${1}}(${2})' : '(${1})';
+            return {
+              label: `${func.name}${labelAppend}`,
+              filterText: `${func.name}`,
+              kind: monaco.languages.CompletionItemKind.Function,
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              insertText: `${func.name}${insertAppend}`,
+              range,
+            };
+          });
 
           const timeFormatAutocomplete = timeFormats.map((format, formatIndex) => {
             const label = `'${format}'d`;
@@ -399,17 +452,19 @@ export class MonacoQqlConfigService implements OnDestroy {
 
             const replaceTimeZone = (string) =>
               string.replace(/TIMEZONE/g, filters.timezone[0].name);
+
             return {
               label: replaceTimeZone(label),
               filterText: `'`,
               kind: monaco.languages.CompletionItemKind.Snippet,
               insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
               insertText: replaceTimeZone(insertText),
-              range: null,
+              range,
               sortText: this.numToSSColumn(formatIndex + 1),
             };
           });
-          return [...columns, ...timeFormatAutocomplete];
+
+          return [...columns, ...funcs, ...timeFormatAutocomplete];
         }),
       );
     }
@@ -454,14 +509,14 @@ export class MonacoQqlConfigService implements OnDestroy {
     ]);
   }
 
-  private getSteamsSuggestions() {
+  private getSteamsSuggestions(range: IRange) {
     return this.streamsProvider$.pipe(
       map((streams) => {
         return streams.map((stream) => ({
           label: this.formatStream(stream),
           kind: monaco.languages.CompletionItemKind.Struct,
           insertText: this.formatStream(stream),
-          range: null,
+          range,
         }));
       }),
       take(1),
@@ -470,6 +525,10 @@ export class MonacoQqlConfigService implements OnDestroy {
 
   private formatStream(stream: string): string {
     return `"${stream}"`;
+  }
+
+  private getFunctions(): Observable<QueryFunction[]> {
+    return this.functionsProvider$;
   }
 
   private getColumns(streamString: string | null) {
@@ -780,5 +839,9 @@ export class MonacoQqlConfigService implements OnDestroy {
       },
       {startWith: QqlSequenceKeyWord.union, patterns: ['union']},
     ]);
+  }
+  
+  private languageKey() {
+    return `qql-${this.id}`;
   }
 }

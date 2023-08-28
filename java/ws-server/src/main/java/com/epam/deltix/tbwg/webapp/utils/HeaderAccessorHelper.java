@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,6 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.utils;
 
 import com.google.gson.Gson;
@@ -23,7 +24,7 @@ import com.epam.deltix.gflog.api.LogFactory;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 
 import java.lang.reflect.Type;
-import java.text.ParseException;
+import java.time.Instant;
 import java.util.List;
 
 public class HeaderAccessorHelper {
@@ -33,10 +34,7 @@ public class HeaderAccessorHelper {
     public static final String FROM_TIMESTAMP_HEADER = "fromTimestamp";
     public static final String SYMBOLS_HEADER = "symbols";
     public static final String TYPES_HEADER = "types";
-
     public static final String ORIGINAL_DESTINATION_HEADER = "dxOriginalDestination";
-
-    private final DateFormatter formatter = new DateFormatter();
 
     private final Gson gson = new Gson();
 
@@ -45,15 +43,7 @@ public class HeaderAccessorHelper {
     public long getTimestamp(SimpMessageHeaderAccessor headerAccessor) {
         List<String> list = headerAccessor.getNativeHeader(FROM_TIMESTAMP_HEADER);
         if (list != null && !list.isEmpty()) {
-            String dateString = list.get(0);
-            try {
-                return formatter.fromDateString(dateString);
-            } catch (ParseException e) {
-                LOG.error().append("Error while parsing date string ")
-                        .append(dateString)
-                        .append(". Returning Long.MIN_VALUE. Error: ")
-                        .append(e).commit();
-            }
+            return Instant.parse(list.get(0)).toEpochMilli();
         }
         return Long.MIN_VALUE;
     }

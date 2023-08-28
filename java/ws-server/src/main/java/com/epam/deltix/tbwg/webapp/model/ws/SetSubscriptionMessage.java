@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,9 +14,8 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model.ws;
+package com.epam.deltix.tbwg.webapp.model.ws;
 
-import com.epam.deltix.tbwg.webapp.utils.DateFormatter;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.webcohesion.enunciate.metadata.DocumentationExample;
@@ -24,6 +23,8 @@ import com.epam.deltix.util.collections.generated.ObjectArrayList;
 
 import java.time.Instant;
 import java.util.List;
+
+import static com.epam.deltix.tbwg.webapp.utils.DateFormatter.DATETIME_MILLIS_FORMAT_STR;
 
 public class SetSubscriptionMessage extends WSMessage {
 
@@ -33,7 +34,7 @@ public class SetSubscriptionMessage extends WSMessage {
 
     @DocumentationExample("2018-06-28T09:30:00.123Z")
     @JsonProperty
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DateFormatter.DATETIME_MILLIS_FORMAT_STR, timezone = "UTC")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATETIME_MILLIS_FORMAT_STR, timezone = "UTC")
     public Instant from = Instant.ofEpochMilli(Long.MIN_VALUE);
 
     /**

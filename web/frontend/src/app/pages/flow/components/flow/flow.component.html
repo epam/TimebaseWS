@@ -1,49 +1,56 @@
-<div class="col-md-12 full-height-page">
-  <div class="page-block">
-    <div class="filters">
-      <div class="filters-left" #filterPanel>
-        <app-flow-filter></app-flow-filter>
-      </div>
-  
-      <button (click)="resetLayout()" class="btn btn-outline-primary btn-round">
-        Reset Layout
-      </button>
+<app-top-filters-page-layout>
+  <ng-container filters>
+    <div class="filters-left">
+      <app-flow-filter></app-flow-filter>
     </div>
-    
-    <div class="page-divider" #pageDivider></div>
-  
-    <div class="flow-header-control d-flex w-100 flex-shrink-1">
-      <app-flow-breadcrumbs
-          (breadCrumbClicked)="breadCrumbClicked($event)"
-          [path]="this.path"></app-flow-breadcrumbs>
-    </div>
-    <ng-template [ngIf]="!renderVars.resetLayout">
-      <div #vizceralRef class="vizceralWr" [style.top]="vizceralTopPosition + 'px'">
-        <vizceral
-            (matchesFound)="matchesFound()"
-            (nodeContextSizeChanged)="nodeContextSizeChanged()"
-            (objectHighlighted)="objectHighlighted($event)"
-            (viewChanged)="viewChanged($event)"
-            (viewUpdated)="viewUpdated($event)"
-            *ngIf="traffic$ | async as traffic"
-            [allowDraggingOfNodes]="true"
-            [initialSize]="initialSize"
-            [objectToHighlight]="objectToHighlight"
-            [showLabels]="true"
-            [traffic]="traffic"
-            [view]="path">
-        </vizceral>
+    <button (click)="reInitVizceral({}, true)" class="btn btn-outline-primary btn-round reset-btn">
+      Reset Layout
+    </button>
+  </ng-container>
+  <as-split
+      content
+      [appSplitterSizes]="[75, 25]"
+      [minSizes]="[685, 500]"
+      [parentMinSize]="1130"
+      [parentWidthAddon]="15"
+      [direction]="'horizontal'"
+      storageKey="vizceral"
+  >
+    <as-split-area [order]="1">
+      <div class="flow-header-control d-flex w-100 flex-shrink-1">
+        <app-flow-breadcrumbs
+            (breadCrumbClicked)="breadCrumbClicked($event)"
+            [path]="path"></app-flow-breadcrumbs>
       </div>
-    </ng-template>
-    <section *ngIf="selectedNodeView$ | async as selectedNodeView" class="dragBoundary">
-      <app-connection-details
-          *ngIf="selectedNodeView.type === 'connection'"
-          [isParent]="true"
-          class="panContainer"></app-connection-details>
-      <app-node-details
-          *ngIf="selectedNodeView.type === 'node'"
-          [isParent]="true"
-          class="panContainer"></app-node-details>
-    </section>
-  </div>
-</div>
+      <div class="vizceral-wrapper" *ngIf="renderVisceral">
+          <vizceral
+              (objectHighlighted)="objectHighlighted($event)"
+              (viewChanged)="viewChanged($event)"
+              (viewUpdated)="onViewUpdated()"
+              [allowDraggingOfNodes]="true"
+              [showLabels]="true"
+              [styles]="vizceralDefStyles"
+              [traffic]="traffic$ | async"
+              [view]="path">
+          </vizceral>
+      </div>
+    </as-split-area>
+    <as-split-area>
+      <app-right-area>
+        <app-right-info-wrapper *ngIf="selectedNodeView$ | async as selectedNodeView">
+          <ng-container title></ng-container>
+          <ng-container content>
+            <app-connection-details
+                *ngIf="selectedNodeView.type === 'connection'"
+                [isParent]="true"
+                class="panContainer"></app-connection-details>
+            <app-node-details
+                *ngIf="selectedNodeView.type === 'node'"
+                [isParent]="true"
+                class="panContainer"></app-node-details>
+          </ng-container>
+        </app-right-info-wrapper>
+      </app-right-area>
+    </as-split-area>
+  </as-split>
+</app-top-filters-page-layout>

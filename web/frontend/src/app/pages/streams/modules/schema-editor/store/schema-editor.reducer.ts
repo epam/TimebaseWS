@@ -508,7 +508,7 @@ const schemaEditorReducer = createReducer(
     const CLASSES = state.classes,
       ENUMS = state.enums,
       SELECTED_ITEM = [...CLASSES, ...ENUMS].find((type) => type._props && type._props._isSelected);
-    const TYPES = SELECTED_ITEM.isEnum ? ENUMS : CLASSES;
+    const TYPES = SELECTED_ITEM?.isEnum ? ENUMS : CLASSES;
 
     if (SELECTED_ITEM) {
       const SELECTED_ITEM_IDX = TYPES.findIndex((type) => type._props && type._props._isSelected);
@@ -526,6 +526,10 @@ const schemaEditorReducer = createReducer(
           _isCurrentEdited: false,
         };
       });
+
+      if (!SELECTED_FIELD) {
+        return state;
+      }
 
       TYPES[SELECTED_ITEM_IDX].fields.splice(SELECTED_FIELD_INDEX, 1, {
         ...SELECTED_FIELD,
@@ -759,7 +763,7 @@ const schemaEditorReducer = createReducer(
           ...TYPES[PARENT_INDEX],
           _props: {
             ...TYPES[PARENT_INDEX]._props,
-            _children: TYPES[PARENT_INDEX]._props._children.filter(
+            _children: TYPES[PARENT_INDEX]._props._children?.filter(
               (name) => name !== SELECTED_ITEM.name,
             ),
           },
@@ -778,6 +782,20 @@ const schemaEditorReducer = createReducer(
       };
       COLLECT_NAMES_TO_DELETE(SELECTED_ITEM.name);
       TYPES = TYPES.filter((type) => !NAMES_TO_DELETE.includes(type.name));
+
+      if (SELECTED_ITEM.isEnum) {
+        CLASSES.forEach(type => {
+          type.fields = type.fields.filter(field => field.type.name !== SELECTED_ITEM.name && field.type.elementType?.name !== SELECTED_ITEM.name);
+        })
+      }  
+
+      TYPES.forEach(type => {
+        type.fields.forEach(field => {
+          if (field.type.elementType?.types.includes(SELECTED_ITEM.name)) {
+            field.type.elementType.types = field.type.elementType?.types.filter(t => t !== SELECTED_ITEM.name);
+          }
+        })
+      })
 
       return {
         ...state,
@@ -852,6 +870,24 @@ const schemaEditorReducer = createReducer(
       newDefaultValues: {},
       dropValues: {},
     };
+  }),
+  on(SchemaEditorActions.EditSchemaMergeState, (state, {classes, enums}) => {
+    return {
+        ...state,
+        classes: [...state.classes, ...classes],
+        enums: [...state.enums, ...enums],
+        newClassAdding: false,
+        newEnumAdding: false,
+        _isEdited: true,
+        schemaMapping: {
+          descriptors: {},
+          fields: [],
+          enumValues: [],
+        },
+        diff: null,
+        newDefaultValues: {},
+        dropValues: {},
+    }
   }),
 );
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -16,14 +16,14 @@
  */
 package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 
-import com.epam.deltix.common.orderbook.MarketSide;
-import com.epam.deltix.common.orderbook.OrderBook;
-import com.epam.deltix.common.orderbook.OrderBookQuote;
-import com.epam.deltix.common.orderbook.impl.OrderBookFactory;
-import com.epam.deltix.common.orderbook.options.OrderBookOptionsBuilder;
-import com.epam.deltix.common.orderbook.options.OrderBookType;
-import com.epam.deltix.common.orderbook.options.UpdateMode;
 import com.epam.deltix.dfp.Decimal64Utils;
+import com.epam.deltix.orderbook.core.api.MarketSide;
+import com.epam.deltix.orderbook.core.api.OrderBook;
+import com.epam.deltix.orderbook.core.api.OrderBookFactory;
+import com.epam.deltix.orderbook.core.api.OrderBookQuote;
+import com.epam.deltix.orderbook.core.options.OrderBookOptionsBuilder;
+import com.epam.deltix.orderbook.core.options.OrderBookType;
+import com.epam.deltix.orderbook.core.options.UpdateMode;
 import com.epam.deltix.tbwg.messages.BboPoint;
 import com.epam.deltix.tbwg.messages.FeedStatusMessage;
 import com.epam.deltix.tbwg.messages.Message;
@@ -83,7 +83,7 @@ public class UniversalL2OrderbookToBboTransformation extends AbstractChartTransf
             final long timestamp = marketMessage.getTimeStampMs();
 
             // todo: filter
-            book.update((PackageHeader) marketMessage);
+            book.update(message);
 
             MarketSide<OrderBookQuote> askSide = book.getMarketSide(QuoteSide.ASK);
             MarketSide<OrderBookQuote> bidSide = book.getMarketSide(QuoteSide.BID);

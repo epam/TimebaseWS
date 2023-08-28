@@ -1,7 +1,7 @@
 <div class="col-md-12 full-height-page">
   <as-split
       [appSplitterSizes]="[75, 25]"
-      [minSizes]="[586, 260]"
+      [minSizes]="[737, 260]"
       [parentWidthAddon]="62"
       [useStorage]="false"
       direction="horizontal">
@@ -13,101 +13,118 @@
           direction="vertical">
         <as-split-area [size]="editorSize$ | async">
           <form (submit)="onSubmit()" [formGroup]="form">
-            <div class="query-tools">
-              <div class="btn-group" dropdown>
-                <button
-                    [disabled]="sendBtnDisabled$ | async"
-                    [tooltip]="sendBtnText$ | async"
-                    class="btn btn-info send-btn"
-                    placement="right">
-                  {{ sendBtnText$ | async }}
-                </button>
-                <button
-                    [class.disabled]="sendBtnDisabled$ | async"
-                    class="btn btn-info dropdown-button dropdown-toggle dropdown-button--separate"
-                    dropdownToggle
-                    type="button"></button>
-                <ul *dropdownMenu class="dropdown-menu common-dropdown">
-                  <ng-container *ngFor="let type of gridTypesArray">
-                    <li *ngIf="(gridType$ | async) !== type" class="dropdown-item">
-                      <a (click)="onSubmit(type)">{{ 'qqlEditor.buttons.' + type | translate }}</a>
-                    </li>
-                  </ng-container>
-                </ul>
+            <div #topSplitAreaContainer class="top-split-area-container">
+              <div class="query-tools">
+                <div class="query-tools__left">
+                  <div class="btn-group" #sendQueryDropDown dropdown>
+                    <button
+                        [disabled]="(sendBtnDisabled$ | async) || form.invalid"
+                        [tooltip]="sendBtnText$ | async"
+                        class="btn btn-info send-btn"
+                        placement="right">
+                      {{ sendBtnText$ | async }}
+                    </button>
+                    <button
+                        [class.disabled]="(sendBtnDisabled$ | async) || form.invalid"
+                        class="btn btn-info dropdown-button dropdown-toggle dropdown-button--separate"
+                        dropdownToggle
+                        type="button"></button>
+                    <ul *dropdownMenu class="dropdown-menu common-dropdown">
+                      <ng-container *ngFor="let type of gridTypesArray">
+                        <li *ngIf="(gridType$ | async) !== type" class="dropdown-item">
+                          <a (click)="onSubmit(type)">{{ 'qqlEditor.buttons.' + type | translate }}</a>
+                        </li>
+                      </ng-container>
+                    </ul>
+                  </div>
+                  <div container="body" #lastQueriesDropdown dropdown>
+                    <button
+                        [class.disabled]="!(lastQueries$ | async)?.length"
+                        class="btn btn-info dropdown-button"
+                        dropdownToggle
+                        type="button">
+                      {{ 'qqlEditor.recentQueries' | translate }}
+                    </button>
+                    <ul *dropdownMenu class="dropdown-menu common-dropdown query-dropdown">
+                      <li *ngFor="let query of lastQueries$ | async" class="dropdown-item">
+                        <a (click)="insertRecentQuery(query)">
+                          <div class="streams">
+                            <span *ngFor="let stream of query.streams">{{ stream }}</span>
+                          </div>
+                          <div
+                              [adaptivePosition]="false"
+                              [tooltip]="query.query"
+                              class="query"
+                              container="body"
+                              containerClass="common-dropdown query-dropdown-tooltip">
+                            {{ query.query }}
+                          </div>
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="btn-group export-btn" #exportDropdown dropdown>
+                    <button
+                        [disabled]="(exporting$ | async) || form.invalid"
+                        [tooltip]="exportBtnText$ | async"
+                        class="btn btn-info"
+                        type="button"
+                        (click)="export()"
+                        placement="right">
+                      {{ exportBtnText$ | async }}
+                    </button>
+                    <button
+                        [class.disabled]="(exporting$ | async) || form.invalid"
+                        class="btn btn-info dropdown-button dropdown-toggle dropdown-button--separate"
+                        dropdownToggle
+                        type="button"></button>
+                    <ul *dropdownMenu class="dropdown-menu common-dropdown">
+                      <ng-container *ngFor="let type of exportTypesArray">
+                        <li *ngIf="(exportType$ | async) !== type" class="dropdown-item">
+                          <a (click)="export(type)">{{ 'qqlEditor.buttons.export.' + type | translate }}</a>
+                        </li>
+                      </ng-container>
+                    </ul>
+                  </div>
+                </div>
+                <div class="query-tools__right">
+                  <button
+                      *ngIf="isWriter$ | async"
+                      (click)="createView()"
+                      [disabled]="(exporting$ | async) || form.invalid"
+                      class="btn btn-info"
+                      type="button"
+                  >
+                    {{ 'qqlEditor.buttons.createView' | translate }}
+                  </button>
+                  <button
+                      (click)="share()"
+                      type="button"
+                      class="btn btn-info btn-share"
+                      [disabled]="!shareUrlValid"
+                  >
+                    {{ 'qqlEditor.buttons.share' | translate }}
+                  </button>
+                </div>
               </div>
-              <div container="body" dropdown>
-                <button
-                    [class.disabled]="!(lastQueries$ | async)?.length"
-                    class="btn btn-info dropdown-button"
-                    dropdownToggle
-                    type="button">
-                  {{ 'qqlEditor.recentQueries' | translate }}
-                </button>
-                <ul *dropdownMenu class="dropdown-menu common-dropdown query-dropdown">
-                  <li *ngFor="let query of lastQueries$ | async" class="dropdown-item">
-                    <a (click)="insertRecentQuery(query)">
-                      <div class="streams">
-                        <span *ngFor="let stream of query.streams">{{ stream }}</span>
-                      </div>
-                      <div
-                          [adaptivePosition]="false"
-                          [tooltip]="query.query"
-                          class="query"
-                          container="body"
-                          containerClass="common-dropdown query-dropdown-tooltip">
-                        {{ query.query }}
-                      </div>
-                    </a>
-                  </li>
-                </ul>
-              </div>
-              <div class="btn-group export-btn" dropdown>
-                <button
-                    [disabled]="exportBtnDisabled$ | async"
-                    [tooltip]="exportBtnText$ | async"
-                    class="btn btn-info"
-                    type="button"
-                    (click)="export()"
-                    placement="right">
-                  {{ exportBtnText$ | async }}
-                </button>
-                <button
-                    [class.disabled]="exportBtnDisabled$ | async"
-                    class="btn btn-info dropdown-button dropdown-toggle dropdown-button--separate"
-                    dropdownToggle
-                    type="button"></button>
-                <ul *dropdownMenu class="dropdown-menu common-dropdown">
-                  <ng-container *ngFor="let type of exportTypesArray">
-                    <li *ngIf="(exportType$ | async) !== type" class="dropdown-item">
-                      <a (click)="export(type)">{{ 'qqlEditor.buttons.export.' + type | translate }}</a>
-                    </li>
-                  </ng-container>
-                </ul>
-              </div>
-            </div>
-            <div #editorWrapper class="editor-wrapper">
-              <ngx-monaco-editor
-                  (onInit)="onInit($event)"
-                  [options]="editorOptions"
-                  formControlName="query"></ngx-monaco-editor>
+              <app-qql-editor (validUpdate)="onValidUpdate()" formControlName="query"></app-qql-editor>
             </div>
           </form>
         </as-split-area>
         <as-split-area [size]="gridSize$ | async">
-          <alert *ngIf="queryError" type="danger">
-            <pre>{{ queryError }}</pre>
-          </alert>
           <div class="grid-wrapper">
             <div *ngIf="loading$ | async" class="loaderWr display-block">
               <div class="loader display-block">{{ 'text.loading' | translate }}...</div>
             </div>
-            <div [class.hidden]="!showGrid || queryError" class="grid">
+            <div [class.hidden]="showGrid || !queryError" class="no-data">Server error. No data.</div>
+            <div [class.hidden]="!showGrid" class="grid">
               <ag-grid-angular
-                  [class.hidden]="showLiveGrid$ | async"
+                  [class.hidden]="isLiveGrid"
                   [gridOptions]="gridOptions$ | async"
                   class="ag-theme-balham-dark"></ag-grid-angular>
+              <app-grid-total [class.hidden]="isLiveGrid" ></app-grid-total>
               <app-live-grid
-                  *ngIf="showLiveGrid$ | async"
+                  *ngIf="isLiveGrid"
                   [filters]="gridLiveFilters"
                   [schemaData]="rawSchema"
                   [tabName]="liveGridName$ | async"></app-live-grid>
@@ -120,5 +137,5 @@
       <app-right-area [showOrderBook]="false"></app-right-area>
     </as-split-area>
   </as-split>
-  <app-right-toolbar #rightToolBar [showProperties]="false" ></app-right-toolbar>
+  <app-right-toolbar [tabHasStream]="false"></app-right-toolbar>
 </div>

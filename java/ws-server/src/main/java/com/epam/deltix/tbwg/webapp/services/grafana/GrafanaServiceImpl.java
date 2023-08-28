@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,6 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.grafana;
 
 import com.epam.deltix.containers.generated.CharSequenceToIntHashMap;
@@ -28,6 +29,7 @@ import com.epam.deltix.tbwg.webapp.settings.GrafanaSettings;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.timebase.messages.IdentityKey;
+import com.epam.deltix.timebase.messages.InstrumentKey;
 import com.epam.deltix.timebase.messages.InstrumentMessage;
 import com.epam.deltix.qsrv.hf.pub.RawMessage;
 import com.epam.deltix.qsrv.hf.pub.md.*;
@@ -42,7 +44,14 @@ import com.epam.deltix.tbwg.webapp.model.grafana.TypeInfo;
 import com.epam.deltix.tbwg.webapp.model.grafana.filters.FieldFilter;
 import com.epam.deltix.tbwg.webapp.model.grafana.queries.SelectQuery;
 import com.epam.deltix.tbwg.webapp.model.grafana.time.TimeRange;
+import com.epam.deltix.tbwg.webapp.services.grafana.base.FunctionsService;
+import com.epam.deltix.tbwg.webapp.services.grafana.base.GrafanaService;
+import com.epam.deltix.tbwg.webapp.services.grafana.exc.NoSuchStreamException;
+import com.epam.deltix.tbwg.webapp.services.grafana.exc.NoSuchSymbolsException;
 import com.epam.deltix.tbwg.webapp.services.grafana.exc.ValidationException;
+import com.epam.deltix.tbwg.webapp.services.grafana.qql.SelectBuilder2;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
+import com.epam.deltix.tbwg.webapp.settings.GrafanaSettings;
 import com.epam.deltix.tbwg.webapp.utils.GrafanaStreamCreator;
 import com.epam.deltix.tbwg.webapp.utils.grafana.GrafanaUtils;
 import com.epam.deltix.util.collections.generated.ObjectArrayList;
@@ -148,7 +157,7 @@ public class GrafanaServiceImpl implements GrafanaService {
         RawMessageDecoder decoder = new RawMessageDecoder();
         StringBuilder keyBuilder = new StringBuilder();
         Map<String, Field> fields = new HashMap<>();
-        GroupByViewOption groupByViewOption = !StringUtils.isNotEmpty(query.getGroupByView()) ?
+        GroupByViewOption groupByViewOption = StringUtils.isNotEmpty(query.getGroupByView()) ?
                 GroupByViewOption.valueOf(query.getGroupByView()) : GroupByViewOption.COLUMN;
         try (MessageSource<InstrumentMessage> messageSource = selectBuilder.executeRaw()) {
             MutableGenericRecord record = new MutableGenericRecordImpl();

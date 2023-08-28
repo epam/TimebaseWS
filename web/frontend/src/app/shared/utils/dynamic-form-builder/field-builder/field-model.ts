@@ -1,6 +1,6 @@
 // import { ConnectorAttrElemType } from '../../helpers/connectors.helpers';
 
-import {AsyncValidatorFn, FormControl, ValidatorFn} from '@angular/forms';
+import {AsyncValidatorFn, UntypedFormControl, ValidatorFn} from '@angular/forms';
 import {Observable} from 'rxjs';
 
 export class FieldModel {
@@ -40,7 +40,7 @@ export class FieldModel {
   validators?: {
     getValidators?: () => ValidatorFn | ValidatorFn[] | null;
     getAsyncValidators?: () => AsyncValidatorFn | AsyncValidatorFn[] | null;
-    getErrorsText: (control: FormControl | null) => Observable<string>;
+    getErrorsText: (control: UntypedFormControl | null) => Observable<string>;
   };
   _controlSpecOptions?: {[key: string]: any};
 }

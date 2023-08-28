@@ -2,8 +2,7 @@
   <alert
       (onClosed)="onClosed(alert, i)"
       *ngFor="let alert of (notificationsState | async).alerts; let i = index"
-      [dismissOnTimeout]="alert.closeInterval"
-      [dismissible]="alert.dismissible"
+      [dismissible]="true"
       type="danger">
     <span [innerHtml]="alert.message"></span>
   </alert>
@@ -30,9 +29,18 @@
         [dismissOnTimeout]="notification.closeInterval"
         [dismissible]="notification.dismissible"
         [type]="notification.type">
-      <span *ngIf="!notification.requestDialogParams" [innerHtml]="notification.message"></span>
+      <span *ngIf="!notification.requestDialogParams">
+        <span *ngIf="notification.type !== 'danger'" [innerHtml]="notification.message" ></span>
+        <app-error
+            *ngIf="notification.type === 'danger'"
+            [error]="notification.message"
+            [showCopyWhenNotCut]="false"
+            [fullErrorText]="notification.fullErrorText"
+        ></app-error>
+      </span>
       <div *ngIf="notification.requestDialogParams" class="requestDialogContent">
-        <p [innerHtml]="notification.message" class="requestDialogText"></p>
+        <app-error *ngIf="notification.type === 'danger'" [error]="notification.message" ></app-error>
+        <p *ngIf="notification.type !== 'danger'" [innerHtml]="notification.message" class="requestDialogText"></p>
         <div class="requestDialogButtons">
           <button
               (click)="

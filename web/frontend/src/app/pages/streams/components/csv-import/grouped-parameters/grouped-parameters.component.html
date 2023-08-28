@@ -1,0 +1,6 @@
+<app-general-parameters (toggleErrorMessage)="setErrorMessages($event)"></app-general-parameters>
+<app-time-parameters (toggleErrorMessage)="setErrorMessages($event)"></app-time-parameters>
+<app-delimiters-and-sorting-parameters (toggleErrorMessage)="setErrorMessages($event)"></app-delimiters-and-sorting-parameters>
+<div *ngIf="!!errorMessageList.length" class="error-messages">
+  <span *ngFor="let message of errorMessageList" class="error-message">{{ message }}</span>
+</div>

@@ -22,4 +22,6 @@ export interface ExportFilter {
   valueSeparator: string;
   mode: ExportTo;
   symbols?: string[];
+  datetimeFormat?: string;
+  enableStaticFields: boolean
 }

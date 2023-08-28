@@ -1,5 +1,5 @@
 import {Component, OnInit} from '@angular/core';
-import {FormControl, Validators} from '@angular/forms';
+import {UntypedFormControl, Validators} from '@angular/forms';
 import {Router} from '@angular/router';
 import {Store} from '@ngrx/store';
 import {BsModalRef} from 'ngx-bootstrap/modal';
@@ -8,14 +8,14 @@ import {AppState} from '../../../../../core/store';
 import {StreamsService} from '../../../../../shared/services/streams.service';
 import {appRoute} from '../../../../../shared/utils/routes.names';
 import {uniqueName} from '../../../../../shared/utils/validators';
+import * as StreamDetailsActions from '../../../store/stream-details/stream-details.actions';
 
 @Component({
   selector: 'app-create-stream-modal',
   templateUrl: './create-stream-modal.component.html',
-  styleUrls: ['./create-stream-modal.component.css'],
 })
 export class CreateStreamModalComponent implements OnInit {
-  streamNameControl: FormControl;
+  streamNameControl: UntypedFormControl;
 
   constructor(
     private appStore: Store<AppState>,
@@ -28,7 +28,7 @@ export class CreateStreamModalComponent implements OnInit {
     const existing$ = this.streamsService
       .getList(true)
       .pipe(map((streams) => streams.map((stream) => stream.key)));
-    this.streamNameControl = new FormControl(null, {
+    this.streamNameControl = new UntypedFormControl(null, {
       validators: [Validators.required],
       asyncValidators: [uniqueName(existing$)],
     });
@@ -40,5 +40,6 @@ export class CreateStreamModalComponent implements OnInit {
     this.router.navigate([appRoute, 'stream', 'stream-create', this.streamNameControl.value], {
       queryParams: {newTab: '1'},
     });
+    this.appStore.dispatch(new StreamDetailsActions.RemoveErrorMessage());
   }
 }

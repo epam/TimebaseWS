@@ -56,7 +56,10 @@ export function reducer(state = initialState, action: StreamsActions): State {
       };
 
     case StreamsActionTypes.DELETE_STREAM:
-      selectedStreamIndex = state.streams.findIndex(
+      if (!state.streams) {
+        return {...state};
+      }
+      selectedStreamIndex = state.streams?.findIndex(
         (stream) => stream.key === action.payload.streamKey,
       );
       if (selectedStreamIndex > -1) {

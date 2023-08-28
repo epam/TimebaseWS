@@ -1,16 +1,18 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
-import {FormBuilder, FormGroup, Validators} from '@angular/forms';
+import {UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
 import {select, Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
 import {BsModalRef, BsModalService} from 'ngx-bootstrap/modal';
-import {Observable, Subject} from 'rxjs';
+import {BehaviorSubject, Observable, Subject} from 'rxjs';
 import {filter, map, switchMap, take, takeUntil} from 'rxjs/operators';
+import { GridEventsService } from 'src/app/shared/services/grid-events.service';
 import {AppState} from '../../../../../../core/store';
 import {
   SchemaClassFieldModel,
   SchemaClassTypeModel,
 } from '../../../../../../shared/models/schema.class.type.model';
 import {uniqueName} from '../../../../../../shared/utils/validators';
+import { SchemaEditorService } from '../../services/add-class.service';
 import {
   AddNewFieldForSelectedSchemaItem,
   RemoveSelectedField,
@@ -37,18 +39,21 @@ export class FlControlPanelComponent implements OnInit, OnDestroy {
   public askToAddInitialState: {isStatic: boolean};
   public deleteModalRef: BsModalRef;
   public newItemModalRef: BsModalRef;
-  public nameForm: FormGroup;
+  public nameForm: UntypedFormGroup;
   public requestMessage = '';
   public ifFieldSelected$: Observable<boolean>;
   public selectedSchemaItem$: Observable<SchemaClassTypeModel>;
-  deleteBtnDisabled$: Observable<boolean>;
+  public deleteBtnDisabled$ = new BehaviorSubject<boolean>(false);;
   private destroy$ = new Subject<any>();
+  private selectedFieldName: string;
 
   constructor(
     private appStore: Store<AppState>,
     private modalService: BsModalService,
-    private fb: FormBuilder,
+    private fb: UntypedFormBuilder,
     private translate: TranslateService,
+    private gridEventsService: GridEventsService,
+    private schemaEditorService: SchemaEditorService
   ) {}
 
   ngOnInit() {
@@ -64,7 +69,11 @@ export class FlControlPanelComponent implements OnInit, OnDestroy {
       ),
     );
 
-    this.deleteBtnDisabled$ = this.selectedField().pipe(map((field) => !field));
+    this.gridEventsService.selectedField
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(selectedField => {
+        this.deleteBtnDisabled$.next(!!selectedField?._props._parentField);
+    })
   }
 
   public onAddNewField(isStatic?: boolean) {
@@ -79,6 +88,7 @@ export class FlControlPanelComponent implements OnInit, OnDestroy {
       }),
     );
     this.newFieldIsAdding = this.appStore.pipe(select(ifNewFieldIsAdding));
+    this.schemaEditorService.editedFieldNames.add(this.nameForm.value.name);
   }
 
   public isNameForbidden(): boolean {
@@ -90,15 +100,17 @@ export class FlControlPanelComponent implements OnInit, OnDestroy {
   public onDeleteSelectedField() {
     if (this.deleteModalRef) this.deleteModalRef.hide();
     this.appStore.dispatch(RemoveSelectedField());
+    this.schemaEditorService.editedFieldNames.add(this.selectedFieldName);
   }
 
   public onAskDeleteSelected() {
     this.selectedField()
       .pipe(
         filter(Boolean),
-        switchMap((field: SchemaClassFieldModel) =>
-          this.translate.get(`text.removeFieldRequest`, {name: field.name}),
-        ),
+        switchMap((field: SchemaClassFieldModel) => {
+          this.selectedFieldName = field.name;
+          return this.translate.get(`text.removeFieldRequest`, {name: field.name});
+        }),
         take(1),
         takeUntil(this.destroy$),
       )

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,14 +14,18 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services;
+package com.epam.deltix.tbwg.webapp.services;
 
+import com.epam.deltix.tbwg.webapp.model.smd.CurrencyDef;
 import com.epam.deltix.tbwg.webapp.model.smd.InstrumentDef;
 
+import java.util.List;
 import java.util.Set;
 
 public interface InstrumentsService {
 
     InstrumentDef       getInstrument(String name, Set<String> hiddenExchanges);
+
+    List<CurrencyDef>   getCurrencies();
 
 }

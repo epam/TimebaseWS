@@ -1,0 +1,85 @@
+.types-container {
+  padding: 1rem 2rem;
+  overflow-y: auto;
+}
+
+.col-md-7 {
+  margin-top: 0.5rem;
+}
+
+.form-control {
+  width: 8rem;
+}
+
+.unmatched-keywords-row {
+  padding-bottom: 0.7rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgb(99, 99, 99);
+}
+
+.mapping-header {
+  background-color: rgba(128, 128, 128, 0.5);
+  padding: 0.3rem;
+  text-align: center;
+}
+
+.col-md-5 {
+  .mapping-header {
+    margin-top: 0.5rem;
+  }
+  input {
+    margin-top: 0.4rem;
+    margin-left: 0.5rem;
+    width: 100%;
+  }
+}
+
+.mapping-form {
+  padding: 0rem 1.5rem;
+}
+
+.error-messages {
+  position: absolute;
+  left: -0.2rem;
+  bottom: 0rem;
+  color: #ffffff;
+  background-color: rgb(141, 32, 65);
+  padding: 0.1rem 2.4rem;
+  min-width: calc(100% + 0.2rem);
+  max-height: 1.4rem;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  text-align: center;
+}
+
+.error-message {
+  margin-right: 1rem;
+}
+
+.edited {
+  background-color:  rgba(255, 192, 203, 0.15);
+}
+
+.invalid {
+  background-color: rgba(255, 82, 88, 0.15);
+}
+
+.col-md-7 {
+  label {
+    margin-top: 0.1rem;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.edited-row {
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 192, 203, 0.1) 10% 90%,
+    transparent
+  );
+}

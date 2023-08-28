@@ -1,6 +1,6 @@
 import {HttpClient} from '@angular/common/http';
 import {Component, Input, OnInit} from '@angular/core';
-import {FormGroup} from '@angular/forms';
+import {UntypedFormGroup} from '@angular/forms';
 import {Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
 import {switchMap, tap} from 'rxjs/operators';
@@ -15,6 +15,7 @@ import {AppState} from '../../../../../core/store';
       <input
         [attr.type]="field.type === 'binary' ? 'text' : field.type"
         class="form-control w-100"
+        autocomplete="off"
         [id]="(field.parentName || '') + field.name"
         [name]="field.name"
         [formControlName]="field.name"
@@ -44,7 +45,7 @@ import {AppState} from '../../../../../core/store';
 })
 export class TextBoxComponent implements OnInit {
   @Input() field: any = {};
-  @Input() form: FormGroup;
+  @Input() form: UntypedFormGroup;
 
   constructor(
     private httpClient: HttpClient,

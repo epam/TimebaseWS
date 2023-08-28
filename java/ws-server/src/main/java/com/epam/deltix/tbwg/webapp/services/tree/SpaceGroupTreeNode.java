@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.tree;
+package com.epam.deltix.tbwg.webapp.services.tree;
 
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
 import com.epam.deltix.tbwg.webapp.model.tree.TreeNodeType;
@@ -48,6 +48,23 @@ public class SpaceGroupTreeNode extends TreeNode<String> {
             this.groups = new HashMap<>();
             this.treeNode.setChildrenCount(spaces.size());
         }
+
+        this.treeNode.setTotalCount(spaces.size());
+    }
+
+    // todo: the logic is in progress
+    public TreeNode<?> findSymbol(String symbol) {
+        if (groups.size() > 0) {
+            for (Map.Entry<String, TreeGroup<String>> group : groups.entrySet()) {
+                if (group.getValue().hasElement(symbol)) {
+                    return addChild(group.getKey());
+                }
+            }
+        } else {
+            return addChild(symbol);
+        }
+
+        return null;
     }
 
     @Override

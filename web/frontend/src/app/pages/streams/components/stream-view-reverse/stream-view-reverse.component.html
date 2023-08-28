@@ -1,13 +1,13 @@
-<div class="d-flex h-100 flex-shrink-1">
-  <ag-grid-angular
-      #streamDetailsGrid
-      [class.muted]="hideGrid$ | async"
-      [gridOptions]="gridOptions"
-      class="grid ag-theme-balham-dark"
-  >
-  </ag-grid-angular>
-  <div class="loader" [class.show]="hideGrid$ | async" ></div>
-  <div class="timeline-bar-wr">
-    <app-timeline-bar></app-timeline-bar>
+<app-page-loading class="h-100" [error]="error$ | async" [loaded]="!(hideGrid$ | async)">
+  <div class="d-flex h-100 flex-shrink-1 grid-wrapper">
+    <ag-grid-angular
+        #streamDetailsGrid
+        [gridOptions]="gridOptions"
+        class="grid ag-theme-balham-dark"
+    ></ag-grid-angular>
+    <app-grid-total></app-grid-total>
   </div>
+</app-page-loading>
+<div *ngIf="!(error$ | async)" class="timeline-bar-wr">
+  <app-timeline-bar></app-timeline-bar>
 </div>

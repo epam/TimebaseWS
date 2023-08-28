@@ -8,8 +8,7 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
-import {FormControl, FormGroup} from '@angular/forms';
-import {HdDate} from '@assets/hd-date/hd-date';
+import {UntypedFormControl, UntypedFormGroup} from '@angular/forms';
 import {BsDatepickerConfig, BsDatepickerDirective} from 'ngx-bootstrap/datepicker';
 import {toUtc} from '../../../../../pages/streams/components/stream-details/stream-details.component';
 
@@ -21,11 +20,11 @@ import {toUtc} from '../../../../../pages/streams/components/stream-details/stre
 })
 export class TimepickerComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() field: any = {};
-  @Input() form: FormGroup;
+  @Input() form: UntypedFormGroup;
   public visibleSelectedDate: Date;
   public bsConfig: Partial<BsDatepickerConfig>;
   @ViewChild('dp') datepicker: BsDatepickerDirective;
-  private control: FormControl;
+  private control: UntypedFormControl;
   private bsDefaultConfig: Partial<BsDatepickerConfig> = {
     containerClass: 'theme-default',
     adaptivePosition: true,
@@ -36,7 +35,7 @@ export class TimepickerComponent implements OnInit, AfterViewInit, OnDestroy {
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
-    this.control = this.form.get(this.field.name) as FormControl;
+    this.control = this.form.get(this.field.name) as UntypedFormControl;
     this.bsConfig = {
       ...this.bsDefaultConfig,
       ...(this.field._controlSpecOptions || {}),
@@ -97,7 +96,7 @@ export class TimepickerComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private getDateWithoutSelectedTZ(date: Date, offset = 0): Date {
     const newDate = new Date(date.getTime()),
-      localOffset = -new HdDate().getTimezoneOffset();
+      localOffset = -new Date().getTimezoneOffset();
     newDate.setMilliseconds(newDate.getMilliseconds() - (offset - localOffset) * 60 * 1000);
     return newDate;
   }

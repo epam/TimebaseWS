@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,14 +14,15 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.utils;
 
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.spring.apikeys.ApiKeysAuthenticationService;
 import com.epam.deltix.spring.apikeys.utils.HmacUtils;
+import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.converter.MessageConverter;
-import org.springframework.messaging.converter.StringMessageConverter;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
@@ -39,6 +40,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
@@ -60,7 +62,7 @@ public class ApiKeysWsSamples implements StompSessionHandler {
     private static CountDownLatch latch = new CountDownLatch(9);
 
     public static void main(final String[] args) throws Exception {
-        WebSocketStompClient stompClient = createWebSocketClient(new StringMessageConverter());
+        WebSocketStompClient stompClient = createWebSocketClient(new MappingJackson2MessageConverter());
 
         StompHeaders headers = new StompHeaders();
         final String payload = randomString();
@@ -96,7 +98,7 @@ public class ApiKeysWsSamples implements StompSessionHandler {
     @Override
     public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
         LOG.info().append("Established session ").append(session).commit();
-        session.subscribe("/user/topic/monitor/bitfinex", this);
+        session.subscribe("/topic/streams", this);
     }
 
     @Override
@@ -117,7 +119,7 @@ public class ApiKeysWsSamples implements StompSessionHandler {
 
     @Override
     public Type getPayloadType(StompHeaders headers) {
-        return String.class;
+        return Map.class;
     }
 
     @Override

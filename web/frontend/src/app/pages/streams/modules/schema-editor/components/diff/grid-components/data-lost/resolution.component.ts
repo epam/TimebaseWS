@@ -1,5 +1,5 @@
 import {Component, OnDestroy, ViewChild} from '@angular/core';
-import {FormBuilder, FormGroup} from '@angular/forms';
+import {UntypedFormBuilder, UntypedFormGroup} from '@angular/forms';
 import {select, Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
 import {ICellRendererAngularComp} from 'ag-grid-angular';
@@ -27,10 +27,10 @@ export class ResolutionComponent implements ICellRendererAngularComp, OnDestroy 
     available: false,
   };
   public data: GridRowDataModel;
-  public dataForm: FormGroup;
+  public dataForm: UntypedFormGroup;
   public fields: FieldModel[] = [];
   public isNewForm: boolean;
-  public defaultValueForm: FormGroup;
+  public defaultValueForm: UntypedFormGroup;
   private destroy$ = new Subject();
   @ViewChild('formBuilder', {
     read: DynamicFormBuilderComponent,
@@ -46,7 +46,7 @@ export class ResolutionComponent implements ICellRendererAngularComp, OnDestroy 
 
   constructor(
     private appStore: Store<AppState>,
-    private fb: FormBuilder,
+    private fb: UntypedFormBuilder,
     private translate: TranslateService,
   ) {}
 

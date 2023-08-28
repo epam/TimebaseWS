@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,6 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.timebase;
 
 
@@ -28,6 +29,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
 public class SystemMessagesService {
@@ -38,6 +40,8 @@ public class SystemMessagesService {
 
     private final StreamStates streamStates = new StreamStates();
     private final StreamsStateListener listener = new StreamsStateListener();
+
+    private final CopyOnWriteArrayList<DBStateListener> subscribers = new CopyOnWriteArrayList<>();
 
     @Autowired
     public SystemMessagesService(SimpMessagingTemplate template) {
@@ -76,24 +80,35 @@ public class SystemMessagesService {
         return listener;
     }
 
+    public void subscribe(DBStateListener subscriber) {
+        subscribers.add(subscriber);
+    }
+
+    public void unsubscribe(DBStateListener subscriber) {
+        subscribers.remove(subscriber);
+    }
+
     public class StreamsStateListener implements DBStateListener {
 
         @Override
         public void changed(String key) {
             LOG.trace().append("STREAMS STATE: changed ").append(key).commit();
             streamStates.putChanged(key);
+            subscribers.forEach(s -> s.changed(key));
         }
 
         @Override
         public void added(String key) {
             LOG.trace().append("STREAMS STATE: added ").append(key).commit();
             streamStates.putAdded(key);
+            subscribers.forEach(s -> s.added(key));
         }
 
         @Override
         public void deleted(String key) {
             LOG.trace().append("STREAMS STATE: deleted ").append(key).commit();
             streamStates.putDeleted(key);
+            subscribers.forEach(s -> s.deleted(key));
         }
 
         @Override
@@ -103,6 +118,7 @@ public class SystemMessagesService {
                     .append(toKey).append("}")
                     .commit();
             streamStates.putRenamed(fromKey, toKey);
+            subscribers.forEach(s -> s.renamed(fromKey, toKey));
         }
     }
 }

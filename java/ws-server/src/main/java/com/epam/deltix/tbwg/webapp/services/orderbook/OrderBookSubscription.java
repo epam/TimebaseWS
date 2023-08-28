@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,11 +14,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.orderbook;
 
 import com.epam.deltix.containers.AlphanumericUtils;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
+import com.epam.deltix.qsrv.hf.pub.TypeLoaderImpl;
 import com.epam.deltix.tbwg.webapp.utils.DefaultTypeLoader;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.timebase.messages.InstrumentMessage;
@@ -58,13 +60,14 @@ public class OrderBookSubscription extends Thread {
     private volatile LongHashSet hiddenExchanges;
 
     private volatile boolean isAvailable;
+    private volatile boolean snapshotWasSent;
 
     private final String subscriptionName;
 
     private volatile long lastTimestamp;
 
     public OrderBookSubscription(TimebaseService timebase, String instrument, String[] streams, String[] hiddenExchanges,
-                                 Consumer<L2PackageDto> consumer)
+                                 boolean useLegacyConverter, Consumer<L2PackageDto> consumer)
     {
         this.timebase = timebase;
         this.instrument = instrument;
@@ -127,9 +130,16 @@ public class OrderBookSubscription extends Thread {
         }
     }
 
-    public void processUpdate() {
+    public synchronized void processUpdate() {
         if (isAvailable) {
-            sendSnapshot();
+            if (!snapshotWasSent) {
+                try {
+                    sendSnapshot();
+                } finally {
+                    snapshotWasSent = true;
+                }
+            }
+            computeDiff();
         }
     }
 
@@ -163,18 +173,16 @@ public class OrderBookSubscription extends Thread {
         }
     }
 
-    private void feedResampler(MarketMessageInfo message) {
+    private synchronized void feedResampler(MarketMessageInfo message) {
         if (message instanceof PackageHeaderInfo) {
             lastTimestamp = message.getTimeStampMs();
             resampler.process((PackageHeaderInfo) message);
         }
     }
-
     private void sendSnapshot() {
         resampler.getFixedBook(hiddenExchanges).forEach(consumer);
     }
 
-    // resampler logic to be implemented
     private void computeDiff() {
         try {
             resampler.computeDiff(lastTimestamp);
@@ -204,7 +212,7 @@ public class OrderBookSubscription extends Thread {
         SelectionOptions options = new SelectionOptions(false, true);
         options.realTimeNotification = true;
         options.allowLateOutOfOrder = true; // otherwise we lose messages
-        options.typeLoader = new DefaultTypeLoader();
+        options.typeLoader = TypeLoaderImpl.SILENT_INSTANCE;
 
         long maxTime = Arrays.stream(tickStreams)
             .map(s -> {

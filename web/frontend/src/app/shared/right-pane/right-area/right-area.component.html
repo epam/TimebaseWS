@@ -1,2 +1,5 @@
 <app-message-info [showOrderBook]="showOrderBook" *ngIf="showMessageInfo$ | async"></app-message-info>
-<app-streams-props *ngIf="showProps$ | async"></app-streams-props>
+<app-streams-props *ngIf="(showProps$ | async)"></app-streams-props>
+<app-chart-settings *ngIf="showChartSettings$ | async" ></app-chart-settings>
+<app-stream-description *ngIf="showDescription$ | async" ></app-stream-description>
+<ng-content></ng-content>

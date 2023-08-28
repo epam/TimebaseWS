@@ -6,28 +6,28 @@ import { ShortTrafficNodeModel }                    from '../models/traffic.node
 export enum SelectedMessageActionTypes {
   SET_ACTIVE_NODE = '[Flow] Set Active Node',
   CLEAR_ACTIVE_NODE = '[Flow] Clear Active Node',
-
+  
   LOAD_DATA_FILTER = '[Flow] Load Data Filter',
   SET_DATA_FILTER = '[Flow] Set Data Filter',
   SET_ACTIVE_TOPOLOGY_TYPE = '[Flow] Set Active Topology Type',
-
+  
   SET_FLOW_FILTER = '[Flow] Set Filter',
 }
 
 export const SetActiveNode = createAction(
   SelectedMessageActionTypes.SET_ACTIVE_NODE,
-  props<{node: ConnectionDetailsModel | NodeDetailsModel}>(),
+  props<{ node: ConnectionDetailsModel | NodeDetailsModel }>(),
 );
 export const LoadDataFilter = createAction(SelectedMessageActionTypes.LOAD_DATA_FILTER);
 
 export const SetDataFilter = createAction(
   SelectedMessageActionTypes.SET_DATA_FILTER,
-  props<{dataFilter: DataFilterModel | null}>(),
+  props<{ dataFilter: DataFilterModel | null }>(),
 );
 
 export const SetActiveTopologyType = createAction(
   SelectedMessageActionTypes.SET_ACTIVE_TOPOLOGY_TYPE,
-  props<{topologyType: string}>(),
+  props<{ topologyType: string }>(),
 );
 
 export const ClearActiveNode = createAction(SelectedMessageActionTypes.CLEAR_ACTIVE_NODE);

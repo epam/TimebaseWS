@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,16 +14,19 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.timebase.export.imp;
+package com.epam.deltix.tbwg.webapp.services.timebase.export.imp;
+
+import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
 
 import java.io.InputStream;
 
 public interface ImportService {
 
-    long        startImport(String fileName, long fileSize, ImportSettings settings);
+    long initImport(String fileName, long fileSize, QmsgImportSettings settings);
 
-    void        uploadChunk(long id, InputStream is, long offset, long size);
+    void uploadChunk(long id, InputStream is, long offset, long size);
 
-    void        cancelImport(long id);
+    void cancelImport(long id);
 
+    void startImport(long id, SubscriptionChannel channel);
 }

@@ -14,14 +14,13 @@ import {
 import {ActivatedRoute, Params, Router} from '@angular/router';
 import {select, Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
-import {ContextMenuComponent} from 'ngx-contextmenu';
+import {ContextMenuComponent} from '@perfectmemory/ngx-contextmenu';
 
 import {PerfectScrollbarComponent, PerfectScrollbarConfigInterface} from 'ngx-perfect-scrollbar';
 import {interval, Observable, Subject} from 'rxjs';
 import {
   delay,
   distinctUntilChanged,
-  filter,
   map,
   switchMap,
   take,
@@ -31,12 +30,15 @@ import {
   withLatestFrom,
 } from 'rxjs/operators';
 
-import {AppState} from '../../../../core/store';
+import {AppState}                  from '../../../../core/store';
 import {ContextMenuControlService} from '../../../../shared/services/context-menu-control.service';
-import {GlobalFiltersService} from '../../../../shared/services/global-filters.service';
-import {StorageService} from '../../../../shared/services/storage.service';
-import {StreamsService} from '../../../../shared/services/streams.service';
-import {appRoute} from '../../../../shared/utils/routes.names';
+import {GlobalFiltersService}      from '../../../../shared/services/global-filters.service';
+import { ShareLinkService }        from '../../../../shared/services/share-link.service';
+import {StorageService}            from '../../../../shared/services/storage.service';
+import {StreamsService}            from '../../../../shared/services/streams.service';
+import { TabStorageService }       from '../../../../shared/services/tab-storage.service';
+import { copyToClipboard }         from '../../../../shared/utils/copy';
+import {appRoute}                  from '../../../../shared/utils/routes.names';
 
 import {TabModel} from '../../models/tab.model';
 import {TabSettingsModel} from '../../models/tab.settings.model';
@@ -50,8 +52,9 @@ import * as fromStreams from '../../store/streams-list/streams.reducer';
 import * as StreamsTabsActions from '../../store/streams-tabs/streams-tabs.actions';
 import {RemoveTab, RemoveTabs, UpdateTab} from '../../store/streams-tabs/streams-tabs.actions';
 
+import LZString                     from 'lz-string';
+
 import {
-  getActiveTab,
   getActiveTabSettings,
   getTabsState,
 } from '../../store/streams-tabs/streams-tabs.selectors';
@@ -76,6 +79,7 @@ export class StreamsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
   tabSettings$: Observable<TabSettingsModel>;
   tabSettings: TabSettingsModel = {};
   tabs$: Observable<TabModel[]>;
+  tabs: TabModel[];
   tabMoving: boolean;
 
   private onbeforeunloadMessage: string;
@@ -99,6 +103,10 @@ export class StreamsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
     private streamUpdatesService: StreamUpdatesService,
     private streamRenameService: StreamRenameService,
     private contextMenuControlService: ContextMenuControlService,
+    private tabStorageService: TabStorageService<unknown>,
+    private shareLinkService: ShareLinkService,
+    private streamsService: StreamsService,
+    private ref: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -114,11 +122,23 @@ export class StreamsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
       tap(() => this.scrollBarComponent?.directiveRef?.update()),
     );
 
+    this.tabs$.pipe(takeUntil(this.destroy$)).subscribe(tabs => {
+      this.tabs = tabs;
+      this.ref.detectChanges();
+    });
+
     this.activatedRoute.queryParams.subscribe((params: Params) => {
       this.live = params.hasOwnProperty('live');
     });
 
     this.navigateFromRoot();
+   
+    this.streamsService.nonExistentStreamNavigated
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(stream => {
+        const closingTab = this.tabs.find(tab => tab.stream === stream);
+        this.closeTab(closingTab);
+      })
 
     this.onCloseTabAlertService
       .isActiveTabNeedToCloseAlert()
@@ -142,6 +162,7 @@ export class StreamsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
               (tab) => tab.stream === data.oldName,
               (tab) => {
                 tab.stream = data.newName;
+                tab.streamName = data.newName;
                 tab.name = data.newName;
               },
             );
@@ -175,6 +196,15 @@ export class StreamsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
           (tab) => (tab.symbol = newName),
         );
       });
+
+    this.streamsService.streamNameUpdated
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(({ streamId, newStreamName }) => {
+        const targetTabIndex = this.tabs.findIndex(tab => tab.stream === streamId);
+        this.tabs[targetTabIndex].streamName = newStreamName;
+        this.tabs = [...this.tabs];
+        this.ref.detectChanges();
+      })
   }
 
   ngAfterViewInit() {
@@ -268,6 +298,10 @@ export class StreamsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
     this.tabMoving = false;
   }
 
+  scrollToActiveTab(tabId: string) {
+    this.tabsScrollBar.directiveRef.scrollToElement(`[tab-id="${tabId}"]`);
+  }
+
   onDragClick(event: MouseEvent) {
     const rect = (event.target as HTMLElement).getBoundingClientRect();
     this.dragElDelta = {
@@ -287,7 +321,7 @@ export class StreamsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
       ['left', leftEdge],
       ['right', rightEdge],
     ].forEach(([side, distance]) => {
-      if (distance <= 25) {
+      if (+distance <= 25) {
         if (!this.scrollingOnMove[side].state) {
           this.scrollingOnMove[side].state = true;
           interval(100)
@@ -333,6 +367,31 @@ export class StreamsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
 
   closeOthers(index: number) {
     this.closeTabByIndex((_index) => _index !== index);
+  }
+  
+  shareTab(index: number) {
+    const ignoreKeys = {
+      chart: [/^$/, /^data/],
+      query: [/^$/, /^rightPanel$/],
+    };
+    
+    this.tabs$.pipe(
+      map(tabs => tabs[index]),
+      switchMap(tab => {
+        const ignoreKey = Object.keys(ignoreKeys).find(tabType => tab[tabType]);
+        return this.tabStorageService.allDataForTab(tab.id, ignoreKey ? ignoreKeys[ignoreKey] : []).pipe(
+          map(storage => ({storage, tab})),
+        );
+      }),
+      take(1),
+      map(({storage, tab}) => {
+        if (tab.query) {
+          tab.queryInitialQuery = this.storageService.getQueryFilter(tab.id)?.query;
+        }
+        
+        return ({...tab, storage});
+      }),
+    ).subscribe(tab => this.shareLinkService.copyUrl(tab));
   }
 
   private onRename(

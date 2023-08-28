@@ -17,7 +17,7 @@ export class StreamsNavigationService {
     if (!item || item.type === MenuItemType.group) {
       return null;
     }
-
+    
     return [
       ...this.routePrefix(activeTabType, !!item.meta.symbol, !!item.meta.chartType.length),
       ...[item.meta.stream?.id, item.meta.symbol].filter(Boolean),
@@ -37,6 +37,9 @@ export class StreamsNavigationService {
     }
 
     const params = {...this.paramsCache.get(key)};
+    
+    params['streamName'] = item.meta.stream.name;
+    params['isView'] = item.meta.isView ? '1' : '';
 
     if (item.meta.space) {
       params['space'] = item.meta.space?.id || '';
@@ -47,13 +50,14 @@ export class StreamsNavigationService {
 
   private paramsPrefix(
     activeTabType,
-    chartType: string[],
+    chartType: {chartType: string, title: string}[],
     forceNewTab: boolean,
     hasSymbol: boolean,
   ): any {
     const params = {};
     if (chartType) {
-      params['chartType'] = chartType;
+      params['chartType'] = chartType.map(ct => ct.chartType);
+      params['chartTypeTitles'] = chartType.map(ct => ct.title);
     }
 
     if (forceNewTab || this.hasNoCurrentView(activeTabType, hasSymbol, !!chartType.length)) {
@@ -63,10 +67,16 @@ export class StreamsNavigationService {
   }
 
   urlIsActive(href: string) {
+    if (!href) {
+      return false;
+    }
     const [routerUrl, routerParams] = this.parseUrl(this.router.routerState.snapshot.url);
     const [itemUrl, itemParams] = this.parseUrl(href);
 
     delete itemParams['chartType'];
+    delete itemParams['chartTypeTitles'];
+    delete itemParams['streamName'];
+    delete itemParams['isView'];
 
     return (
       routerUrl.startsWith(`${itemUrl}/`) &&

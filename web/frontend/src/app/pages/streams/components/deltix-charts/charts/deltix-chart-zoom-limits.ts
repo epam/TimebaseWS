@@ -1,12 +1,5 @@
-import {ZOOM_PERIODS} from '../../../models/deltix-chart.models';
-
-const second = 1000;
-const minute = 60 * second;
-const hour = minute * 60;
-const day = hour * 24;
-const week = day * 7;
-const month = day * 30;
-const year = day * 365;
+import {ZOOM_PERIODS}                                   from '../../../models/deltix-chart.models';
+import { day, hour, minute, month, second, week, year } from './units-in-ms';
 
 export function zoomLimits(barWidth: number, adaptToWidth = true): number[] {
   const config = [

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,6 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.grafana.qql;
 
 import com.epam.deltix.streaming.MessageSource;
@@ -775,17 +776,6 @@ public class SelectBuilder2 implements Reusable {
 
     private static String shortType(String fullType) {
         return fullType.substring(fullType.lastIndexOf(".") + 1);
-    }
-
-    public static void main(String[] args) throws NoSuchStreamException, NoSuchTypeException, NoSuchFieldException, WrongTypeException {
-//        try (DXTickDB db = TickDBFactory.connect("localhost", 8011, false)) {
-//            db.open(true);
-//            System.out.println(builder(db, "warehouse-TRADES")
-//                    .type(OrderTradeEvent.class).field("tradePrice").notLessThan("10.01").commitType()
-//                    .type(OrderEvent.class).field("averagePrice").select().commitType()
-//                    .endTime(System.currentTimeMillis())
-//            );
-//        }
     }
 
 }

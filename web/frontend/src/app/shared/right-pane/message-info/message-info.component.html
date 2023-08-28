@@ -1,73 +1,58 @@
-<div #infoContentWrapper class="col-md-12 stream-props">
-    <button
-        (click)="onCloseMSGInfo()"
-        [tooltip]="'buttons.close' | translate"
-        class="btn btn-link close"
-        placement="left">
-      <svg
-          fill="none"
-          height="8"
-          id="i-close"
-          stroke="currentcolor"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          viewBox="0 0 32 32"
-          width="8"
-          xmlns="http://www.w3.org/2000/svg">
-        <path d="M2 30 L30 2 M30 30 L2 2" />
-      </svg>
-    </button>
-    <h4>{{ 'titles.msgDetails' | translate }}</h4>
-  <ng-container *ngIf="(message$ | async)?.selectedMessage; else noMessageSelected">
-    <div class="control-panel d-flex">
-      <div [formControl]="viewControl" btnRadioGroup class="btn-group radio-group">
-        <button btnRadio="view" class="btn btn-default">
-          {{ 'messageInfo.views.view' | translate }}
-        </button>
-        <button btnRadio="json" class="btn btn-default">
-          {{ 'messageInfo.views.json' | translate }}
-        </button>
-        <button *ngIf="showOrderBook && (canShowOrderBook$ | async)" btnRadio="orderBook" class="btn btn-default">
-          {{ 'messageInfo.views.orderBook' | translate }}
-        </button>
-      </div>
-    </div>
-    <div class="info-content-wrapper" [ngSwitch]="viewControl.value">
-      <div *ngSwitchCase="'view'" class="table-wrapper">
-        <div class="table-responsive">
-          <table class="table">
-            <tbody>
-            <ng-container *ngFor="let prop of props$ | async">
-              <tr>
-                <th [colSpan]="prop.value ? 1 : 2" scope="row">{{ prop.key }}</th>
-                <td *ngIf="prop.value">{{ prop.value }}</td>
-              </tr>
-            </ng-container>
-            </tbody>
-          </table>
+<app-right-info-wrapper #infoContentWrapper>
+  <ng-container title>{{ 'titles.msgDetails' | translate }}</ng-container>
+  <ng-container content>
+    <ng-container *ngIf="(message$ | async)?.selectedMessage; else noMessageSelected">
+      <div class="control-panel d-flex">
+        <div [formControl]="viewControl" btnRadioGroup class="btn-group radio-group">
+          <button btnRadio="view" class="btn btn-default">
+            {{ 'messageInfo.views.view' | translate }}
+          </button>
+          <button btnRadio="json" class="btn btn-default">
+            {{ 'messageInfo.views.json' | translate }}
+          </button>
+          <button *ngIf="showOrderBook && (canShowOrderBook$ | async)" btnRadio="orderBook" class="btn btn-default">
+            {{ 'messageInfo.views.orderBook' | translate }}
+          </button>
         </div>
       </div>
-      <div *ngSwitchCase="'json'" class="editorWr">
-        <ngx-monaco-editor [ngModel]="editorValue$ | async" [options]="editorOptions"></ngx-monaco-editor>
+      <div class="info-content-wrapper" [ngSwitch]="viewControl.value">
+        <div *ngSwitchCase="'view'" class="table-wrapper">
+          <div class="table-responsive">
+            <table class="table">
+              <tbody>
+              <ng-container *ngFor="let prop of props$ | async">
+                <tr>
+                  <th [colSpan]="prop.value ? 1 : 2" scope="row">{{ prop.key }}</th>
+                  <td *ngIf="prop.value">{{ prop.value }}</td>
+                </tr>
+              </ng-container>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div *ngSwitchCase="'json'" class="editorWr">
+          <ngx-monaco-editor [ngModel]="editorValue$ | async" [options]="editorOptions"></ngx-monaco-editor>
+        </div>
+        <ng-container *ngSwitchCase="'orderBook'">
+          <app-order-book
+              *ngIf="(showOrderBook$ | async) && !(tabSwitching$ | async)"
+              (readyWithData)="onOrderBookReady()"
+              [streams]="orderBookStreams$ | async"
+              [feed$]="feedFiltered$"
+              [symbol]="orderBookSymbol$ | async"
+              [bookWidth]="elementWidth$ | async"
+              [inDepthChart]="false"
+              [class.hidden]="hideOrderBook$ | async"
+              [takePrecisionsFromFeed]="true"
+              (reRun)="onOrderBookReRun()"
+          ></app-order-book>
+          <div [class.show]="(showLoader$ | async) || (tabSwitching$ | async)" class="loader"></div>
+          <div class="order-book-no-data" *ngIf="orderBookNoData$ | async">{{ orderBookError$ | async | translate }}</div>
+        </ng-container>
       </div>
-      <ng-container *ngSwitchCase="'orderBook'">
-        <app-order-book
-            *ngIf="(showOrderBook$ | async) && !(tabSwitching$ | async)"
-            (readyWithData)="onOrderBookReady()"
-            [streams]="orderBookStreams$ | async"
-            [feed$]="feedFiltered$"
-            [symbol]="orderBookSymbol$ | async"
-            [bookWidth]="elementWidth$ | async"
-            [inDepthChart]="false"
-            [class.hidden]="hideOrderBook$ | async"
-        ></app-order-book>
-        <div [class.show]="(showLoader$ | async) || (tabSwitching$ | async)" class="loader"></div>
-        <div class="order-book-no-data" *ngIf="orderBookNoData$ | async">{{ orderBookError$ | async | translate }}</div>
-      </ng-container>
-    </div>
+    </ng-container>
+    <ng-template #noMessageSelected>
+      <div class="no-message-selected">{{ 'rightPanel.noMessageSelected' | translate }}</div>
+    </ng-template>
   </ng-container>
-  <ng-template #noMessageSelected >
-    <div class="no-message-selected">{{ 'rightPanel.noMessageSelected' | translate }}</div>
-  </ng-template>
-</div>
+</app-right-info-wrapper>

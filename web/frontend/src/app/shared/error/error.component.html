@@ -1,0 +1,16 @@
+<ng-container *ngIf="shownError">
+  <div>{{ shownError }} {{ shownError !== error ? '...' : '' }}</div>
+  <div *ngIf="showCopyWhenNotCut || shownError !== error" class="btn-wrapper">
+    <button [cdkCopyToClipboard]="error" class="btn btn-sm btn-secondary">
+      {{ btnTranslation | translate }}
+    </button>
+  </div>
+  <div *ngIf="!!fullErrorText" class="btn-wrapper">
+    <button [cdkCopyToClipboard]="fullErrorText" class="btn btn-sm btn-secondary" 
+      (click)="textCopiedToClipboard()">
+      {{ 'error.copy.info' | translate }}
+    </button>
+    <span class="copying-notification">{{ notificationMessage }}</span>
+  </div>
+  <ng-content></ng-content>
+</ng-container>

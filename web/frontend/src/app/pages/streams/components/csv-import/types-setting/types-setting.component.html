@@ -1,0 +1,37 @@
+<form [formGroup]="formGroup" class="types-container">
+  <div class="row unmatched-keywords-row">
+    <div class="col-7">
+      {{ 'importFromFile.labels.unmatchedKeywords' | translate | uppercase }}
+    </div>
+    <div class="col-5">
+      <div *ngFor="let option of unMatchedKeywordsOptions | keyvalue" class="form-check" 
+        [class.edited-row]="settingEdited('strategy')">
+        <input class="form-check-input" type="radio" value="{{ option.key }}" formControlName="strategy">
+        <label class="form-check-label">
+          {{ option.value | translate }}
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-7"><h5 class="mapping-header">Type</h5></div>
+    <div class="col-md-5"><h5 class="mapping-header">Keyword</h5></div>
+  </div>
+  <div class="mapping-form" [class.edited-row]="typeToKeywordMappingChanged">
+    <div *ngFor="let item of typeToKeywordMapping | keyvalue" class="row">
+      <div class="col-md-7">
+        <input class="form-check-input" type="checkbox" value="{{ item.key }}"
+          [checked]="selectedTypes.includes(item.key)" (change)="toggleKeywordsVisibility($event)">
+        <label>{{ item.key }}</label>
+      </div>
+      <div class="col-md-5">
+        <input class="form-control" type="text"
+          formControlName="{{ (item.key).replaceAll('.', '-') }}" [class.edited]="keywordChanged(item.key)"
+          [class.invalid]="keywordInvalid(item.key)">
+      </div>
+    </div>
+  </div>
+</form>
+<div *ngIf="!!errorMessageList.length" class="error-messages">
+  <span *ngFor="let message of errorMessageList" class="error-message">{{ message }}</span>
+</div>

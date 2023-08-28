@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,18 +14,19 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model.input;
+package com.epam.deltix.tbwg.webapp.model.input;
 
-import com.epam.deltix.tbwg.webapp.model.grafana.AggregationType;
-import com.epam.deltix.tbwg.webapp.model.grafana.GrafanaChartType;
-import com.epam.deltix.tbwg.webapp.utils.DateFormatter;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.webcohesion.enunciate.metadata.DocumentationExample;
+import com.epam.deltix.tbwg.webapp.model.grafana.AggregationType;
+import com.epam.deltix.tbwg.webapp.model.grafana.GrafanaChartType;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+
+import static com.epam.deltix.tbwg.webapp.utils.DateFormatter.DATETIME_MILLIS_FORMAT_STR;
 
 /**
  * @author Daniil Yarmalkevich
@@ -74,12 +75,12 @@ public class Query {
 
     public static class Range {
         @DocumentationExample("2016-10-31T06:33:44.866Z")
-        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DateFormatter.DATETIME_MILLIS_FORMAT_STR, timezone = "UTC")
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATETIME_MILLIS_FORMAT_STR, timezone = "UTC")
         @JsonProperty
         public Instant from;
 
         @DocumentationExample("2016-10-31T12:33:44.866Z")
-        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DateFormatter.DATETIME_MILLIS_FORMAT_STR, timezone = "UTC")
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATETIME_MILLIS_FORMAT_STR, timezone = "UTC")
         @JsonProperty
         public Instant to;
 

@@ -4,6 +4,7 @@ import {TabsRouterProxyComponent} from '../../shared/components/tabs-router-prox
 import {appRoute, streamRouteName, symbolRouteName} from '../../shared/utils/routes.names';
 import {FlowComponent} from '../flow/components/flow/flow.component';
 import {ActiveTabGuard} from '../guards/active-tab.guard';
+import {ShareTabCreateGuard} from '../guards/share-tab-create.guard';
 import {OrderBookPageComponent} from '../order-book/order-book-page/order-book-page.component';
 import {QueryComponent} from '../query/query.component';
 import {ChartsLayoutComponent} from './components/deltix-charts/charts-layout/charts-layout.component';
@@ -15,6 +16,7 @@ const routes: Routes = [
   {
     path: '',
     component: StreamsLayoutComponent,
+    canActivate: [ShareTabCreateGuard],
     children: [
       {
         path: 'order-book',
@@ -141,12 +143,18 @@ const routes: Routes = [
           {
             path: 'monitor/:stream/:id',
             canActivate: [ActiveTabGuard],
+            data: {
+              monitor: true,
+            },
             loadChildren: () =>
               import('./modules/monitor-log/monitor-log.module').then((m) => m.MonitorLogModule),
           },
           {
             path: 'stream-create/:stream/:id',
             canActivate: [ActiveTabGuard],
+            data: {
+              streamCreate: true,
+            },
             loadChildren: () =>
               import('./modules/schema-editor/schema-editor.module').then(
                 (m) => m.SchemaEditorModule,
@@ -155,6 +163,9 @@ const routes: Routes = [
           {
             path: 'schema-edit/:stream/:id',
             canActivate: [ActiveTabGuard],
+            data: {
+              schemaEdit: true,
+            },
             loadChildren: () =>
               import('./modules/schema-editor/schema-editor.module').then(
                 (m) => m.SchemaEditorModule,
@@ -256,6 +267,9 @@ const routes: Routes = [
           {
             path: 'monitor/:stream/:symbol/:id',
             canActivate: [ActiveTabGuard],
+            data: {
+              monitor: true,
+            },
             loadChildren: () =>
               import('./modules/monitor-log/monitor-log.module').then((m) => m.MonitorLogModule),
           },

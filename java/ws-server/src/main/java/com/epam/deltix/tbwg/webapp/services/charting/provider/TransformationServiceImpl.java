@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,6 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.charting.provider;
 
 import com.epam.deltix.qsrv.hf.pub.md.NamedDescriptor;
@@ -30,7 +31,6 @@ import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.services.charting.datasource.ReactiveMessageSource;
 import com.epam.deltix.tbwg.webapp.services.charting.datasource.MessageSourceFactory;
 
-import com.epam.deltix.timebase.messages.SchemaElement;
 import com.epam.deltix.timebase.messages.service.SecurityFeedStatusMessage;
 import com.epam.deltix.timebase.messages.universal.PackageHeader;
 import com.epam.deltix.timebase.messages.universal.TradeEntry;
@@ -39,11 +39,10 @@ import io.reactivex.Observable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.epam.deltix.tbwg.webapp.utils.TBWGUtils.*;
 
 @Service
 public class TransformationServiceImpl implements TransformationService {
@@ -57,7 +56,7 @@ public class TransformationServiceImpl implements TransformationService {
     @Value("${charting.transformations.l2-optimization-threshold-ms:10000}")
     private long l2OptimizationThresholdMs;
 
-    @Value("${charting.transformations.aggregation-optimization-threshold-ms:21600000}") // 12 hours
+    @Value("${charting.transformations.aggregation-optimization-threshold-ms:10800000}") // 3 hours
     private long aggregationOptimizationThresholdMs;
 
     @Value("${charting.transformations.use-qll:true}")
@@ -90,15 +89,48 @@ public class TransformationServiceImpl implements TransformationService {
         }
     }
 
+    private class LinearPlanBuilder extends BasePlanBuild implements TransformationPlanBuilder {
+
+        private final SymbolQuery query;
+
+        private final String[] columns;
+
+        private LinearPlanBuilder(SymbolQuery query, String[] columns) {
+            super(query, new FixedAggregationImpl(query.getPointInterval()));
+
+            this.query = query;
+            this.columns = columns;
+        }
+
+        @Override
+        public LinesQueryResult build(ReactiveMessageSource source) {
+            LinesQueryResult result = new LinesQueryResultImpl(
+                query.getStream() + "[" + query.getSymbol() + "]", source, query.getInterval()
+            );
+
+            Observable<?> inputObservable = source.getMessageSource()
+                .takeWhile(x -> x.getTimeStampMs() <= endTime);
+
+            LinearPointsToDtoTransformation linearTransformation = new LinearPointsToDtoTransformation(
+                columns, startTime, endTime, aggregation
+            );
+            result.getLines().add(
+                new LineResultImpl(
+                    "LINEAR[]", columns, inputObservable.lift(linearTransformation), aggregation, newWindowSize
+                )
+            );
+
+            return result;
+        }
+    }
+
     private class L2PricesPlanBuilder extends BasePlanBuild implements TransformationPlanBuilder {
 
         private final BookSymbolQuery query;
         private final boolean legacy;
 
         private L2PricesPlanBuilder(BookSymbolQuery query, boolean legacy) {
-            super(query, query.getPointInterval() >= 0 ?
-                new FixedAggregationImpl(query.getPointInterval()) :
-                new AggregationCalculatorImpl(query.getMaxPointsCount(), ZOOM_DETAILS_FACTOR)
+            super(query, new FixedAggregationImpl(query.getPointInterval())
             );
 
             this.query = query;
@@ -123,7 +155,6 @@ public class TransformationServiceImpl implements TransformationService {
                 .takeWhile(x -> x.getTimeStampMs() <= endTime);
 
             inputObservable = inputObservable.lift(new FeedStatusTransformation());
-            inputObservable = inputObservable.lift(new AdaptPeriodicityTransformation(query.getLevelsCount(), aggregation));
             inputObservable = inputObservable.share();
 
             // Levels
@@ -134,7 +165,7 @@ public class TransformationServiceImpl implements TransformationService {
                 );
             } else {
                 observable = inputObservable.lift(
-                    new UniversalL2OrderbookToLevelPointsTransformation(query.getSymbol(), query.getLevelsCount(), aggregation)
+                        new UniversalL2OrderbookToLevelPointsTransformation(query.getSymbol(), query.getLevelsCount(), aggregation)
                 );
             }
             observable = observable.share();
@@ -177,8 +208,9 @@ public class TransformationServiceImpl implements TransformationService {
         private final BookSymbolQuery query;
         private final boolean legacy;
         private final boolean hasL1Data;
+        private final ChartType chartType;
 
-        private BarPlanBuilder(BookSymbolQuery query, boolean legacy, boolean hasL1Data) {
+        private BarPlanBuilder(BookSymbolQuery query, boolean legacy, boolean hasL1Data, ChartType chartType) {
             super(query, query.getPointInterval() >= 0 ?
                 new FixedAggregationImpl(query.getPointInterval()) :
                 new BarsAggregationCalculatorImpl());
@@ -186,6 +218,7 @@ public class TransformationServiceImpl implements TransformationService {
             this.query = query;
             this.legacy = legacy;
             this.hasL1Data = hasL1Data;
+            this.chartType = chartType;
         }
 
         private boolean buildBySnapshots() {
@@ -205,10 +238,11 @@ public class TransformationServiceImpl implements TransformationService {
             Observable<?> inputObservable = source.getMessageSource()
                 .takeWhile(x -> x.getTimeStampMs() <= endTime);
 
-            inputObservable = inputObservable.lift(new FeedStatusTransformation());
             if (query.isLive()) {
                 inputObservable = inputObservable.lift(new TriggerPeriodicSnapshot(1000));
             }
+
+            inputObservable = inputObservable.lift(new FeedStatusTransformation());
 
             AbstractChartTransformation<?, ?> bboTransformation;
             if (useL1 && hasL1Data) {
@@ -217,7 +251,8 @@ public class TransformationServiceImpl implements TransformationService {
                 if (buildBySnapshots()) {
                     bboTransformation = new UniversalL2SnapshotsToBboTransformation(query.getSymbol());
                 } else {
-                    bboTransformation = new UniversalL2OrderbookToBboTransformation(query.getSymbol());
+                    bboTransformation =
+                        new UniversalL2OrderbookToBboTransformation(query.getSymbol());
                 }
             }
             Observable<?> observable = inputObservable.lift(bboTransformation);
@@ -225,7 +260,9 @@ public class TransformationServiceImpl implements TransformationService {
             result.getLines().add(
                 new LineResultImpl(
                     "BARS",
-                    observable.lift(new BarAggregationMidptTransformation(query.getSymbol(), aggregation, startTime, endTime)),
+                    observable.lift(
+                        new BboToBarTransformation(query.getSymbol(), aggregation, startTime, endTime, chartType)
+                    ),
                     aggregation, newWindowSize
                 )
             );
@@ -242,9 +279,7 @@ public class TransformationServiceImpl implements TransformationService {
         private final boolean hasL1Data;
 
         private BboPlanBuilder(BookSymbolQuery query, boolean legacy, boolean hasL1Data) {
-            super(query, query.getPointInterval() >= 0 ?
-                new FixedAggregationImpl(query.getPointInterval()) :
-                new AggregationCalculatorImpl(query.getMaxPointsCount(), ZOOM_DETAILS_FACTOR));
+            super(query, new FixedAggregationImpl(query.getPointInterval()));
 
             this.query = query;
             this.legacy = legacy;
@@ -268,11 +303,11 @@ public class TransformationServiceImpl implements TransformationService {
             Observable<?> inputObservable = source.getMessageSource()
                 .takeWhile(x -> x.getTimeStampMs() <= endTime + EXTEND_INTERVAL_MS);
 
-            inputObservable = inputObservable.lift(new FeedStatusTransformation());
             if (query.isLive()) {
                 inputObservable = inputObservable.lift(new TriggerPeriodicSnapshot(1000));
             }
 
+            inputObservable = inputObservable.lift(new FeedStatusTransformation());
             inputObservable = inputObservable.share();
 
             AbstractChartTransformation<?, ?> bboTransformation;
@@ -282,7 +317,8 @@ public class TransformationServiceImpl implements TransformationService {
                 if (buildBySnapshots()) {
                     bboTransformation = new UniversalL2SnapshotsToBboTransformation(query.getSymbol());
                 } else {
-                    bboTransformation = new UniversalL2OrderbookToBboTransformation(query.getSymbol());
+                    bboTransformation =
+                            new UniversalL2OrderbookToBboTransformation(query.getSymbol());
                 }
             }
             Observable<?> observable = inputObservable.lift(bboTransformation);
@@ -314,13 +350,17 @@ public class TransformationServiceImpl implements TransformationService {
     private class BarConversionPlanBuilder extends BasePlanBuild implements TransformationPlanBuilder {
 
         private final BookSymbolQuery query;
+        private final boolean wct;
+        private final ChartType chartType;
 
-        private BarConversionPlanBuilder(BookSymbolQuery query) {
+        private BarConversionPlanBuilder(BookSymbolQuery query, boolean wct, ChartType chartType) {
             super(query, query.getPointInterval() >= 0 ?
                 new FixedAggregationImpl(query.getPointInterval()) :
                 new BarsAggregationCalculatorImpl());
 
             this.query = query;
+            this.wct = wct;
+            this.chartType = chartType;
         }
 
         @Override
@@ -415,80 +455,37 @@ public class TransformationServiceImpl implements TransformationService {
             source = messageSourceFactory.buildSource(
                 qqlQuery.getQql(), qqlQuery.getInterval(), qqlQuery.isLive(), true
             );
+        } else if (planBuilder instanceof LinearPlanBuilder) {
+            if (query instanceof SymbolQuery) {
+                SymbolQuery symbolQuery = (SymbolQuery) query;
+                source = messageSourceFactory.buildSource(
+                    symbolQuery.getStream(), symbolQuery.getSymbol(),
+                    transformationType.types,
+                    symbolQuery.getInterval(), symbolQuery.isLive(),
+                    true
+                );
+            } else {
+                throw new RuntimeException("Invalid type of chart query");
+            }
         } else if (query instanceof BookSymbolQuery) {
             BookSymbolQuery symbolQuery = (BookSymbolQuery) query;
-
-            String startTimestamp = GMT.formatDateTimeMillis(symbolQuery.getInterval().getStartTimeMilli());
-            String endTimestamp = GMT.formatDateTimeMillis(symbolQuery.getInterval().getEndTimeMilli());
-
             if (planBuilder instanceof L2PricesPlanBuilder) {
-                Set<String> tradeTypes = findDerivedTypes(metadata,
-                    TradeEntry.class.getName(), "deltix.timebase.api.messages.universal.TradeEntry"
-                );
                 L2PricesPlanBuilder l2PricesPlanBuilder = (L2PricesPlanBuilder) planBuilder;
                 if (l2PricesPlanBuilder.buildByQuery()) {
-                    String qql =
-                        String.format(
-                            "SELECT packageType, entries as entries \n" +
-                                "TYPE \"deltix.timebase.api.messages.universal.PackageHeader\"\n" +
-                                "FROM \"%s\"\n" +
-                                "OVER time(%ds)\n" +
-                                "where symbol == '%s' and entries != null\n" +
-                                "and size(entries[%s]) > 0\n" +
-                                "and packageType == INCREMENTAL_UPDATE\n" +
-                                "and timestamp >= '%s'd and timestamp <= '%s'd\n" +
-                                "UNION\n" +
-                                "SELECT packageType, entries[level < %d] as entries, " +
-                                "SecurityFeedStatusMessage:status as status, SecurityFeedStatusMessage:exchangeId as exchangeId\n" +
-                                "TYPE \"deltix.tbwg.messages.StatusPackageHeader\"\n" +
-                                "FROM \"%s\"\n" +
-                                "OVER time(%ds)\n" +
-                                "where symbol == '%s' and \n" +
-                                "((entries != null and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)) " +
-                                "or this is SecurityFeedStatusMessage)\n" +
-                                "and timestamp >= '%s'd and timestamp <= '%s'd",
-                            symbolQuery.getStream(), symbolQuery.getPointInterval() / 1000,
-                            symbolQuery.getSymbol(), buildTypeFilter(tradeTypes), startTimestamp, endTimestamp,
-                            symbolQuery.getLevelsCount(), symbolQuery.getStream(), symbolQuery.getPointInterval() / 1000,
-                            symbolQuery.getSymbol(), startTimestamp, endTimestamp
-                        );
-
+                    String qql = buildTradesQql(symbolQuery, metadata) +
+                        "\nUNION\n" +
+                        buildSnapshotQql(symbolQuery, metadata);
                     source = messageSourceFactory.buildSource(
                         symbolQuery.getStream(), symbolQuery.getSymbol(), qql,
                         symbolQuery.getInterval(), symbolQuery.isLive(), false
                     );
                 }
             } else if (planBuilder instanceof BboPlanBuilder) {
-                Set<String> tradeTypes = findDerivedTypes(metadata,
-                    TradeEntry.class.getName(), "deltix.timebase.api.messages.universal.TradeEntry"
-                );
                 BboPlanBuilder bboPlanBuilder = (BboPlanBuilder) planBuilder;
                 if (bboPlanBuilder.buildByQuery()) {
-                    String qql =
-                        String.format(
-                            "SELECT packageType, entries as entries TYPE \"deltix.timebase.api.messages.universal.PackageHeader\"\n" +
-                                "FROM \"%s\"\n" +
-                                "OVER time(%ds)\n" +
-                                "where symbol == '%s' and entries != null\n" +
-                                "and size(entries[%s]) > 0\n" +
-                                "and packageType == INCREMENTAL_UPDATE\n" +
-                                "and timestamp >= '%s'd and timestamp <= '%s'd\n" +
-                                "UNION\n" +
-                                "SELECT packageType, entries[level == 0] as entries, " +
-                                "SecurityFeedStatusMessage:status as status, SecurityFeedStatusMessage:exchangeId as exchangeId\n" +
-                                "type \"deltix.tbwg.messages.StatusPackageHeader\"\n" +
-                                "FROM \"%s\"\n" +
-                                "OVER time(%ds)\n" +
-                                "where symbol == '%s' and \n" +
-                                "((entries != null and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)) " +
-                                "or this is SecurityFeedStatusMessage)\n" +
-                                "and timestamp >= '%s'd and timestamp <= '%s'd",
-                            symbolQuery.getStream(), symbolQuery.getPointInterval() / 1000,
-                            symbolQuery.getSymbol(), buildTypeFilter(tradeTypes), startTimestamp, endTimestamp,
-                            symbolQuery.getStream(), symbolQuery.getPointInterval() / 1000,
-                            symbolQuery.getSymbol(), startTimestamp, endTimestamp
-                        );
-
+                    String qql = buildTradesQql(symbolQuery, metadata) +
+                        "\nUNION\n" +
+                        buildSnapshotQql(symbolQuery, 1, symbolQuery.getPointInterval() / 1000, metadata);
                     source = messageSourceFactory.buildSource(
                         symbolQuery.getStream(), symbolQuery.getSymbol(), qql,
                         symbolQuery.getInterval(), symbolQuery.isLive(), false
@@ -497,20 +494,7 @@ public class TransformationServiceImpl implements TransformationService {
             } else if (planBuilder instanceof BarPlanBuilder) {
                 BarPlanBuilder barPlanBuilder = (BarPlanBuilder) planBuilder;
                 if (barPlanBuilder.buildByQuery()) {
-                    String qql =
-                        String.format(
-                            "SELECT packageType, entries[level == 0] as entries, " +
-                                "SecurityFeedStatusMessage:status as status, SecurityFeedStatusMessage:exchangeId as exchangeId\n" +
-                                "TYPE \"deltix.tbwg.messages.StatusPackageHeader\"\n" +
-                                "FROM \"%s\"\n" +
-                                "OVER time(10s)\n" +
-                                "where symbol == '%s' and\n" +
-                                "((entries != null and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)) " +
-                                "or this is SecurityFeedStatusMessage)\n" +
-                                "and timestamp >= '%s'd and timestamp <= '%s'd",
-                            symbolQuery.getStream(), symbolQuery.getSymbol(), startTimestamp, endTimestamp
-                        );
-
+                    String qql = buildSnapshotQql(symbolQuery, 1, 10, metadata);
                     source = messageSourceFactory.buildSource(
                         symbolQuery.getStream(), symbolQuery.getSymbol(), qql,
                         symbolQuery.getInterval(), symbolQuery.isLive(), false
@@ -522,7 +506,8 @@ public class TransformationServiceImpl implements TransformationService {
                 source = messageSourceFactory.buildSource(
                     symbolQuery.getStream(), symbolQuery.getSymbol(),
                     transformationType.types,
-                    symbolQuery.getInterval(), symbolQuery.isLive()
+                    symbolQuery.getInterval(), symbolQuery.isLive(),
+                    false
                 );
             }
         }
@@ -541,58 +526,53 @@ public class TransformationServiceImpl implements TransformationService {
     }
 
     private TransformationType transformationType(BookSymbolQuery query, RecordClassDescriptor[] descriptors) {
+        if (query.getType() == ChartType.LINEAR) {
+            RecordClassDescriptor[] chartableDescriptors = getLinearChartDescriptors(descriptors);
+            if (chartableDescriptors.length == 0) {
+                throw new RuntimeException("Specified query result not contains valid output");
+            }
+            return new TransformationType(
+                Arrays.stream(chartableDescriptors).map(NamedDescriptor::getName).collect(Collectors.toSet()),
+                new LinearPlanBuilder(query, getLinearChartColumns(chartableDescriptors))
+            );
+        }
+
         if (query.getType() == ChartType.PRICES_L2) {
             if (mayContainSubclasses(descriptors, PackageHeader.class)) {
-                return new TransformationType(
-                    getDescriptors(descriptors, PackageHeader.class, SecurityFeedStatusMessage.class),
-                    new L2PricesPlanBuilder(query, false)
-                );
-            }
-            if (mayContainSubclasses(descriptors, "deltix.timebase.api.messages.universal.PackageHeader")) {
-                return new TransformationType(
-                    null /* read all types */, new L2PricesPlanBuilder(query, false)
-                );
+                Set<String> descriptorsSet = getDescriptors(descriptors, PackageHeader.class, SecurityFeedStatusMessage.class);
+                //descriptorsSet.add(MarketDataTypeLoader.SECURITY_STATUS_CLASS);
+                return new TransformationType(descriptorsSet, new L2PricesPlanBuilder(query, false));
             }
         }
 
-        if (query.getType() == ChartType.BARS) {
+        if (query.getType().isBars()) {
             if (mayContainSubclasses(descriptors, PackageHeader.class)) {
+                Set<String> descriptorsSet = getDescriptors(descriptors, PackageHeader.class, SecurityFeedStatusMessage.class);
+                //descriptorsSet.add(MarketDataTypeLoader.SECURITY_STATUS_CLASS);
                 return new TransformationType(
-                    getDescriptors(descriptors, PackageHeader.class, SecurityFeedStatusMessage.class),
-                    new BarPlanBuilder(query, false, false)
-                );
-            }
-            if (mayContainSubclasses(descriptors, "deltix.timebase.api.messages.universal.PackageHeader")) {
-                return new TransformationType(
-                    null /* read all types */, new BarPlanBuilder(query, false, false)
+                    descriptorsSet, new BarPlanBuilder(query, false, false, query.getType())
                 );
             }
             if (mayContainSubclasses(descriptors, BarMessage.class)) {
-                Set<String> descriptorsSet = getDescriptors(descriptors, BarMessage.class);
                 return new TransformationType(
-                    descriptorsSet, new BarConversionPlanBuilder(query)
+                    getDescriptors(descriptors, BarMessage.class),
+                    new BarConversionPlanBuilder(query, false, query.getType())
                 );
             }
         }
 
         if (query.getType() == ChartType.TRADES_BBO) {
             if (mayContainSubclasses(descriptors, PackageHeader.class)) {
-                return new TransformationType(
-                    getDescriptors(descriptors, PackageHeader.class, SecurityFeedStatusMessage.class),
-                    new BboPlanBuilder(query, false, false)
-                );
-            }
-            if (mayContainSubclasses(descriptors, "deltix.timebase.api.messages.universal.PackageHeader")) {
-                return new TransformationType(
-                    null /* read all types */, new BboPlanBuilder(query, false, false)
-                );
+                Set<String> descriptorsSet = getDescriptors(descriptors, PackageHeader.class, SecurityFeedStatusMessage.class);
+                //descriptorsSet.add(MarketDataTypeLoader.SECURITY_STATUS_CLASS);
+                return new TransformationType(descriptorsSet, new BboPlanBuilder(query, false, false));
             }
         }
 
-        throw new IllegalArgumentException("Stream " + query.getStream() + " type mismatch with chart type " + query.getType());
+        throw new IllegalArgumentException("Unknown type of getQuery");
     }
 
-    private Set<String> getDescriptors(RecordClassDescriptor[] descriptors, Class<?>... classes) {
+    private static Set<String> getDescriptors(RecordClassDescriptor[] descriptors, Class<?>... classes) {
         Set<String> foundClasses = new HashSet<>();
         for (int i = 0; i < classes.length; ++i) {
             String className = ClassDescriptor.getClassNameWithAssembly(classes[i]);
@@ -606,30 +586,6 @@ public class TransformationServiceImpl implements TransformationService {
         }
 
         return foundClasses;
-    }
-
-    static String getClassName(Class<?> cls) {
-        return ClassDescriptor.getClassNameWithAssembly(cls);
-    }
-
-    static boolean mayContainSubclasses(RecordClassDescriptor[] descriptors, Class<?> cls) {
-        return mayContainSubclasses(descriptors, getClassName(cls));
-    }
-
-    static boolean mayContainSubclasses(RecordClassDescriptor[] descriptors, String className) {
-        return getConvertible(descriptors, className).size() > 0;
-    }
-
-    static List<RecordClassDescriptor> getConvertible(RecordClassDescriptor[] descriptors, String className) {
-        List<RecordClassDescriptor> convertible = new ArrayList<>();
-        for (int j = 0; j < descriptors.length; ++j) {
-            RecordClassDescriptor descriptor = descriptors[j];
-            if (descriptor.isConvertibleTo(className)) {
-                convertible.add(descriptor);
-            }
-        }
-
-        return convertible;
     }
 
     private static Set<String> findDerivedTypes(RecordClassSet rcs, String... names) {
@@ -648,6 +604,70 @@ public class TransformationServiceImpl implements TransformationService {
         }
 
         return result;
+    }
+
+    private static String buildTradesQql(BookSymbolQuery symbolQuery, RecordClassSet metadata) {
+        return String.format(
+            "SELECT packageType, entries as entries TYPE \"deltix.timebase.api.messages.universal.PackageHeader\"\n" +
+                "FROM \"%s\"\n" +
+                "OVER time(%ds)\n" +
+                "where symbol == '%s' and entries != null\n" +
+                "and size(entries[%s]) > 0\n" +
+                "and packageType == INCREMENTAL_UPDATE\n" +
+                "and timestamp >= '%s'd and timestamp <= '%s'd",
+            symbolQuery.getStream(), symbolQuery.getPointInterval() / 1000, symbolQuery.getSymbol(),
+            buildTypeFilter(findDerivedTypes(metadata, TradeEntry.class.getName())),
+            GMT.formatDateTimeMillis(symbolQuery.getInterval().getStartTimeMilli()),
+            GMT.formatDateTimeMillis(symbolQuery.getInterval().getEndTimeMilli())
+        );
+    }
+
+    private static String buildSnapshotQql(BookSymbolQuery symbolQuery, RecordClassSet metadata) {
+        return buildSnapshotQql(
+            symbolQuery, symbolQuery.getLevelsCount(), symbolQuery.getPointInterval() / 1000, metadata
+        );
+    }
+
+    private static String buildSnapshotQql(BookSymbolQuery symbolQuery, int levelCount, long interval, RecordClassSet metadata) {
+        if (containsClassName(metadata.getContentClasses(), "SecurityStatusMessage")) {
+            return buildStatusSnapshotQql(symbolQuery, levelCount, interval);
+        } else {
+            return buildSnapshotQql(symbolQuery, levelCount, interval);
+        }
+    }
+
+    private static String buildSnapshotQql(BookSymbolQuery symbolQuery, int levelCount, long interval) {
+        return String.format(
+            "SELECT packageType, entries[level < %d] as entries " +
+                "TYPE \"deltix.tbwg.messages.StatusPackageHeader\"\n" +
+                "FROM \"%s\"\n" +
+                "OVER time(%ds)\n" +
+                "where symbol == '%s' and \n" +
+                "(entries != null and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)) " +
+                "and timestamp >= '%s'd and timestamp <= '%s'd",
+            levelCount, symbolQuery.getStream(), interval,
+            symbolQuery.getSymbol(),
+            GMT.formatDateTimeMillis(symbolQuery.getInterval().getStartTimeMilli()),
+            GMT.formatDateTimeMillis(symbolQuery.getInterval().getEndTimeMilli())
+        );
+    }
+
+    private static String buildStatusSnapshotQql(BookSymbolQuery symbolQuery, int levelCount, long interval) {
+        return String.format(
+            "SELECT packageType, entries[level < %d] as entries, " +
+                "SecurityStatusMessage:status as status, SecurityStatusMessage:exchangeId as exchangeId\n" +
+                "TYPE \"deltix.tbwg.messages.StatusPackageHeader\"\n" +
+                "FROM \"%s\"\n" +
+                "OVER time(%ds)\n" +
+                "where symbol == '%s' and \n" +
+                "((entries != null and (packageType == PERIODICAL_SNAPSHOT or packageType == VENDOR_SNAPSHOT)) " +
+                "or this is SecurityStatusMessage)\n" +
+                "and timestamp >= '%s'd and timestamp <= '%s'd",
+            levelCount, symbolQuery.getStream(), interval,
+            symbolQuery.getSymbol(),
+            GMT.formatDateTimeMillis(symbolQuery.getInterval().getStartTimeMilli()),
+            GMT.formatDateTimeMillis(symbolQuery.getInterval().getEndTimeMilli())
+        );
     }
 
     private static boolean hadDerivedType(RecordClassDescriptor rcd, String className) {
@@ -676,5 +696,15 @@ public class TransformationServiceImpl implements TransformationService {
         }
 
         return sb.toString();
+    }
+
+    private static boolean containsClassName(RecordClassDescriptor[] descriptors, String className) {
+        for (RecordClassDescriptor descriptor : descriptors) {
+            if (descriptor.getName().contains(className)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

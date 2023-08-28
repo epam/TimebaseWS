@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model.ws;
+package com.epam.deltix.tbwg.webapp.model.ws;
 
 import com.google.gson.*;
 
@@ -47,6 +47,8 @@ public class WSMessageTypeAdapter implements JsonDeserializer<WSMessage> {
                 return context.deserialize(json, SubscribeMessage.class);
             case SET_SUBSCRIPTION:
                 return context.deserialize(json, SetSubscriptionMessage.class);
+            case SUBSCRIBE_QUERY:
+                return context.deserialize(json, SubscribeQueryMessage.class);
         }
         return null;
     }

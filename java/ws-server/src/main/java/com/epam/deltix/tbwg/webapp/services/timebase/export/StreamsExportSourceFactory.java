@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,13 +14,14 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.timebase.export;
 
-import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.qsrv.hf.tickdb.pub.SelectionOptions;
 import com.epam.deltix.qsrv.hf.tickdb.pub.TickStream;
 import com.epam.deltix.qsrv.hf.tickdb.pub.query.InstrumentMessageSource;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
+import com.epam.deltix.timebase.messages.IdentityKey;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -54,5 +55,10 @@ public class StreamsExportSourceFactory implements ExportSourceFactory {
             types,
             ids,
             streams);
+    }
+
+    @Override
+    public String getBaseFileName() {
+        return streams[0].getKey().replace(' ', '_');
     }
 }

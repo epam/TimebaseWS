@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,10 +14,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.charting.datasource;
 
 import com.epam.deltix.qsrv.hf.pub.ChannelQualityOfService;
-import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.timebase.messages.InstrumentMessage;
 import com.epam.deltix.qsrv.hf.pub.TypeLoader;
 import com.epam.deltix.qsrv.hf.pub.md.ClassDescriptor;
@@ -78,6 +78,7 @@ public class TimeBaseReactiveMessageSource implements ReactiveMessageSource {
         List<String> messageTypes;
         List<String> identities;
         long time = TimeConstants.TIMESTAMP_UNKNOWN;
+        long endTime = Long.MAX_VALUE;
         SelectionOptions options;
 
         String qql;
@@ -120,8 +121,18 @@ public class TimeBaseReactiveMessageSource implements ReactiveMessageSource {
             return this;
         }
 
+        public Builder endTime(long endTime) {
+            this.endTime = endTime;
+            return this;
+        }
+
         public Builder reversed() {
             this.options.reversed = true;
+            return this;
+        }
+
+        public Builder realTimeNotifications(boolean realTimeNotifications) {
+            this.options.realTimeNotification = realTimeNotifications;
             return this;
         }
 

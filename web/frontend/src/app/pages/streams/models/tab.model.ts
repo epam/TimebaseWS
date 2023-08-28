@@ -5,6 +5,7 @@ import {TabSettingsModel} from './tab.settings.model';
 
 export class TabModel {
   public stream: string;
+  public streamName: string;
   public symbol?: string;
   public space?: string;
   public id?: string;
@@ -16,6 +17,7 @@ export class TabModel {
   public monitor?: boolean;
   public reverse?: boolean;
   public view?: boolean;
+  public isView?: boolean;
   public schema?: boolean;
   public schemaEdit?: boolean;
   public streamCreate?: boolean;
@@ -24,6 +26,7 @@ export class TabModel {
   public flow?: boolean;
   public orderBook?: boolean;
   public chartType?: ChartTypes[];
+  public chartTypeTitles?: string[];
   public streamRange?: {
     start: number;
     end: number;
@@ -31,18 +34,33 @@ export class TabModel {
 
   public filter: FilterModel = {};
   public tabSettings: TabSettingsModel = {};
+  public queryStream: string;
+  public querySymbol: string;
+  public queryInitialQuery: string;
 
   constructor(obj: {} | TabModel) {
-    // Object.assign(this, obj);
     if (obj['stream']) {
       this.stream = obj['stream'];
     }
+  
+    if (obj['isView']) {
+      this.isView = !!obj['isView'];
+    }
+  
+    if (obj['streamName']) {
+      this.streamName = obj['streamName'];
+    }
+    
     if (obj['streamRange']) {
       this.streamRange = obj['streamRange'];
     }
 
     if (obj['chartType']) {
       this.chartType = obj['chartType'];
+    }
+  
+    if (obj['chartTypeTitles']) {
+      this.chartTypeTitles = obj['chartTypeTitles'];
     }
 
     if (obj['symbol']) {
@@ -99,10 +117,19 @@ export class TabModel {
     if (obj['tabSettings']) {
       this.tabSettings = obj['tabSettings'];
     }
+    if (obj['queryStream']) {
+      this.queryStream = obj['queryStream'];
+    }
+    if (obj['querySymbol']) {
+      this.querySymbol = obj['querySymbol'];
+    }
+    if (obj['queryInitialQuery']) {
+      this.queryInitialQuery = obj['queryInitialQuery'];
+    }
   }
 
   public get title(): string {
-    let title = this.orderBook ? '' : this.name || this.stream;
+    let title = this.orderBook ? '' : (this.streamName || this.name || this.stream);
     if (this.space !== undefined && !this.orderBook) title += ' / ' + (this.space || 'root');
     if (this.symbol && !this.orderBook) title += ' / ' + this.symbol;
     return title;

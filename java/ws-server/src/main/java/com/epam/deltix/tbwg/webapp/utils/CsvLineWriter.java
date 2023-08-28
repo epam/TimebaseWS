@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,15 +14,17 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.utils;
 
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
-import com.epam.deltix.qsrv.hf.pub.MessageDecoderUtils;
+import com.epam.deltix.qsrv.hf.pub.NullValueException;
 import com.epam.deltix.qsrv.hf.pub.RawMessage;
-import com.epam.deltix.qsrv.hf.pub.RawMessageManipulator;
+import com.epam.deltix.qsrv.hf.pub.ReadableValue;
 import com.epam.deltix.qsrv.hf.pub.codec.*;
 import com.epam.deltix.qsrv.hf.pub.md.*;
 import com.epam.deltix.tbwg.webapp.model.input.ExportMode;
@@ -35,6 +37,8 @@ import com.epam.deltix.util.memory.MemoryDataInput;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.epam.deltix.qsrv.hf.pub.RawMessageManipulator.OBJECT_CLASS_NAME;
 
 public class CsvLineWriter {
 
@@ -60,18 +64,23 @@ public class CsvLineWriter {
 
     private final MemoryDataInput buffer = new MemoryDataInput();
     private final ObjectToObjectHashMap<String, UnboundDecoder> decoders = new ObjectToObjectHashMap<>();
+    private final Map<String, Map<String, String>> staticValuesMap = new HashMap<>();
+
     public final CodecMetaFactory codecFactory = InterpretingCodecMetaFactory.INSTANCE;
 
-    private final DateFormatter dateFormatter = new DateFormatter();
-    private final Gson jsonFormatter = new Gson();
+    private final DateFormatter dateFormatter;
+    private final Gson jsonFormatter =  new GsonBuilder().disableHtmlEscaping().create();
 
+    private final boolean enableStaticFields;
     private final boolean polymorphic;
     private final boolean filePerSymbol;
 
-    public CsvLineWriter(CSVWriter writer, ExportRequest request, RecordClassDescriptor[] descriptors) throws IOException {
+    public CsvLineWriter(CSVWriter writer, ExportRequest request, RecordClassDescriptor[] descriptors) {
         this.writer = writer;
         this.filePerSymbol = request.mode == ExportMode.FILE_PER_SYMBOL;
         this.polymorphic = descriptors.length > 1;
+        this.dateFormatter = new DateFormatter(request.datetimeFormat);
+        this.enableStaticFields = request.enableStaticFields;
 
         if (request.types != null) {
             for (TypeSelection type : request.types) {
@@ -176,55 +185,79 @@ public class CsvLineWriter {
                 }
             }
         }
-
+        if (enableStaticFields) {
+            Map<String, String> staticValues = getStaticValues(msg.type);
+            for (Map.Entry<String, String> entry : staticValues.entrySet()) {
+                ColumnInfo column = columns.get(entry.getKey());
+                if (column != null) {
+                    values[column.position] = entry.getValue();
+                }
+            }
+        }
         writer.writeLine(values);
     }
 
-    private String formatValue(DataType type, UnboundDecoder decoder) {
-        if (type instanceof DateTimeDataType) {
-            formatTimestamp(decoder.getLong());
-        } else if (type instanceof ClassDataType) {
-            Object value = MessageDecoderUtils.readField(type, decoder);
-            if (value instanceof Map) {
-                Map valueMap = (Map) value;
-                replaceTypeByItsName(valueMap);
-                return jsonFormatter.toJson(valueMap);
-            }
-        } else if (type instanceof ArrayDataType) {
-            Object value = MessageDecoderUtils.readField(type, decoder);
-            if (value instanceof List) {
-                List valueList = (List) value;
-                DataType elementType = ((ArrayDataType) type).getElementDataType();
-                if (elementType instanceof ClassDataType) {
-                    for (int i = 0; i < valueList.size(); i++){
-                        Object item = valueList.get(i);
-                        if (item instanceof Map) {
-                            replaceTypeByItsName((Map) item);
-                        }
-                    }
-                }
-
-                return jsonFormatter.toJson(valueList);
-            }
-            if (value == null) {
-                return null;
-            }
-        } else if (type instanceof BinaryDataType) {
-            final int size = decoder.getBinaryLength();
-            final byte[] bin = new byte[size];
-            decoder.getBinary(0, size, bin, 0);
-            return Base64.getEncoder().encodeToString(bin);
+    private String formatValue(DataType type, ReadableValue decoder) {
+        Object value = formatValueToObject(type, decoder);
+        if (value instanceof Map || value instanceof List){
+            return jsonFormatter.toJson(value);
         }
-
-        return decoder.getString();
+        return (String) value;
     }
 
-    private void replaceTypeByItsName(Map objectMap) {
-        if (objectMap.containsKey(RawMessageManipulator.OBJECT_CLASS_NAME)) {
-            RecordClassDescriptor descriptor =
-                (RecordClassDescriptor) objectMap.get(RawMessageManipulator.OBJECT_CLASS_NAME);
-            objectMap.put(RawMessageManipulator.OBJECT_CLASS_NAME, descriptor.getName());
+        private Object formatValueToObject(DataType type, ReadableValue decoder) {
+        try {
+            if (type instanceof DateTimeDataType) {
+                return formatTimestamp(decoder.getLong());
+            } else if (type instanceof ClassDataType) {
+                return formatObjectValues(decoder);
+            } else if (type instanceof ArrayDataType) {
+                return formatArrayValue((ArrayDataType) type, decoder);
+            } else if (type instanceof BinaryDataType) {
+                final int size = decoder.getBinaryLength();
+                final byte[] bin = new byte[size];
+                decoder.getBinary(0, size, bin, 0);
+                return Arrays.toString(bin);
+            }
+            return decoder.getString();
+        } catch (NullValueException e) {
+            return null;
         }
+    }
+
+    private List<Object> formatArrayValue(ArrayDataType type, ReadableValue decoder) {
+        final int len = decoder.getArrayLength();
+        final DataType elementDataType = type.getElementDataType();
+        List<Object> list = new ArrayList<>(len);
+        for (int i = 0; i < len; i++) {
+            final ReadableValue rv = decoder.nextReadableElement();
+            list.add( formatValueToObject(elementDataType, rv));
+        }
+        return list;
+    }
+
+    private Map<String, Object> formatObjectValues(ReadableValue decoder) {
+        final UnboundDecoder fieldDecoder = decoder.getFieldDecoder();
+        Map<String, Object> valuesMap = new LinkedHashMap<>();
+        RecordClassDescriptor descriptor = fieldDecoder.getClassInfo().getDescriptor();
+        if (fieldDecoder.getClassInfo() != null) {
+            valuesMap.put(OBJECT_CLASS_NAME, descriptor.getName());
+        }
+        while (fieldDecoder.nextField()) {
+            NonStaticFieldInfo field = fieldDecoder.getField();
+            Object value = formatValueToObject(field.getType(), fieldDecoder);
+            valuesMap.put(field.getName(), value);
+        }
+        if (enableStaticFields) {
+            Map<String, String> staticValues = getStaticValues(descriptor);
+            for (DataField field : descriptor.getFields()) {
+                if (field instanceof StaticDataField) {
+                    String value = staticValues.get(columnId(descriptor.getName(), field.getName()));
+                    valuesMap.put(field.getName(), value);
+                }
+            }
+        }
+        return valuesMap;
     }
 
     private String formatTimestamp(long timestamp) {
@@ -251,5 +284,25 @@ public class CsvLineWriter {
         return decoder;
     }
 
+    private Map<String, String> getStaticValues(RecordClassDescriptor type) {
+        String name = type.getName();
+        Map<String, String> staticValues = staticValuesMap.get(name);
+        if (staticValues == null) {
+            staticValues = collectStaticValues(type);
+            staticValuesMap.put(name, staticValues);
+        }
+        return staticValues;
+    }
+
+    private Map<String, String> collectStaticValues(RecordClassDescriptor type) {
+        Map<String, String> staticValues = new HashMap<>();
+        for (DataField field : type.getFields()) {
+            if (field instanceof StaticDataField) {
+                StaticDataField staticField = (StaticDataField) field;
+                staticValues.put(columnId(type.getName(), staticField.getName()), staticField.getStaticValue());
+            }
+        }
+        return staticValues;
+    }
 }
 

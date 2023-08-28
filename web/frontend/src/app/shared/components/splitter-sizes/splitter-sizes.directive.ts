@@ -29,6 +29,7 @@ export class SplitterSizesDirective implements AfterContentInit, OnDestroy, OnCh
   @Input() parentWidthAddon = 0;
   @Input() storageKey: string;
   @Input() useStorage = true;
+  @Input() parentMinSize = 0;
 
   @HostBinding('style.min-width.px') private minWidth: number;
   @HostBinding('class.hidden') private hidden: boolean;
@@ -159,7 +160,7 @@ export class SplitterSizesDirective implements AfterContentInit, OnDestroy, OnCh
     if (this.parentAreaIndex !== undefined) {
       this.parentSplitterSizes.setChildMinSize(
         this.parentAreaIndex,
-        this.minWidth + this.parentWidthAddon,
+        Math.max(this.parentMinSize, this.minWidth + this.parentWidthAddon),
       );
     }
 

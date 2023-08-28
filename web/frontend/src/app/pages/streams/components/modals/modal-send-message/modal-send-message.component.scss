@@ -35,3 +35,46 @@ ngx-monaco-editor {
   display: flex;
   justify-content: space-between;
 }
+
+:host {
+  position: relative;
+}
+
+.request-in-progress {
+  position: absolute;
+  min-width: 100%;
+  min-height: 100%;
+  background-color: rgba(245, 245, 245, 0.1);
+  z-index: 1002;
+}
+
+.uploading-text-and-icon {
+  display: flex;
+}
+
+.lds-dual-ring {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+}
+
+.lds-dual-ring:after {
+  content: " ";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin: 1px 5px;
+  border-radius: 50%;
+  border: 6px solid #fff;
+  border-color: #fff transparent #fff transparent;
+  animation: lds-dual-ring 1.2s linear infinite;
+}
+
+@keyframes lds-dual-ring {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

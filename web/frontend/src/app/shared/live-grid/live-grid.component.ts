@@ -1,7 +1,8 @@
 import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, ViewChild } from '@angular/core';
+import { HdDate } from '@assets/hd-date/hd-date';
 import { select, Store }                                                             from '@ngrx/store';
-import { StompHeaders }                                                              from '@stomp/stompjs';
-import { AgGridModule }                                                              from 'ag-grid-angular';
+import { StompHeaders }                                                       from '@stomp/stompjs';
+import { AgGridModule }                                                       from 'ag-grid-angular';
 import {
   CellClickedEvent,
   ColumnMovedEvent,
@@ -10,17 +11,20 @@ import {
   ColumnVisibleEvent,
   GridOptions,
   GridReadyEvent,
-}                                                                                    from 'ag-grid-community';
-import { BsModalRef, BsModalService }                                                from 'ngx-bootstrap/modal';
-import { Observable, ReplaySubject, Subject, Subscription, timer }                   from 'rxjs';
-import { distinctUntilChanged, filter, map, take, takeUntil, withLatestFrom }        from 'rxjs/operators';
-import { WebsocketService }                                                          from '../../core/services/websocket.service';
-import { WSService }                                                                 from '../../core/services/ws.service';
-import { AppState }                                                                  from '../../core/store';
-import { getAppVisibility }                                                          from '../../core/store/app/app.selectors';
-import { GridStateModel }                                                            from '../../pages/streams/models/grid.state.model';
-import { StreamDetailsModel }                                                        from '../../pages/streams/models/stream.details.model';
-import { WSLiveModel }                                                               from '../../pages/streams/models/ws-live.model';
+  ICellRendererParams,
+}                                                                             from 'ag-grid-community';
+import { BsModalRef, BsModalService }                                         from 'ngx-bootstrap/modal';
+import { Observable, ReplaySubject, Subject, Subscription, of }            from 'rxjs';
+import { filter, map, take, takeUntil, withLatestFrom, switchMap } from 'rxjs/operators';
+import { TabModel } from 'src/app/pages/streams/models/tab.model';
+import { getActiveTab } from 'src/app/pages/streams/store/streams-tabs/streams-tabs.selectors';
+import { WebsocketService }                                                   from '../../core/services/websocket.service';
+import { WSService }                                                          from '../../core/services/ws.service';
+import { AppState }                                                           from '../../core/store';
+import { getAppVisibility }                                                   from '../../core/store/app/app.selectors';
+import { GridStateModel }                                                     from '../../pages/streams/models/grid.state.model';
+import { StreamDetailsModel }                                                 from '../../pages/streams/models/stream.details.model';
+import { WSLiveModel }                                                        from '../../pages/streams/models/ws-live.model';
 import { CleanSelectedMessage }                                                      from '../../pages/streams/store/seletcted-message/selected-message.actions';
 import { getSelectedMessage }                                                        from '../../pages/streams/store/seletcted-message/selected-message.selectors';
 import * as StreamDetailsActions
@@ -40,6 +44,7 @@ import { RightPaneService }                                                     
 import { GlobalFiltersService }                                                      from '../services/global-filters.service';
 import { GridEventsService }                                                         from '../services/grid-events.service';
 import { GridService }                                                               from '../services/grid.service';
+import { SchemaService } from '../services/schema.service';
 import { StreamModelsService }                                                       from '../services/stream-models.service';
 import { TabStorageService }                                                         from '../services/tab-storage.service';
 import {
@@ -52,6 +57,12 @@ import {
   getContextMenuItems,
   gridStateLSInit,
 }                                                                                    from '../utils/grid/config.defaults';
+
+interface RowSortingOrder {
+  symbol?: string,
+  timestamp?: string,
+  'original-timestamp'?: string,
+}
 
 @Component({
   selector: 'app-live-grid',
@@ -70,12 +81,19 @@ export class LiveGridComponent implements OnInit, OnDestroy, OnChanges {
   bsModalRef: BsModalRef;
   gridOptions: GridOptions;
   selectedMessage$: Observable<StreamDetailsModel>;
+  rowSortingOrder: RowSortingOrder = {
+    symbol: 'none',
+    timestamp: 'none',
+    'original-timestamp': 'none',
+  };
+  implementedSorting: RowSortingOrder;
 
   private wsUnsubscribe$ = new Subject();
   private subIsInited: boolean;
   private destroy$ = new Subject();
-  private gridStateLS: GridStateModel = {visibleArray: [], pinnedArray: [], resizedArray: []};
+  private gridStateLS: GridStateModel = {visibleArray: [], pinnedArray: [], resizedArray: [], autoSized: []};
   private gridReady$ = new ReplaySubject<GridReadyEvent>(1);
+  private staticFields: { [key: string]: string | number | boolean };
   private gridDefaults: GridOptions = {
     ...defaultGridOptions,
     rowBuffer: 10,
@@ -99,7 +117,7 @@ export class LiveGridComponent implements OnInit, OnDestroy, OnChanges {
     },
     onGridReady: (readyEvent: GridReadyEvent) => this.gridIsReady(readyEvent),
     onModelUpdated: (params) => {
-      autosizeAllColumns(params.columnApi);
+      autosizeAllColumns(params.columnApi, true, this.gridStateLS.autoSized || []);
       if (this.gridStateLS.resizedArray.length) {
         for (const item of this.gridStateLS.resizedArray) {
           params.columnApi.setColumnWidth(item.colId, item.actualWidth, true);
@@ -115,11 +133,10 @@ export class LiveGridComponent implements OnInit, OnDestroy, OnChanges {
     onColumnPinned: (pinnedEvent: ColumnPinnedEvent) =>
       columnIsPinned(pinnedEvent, this.tabName, this.gridStateLS),
     getContextMenuItems: getContextMenuItems.bind(this),
-    getRowNodeId: (data) => data.symbol,
+    getRowNodeId: (data) => `${data.symbol}-${data.$type}`,
   };
 
   private schemaMap: SchemaTypesMap;
-  private filtersChange$ = new ReplaySubject<LiveGridFilters>(1);
 
   constructor(
     private appStore: Store<AppState>,
@@ -137,65 +154,23 @@ export class LiveGridComponent implements OnInit, OnDestroy, OnChanges {
     private globalFiltersService: GlobalFiltersService,
     private tabStorageService: TabStorageService<HasRightPanel>,
     private messageInfoService: RightPaneService,
+    private schemaService: SchemaService
   ) {}
 
   ngOnInit() {
     this.gridOptions = {...this.gridDefaults};
     this.selectedMessage$ = this.appStore.pipe(select(getSelectedMessage));
     this.messageInfoService.clearSelectedMessage();
-    this.gridContextMenuService.addColumnMenuItems([
-      {
-        data: (event) => ({
-          name: 'Autosize This Column',
-          action: () => {
-            event.columnApi.autoSizeColumn(event.column);
-            const filtered = this.gridStateLS.resizedArray.filter(
-              (item) => item.colId !== event.column.getColId(),
-            );
-            this.gridStateLS.resizedArray = [...filtered];
-            localStorage.setItem('gridStateLS' + this.tabName, JSON.stringify(this.gridStateLS));
-          },
-        }),
-        alias: 'autosize',
-      },
-      {
-        data: (event) => ({
-          name: 'Autosize All Columns',
-          action: () => {
-            autosizeAllColumns(event.columnApi);
-            this.gridStateLS.resizedArray = [];
-            localStorage.setItem('gridStateLS' + this.tabName, JSON.stringify(this.gridStateLS));
-          },
-        }),
-        alias: 'autosizeAll',
-      },
-      {
-        data: (event) => ({
-          name: 'Reset Columns',
-          action: () => {
-            this.gridStateLS = {visibleArray: [], pinnedArray: [], resizedArray: []};
-            localStorage.removeItem('gridStateLS' + this.tabName);
-            if (this.subIsInited) {
-              event.columnApi.resetColumnState();
-              timer(100).subscribe(() => autosizeAllColumns(event.columnApi));
-            }
-          },
-        }),
-        alias: 'reset',
-      },
-    ]);
-
-    this.filtersChange$
-      .pipe(
-        takeUntil(this.destroy$),
-        distinctUntilChanged((p, c) => JSON.stringify(p) === JSON.stringify(c)),
-      )
-      .subscribe((filters) => this.runLive(filters));
+    this.gridContextMenuService.addColumnSizeMenuItems(() => this.gridStateLS, () => this.subIsInited, this.tabName);
 
     this.globalFiltersService
       .getFilters()
       .pipe(withLatestFrom(this.gridReady$), takeUntil(this.destroy$))
       .subscribe(([filters, readyEvent]) => readyEvent.api.redrawRows());
+
+    this.gridEventsService.rowSortingOrder
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(order => this.rowSortingOrder = order);
   }
 
   createWebsocketSubscription(url: string, dataObj: WSLiveModel, readyEvent: GridReadyEvent) {
@@ -208,30 +183,89 @@ export class LiveGridComponent implements OnInit, OnDestroy, OnChanges {
         stompHeaders[key] = JSON.stringify(dataObj[key]);
       }
     });
-    this.wsService
-      .watch(url, stompHeaders)
-      .pipe(
-        withLatestFrom(this.appStore.select(getAppVisibility)),
-        filter(([ws_data, app_is_visible]: [any, boolean]) => app_is_visible),
-        map(([ws_data]) => ws_data),
-        takeUntil(this.wsUnsubscribe$),
-      )
+
+    this.appStore.pipe(
+      select(getActiveTab),
+      switchMap((tab: TabModel) => {
+        return tab?.stream ? this.schemaService.getSchema(tab.stream) : of(this.schemaData);
+      }),
+      switchMap(schema => {
+        schema.all.forEach(type => {
+          type.fields.forEach(field => {
+            if (field.static) {
+              this.staticFields = { ...this.staticFields, [field.name]: field.value };
+              }
+            })
+          }
+        );
+
+        return this.wsService.watch(url, stompHeaders)
+      }),
+      withLatestFrom(this.appStore.select(getAppVisibility)),
+      filter(([ws_data, app_is_visible]: [any, boolean]) => app_is_visible),
+      map(([ws_data]) => ws_data),
+      takeUntil(this.wsUnsubscribe$)
+    )
       .subscribe((data: any) => {
         const addRows = [],
           updateRows = [];
         const parseData: [] = JSON.parse(data.body);
-        parseData.forEach((row) => {
-          if (readyEvent.api.getRowNode(row['symbol'])) {
-            updateRows.push(new StreamDetailsModel(row, this.schemaMap));
+        parseData.forEach((row: object) => {
+          const rowWithStatic = { ...row, ...this.staticFields };
+          if (readyEvent.api.getRowNode(`${rowWithStatic['symbol']}-${rowWithStatic['$type']}`)) {
+            updateRows.push(new StreamDetailsModel(rowWithStatic, this.schemaMap));
           } else {
-            addRows.push(new StreamDetailsModel(row, this.schemaMap));
+            addRows.push(new StreamDetailsModel(rowWithStatic, this.schemaMap));
           }
         });
-        readyEvent.api.updateRowData({
-          add: addRows,
-          update: updateRows,
-        });
-      });
+
+    const rowData = [...addRows];
+    readyEvent.api.forEachNode(node => rowData.push(node.data));
+
+    if (JSON.stringify(this.rowSortingOrder) !== JSON.stringify(this.implementedSorting) || (this.implementedSorting && addRows.length)) {
+      if (this.rowSortingOrder.symbol && this.rowSortingOrder.symbol !== 'none') {
+        if (this.rowSortingOrder.symbol === 'ascending') {
+          rowData.sort((row1, row2) => {
+            if (row1.symbol !== row2.symbol) {
+              return row1.symbol > row2.symbol ? 1 : -1;
+            } else {
+              return row1.$type > row2.$type ? 1 : -1;
+            }
+          });
+        } else {
+          rowData.sort((row1, row2) => {
+            if (row1.symbol !== row2.symbol) {
+              return row1.symbol < row2.symbol ? 1 : -1
+            } else {
+              return row1.$type > row2.$type ? 1 : -1;
+            };
+          })
+        }
+      }
+
+      if (this.rowSortingOrder.timestamp && this.rowSortingOrder.timestamp !== 'none') {
+        rowData.sort((row1, row2) => {
+          const date1 = new HdDate(row1.nanoTime ?? row1.timestamp);
+          const date2 = new HdDate(row2.nanoTime ?? row2.timestamp);
+          return this.compareHdDates(date1, date2, 'timestamp');
+        })
+      }
+
+      if (this.rowSortingOrder['original-timestamp'] && this.rowSortingOrder['original-timestamp'] !== 'none') {
+        rowData.sort((row1, row2) => {
+          const date1 = new HdDate(row1.original.timestamp);
+          const date2 = new HdDate(row2.original.timestamp);
+          return this.compareHdDates(date1, date2, 'original-timestamp');
+        })
+      }
+      this.implementedSorting = this.rowSortingOrder;
+      readyEvent.api.setRowData(rowData);
+    } else {
+      readyEvent.api.updateRowData( { add: addRows });
+    }
+
+    readyEvent.api.updateRowData( { update: updateRows } );
+    })
   }
 
   cleanWebsocketSubscription() {
@@ -322,10 +356,10 @@ export class LiveGridComponent implements OnInit, OnDestroy, OnChanges {
           pinned: 'left',
           filter: false,
           sortable: false,
-          width: 160,
+          width: 180,
           headerTooltip: 'Timestamp',
-          cellRenderer: (params) => this.gridService.dateFormat(params),
-          tooltipValueGetter: (params) => this.gridService.dateFormat(params),
+          cellRenderer: (params: ICellRendererParams) => this.gridService.dateFormat(params, params.data?.nanoTime, true),
+          tooltipValueGetter: (params: ICellRendererParams) => this.gridService.dateFormat(params, params.data?.nanoTime, true),
         },
         {
           headerName: 'Type',
@@ -380,5 +414,15 @@ export class LiveGridComponent implements OnInit, OnDestroy, OnChanges {
         gridReady.columnApi.setColumnsVisible(columnsVisible, true);
       }
     });
+  }
+
+  private compareHdDates(date1: HdDate, date2: HdDate, sortingColumn: string) {
+    const dateAsNumber1 = BigInt(date1.getTime() * 1e6 + date1.getNanosFraction());
+    const dateASNumber2 = BigInt(date2.getTime() * 1e6 + date2.getNanosFraction());
+    if (this.rowSortingOrder[sortingColumn] === 'ascending') {
+      return dateAsNumber1 > dateASNumber2 ? 1 : -1;
+    } else {
+      return dateASNumber2 > dateAsNumber1 ? 1 : -1;
+    }
   }
 }

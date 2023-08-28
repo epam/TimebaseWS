@@ -7,7 +7,7 @@ import {
   OnInit,
   SimpleChanges,
 } from '@angular/core';
-import {ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR} from '@angular/forms';
+import {ControlValueAccessor, UntypedFormControl, NG_VALUE_ACCESSOR} from '@angular/forms';
 import {ReplaySubject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 import {TreeItem} from './tree-item';
@@ -29,7 +29,7 @@ export class TreeCheckboxesComponent implements OnInit, OnDestroy, OnChanges, Co
   @Input() globalFilter: boolean;
 
   selected: {[index: string]: boolean} = {};
-  filterControl = new FormControl();
+  filterControl = new UntypedFormControl();
   globalState: Partial<TreeItem>;
   openState: {[index: string]: boolean} = {};
 
@@ -48,6 +48,10 @@ export class TreeCheckboxesComponent implements OnInit, OnDestroy, OnChanges, Co
   }
 
   ngOnInit(): void {
+    setTimeout(() => {
+      this.toggleItem(this.tree?.[0]);
+      this.toggleItem(this.tree?.[0]);
+     }, 0);
     this.filterControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((search) => {
       this.updateValue();
     });
@@ -73,7 +77,10 @@ export class TreeCheckboxesComponent implements OnInit, OnDestroy, OnChanges, Co
     this.checkGlobalState();
   }
 
-  toggleItem(item: Partial<TreeItem>, isGlobal = false) {
+  toggleItem(item: Partial<TreeItem> = null, isGlobal = false) {
+    if (!item) {
+      return;
+    }
     this.onTouched();
     item.partialChecked = false;
     item.checked = !item.checked;

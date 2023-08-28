@@ -1,5 +1,5 @@
 import {Component, forwardRef, Input, OnDestroy, OnInit} from '@angular/core';
-import {ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR} from '@angular/forms';
+import {ControlValueAccessor, UntypedFormControl, NG_VALUE_ACCESSOR} from '@angular/forms';
 import {Store} from '@ngrx/store';
 import {BehaviorSubject, combineLatest, Observable, ReplaySubject, Subject} from 'rxjs';
 import {map, startWith, takeUntil} from 'rxjs/operators';
@@ -30,8 +30,8 @@ export class DateRangePickerComponent implements OnInit, ControlValueAccessor, O
     this.timezone$.next(timezone);
   }
 
-  public startControl = new FormControl();
-  public endControl = new FormControl();
+  public startControl = new UntypedFormControl();
+  public endControl = new UntypedFormControl();
   public selectedTimezone$: Observable<GlobalFilterTimeZone>;
   private destroy$ = new ReplaySubject(1);
   private timezone$ = new BehaviorSubject<string>(null);

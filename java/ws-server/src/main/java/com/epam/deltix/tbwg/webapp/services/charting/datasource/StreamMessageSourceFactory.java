@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,6 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.charting.datasource;
 
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
@@ -39,10 +40,10 @@ public class StreamMessageSourceFactory implements MessageSourceFactory {
 
     private final long PREFETCH_INTERVAL_MS = 60 * 1000;
 
+    private final TimebaseService timebase;
+
     @Value("${charting.use-interpret-codecs:false}")
     private boolean useInterpretCodecs;
-
-    private final TimebaseService timebase;
 
     @Autowired
     public StreamMessageSourceFactory(TimebaseService timebase) {
@@ -50,7 +51,8 @@ public class StreamMessageSourceFactory implements MessageSourceFactory {
     }
 
     @Override
-    public ReactiveMessageSource buildSource(String streamName, String symbol, Set<String> types, TimeInterval interval, boolean live) {
+    public ReactiveMessageSource buildSource(String streamName, String symbol, Set<String> types, TimeInterval interval,
+                                             boolean live, boolean unbound) {
         DXTickStream stream = timebase.getStream(streamName);
         if (stream == null) {
             throw new IllegalArgumentException("Can't find stream " + streamName);
@@ -59,24 +61,18 @@ public class StreamMessageSourceFactory implements MessageSourceFactory {
         DXTickDB db = stream.getDB();
         TimeBaseReactiveMessageSource.Builder builder = TimeBaseReactiveMessageSource.builder(db);
 
-        long time = Long.MAX_VALUE;
-        long currentStartTime = interval.getStartTimeMilli();
-        if (currentStartTime < time) {
-            time = currentStartTime;
-        }
-
-        //IdentityKey instrument = findInstrument(stream, symbol);
-        builder.time(time - PREFETCH_INTERVAL_MS);
+        builder.time(interval.getStartTimeMilli() - PREFETCH_INTERVAL_MS);
+        builder.endTime(interval.getEndTimeMilli() + PREFETCH_INTERVAL_MS);
         builder.typeLoader(new DefaultTypeLoader());
         if (useInterpretCodecs) {
             builder.interpreted();
         }
         builder.streams(stream);
         builder.symbols(symbol);
-        if (types != null) {
-            builder.types(types);
-        }
+        builder.types(types);
         builder.live(live);
+        builder.unbound(unbound);
+        builder.realTimeNotifications(true);
         return builder.build();
     }
 
@@ -89,20 +85,15 @@ public class StreamMessageSourceFactory implements MessageSourceFactory {
     public ReactiveMessageSource buildSource(String stream, String symbol, String qql, TimeInterval interval, boolean live, boolean unbound) {
         LOGGER.info().append("CHART QQL QUERY: ").append(qql).commit();
 
-        long time = Long.MAX_VALUE;
-
         DXTickDB db = timebase.getConnection();
         TimeBaseReactiveMessageSource.Builder builder = TimeBaseReactiveMessageSource.builder(db);
 
-        long currentStartTime = interval.getStartTimeMilli();
-        if (currentStartTime < time) {
-            time = currentStartTime;
-        }
-
-        builder.time(time);
+        builder.time(interval.getStartTimeMilli());
+        builder.endTime(interval.getEndTimeMilli() + PREFETCH_INTERVAL_MS);
         builder.qql(qql);
         builder.unbound(unbound);
         builder.live(live);
+        builder.realTimeNotifications(true);
         builder.typeLoader(new DefaultTypeLoader());
         if (useInterpretCodecs) {
             builder.interpreted();

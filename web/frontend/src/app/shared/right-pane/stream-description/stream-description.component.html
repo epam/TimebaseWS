@@ -1,0 +1,13 @@
+<app-right-info-wrapper [overflow]="true" >
+  <ng-container title>{{ title$ | async | translate }} {{ streamName$ | async }}</ng-container>
+  <ng-container content>
+    <app-stream-describe-content
+        [class.hidden]="!(viewLoaded$ | async)"
+        [stream]="stream$ | async"
+        [view]="view$ | async"
+    >
+      <button [class.hidden]="!(viewLoaded$ | async)" (click)="onCopy()" class="btn btn-info" type="button" >{{ 'streamDescriptionPane.copy' | translate }}</button>
+    </app-stream-describe-content>
+    <div [class.hidden]="viewLoaded$ | async" class="loader"></div>
+  </ng-container>
+</app-right-info-wrapper>

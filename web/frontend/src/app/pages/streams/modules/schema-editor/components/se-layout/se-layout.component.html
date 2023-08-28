@@ -1,7 +1,7 @@
 <div
     [ngClass]="{ newStream: currentTab && currentTab.streamCreate }"
     class="details-stream-wrap full-height-page">
-  <ng-template [ngIf]="(streamDetails | async).errorMessage">
+  <ng-template *ngIf="(streamDetails | async).errorMessage">
     <p class="error-message">
       <span [title]="(streamDetails | async).errorMessage" class="error-message-text">
         {{ (streamDetails | async).errorMessage }}
@@ -18,14 +18,14 @@
       (dragEnd)="onAreaSizeChange($event)"
       *ngIf="showClassListGrid$ | async"
       [appSplitterSizes]="[50, 50]"
-      [minSizes]="[340, 470]"
+      [minSizes]="[480, 470]"
       [storageKey]="'schemaEditor' + (activeTab | async)?.id"
       direction="horizontal">
     <as-split-area [order]="1">
       <div class="col-md-12 class-list-section">
         <div class="class-list-wr">
           <app-cl-control-panel *ngIf="isWriter$ | async"></app-cl-control-panel>
-          <app-class-list-grid class="types-list-grid"></app-class-list-grid>
+          <app-class-list-grid class="types-list-grid" (addNewItemEvent)="addNewItemToClassList($event)"></app-class-list-grid>
           <app-cl-bottom-panel *ngIf="isWriter$ | async"></app-cl-bottom-panel>
         </div>
       </div>
@@ -37,32 +37,12 @@
             <as-split-area [order]="3" [size]="50">
               <div class="class-details top-right-corner">
                 <app-fl-control-panel *ngIf="isWriter$ | async"></app-fl-control-panel>
-                <app-fields-list></app-fields-list>
+                <app-fields-list (addNewFieldEvent)="addNewItemToFieldsList($event)"></app-fields-list>
               </div>
             </as-split-area>
             <as-split-area [order]="4" [size]="50">
               <div class="class-details bottom-right-corner">
-                <app-field-properties>
-                  <ng-container *ngIf="!(getSchemaDiff$ | async)" save-btn>
-                    <button
-                        (click)="onAskToCreateStream()"
-                        *ngIf="(isSchemaEdited$ | async) && currentTab?.streamCreate"
-                        [disabled]="hasSchemaError$ | async"
-                        [ngClass]="createStreamBtnClass$ | async"
-                        class="btn save-btn"
-                        type="button">
-                      {{ 'buttons.create' | translate }} >
-                    </button>
-                    <button
-                        (click)="onAskChanges()"
-                        *ngIf="(isSchemaEdited$ | async) && currentTab && !currentTab.streamCreate"
-                        [disabled]="hasSchemaError$ | async"
-                        class="btn save-btn btn-success"
-                        type="button">
-                      {{ 'buttons.next' | translate }} >
-                    </button>
-                  </ng-container>
-                </app-field-properties>
+                <app-field-properties></app-field-properties>
               </div>
             </as-split-area>
           </ng-template>
@@ -72,6 +52,25 @@
             </as-split-area>
           </ng-template>
         </as-split>
+        <div *ngIf="!(getSchemaDiff$ | async)" class="save-btn-container" save-btn>
+          <button
+              (click)="onAskToCreateStream()"
+              *ngIf="(isSchemaEdited$ | async) && currentTab?.streamCreate"
+              [disabled]="hasSchemaError$ | async"
+              [ngClass]="createStreamBtnClass$ | async"
+              class="btn save-btn"
+              type="button">
+            {{ 'buttons.create' | translate }} >
+          </button>
+          <button
+              (click)="onAskChanges()"
+              *ngIf="(isSchemaEdited$ | async) && currentTab && !currentTab.streamCreate"
+              [disabled]="hasSchemaError$ | async"
+              class="btn save-btn btn-success"
+              type="button">
+            {{ 'buttons.next' | translate }} >
+          </button>
+        </div>
       </div>
     </as-split-area>
   </as-split>
@@ -79,15 +78,15 @@
     <div class="class-details">
       <app-diff-layout></app-diff-layout>
     </div>
-  </div>
-  
-  <div *ngIf="getSchemaDiff$ | async" class="send-schema-btn send-schema-btn-wr no-padding-right">
-    <button (click)="onBackToEditor()" class="btn btn btn-primary" type="button">
-      < {{ 'buttons.back' | translate }}
-    </button>
-    <button (click)="onAskSaveChanges()" class="btn btn btn-success" type="button">
-      {{ 'buttons.finish' | translate }} >
-    </button>
+
+    <div *ngIf="getSchemaDiff$ | async" class="send-schema-btn send-schema-btn-wr no-padding-right">
+      <button (click)="onBackToEditor()" class="btn btn btn-primary" type="button">
+        < {{ 'buttons.back' | translate }}
+      </button>
+      <button (click)="onAskSaveChanges()" class="btn btn btn-success" type="button">
+        {{ 'buttons.finish' | translate }} >
+      </button>
+    </div>
   </div>
 </div>
 

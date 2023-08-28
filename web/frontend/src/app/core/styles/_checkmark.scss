@@ -1,0 +1,17 @@
+@import '~src/app/core/styles/variables';
+
+.dropdown-checkmark.container-ch{
+  .checkmark {
+    border-color: transparent;
+    background-color: transparent;
+  }
+
+  input:checked ~ .checkmark {
+    border-color: transparent;
+    background-color: transparent;
+  }
+
+  &:hover input ~ .checkmark {
+    background-color: transparent;
+  }
+}

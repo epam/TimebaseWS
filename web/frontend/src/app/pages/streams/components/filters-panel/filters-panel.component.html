@@ -1,7 +1,6 @@
 <ng-template [ngIf]="!hideTimePicker">
-  <div class="time-fromWr">
+  <div [class.hidden]="hasError" class="time-fromWr">
     <div class="controlWr datepicker-inputWr">
-      <label class="btn timePickerLabel">From</label>
       <input
           #dp="bsDatepicker"
           [appSafeDatePickerValue]="dateTitle$ | async"
@@ -21,29 +20,34 @@
   <button
       (click)="onDateSubmit()"
       [class.btn-active]="manuallyChanged$ | async"
+      [class.hidden]="hasError"
       [tooltip]="'buttons.apply_start_date' | translate"
       class="btn btn-info controlWr"
       placement="bottom"
       type="submit">
-    Apply
+    {{ 'filtersPanel.apply' | translate }}
   </button>
-    <button
-        (click)="onClearFilter()"
-        [tooltip]="'buttons.clean_start_date' | translate"
-        class="btn btn-navy controlWr"
-        placement="bottom"
-        type="button">
-      Clean
-    </button>
+  <button
+      (click)="onClearFilter()"
+      [class.hidden]="hasError"
+      [tooltip]="'buttons.clean_start_date' | translate"
+      class="btn btn-navy controlWr"
+      placement="bottom"
+      type="button">
+    {{ 'filtersPanel.clean' | translate }}
+  </button>
 </ng-template>
-<div class="filterForm d-flex">
+<div [class.hidden]="hasError" class="filterForm d-flex">
+  <button *ngIf="showExportBtn$ | async" (click)="export()" class="btn btn-info export-btn">
+    {{ 'filtersPanel.export' | translate }}
+  </button>
   <button
       (click)="openFilterModalWithComponent()"
       [class.btn-active]="filteredTypesSymbols$ | async"
       [tooltip]="'buttons.filters' | translate"
-      class="btn btn-info symbolsTypesFilter"
+      class="btn btn-info"
       container="body"
       placement="bottom">
-    Filter
+    {{ 'filtersPanel.filter' | translate }}
   </button>
 </div>

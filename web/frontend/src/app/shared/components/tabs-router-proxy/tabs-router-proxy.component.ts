@@ -52,7 +52,7 @@ export class TabsRouterProxyComponent implements OnInit {
 
       if (!newTab) {
         this.tabStorageService
-          .replaceTab(tabs[activeIndex].id, tab.id)
+          .replaceTab(tabs[activeIndex], tab)
           .pipe(take(1))
           .subscribe(() => {
             this.appStore.dispatch(
@@ -63,6 +63,8 @@ export class TabsRouterProxyComponent implements OnInit {
                 },
               ]),
             );
+  
+            this.goToTab(tab);
           });
       } else {
         this.appStore.dispatch(
@@ -71,11 +73,14 @@ export class TabsRouterProxyComponent implements OnInit {
             position: tabs.length,
           }),
         );
+        this.goToTab(tab);
       }
-
-      this.router.navigate([appRoute, ...tab.linkArray], {
-        queryParams: tab.linkQuery,
-      });
+    });
+  }
+  
+  private goToTab(tab: TabModel) {
+    this.router.navigate([appRoute, ...tab.linkArray], {
+      queryParams: tab.linkQuery,
     });
   }
 }

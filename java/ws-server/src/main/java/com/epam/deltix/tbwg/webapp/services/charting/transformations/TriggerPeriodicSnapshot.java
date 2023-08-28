@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,26 +14,29 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 
 import com.epam.deltix.tbwg.messages.Message;
 import com.epam.deltix.tbwg.messages.SnapshotMessage;
-import com.epam.deltix.timebase.messages.MarketMessageInfo;
+import com.epam.deltix.timebase.messages.InstrumentMessage;
 import com.epam.deltix.timebase.messages.MessageInfo;
+import com.epam.deltix.timebase.messages.service.RealTimeStartMessage;
 
 import java.util.Collections;
 
 /**
- * The transformation converts legacy market message (bbo, l2, level2, trade) to package header.
+ *
  */
 public class TriggerPeriodicSnapshot extends AbstractChartTransformation<SnapshotMessage, MessageInfo> {
 
-    private final PeriodicityFilter filter;
+    private long periodicity;
+    private long lastTimestamp = System.currentTimeMillis();
+    private boolean isLive;
 
     public TriggerPeriodicSnapshot(long periodicity) {
-        super(Collections.singletonList(MessageInfo.class), Collections.singletonList(SnapshotMessage.class));
-
-        this.filter = new PeriodicityFilter(periodicity);
+        super(Collections.singletonList(InstrumentMessage.class), Collections.singletonList(SnapshotMessage.class));
+        this.periodicity = periodicity;
     }
 
     @Override
@@ -43,8 +46,16 @@ public class TriggerPeriodicSnapshot extends AbstractChartTransformation<Snapsho
 
     @Override
     protected void onNextPoint(MessageInfo message) {
-        if (filter.test(message)) {
-            sendMessage(new SnapshotMessage(message.getTimeStampMs()));
+        if (message instanceof RealTimeStartMessage) {
+            isLive = true;
+        }
+
+        if (isLive) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastTimestamp > periodicity) {
+                lastTimestamp = currentTime;
+                sendMessage(new SnapshotMessage(currentTime));
+            }
         }
 
         sendMessage(message);

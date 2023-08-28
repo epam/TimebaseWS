@@ -3,6 +3,8 @@ import {GlobalFilterTimeZone} from '../pages/streams/models/global.filter.model'
 import {TimeZone} from './models/timezone.model';
 import {getTimeZones, getTimeZoneTitle, hdDateTZ} from './utils/timezone.utils';
 
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 export const dateFormatsSupported = [
   'MM/dd/yyyy',
   'yyyy-MM-dd',
@@ -277,13 +279,13 @@ const now = new HdDate();
 
 export const toUtc = (date: any) => {
   const newDate = new HdDate(date);
-  newDate.setMilliseconds(newDate.getMilliseconds() + now.getTimezoneOffset() * 60 * 1000);
+  newDate.setMilliseconds(newDate.getMilliseconds() + new Date().getTimezoneOffset() * 60 * 1000);
   return newDate;
 };
 
 export const fromUtc = (date: any) => {
   const newDate = new HdDate(date);
-  newDate.setMilliseconds(newDate.getMilliseconds() - now.getTimezoneOffset() * 60 * 1000);
+  newDate.setMilliseconds(newDate.getMilliseconds() - new Date().getTimezoneOffset() * 60 * 1000);
   return newDate;
 };
 
@@ -294,6 +296,10 @@ export function formatHDate(
   filter_date_format?: string[],
   filter_time_format?: string[],
   filter_timezone?: any[],
+  gridFormat = false,
+  nanoTime = '',
+  showNanoSeconds = false,
+  periodicity = 0
 ) {
   if (!data) {
     return null;
@@ -306,10 +312,17 @@ export function formatHDate(
    }*/
 
   // Locale time
-  let date = new HdDate(data);
+  let date = new HdDate(nanoTime || data);
+  const nanoSeconds = date.getNanosFraction();
+
   if (filter_timezone && filter_timezone.length) {
-    date = toUtc(data);
-    date = toUtc(hdDateTZ(date, filter_timezone[0].name));
+      // data is in UTC format, but HdDate creates a Date object with the local timezone
+      const newDate = new HdDate(data);
+      // Date object must be displayed according to the selected timezone
+      const offset = newDate.getTimezoneOffset() + filter_timezone[0].offset;
+      newDate.setMilliseconds(newDate.getMilliseconds() + offset * 60 * 1000);
+      newDate.setNanoseconds(nanoSeconds);
+      date = newDate;
   }
 
   let date_format = localeFormat;
@@ -320,15 +333,75 @@ export function formatHDate(
   if (filter_time_format && filter_time_format.length) {
     time_format = filter_time_format[0];
   }
-  return date.toLocaleFormat(date_format) + ' ' + date.toLocaleFormat(time_format);
+
+  const initialDate = new HdDate(date.getTime() - periodicity);
+
+  if (periodicity) {
+    if (periodicity >= 31104e6) { // year
+      return `${date.getFullYear()}`;
+    } else if (periodicity >= 7776e6) { // quarter
+      const dateInsidePeriodicity = new HdDate(date.getTime() - 2592e6);
+      const month = dateInsidePeriodicity.getMonth();
+      const year = dateInsidePeriodicity.getFullYear();
+      switch (month) {
+        case 0:
+        case 1:
+        case 2:
+          return `I ${year}`;
+        case 3:
+        case 4:
+        case 5:
+          return `II ${year}`;
+        case 6:
+        case 7:
+        case 8:
+          return `III ${year}`;
+        case 9:
+        case 10:
+        case 11:
+          return `IV ${year}`;
+      }
+    } else if (periodicity >= 2592e6) { // months
+      return `${months[date.getMonth()]} ${date.getFullYear()}`;
+    } else if (periodicity >= 864e5) { // days&weeks
+      return initialDate.toLocaleFormat(date_format);
+    } else if (periodicity >= 6e4) { // hours, minutes
+      return `${initialDate.toLocaleFormat(date_format)} 
+        ${formatOneDigitNumber(initialDate.getHours())}:${formatOneDigitNumber(initialDate.getMinutes())} - 
+        ${formatOneDigitNumber(date.getHours())}:${formatOneDigitNumber(date.getMinutes())}`;
+    } else { // seconds
+      return `${initialDate.toLocaleFormat(date_format)} 
+        ${formatOneDigitNumber(initialDate.getHours())}:${formatOneDigitNumber(initialDate.getMinutes())}:${formatOneDigitNumber(initialDate.getSeconds())}
+        - ${formatOneDigitNumber(date.getHours())}:${formatOneDigitNumber(date.getMinutes())}:${formatOneDigitNumber(date.getSeconds())}`;
+    }
+  }
+
+  let dateAsString = date.toLocaleFormat(date_format) + ' ' + date.toLocaleFormat(time_format);
+
+  if (!showNanoSeconds && time_format.includes('ffffff')) {
+    const splitDate = dateAsString.split('.');
+    const milliseconds = splitDate.pop();
+    let filteredSeconds = milliseconds.slice(0, 3);
+    for (let i = 3; i < milliseconds.length; i++) {
+      if (milliseconds[i] !== '0') {
+        filteredSeconds += milliseconds[i];
+      }
+    }
+    dateAsString = `${splitDate.join('')}.${filteredSeconds}`;
+  }
+  return dateAsString;
 }
+
+function formatOneDigitNumber(num: number) {
+  return num < 10 ? `0${num}` : num;
+} 
 
 export function getDateUsingTZ(date: Date, timeZone) {
   if (!timeZone || !date) {
     return null;
   }
 
-  const localOffset = -new HdDate().getTimezoneOffset();
+  const localOffset = -new Date().getTimezoneOffset();
   const selectedOffset = timeZone.offset;
   const newDate = new HdDate(date.toISOString());
 

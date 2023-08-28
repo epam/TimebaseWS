@@ -4,6 +4,7 @@ import {TranslateService} from '@ngx-translate/core';
 import {RxStompConfig} from '@stomp/rx-stomp';
 import {Versions} from '@stomp/stompjs/esm5/versions';
 import {filter, switchMap, take, withLatestFrom} from 'rxjs/operators';
+import {TabNavigationService} from 'src/app/shared/services/tab-navigation.service';
 import {ConnectionStatus} from '../../../shared/models/connection-status';
 import {CheckConnectionService} from '../../../shared/services/check-connection.service';
 import * as NotificationsActions from '../../modules/notifications/store/notifications.actions';
@@ -25,6 +26,7 @@ export class AppComponent implements OnInit {
     private appStore: Store<AppState>,
     private wsService: WSService,
     private checkConnectionService: CheckConnectionService,
+    private tabNavigationService: TabNavigationService
   ) {
     translate.setDefaultLang('en');
     translate.use('en');
@@ -32,6 +34,10 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.appStore.dispatch(new AuthActions.GetAuthProviderInfo());
+    const shareTab = new URLSearchParams(location.search).get('shareTab');
+    if (shareTab) {
+      localStorage.setItem('shareTab', shareTab);
+    }
 
     this.appStore
       .select('appSelf')
@@ -53,6 +59,7 @@ export class AppComponent implements OnInit {
         withLatestFrom(this.appStore.pipe(select(getAccessToken))),
       )
       .subscribe(([appState, accessToken]) => {
+        appState.preventRequests = false;
         this.appStore.dispatch(new AppActions.StartListeningVisibilityChange());
         this.appStore.dispatch(new AppActions.GetCurrencies());
         this.appStore.dispatch(new AppActions.GetAppSettings());
@@ -90,6 +97,10 @@ export class AppComponent implements OnInit {
             console.warn('WS Error', e); // TODO: Replace to Universal logger or delete this before commit
           }
         });
+        
+        this.wsService.webSocketErrors$.subscribe(() => {
+          this.checkConnectionService.requestError();
+        });
       });
 
     this.checkConnectionService.connectionStatus().subscribe((status) => {
@@ -111,5 +122,6 @@ export class AppComponent implements OnInit {
         );
       }
     });
+    this.tabNavigationService.addNavigationEventListeners();
   }
 }

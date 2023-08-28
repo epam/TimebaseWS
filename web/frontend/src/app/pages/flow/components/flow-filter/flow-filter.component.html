@@ -1,27 +1,44 @@
-<div class="d-flex justify-content-start">
-  <form [formGroup]="dataFilterForm" class="filter">
+<form class="filter" [formGroup]="form">
+  <div class="filter__item">
     <label>{{ 'titles.topology' | translate }}</label>
-    <div class="ng-multiselect-dropdown flat-multiselect">
-      <div class="multiselect-dropdown">
-        <div btnRadioGroup formControlName="topologyType" class="btn-group radio-group"  (click)="onTopologySelect()">
-          <button *ngFor="let topology of (topologies$ | async); trackBy: topologiesTrackBy" [btnRadio]="topology.type" class="btn btn-default">
-            {{('titles.topologies.' + topology.type) | translate}}
-          </button>
-        </div>
-      </div>
+    <div btnRadioGroup formControlName="topology" class="btn-group radio-group" >
+      <button (click)="topologyManuallyChanged()" *ngFor="let topology of topologies" [btnRadio]="topology" class="btn btn-default">
+        {{('titles.topologies.' + topology) | translate}}
+      </button>
     </div>
-  </form>
-  <div class="filter streams-filter">
-    <label>{{ 'titles.filter' | translate }}</label>
-    <ng-multiselect-dropdown
-        (ngModelChange)="onSelectedNodesChanged($event)"
-        [(ngModel)]="selectedNodes"
-        [class.has-values]="selectedNodes && selectedNodes.length"
-        [data]="nodesList$ | async"
-        [disabled]="!(nodesList$ | async) || !(nodesList$ | async).length"
-        [settings]="dropdownSettings"
-        class="flat-multiselect">
-    </ng-multiselect-dropdown>
   </div>
-</div>
+  <div class="filter__item">
+    <label>{{ 'titles.filter_by_RPS' | translate }}</label>
+    <div class="rps-filter-type">
+      <app-select class="flat-multiselect in-modal"
+          [displayValue]="(rpsFilterTypeVal$ | async) | translate"
+          [setNull]="false"
+          formControlName="rpsType">
+        <option *ngFor="let rpsType of rpsTypeValues" [value]="rpsType" appSelectOption>
+          {{'dropdownTitles.' + rpsType | translate}}
+        </option>
+      </app-select>
+    </div>
+    <deltix-ng-autocomplete
+        cssClass="in-modal"
+        (changeInput)="onRPSFilterChangeInput($event)"
+        (selectItem)="onRPSFilterChangeInput($event)"
+        [values]="rpsValues"
+        [size]="6"
+        [free]="true"
+        formControlName="rpsVal"
+        maxlength="3">
+    </deltix-ng-autocomplete>
+  </div>
+  <div class="filter__item nodes-filter">
+    <label>{{ 'titles.filter' | translate }}: </label>
+    <label>{{ 'titles.filter_by_name' | translate }}</label>
+    <app-multi-select
+        formControlName="nodes"
+        placeholder="Select"
+        [items]="nodesList$ | async"
+        [flat]="true"
+    ></app-multi-select>
+  </div>
+</form>
 

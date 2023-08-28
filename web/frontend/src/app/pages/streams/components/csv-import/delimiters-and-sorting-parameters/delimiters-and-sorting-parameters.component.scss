@@ -1,0 +1,47 @@
+.form-control {
+  width: 4rem;
+  height: 1.6rem;
+  padding: 0.3rem;
+  text-align: center;
+  margin-left: 0.5rem;
+  font-weight: 600;
+}
+
+.delimiters-container, .sort-params-container, .file-by-symbol {
+  padding: 0.3rem 2rem;
+  border-top: 1px solid rgb(99, 99, 99);
+}
+
+.sorting-label {
+  margin-top: 0.1rem;
+}
+
+.form-check-inline {
+  margin-top: -0.2rem;
+}
+
+.col-8 {
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+}
+
+.col-md-4 {
+  margin-top: 0.1rem;
+}
+
+.edited {
+  background-color:  rgba(255, 192, 203, 0.15);
+}
+
+.invalid {
+  background-color: rgba(255, 82, 88, 0.15);
+}
+
+.edited-row {
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 192, 203, 0.15) 10% 90%,
+    transparent
+  );;
+}

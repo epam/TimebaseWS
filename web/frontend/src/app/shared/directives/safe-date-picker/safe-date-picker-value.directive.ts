@@ -20,6 +20,8 @@ import { takeUntil }             from 'rxjs/operators';
 export class SafeDatePickerValueDirective implements OnInit, OnDestroy, OnChanges {
   @Input() appSafeDatePickerValue: Date | string;
   @Output() appSafeDatePickerValueChange = new EventEmitter<Date | string>();
+  @Output() dateValueChanged = new EventEmitter<Date>();
+  @Output() dateValueInvalid = new EventEmitter<void>();
 
   private destroy$ = new ReplaySubject(1);
   private lastValidValue: Date;
@@ -31,8 +33,13 @@ export class SafeDatePickerValueDirective implements OnInit, OnDestroy, OnChange
 
   @HostListener('input', ['$event.target.value']) change(dateString: string) {
     this.lastManuallyEnteredValid =
-      this.getDateRegexp().test(dateString) &&
-      !!parseDate(dateString, this.datePicker._config.dateInputFormat).getTime();
+      (this.getDateRegexp().test(dateString) && 
+      !!parseDate(dateString, this.datePicker._config.dateInputFormat).getTime());
+    if (this.lastManuallyEnteredValid) {
+      this.dateValueChanged.emit(new Date(dateString));
+    } else {
+      this.dateValueInvalid.emit();
+    }
     this.lastManuallyEntered = dateString;
   }
 

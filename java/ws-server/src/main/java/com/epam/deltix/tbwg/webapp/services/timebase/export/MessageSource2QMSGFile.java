@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,16 +14,17 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.timebase.export;
 
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.pub.RawMessage;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
+import com.epam.deltix.qsrv.hf.stream.MessageWriter2;
 import com.epam.deltix.qsrv.hf.tickdb.pub.query.InstrumentMessageSource;
 import com.epam.deltix.tbwg.webapp.model.input.ExportMode;
 import com.epam.deltix.tbwg.webapp.model.input.ExportRequest;
-import com.epam.deltix.tbwg.webapp.utils.MessageWriter3;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
 import com.epam.deltix.util.time.Interval;
 
@@ -32,8 +33,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.zip.GZIPOutputStream;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class MessageSource2QMSGFile extends StreamExporter {
@@ -43,12 +42,9 @@ public class MessageSource2QMSGFile extends StreamExporter {
     private final Interval periodicity;
 
     @SuppressWarnings({"unchecked", "unused"})
-    public MessageSource2QMSGFile(AtomicLong exportProcesses, ExportSourceFactory sourceFactory,
-                                  ExportRequest request, boolean convertNamespaces) {
-
+    public MessageSource2QMSGFile(AtomicLong exportProcesses, ExportSourceFactory sourceFactory, ExportRequest request) {
         super(exportProcesses, null, sourceFactory, request,
-            Long.MIN_VALUE, Long.MAX_VALUE, 0, Integer.MAX_VALUE,
-            convertNamespaces, null
+            Long.MIN_VALUE, Long.MAX_VALUE, 0, Integer.MAX_VALUE, null
         );
         this.periodicity = null;
     }
@@ -56,11 +52,8 @@ public class MessageSource2QMSGFile extends StreamExporter {
     public MessageSource2QMSGFile(AtomicLong exportProcesses,
                                   String file, ExportSourceFactory sourceFactory, ExportRequest request,
                                   long fromTimestamp, long toTimestamp, long startIndex, long endIndex,
-                                  Interval periodicity, boolean convertNamespaces,
-                                  RecordClassDescriptor... descriptors)
-    {
-        super(exportProcesses, file, sourceFactory, request, fromTimestamp, toTimestamp, startIndex, endIndex,
-            convertNamespaces, descriptors);
+                                  Interval periodicity, RecordClassDescriptor... descriptors) {
+        super(exportProcesses, file, sourceFactory, request, fromTimestamp, toTimestamp, startIndex, endIndex, descriptors);
         this.periodicity = periodicity;
     }
 
@@ -81,8 +74,7 @@ public class MessageSource2QMSGFile extends StreamExporter {
 
     private void exportSingleFile(OutputStream outputStream) throws IOException {
         try (InstrumentMessageSource source = sourceFactory.newMessageSource();
-             MessageWriter3 messageWriter = TBWGUtils.create(outputStream, periodicity, convertNamespaces, descriptors))
-        {
+             MessageWriter2 messageWriter = TBWGUtils.create(outputStream, periodicity, descriptors)) {
             exportFile(messageWriter, source);
         } catch (ClassNotFoundException e) {
             LOGGER.error().append("Unexpected ").append(e).commit();
@@ -96,66 +88,34 @@ public class MessageSource2QMSGFile extends StreamExporter {
     }
 
     private void exportSpaces(ZipOutputStream zipOutputStream, List<String> spaces) throws IOException {
-        try {
-            StreamsExportSourceFactory streamSourceFactory;
-            if (sourceFactory instanceof StreamsExportSourceFactory) {
-                streamSourceFactory = (StreamsExportSourceFactory) sourceFactory;
-            } else {
-                throw new IllegalStateException("Can't select spaces from query source");
+        for (String space : spaces) {
+            sourceFactory.getOptions().withSpace(space);
+            try (ZipFileWriter writer = new QMSGZipEntryFileWriter(this, zipOutputStream);
+                 InstrumentMessageSource source = sourceFactory.newMessageSource()) {
+                writer.writeFile(source, encodeName(space) + ExportService.MSG_FORMAT);
             }
-
-            for (String space : spaces) {
-                zipOutputStream.putNextEntry(new ZipEntry(encodeName(space) + ExportService.MSG_FORMAT));
-                GZIPOutputStream gzos = new GZIPOutputStream(zipOutputStream, 1 << 16 / 2);
-                MessageWriter3 messageWriter = TBWGUtils.create(gzos, periodicity, null, convertNamespaces, descriptors);
-
-                streamSourceFactory.getOptions().withSpace(space);
-                try (InstrumentMessageSource source = sourceFactory.newMessageSource()) {
-                    exportFile(messageWriter, source);
-                } finally {
-                    // do not close message writer, close archive entry instead
-                    messageWriter.flush();
-                    gzos.finish();
-                    zipOutputStream.closeEntry();
-                }
-            }
-        } catch (ClassNotFoundException e) {
-            LOGGER.error().append("Unexpected ").append(e).commit();
         }
     }
 
     private void exportFilePerSymbol(OutputStream outputStream) throws IOException {
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream);
-             InstrumentMessageSource source = sourceFactory.newMessageSource())
-        {
+             InstrumentMessageSource source = sourceFactory.newMessageSource()) {
             exportByKey(this::getSymbols, (symbols) -> exportSymbols(zipOutputStream, source, symbols));
         }
     }
 
     private void exportSymbols(ZipOutputStream zipOutputStream, InstrumentMessageSource source, List<String> symbols) throws IOException {
-        try {
-            for (String symbol : symbols) {
-                zipOutputStream.putNextEntry(new ZipEntry(encodeName(symbol) + ExportService.MSG_FORMAT));
-                GZIPOutputStream gzos = new GZIPOutputStream(zipOutputStream, 1 << 16 / 2);
-                MessageWriter3 messageWriter = TBWGUtils.create(gzos, periodicity, null, convertNamespaces, descriptors);
-                try {
-                    source.clearAllSymbols();
-                    source.addSymbol(symbol);
-                    source.reset(fromTimestamp);
-                    exportFile(messageWriter, source);
-                } finally {
-                    // do not close message writer, close archive entry instead
-                    messageWriter.flush();
-                    gzos.finish();
-                    zipOutputStream.closeEntry();
-                }
+        for (String symbol : symbols) {
+            try (ZipFileWriter writer = new QMSGZipEntryFileWriter(this, zipOutputStream)) {
+                source.clearAllSymbols();
+                source.addSymbol(symbol);
+                source.reset(fromTimestamp);
+                writer.writeFile(source, encodeName(symbol) + ExportService.MSG_FORMAT);
             }
-        } catch (ClassNotFoundException e) {
-            LOGGER.error().append("Unexpected ").append(e).commit();
         }
     }
 
-    private void exportFile(MessageWriter3 messageWriter, InstrumentMessageSource source) {
+    private void exportFile(MessageWriter2 messageWriter, InstrumentMessageSource source) {
         int messageIndex = 0;// inclusive
         while (source.next() && (endIndex < 0 || messageIndex <= endIndex)) {
             if (messageIndex >= startIndex) {
@@ -168,4 +128,7 @@ public class MessageSource2QMSGFile extends StreamExporter {
         }
     }
 
+    public Interval getPeriodicity() {
+        return periodicity;
+    }
 }

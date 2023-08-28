@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.timebase.export;
+package com.epam.deltix.tbwg.webapp.services.timebase.export;
 
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
 import com.epam.deltix.tbwg.webapp.model.input.ExportRequest;
@@ -24,11 +24,13 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 public interface ExportService {
 
     String MSG_FORMAT = ".qsmsg.gz";
+    String ZIP_FORMAT = ".zip";
+    String CSV_FORMAT = ".csv";
 
     String prepareExport(
         ExportSourceFactory exportSourceFactory, ExportRequest request,
         long startTime, long endTime, long startIndex, long endIndex,
-        Interval periodicity, boolean convertNamespaces, RecordClassDescriptor[] rcds
+        Interval periodicity, RecordClassDescriptor[] rcds
     );
 
     StreamingResponseBody getExportBody(String id);

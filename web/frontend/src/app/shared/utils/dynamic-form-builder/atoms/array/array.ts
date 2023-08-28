@@ -1,5 +1,5 @@
 import {Component, Input, OnInit} from '@angular/core';
-import {FormArray, FormControl, FormGroup, Validators} from '@angular/forms';
+import {UntypedFormArray, UntypedFormControl, UntypedFormGroup, Validators} from '@angular/forms';
 import {FieldModel} from '../../field-builder/field-model';
 
 //
@@ -64,8 +64,8 @@ import {FieldModel} from '../../field-builder/field-model';
 })
 export class ArrayComponent implements OnInit {
   @Input() field: FieldModel;
-  @Input() form: FormGroup;
-  public controlsArray: FormArray;
+  @Input() form: UntypedFormGroup;
+  public controlsArray: UntypedFormArray;
   public isControlInited: boolean;
 
   constructor() {}
@@ -86,7 +86,7 @@ export class ArrayComponent implements OnInit {
         : this.field.required
         ? [{}]
         : [];
-    this.controlsArray = new FormArray(
+    this.controlsArray = new UntypedFormArray(
       controls.map(this.getFormGroup.bind(this)),
       this.field.required ? [Validators.required] : null,
     );
@@ -97,19 +97,19 @@ export class ArrayComponent implements OnInit {
   getFormGroup(value: any) {
     const controls = {};
     this.field.childFields.forEach((field: FieldModel) => {
-      controls[field.name] = new FormControl(
+      controls[field.name] = new UntypedFormControl(
         value[field.name] !== null ? value[field.name] : '',
         field.required ? [Validators.required] : null,
       );
     });
-    return new FormGroup(controls);
+    return new UntypedFormGroup(controls);
   }
 
   addNewControls() {
-    (<FormArray>this.controlsArray).push(this.getFormGroup({}));
+    (<UntypedFormArray>this.controlsArray).push(this.getFormGroup({}));
   }
 
   removeControls(controlGroup) {
-    (<FormArray>this.controlsArray).removeAt(controlGroup);
+    (<UntypedFormArray>this.controlsArray).removeAt(controlGroup);
   }
 }

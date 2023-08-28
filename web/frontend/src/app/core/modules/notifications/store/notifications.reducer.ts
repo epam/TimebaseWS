@@ -74,6 +74,11 @@ export function reducer(state = initialState, action: NotificationsActions): Sta
         ...state,
         notifications: [...state.notifications],
       };
+    case NotificationsActionTypes.REMOVE_WEBSOCKET_NOTIFICATIONS:
+      return {
+        ...state,
+        warns: state.warns.filter(warn => warn.message !== 'Websocket connection was closed unexpectedly')
+      };
     default:
       return state;
   }

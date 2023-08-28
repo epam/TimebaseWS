@@ -1,5 +1,5 @@
 import {Injectable} from '@angular/core';
-import {FormGroup} from '@angular/forms';
+import {UntypedFormGroup} from '@angular/forms';
 import {select, Store} from '@ngrx/store';
 import {BehaviorSubject, combineLatest, Observable, Subject} from 'rxjs';
 import {distinctUntilChanged, filter, map, take} from 'rxjs/operators';
@@ -83,19 +83,19 @@ export class SeFieldFormsService {
     return this.appStore.pipe(select(getSelectedFieldProps));
   }
 
-  currentKey(): Observable<string> {
+  currentKey(nullIfNoField = false): Observable<string> {
     return combineLatest([
       this.currentField(),
       this.appStore.pipe(select(getSelectedSchemaItem)),
     ]).pipe(
-      filter(([field, type]) => !!field && !!type),
+      filter(([field, type]) => (!!field || nullIfNoField) && !!type),
       map(([field, type]) => [type._props._uuid, field?._props._uuid]),
-      map(([type, field]) => this.key(type, field)),
+      map(([type, field]) => (field ? this.key(type, field) : null)),
       distinctUntilChanged(),
     );
   }
 
-  formGroupChange(form: FormGroup) {
+  formGroupChange(form: UntypedFormGroup) {
     this.updateErrorState(form.invalid);
     this.currentKey()
       .pipe(take(1))
@@ -114,7 +114,7 @@ export class SeFieldFormsService {
     this.lastField = key;
   }
 
-  formValueChanged(form: FormGroup) {
+  formValueChanged(form: UntypedFormGroup) {
     this.updateErrorState(form.invalid);
     this.currentKey()
       .pipe(take(1))
@@ -220,9 +220,13 @@ export class SeFieldFormsService {
   }
 
   private updateErrorState(state: boolean) {
-    this.currentKey()
+    this.currentKey(true)
       .pipe(take(1))
       .subscribe((key) => {
+        if (key === null) {
+          return;
+        }
+
         this.hasError.set(key, state);
         this.updateAnyError();
       });

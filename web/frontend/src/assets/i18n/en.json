@@ -14,6 +14,7 @@
     "spaceRenameSucceeded": "Space will be renamed",
     "symbolRenameSucceeded": "Request to rename symbol is send",
     "sendMessageSucceeded": "Message is sent",
+    "updateMessageSucceeded": "Message is updated",
     "smallTimeRange": "You select too small time range. Time range should be more than {{range}}ms.",
     "auth_error_notification": "Your auth token it invalid. You will redirect to login page after closing this notification.",
     "onbeforeunloadMessage": "There are some necessary changes on page. Do you really want to drop changes and continue your action?",
@@ -29,12 +30,13 @@
     "login": "Sign In",
     "logout": "Sign Out",
     "changeName": "Rename",
-    "describe": "Description of the stream: ",
     "sendMessage": "Send message to the stream: ",
+    "editMessage": "Edit message",
     "msgDetails": "Stream Message Details",
     "streamProps": "Stream Properties",
     "symbolProps": "Symbol Properties",
     "versionPrefix": "v.",
+    "versionHidden": "v.1.1.32",
     "enums": "Enumerators",
     "classes": "Classes",
     "removeSelectedItem": "Remove Selected Item",
@@ -42,14 +44,16 @@
     "flow_path_home": "Home",
     "search": "Search",
     "filter": "Filter",
+    "filter_by_name": "By Name",
+    "filter_by_RPS": "By RSP",
     "topology": "Topology",
     "flow": {
       "source": "Source",
       "target": "Target",
       "loaders": "Loaders",
       "cursors": "Cursors",
-      "incomingConnections": "Incoming Connections",
-      "outgoingConnections": "Outgoing Connections"
+      "incomingConnections": "Incoming",
+      "outgoingConnections": "Outgoing"
     },
     "topologies": {
       "ltrTree": "Tree",
@@ -120,6 +124,7 @@
     "prev_range": "Previous range",
     "next_range": "Next range",
     "close": "Close",
+    "setDefaultSize": "Set Default Size",
     "clear": "Clear",
     "ok": "Ok",
     "add": "Add",
@@ -128,6 +133,7 @@
     "removeSelected": "Remove Selected",
     "cancel": "Cancel",
     "send": "Send",
+    "save": "Save",
     "logo": "TimeBase",
     "yes": "Yes",
     "no": "No",
@@ -142,8 +148,9 @@
     "move_up_timebar": "Move up timebar",
     "move_down_timebar": "Move down timebar",
     "open_tabs_list": "Tabs list",
-    "open_stream_properties": "Stream's properties",
-    "open_symbol_properties": "Symbol's properties",
+    "open_stream_properties": "Stream properties",
+    "open_symbol_properties": "Symbol properties",
+    "open_view_properties": "View properties",
     "global_settings": "Global settings",
     "toggle_datepicker": "Toggle datepicker",
     "filters": "Symbols & types filters",
@@ -160,6 +167,7 @@
     "editJSON": "Edit JSON Data >",
     "saveJSON": "< Save JSON Data",
     "newClass": "New Class",
+    "builtIn": "Add Built-in",
     "newEnum": "New Enum",
     "exportToJSON": "Export to JSON",
     "importFromJSON": "Import from JSON",
@@ -187,6 +195,7 @@
     "purge": "Purge Stream",
     "deleteStream": "Delete Stream",
     "deleteSpace": "Delete Space",
+    "deleteView": "Delete View",
     "editName": "Change name",
     "describe": "Describe Stream",
     "sendMessage": "Send message",
@@ -198,7 +207,6 @@
     "monitor_mode": "Inspector",
     "chart_mode": "Chart mode",
     "schema_mode": "Schema mode",
-    "create_stream": "Create new stream",
     "flow": "Flow"
   },
   "contextMenu": {
@@ -219,11 +227,15 @@
     "chart_mode": "Chart",
     "deltix_chart_mode": "New Chart",
     "schema_mode": "Schema",
-    "create_stream": "Create new stream",
+    "create": "Create",
+    "createStream": "Create stream",
+    "createView": "Create view",
     "importFromQMSG": "Import from QMSG",
     "flow": "Flow",
     "orderBook": "Order book",
-    "noOrderBook": "Order book is not available for this stream."
+    "noOrderBook": "Order book is not available for this stream.",
+    "import_fromQSMSG": "Import from QMSG",
+    "importFromTextFile": "Import from text file"
   },
   "gridTitle": {
     "fieldsList": {
@@ -243,12 +255,14 @@
   "text": {
     "purge_explanation": "This operation deletes stream data that is earlier than a specified time.",
     "truncate_explanation": "This operation will remove all data after the selected time.",
-    "streamsListEmpty": "Streams list is empty",
     "deleteStreamRequest": "Delete stream",
     "deleteSpaceRequest": "Delete space",
+    "deleteViewRequest": "Delete view",
     "removeENUMRequest": "Remove ENUM [{{name}}] ?",
     "removeClassRequest": "Remove class [{{name}}] ?",
     "removeClassWithChildsRequest": "Remove class [{{name}}] with all children?",
+    "removeClassWithFieldTypeRequest": "Class [{{name}}] will also be removed from:",
+    "removeEnumWithFieldTypeRequest": "Enum [{{name}}] will be removed with field(s):",
     "removeFieldRequest": "Remove field [{{name}}]?",
     "editEnumProps": "Edit enum properties",
     "editClassProps": "Edit class properties",
@@ -286,8 +300,12 @@
     },
     "all": "All",
     "export": "Export",
+    "labels": {
+      "exportStaticFields": "Export static fields"
+    },
     "headers": {
       "dateRange": "Date range",
+      "datetimeFormat": "Date/Time format",
       "symbols": "Symbols ({{summary}})",
       "types": "Types ({{summary}})",
       "config": "Config ({{summary}})"
@@ -312,12 +330,28 @@
       "export": {
         "QSMSG": "EXPORT TO QSMSG",
         "CSV": "EXPORT TO CSV"
-      }
+      },
+      "share": "Share query",
+      "createView": "Create View"
+    },
+    "createViewModal": {
+      "title": "Create View",
+      "viewName": "View Name",
+      "forbiddenSymbolsError": "Name shouldn't contain spaces, breaks and slashes",
+      "duplicateName": "View with this name already exists",
+      "successCreated": "View {{name}} created",
+      "liveView": "live"
     }
   },
   "importFromFile": {
     "title": {
-      "QSMSG": "Import from QSMSG"
+      "QSMSG": "Import from QSMSG",
+      "text": "Import from text file"
+    }, 
+    "stepHeaders": {
+      "setupParameters": "Setup Parameters",
+      "preview": "Preview",
+      "writeModeAndTimeRange": "Write Mode and Time Range"
     },
     "labels": {
       "stream": "Stream",
@@ -325,23 +359,63 @@
       "symbols": "Symbols",
       "startTime": "Start time",
       "endTime": "End time",
-      "setRange": "Set range",
-      "choseFile": "Chose file",
+      "setRange": "Range to import",
+      "chooseFile": "Choose file",
+      "addFiles": "Add files",
+      "addFolder": "Add folder",
       "file": "File",
-      "periodicity": "Periodicity"
+      "periodicity": "Periodicity",
+      "interval": "Interval",
+      "writeMode": "Write mode",
+      "importRange": "Import Range",
+      "unmatchedKeywords": "Unmatched Keywords",
+      "resetToDefault": "Reset To Default"
+    },
+    "placeholders": {
+      "stream": "Enter new stream name or select existing"
     },
     "periodicityTypes": {
       "irregular": "Irregular",
       "static": "Static",
       "regular": "Regular"
     },
+    "fileBy": {
+      "symbol": "File by symbol",
+      "space": "File by space"
+    },
+    "generalParameters": {
+      "instrumentType": "Default Instrument Type",
+      "startImportRow": "Start Import At Row",
+      "charset": "Charset",
+      "nullValues": "Interpret As Null"
+    },
+    "timeParameters": {
+      "dateTimeFormat": "DateTime Format",
+      "timeZone": "Time Zone"
+    },
+    "nullValues": {
+      "checkboxes": {
+        "emptyCells": "Empty Cells",
+        "nonEmptyCells": "Non-Empty Cells"
+      }
+    },
+    "csvImportComment": "Setup parameters for import data into the TimeBase. Settings are applied to all files.",
+    "resetSettingsConfirmation": "Do you want to reset settings and field mappings to default values?",
     "import": "Import",
     "uploadingFile": "File uploading",
     "importingFile": "File importing",
     "cancel": "Cancel",
+    "confirm": "Confirm",
+    "next": "Next >",
+    "back": "< Back",
     "close": "Close",
+    "downloadLog": "Full Log",
+    "removeAll": "Remove All",
     "return": "Return",
-    "importFinished": "Import finished"
+    "importFinished": "Import finished",
+    "symbolHint": "Use \";\" as delimiter or press \"Enter\" to finish symbol name",
+    "logHint": "Download Full Import Log",
+    "selectedFiles": "Selected Files"
   },
   "schemaEditor": {
     "importFromJson": {
@@ -350,9 +424,12 @@
       "confirm": "Replace current schema with new in editor?",
       "unhandledError": "Import json is not valid, page was reloaded"
     },
+    "addBuiltInType": {
+      "confirm": "Add selected built-in type(s) in schema editor?"
+    },
     "relativeToModal": {
-      "text":  "Changing of {{ prop }} will unlink fields",
-      "from":  "from",
+      "text": "Changing of {{ prop }} will unlink fields",
+      "from": "from",
       "cancel": "Cancel",
       "continue": "Continue"
     }
@@ -365,15 +442,26 @@
     "autosizeThis": "Autosize this column",
     "autosizeAll": "Autosize all columns",
     "resetColumns": "Reset columns",
+    "resetThis": "Reset this",
     "copy": "Copy",
     "copyWithHeaders": "Copy with headers",
     "copyJSON": "Copy JSON",
     "sendMessage": "Send message"
   },
+  "gridFilters": {
+    "dropdown": {
+      "all": "All"
+    },
+    "iconTooltip": {
+      "hide": "Hide filters",
+      "show": "Show filters"
+    }
+  },
   "tabs": {
     "closeRight": "Close to right",
     "closeLeft": "Close to left",
-    "closeOthers": "Close others"
+    "closeOthers": "Close others",
+    "shareTab": "Share tab"
   },
   "orderBook": {
     "filterLabels": {
@@ -385,13 +473,23 @@
     "selectSymbol": "Select symbol",
     "selectExchanges": "Select exchanges",
     "waitingForData": "Waiting for live data...",
+    "noData": "No Data",
     "quantity": "Quantity",
     "price": "Price",
     "size": "Size",
     "exchange": "Exchange",
-    "precisionError": "Symbol {{symbol}} information (precision, base/term currency) is not found"
+    "precisionError": "Symbol {{symbol}} information (precision, base/term currency) is not found",
+    "orientation": {
+      "header": "Orientation",
+      "labels": {
+        "price": "Px",
+        "quantity": "Qty"
+      }
+    },
+    "lastMessageTime": "Last update:"
   },
   "charts": {
+    "timeValueError": "Invalid range {{ key }} value",
     "timeRangeError": "Range should be between {{from}} and {{to}}",
     "timeRangeErrorFrom": "Range should be more then {{from}}",
     "filters": {
@@ -403,7 +501,9 @@
       "track": "Track"
     },
     "noData": "No data",
-    "viewData": "View data"
+    "viewData": "View data",
+    "httpError": "Error while retrieving chart data",
+    "retry": "Retry"
   },
   "messageInfo": {
     "views": {
@@ -413,15 +513,133 @@
     },
     "noData": "No data"
   },
+  "viewInfo": {
+    "fields": {
+      "stream": "Stream",
+      "state": "State",
+      "lastTimestampFormatted": "Last timestamp",
+      "query": "Query"
+    }
+  },
   "rightPanel": {
-    "messageInfo": "Message info",
-    "noMessageSelected": "No message selected"
+    "messageInfo": "Stream message details",
+    "viewInfo": "View details",
+    "noMessageSelected": "No message selected",
+    "description": "View stream description"
   },
   "fieldBuilder": {
     "editJson": "EDIT JSON DATA"
   },
   "sendMessageModal": {
     "continue": "Continue",
-    "confirmTruncate":  "Stream {{stream.name}} will be truncated at {{confirmTime}}, continue?"
+    "confirmTruncate": "Stream {{streamName}} will be truncated at {{confirmTime}}, continue?"
+  },
+  "streamsList": {
+    "totalCount": "Total streams"
+  },
+  "streamChartModal": {
+    "openChartOfStream": "Open chart of stream {{stream.name}}",
+    "chooseSymbol": "Choose symbol",
+    "open": "Open",
+    "symbol": "Symbol"
+  },
+  "dropdownTitles": {
+    "all": "Show All",
+    "more": "More",
+    "less": "Less",
+    "equal": "Equal"
+  },
+  "filtersPanel": {
+    "from": "From",
+    "export": "Export",
+    "clean": "Clean",
+    "filter": "Filter",
+    "apply": "Apply"
+  },
+  "error": {
+    "copy": {
+      "error": "Copy error text",
+      "full": "Copy full error text",
+      "info": "Copy full error info"
+    }
+  },
+  "globalSettingsModal": {
+    "headers": {
+      "dateTime": "Date / Time",
+      "tree": "Streams"
+    },
+    "labels": {
+      "showSpaces": "Display spaces"
+    }
+  },
+  "streamList": {
+    "treeViews": {
+      "streams": "Streams",
+      "views": "Views"
+    },
+    "empty": {
+      "hasSearch": {
+        "streams": "No Streams matches search criteria",
+        "views": "No Views matches search criteria"
+      },
+      "noSearch": {
+        "streams": "Streams list is empty",
+        "views": "Views list is empty"
+      }
+    }
+  },
+  "describeModal": {
+    "title": {
+      "stream": "Description of the stream: ",
+      "view": "Description of the view: "
+    },
+    "switcher": {
+      "query": "Query",
+      "schema": "Schema"
+    }
+  },
+  "createViewModal": {
+    "title": "Create view",
+    "queryIsEmpty": "Query is empty",
+    "queryIsValid": "Query is valid",
+    "createView": "Create view",
+    "liveView": "live",
+    "errors": {
+      "forbiddenSymbolsError": "Name shouldn't contain spaces, breaks and slashes",
+      "duplicateName": "View with this name already exists",
+      "required": "View name is required"
+    }
+  },
+  "streamListSearch": {
+    "options": {
+      "use": {
+        "wildCards": "Use wild cards",
+        "regExps": "Use regular expressions"
+      },
+      "match": {
+        "any": "Match anywhere",
+        "exactly": "Match exactly"
+      }
+    },
+    "clearOptions": "Reset to defaults"
+  },
+  "tabNotFoundWarning": "Cached page not found, redirecting to the default view",
+  "shareLinkCopied": "Share link copied to clipboard",
+  "chartSettings": {
+    "title": "Chart settings",
+    "selectAll": "Select all",
+    "deSelectAll": "Deselect all"
+  },
+  "streamDescriptionPane": {
+    "copy": "Copy",
+    "copySuccess": {
+      "query": "Query copied successfully",
+      "schema": "Schema copied successfully"
+    }
+  },
+  "gridTotal": {
+    "loaded": "{{number}} rows loaded",
+    "inSec": "in {{seconds}} seconds",
+    "fromCache": "from cache"
   }
 }

@@ -142,6 +142,11 @@ configure(javaProjects) {
                 entry 'gflog-dcl'
                 entry 'gflog-slf4j'
             }
+
+            dependency 'org.modelmapper:modelmapper:2.3.2'
+            //dependency group: 'com.epam.deltix', name: 'orderbook-core', version: '1.0.18'
+            dependency 'com.epam.deltix:orderbook-core:1.0.18'
+
             // ----
 
             //dependency 'deltix:deltix-spring-api-keys:0.1.4'
@@ -182,6 +187,7 @@ configure(javaProjects) {
 
             dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.5'
 
+            dependency 'io.micrometer:micrometer-registry-prometheus:1.9.1'
 
             dependencySet(group: 'org.springframework', version: '5.3.26') {
                 entry 'spring-beans'

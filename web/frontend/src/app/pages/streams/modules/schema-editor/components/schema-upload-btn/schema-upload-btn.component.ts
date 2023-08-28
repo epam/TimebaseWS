@@ -1,5 +1,5 @@
 import {Component, ErrorHandler, OnDestroy, OnInit} from '@angular/core';
-import {FormControl} from '@angular/forms';
+import {UntypedFormControl} from '@angular/forms';
 import {Router} from '@angular/router';
 import {Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
@@ -18,7 +18,7 @@ import {EditSchemaUpdateState} from '../../store/schema-editor.actions';
   templateUrl: './schema-upload-btn.component.html',
 })
 export class SchemaUploadBtnComponent implements OnInit, OnDestroy {
-  control = new FormControl();
+  control = new UntypedFormControl();
 
   private destroy$ = new ReplaySubject(1);
 
@@ -50,6 +50,12 @@ export class SchemaUploadBtnComponent implements OnInit, OnDestroy {
                   this.errorNotification(`${messages.dataError} ${dataError}`);
                   return null;
                 }
+                json.state.classes.forEach(classItem => {
+                  if (classItem.isAbstract) {
+                    classItem._props._isUsed = false;
+                  }
+                })
+
                 return json;
               } catch (e) {
                 this.errorNotification(messages.jsonParseError);

@@ -1,8 +1,8 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
+import {Component, EventEmitter, HostListener, OnDestroy, OnInit, Output} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {select, Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
-import {GridOptions} from 'ag-grid-community';
+import {GridOptions, SelectionChangedEvent} from 'ag-grid-community';
 import {Observable, of, Subject} from 'rxjs';
 import {
   distinctUntilChanged,
@@ -13,6 +13,7 @@ import {
   withLatestFrom,
   take,
 } from 'rxjs/operators';
+import { GridEventsService } from 'src/app/shared/services/grid-events.service';
 import {AppState} from '../../../../../../core/store';
 import {GridContextMenuService} from '../../../../../../shared/grid-components/grid-context-menu.service';
 import {
@@ -42,6 +43,11 @@ export class FieldsListComponent implements OnInit, OnDestroy {
   public gridOptions$: Observable<GridOptions>;
   private destroy$ = new Subject();
   private type: SchemaClassTypeModel;
+  private selectedFieldName: string;
+  @Output() addNewFieldEvent = new EventEmitter<[HTMLElement, boolean]>();
+  @HostListener('keydown.insert', ['$event']) onInsertKeyDown(event: KeyboardEvent) {
+    this.addNewFieldEvent.emit([event.target as HTMLElement, this.gridService.gridApi.getSelectedRows()[0].static]);
+  }
 
   constructor(
     private appStore: Store<AppState>,
@@ -50,6 +56,7 @@ export class FieldsListComponent implements OnInit, OnDestroy {
     private seSelectionService: SeSelectionService,
     private gridService: GridService,
     private activatedRoute: ActivatedRoute,
+    private gridEventsService: GridEventsService,
   ) {}
 
   ngOnInit() {
@@ -61,7 +68,7 @@ export class FieldsListComponent implements OnInit, OnDestroy {
             isEdited: ({data}) =>
               this.seFieldFormsService.fieldHasChanges(data) || data._props._isNew,
             hasError: ({data}) => this.seFieldFormsService.showErrorOnField(this.type, data),
-            'ag-row-selected': ({data}) => data._props?._isSelected,
+            'ag-row-editing': ({data}) => data._props?._isSelected,
           },
           getRowNodeId: ({name}) => name,
         });
@@ -69,11 +76,18 @@ export class FieldsListComponent implements OnInit, OnDestroy {
     );
 
     this.gridService
-      .onRowClicked()
+      .onSelectionChanged()
       .pipe(takeUntil(this.destroy$))
-      .subscribe(({data}) => {
-        if (data && !data._props?._parentName) {
-          this.appStore.dispatch(SetSelectedFieldForSchemaItem({fieldUuid: data._props._uuid}));
+      .subscribe((event: SelectionChangedEvent) => {
+        const item = event.api.getSelectedRows()[0];
+        this.gridEventsService.selectedField.next(item);
+        if (item && !item._props?._parentName) {
+          this.selectedFieldName = item.name;
+          setTimeout(() => {
+            if (item.name === this.selectedFieldName) {
+              this.appStore.dispatch(SetSelectedFieldForSchemaItem({fieldUuid: item._props._uuid}));
+            }
+          }, 300);
         }
       });
 
@@ -108,11 +122,11 @@ export class FieldsListComponent implements OnInit, OnDestroy {
             ];
           } else {
             props = [
-              columnsVisibleColumn(),
+              columnsVisibleColumn(true, true),
               {
                 headerName: messages.name,
                 field: 'name',
-                filter: false,
+                floatingFilterComponent: 'GridTextFilterComponent',
                 sortable: false,
                 cellRenderer: ({data, value}) => {
                   if (data._props?._parentField) {
@@ -125,7 +139,13 @@ export class FieldsListComponent implements OnInit, OnDestroy {
               {
                 headerName: messages.static.title,
                 field: 'static',
-                filter: false,
+                floatingFilterComponent: 'GridDropdownFilterComponent',
+                floatingFilterComponentParams: {
+                  list: [
+                    {id: 'true', name: messages.static.static},
+                    {id: 'false', name: messages.static.nonstatic},
+                  ],
+                },
                 sortable: false,
                 valueFormatter: ({value}) =>
                   value ? messages.static.static : messages.static.nonstatic,
@@ -159,7 +179,7 @@ export class FieldsListComponent implements OnInit, OnDestroy {
               {
                 headerName: messages.title,
                 field: 'title',
-                filter: false,
+                floatingFilterComponent: 'GridTextFilterComponent',
                 sortable: false,
               },
               {
@@ -217,8 +237,12 @@ export class FieldsListComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const selectedType = fields.find((f) => f._props._typeName)?._props._typeName;
+    if (!selectedType) {
+      return;
+    }
     this.seSelectionService
-      .selectedField(fields.find((f) => f._props._typeName)._props._typeName)
+      .selectedField(selectedType)
       .pipe(take(1))
       .subscribe((fieldUUid) => {
         let field =
@@ -229,7 +253,13 @@ export class FieldsListComponent implements OnInit, OnDestroy {
 
         if (field) {
           this.appStore.dispatch(SetSelectedFieldForSchemaItem({fieldUuid: field._props._uuid}));
+          this.gridService.gridApi.forEachNode((node) => {
+            if (field.name === node.data.name) {
+              node.setSelected(true);
+              this.gridService.gridApi.ensureIndexVisible(node.rowIndex, 'middle');
+            }
+          })
         }
-      });
+    })
   }
 }

@@ -4,6 +4,7 @@ import {AgGridModule} from 'ag-grid-angular';
 import {GridApi, GridOptions, GridReadyEvent} from 'ag-grid-community';
 import {Subject, timer} from 'rxjs';
 import {filter, take, takeUntil} from 'rxjs/operators';
+import { SchemaService } from 'src/app/shared/services/schema.service';
 import {AppState} from '../../../../../../../core/store';
 import {GridContextMenuService} from '../../../../../../../shared/grid-components/grid-context-menu.service';
 import {FieldTypeModel} from '../../../../../../../shared/models/schema.class.type.model';
@@ -13,6 +14,7 @@ import {
   defaultGridOptions,
 } from '../../../../../../../shared/utils/grid/config.defaults';
 import {ClassDescriptorChangeModel} from '../../../models/stream.meta.data.change.model';
+import { SchemaEditorService } from '../../../services/add-class.service';
 import {getSchemaDiff} from '../../../store/schema-editor.selectors';
 
 export interface GridRowDataModel {
@@ -56,14 +58,16 @@ export class GridComponent implements OnInit, OnDestroy {
     getRowNodeId: (row) => {
       return row.groupName + row.name;
     },
-    getRowHeight: ({data}) => {
-      return data && data._props && data._props.hasErrors ? 102 : 28;
-    },
+    // getRowHeight: ({data}) => {
+    //   return data && data._props && data._props.hasErrors ? 102 : 28;
+    // },
   };
 
   constructor(
     private appStore: Store<AppState>,
     private gridContextMenuService: GridContextMenuService,
+    private schemaEditorService: SchemaEditorService,
+    private schemaService: SchemaService
   ) {}
 
   ngOnInit() {
@@ -109,7 +113,7 @@ export class GridComponent implements OnInit, OnDestroy {
       {
         headerName: 'Status',
         field: 'status',
-        cellStyle: {'white-space': 'pre-wrap'},
+        // cellStyle: {'white-space': 'pre-wrap'},
         width: 340,
       },
       {
@@ -122,13 +126,81 @@ export class GridComponent implements OnInit, OnDestroy {
   }
 
   private gridDataConverter(changes: ClassDescriptorChangeModel[]): GridRowDataModel[] {
+    const editedFields = new Set();
     const convertedChanges = [];
+
+    const addedParentClasses = new Set<string>();
+    const removedParentClasses = new Set<string>();
+
+    const addedClassNames = this.schemaEditorService.addedClassNames;
+    const removedClassNames = this.schemaEditorService.removedClassNames;
+
     changes.forEach((change: ClassDescriptorChangeModel) => {
-      convertedChanges.push(
-        ...change.fieldChanges.map((field): GridRowDataModel => {
-          const CHANGE_SOURCE = change.target || change.source,
-            FIELD_SOURCE = field.target || field.source;
-          return {
+      const CHANGE_SOURCE = change.target || change.source;
+      const allSchemaTypes = this.schemaService.schema.all.map(item => item.name);
+      if (addedClassNames.has(CHANGE_SOURCE.name) || addedClassNames.has(CHANGE_SOURCE.parent)) {
+        if (!addedParentClasses.has(CHANGE_SOURCE.parent) && CHANGE_SOURCE.parent && !allSchemaTypes.includes(CHANGE_SOURCE.parent)) {
+          convertedChanges.push({
+            groupName: null,
+            name: CHANGE_SOURCE.parent,
+            status: `Created type "${CHANGE_SOURCE.parent}"`,
+            resolution: '',
+            _props: {
+              hasErrors: false
+            }
+          });
+          addedParentClasses.add(CHANGE_SOURCE.parent);
+        }
+
+        convertedChanges.push({
+          groupName: null,
+          name: CHANGE_SOURCE.name,
+          status: `Created type "${CHANGE_SOURCE.name}"`,
+          resolution: '',
+          _props: {
+            hasErrors: false
+          }
+        });
+      } else if (removedClassNames.has(CHANGE_SOURCE.name) || removedClassNames.has(CHANGE_SOURCE.parent)) {
+        if (!removedParentClasses.has(CHANGE_SOURCE.parent) && CHANGE_SOURCE.parent && !allSchemaTypes.includes(CHANGE_SOURCE.parent)) {
+          convertedChanges.push({
+            groupName: null,
+            name: CHANGE_SOURCE.parent,
+            status: `Removed type "${CHANGE_SOURCE.parent}"`,
+            resolution: '',
+            _props: {
+              hasErrors: false
+            }
+          });
+          removedParentClasses.add(CHANGE_SOURCE.parent);
+        }
+
+        convertedChanges.push({
+          groupName: null,
+          name: CHANGE_SOURCE.name,
+          status: `Removed type "${CHANGE_SOURCE.name}"`,
+          resolution: '',
+          _props: {
+            hasErrors: false
+          }
+        });
+      } else {
+        convertedChanges.push({
+          groupName: null,
+          name: CHANGE_SOURCE.name,
+          status: `Change impact: ${change.changeImpact}, target: "${CHANGE_SOURCE.name}"`,
+          resolution: '',
+          _props: {
+            hasErrors: false
+          }
+        });
+      }
+
+      change.fieldChanges.forEach((field) => {
+        const CHANGE_SOURCE = change.target || change.source,
+          FIELD_SOURCE = field.target || field.source;
+        if (this.schemaEditorService.editedFieldNames.has(FIELD_SOURCE.name) && !editedFields.has(FIELD_SOURCE.name)) {
+          convertedChanges.push({
             groupName: CHANGE_SOURCE.name,
             name: FIELD_SOURCE.name,
             status: field.status,
@@ -141,9 +213,10 @@ export class GridComponent implements OnInit, OnDestroy {
               dataType: FIELD_SOURCE.type,
               nullable: FIELD_SOURCE.type.nullable,
             },
-          };
-        }),
-      );
+          });
+          editedFields.add(FIELD_SOURCE.name);
+        }
+      })
     });
     return convertedChanges;
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,9 +14,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.websockets;
 
+import com.epam.deltix.gflog.api.LogLevel;
+import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
 import com.epam.deltix.tbwg.webapp.model.ws.*;
+import com.epam.deltix.tbwg.webapp.services.MetricsService;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import com.google.gson.Gson;
@@ -24,8 +28,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
-import com.epam.deltix.gflog.api.LogLevel;
-
 import com.epam.deltix.qsrv.hf.pub.RawMessage;
 import com.epam.deltix.qsrv.hf.tickdb.pub.CursorException;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
@@ -43,13 +45,13 @@ import com.epam.deltix.util.concurrent.*;
 import com.epam.deltix.util.lang.Util;
 import com.epam.deltix.util.time.Interval;
 import com.epam.deltix.util.vsocket.ChannelClosedException;
-import io.netty.handler.codec.http.QueryStringDecoder;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -67,13 +69,13 @@ public class WSHandler extends TextWebSocketHandler {
 
     static final Log LOGGER = LogFactory.getLog(WSHandler.class);
 
-    private static final int MAX_BUFFER_SIZE = 16 * 1024;
-    private static final int LIMIT_BUFFER_SIZE = MAX_BUFFER_SIZE - (MAX_BUFFER_SIZE % 10);
+    protected static final int MAX_BUFFER_SIZE = 16 * 1024;
+    protected static final int LIMIT_BUFFER_SIZE = MAX_BUFFER_SIZE - (MAX_BUFFER_SIZE % 10);
 
     // object for cursor sync
     private final Object object = new Object();
 
-    private final class PumpTask extends QuickExecutor.QuickTask {
+    protected final class PumpTask extends QuickExecutor.QuickTask {
         final Runnable avlnr = PumpTask.this::submit;
 
         private final JSONRawMessagePrinter printer
@@ -91,7 +93,10 @@ public class WSHandler extends TextWebSocketHandler {
 
         private final MessageBuffer<RawMessage> buffer;
 
-        public PumpTask (DXTickStream[] selection, TickCursor cursor, long toTimestamp, boolean live, WebSocketSession session, QuickExecutor exe) {
+        private final MetricsService.EndpointCounter sendCounter;
+
+        public PumpTask (DXTickStream[] selection, TickCursor cursor, long toTimestamp, boolean live, WebSocketSession session,
+                         MetricsService metrics, QuickExecutor exe) {
             super (exe);
             this.selection = selection;
             this.cursor = cursor;
@@ -99,6 +104,8 @@ public class WSHandler extends TextWebSocketHandler {
             this.toTimestamp = toTimestamp;
             this.session = session;
             this.buffer = useCache() ? new CachedMessageBufferImpl(printer) : new MessageBufferImpl(printer, live);
+
+            sendCounter = metrics.endpointCounter(WebSocketConfig.SEND_MESSAGES_METRIC, endpoint());
         }
 
         @Override
@@ -173,6 +180,7 @@ public class WSHandler extends TextWebSocketHandler {
             if (session.isOpen()) {
                 String output = buffer.flush();
                 if (output.length() > 0) {
+                    sendCounter.increment();
                     session.sendMessage(new TextMessage(output));
                 }
             }
@@ -222,37 +230,41 @@ public class WSHandler extends TextWebSocketHandler {
     private final ObjectToObjectHashMap<String, PumpTask> map = new ObjectToObjectHashMap<>();
 
     private final DirectChannel         channel;
-    private final TimebaseService timebase;
+    protected final TimebaseService     timebase;
 
-    private final QuickExecutor         executor;
+    protected final QuickExecutor       executor;
 
-    private final Gson                  gson;
+    protected final Gson                gson;
 
     private final long                  flushPeriodMs;
     private final ScheduledExecutorService scheduler; //todo: call shutdown
 
+    protected final MetricsService metrics;
+
     // Global selector for multiply streams
 
-    public WSHandler(TimebaseService timebase, QuickExecutor executor) {
-        this(timebase, executor, 0);
+    public WSHandler(TimebaseService timebase, QuickExecutor executor, MetricsService metrics) {
+        this(timebase, executor, metrics, 0);
     }
 
-    public WSHandler(TimebaseService timebase, QuickExecutor executor, long flushPeriodMs) {
+    public WSHandler(TimebaseService timebase, QuickExecutor executor, MetricsService metrics, long flushPeriodMs) {
         this.timebase = timebase;
         this.executor = executor;
         this.channel = null;
         this.gson = createGson();
         this.flushPeriodMs = flushPeriodMs;
         this.scheduler = initTaskScheduler();
+        this.metrics = metrics;
     }
 
-    public WSHandler(TimebaseService timebase, DirectChannel channel, QuickExecutor executor) {
+    public WSHandler(TimebaseService timebase, DirectChannel channel, QuickExecutor executor, MetricsService metrics) {
         this.executor = executor;
         this.channel = channel;
         this.timebase = timebase;
         this.gson = createGson();
         this.flushPeriodMs = 0;
         this.scheduler = initTaskScheduler();
+        this.metrics = metrics;
     }
 
     private static Gson createGson() {
@@ -275,15 +287,18 @@ public class WSHandler extends TextWebSocketHandler {
         return flushPeriodMs > 0;
     }
 
+    protected String endpoint() {
+        return useCache() ? "/ws/v0/monitor" : "/ws/v0/select";
+    }
+
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws IOException {
+
+        metrics.endpointCounter(WebSocketConfig.SUBSCRIPTIONS_METRIC, endpoint()).increment();
 
         session.setTextMessageSizeLimit(MAX_BUFFER_SIZE);
 
         String streamId = (String) session.getAttributes().get("streamId");
-
-        QueryStringDecoder decoder = new QueryStringDecoder(session.getUri().toString());
-        Map<String, List<String>> parameters = decoder.parameters();
 
         MultiValueMap<String, String> params =
                 UriComponentsBuilder.fromUriString(session.getUri().toString()).build().getQueryParams();
@@ -325,6 +340,7 @@ public class WSHandler extends TextWebSocketHandler {
 
             ArrayList<String> symbols = new ArrayList<String>();
             for (String next : list) {
+                next = java.net.URLDecoder.decode(next, StandardCharsets.UTF_8);
                 if (next.contains(","))
                     symbols.addAll(Arrays.asList(next.split(",")));
                 else
@@ -379,21 +395,28 @@ public class WSHandler extends TextWebSocketHandler {
         long toTimestamp = to != null ? to.toEpochMilli() : Long.MAX_VALUE;
 
         LOGGER.log(LogLevel.INFO, " WS CURSOR [" + cursor.hashCode() + "]: SELECT " + (live ? "live " : "") + " * FROM " + Arrays.toString(selection) + " WHERE " +
-                "TYPES = [" + Arrays.toString(selectedTypes) + "] AND ENTITIES = [" + Arrays.toString(collect(instruments, live)) + "] AND timestamp <= " + toTimestamp );
+                "TYPES = [" + Arrays.toString(selectedTypes) + "] AND ENTITIES = [" + Arrays.toString(collect(instruments, live)) +
+                "] AND timestamp BETWEEN(" + fromTimestamp + " AND " + toTimestamp + ")");
 
-        PumpTask pumpTask = new PumpTask (selection, cursor, toTimestamp, live, session, executor);
+        PumpTask pumpTask = new PumpTask (selection, cursor, toTimestamp, live, session, metrics, executor);
         onCreate(session, pumpTask);
         cursor.setAvailabilityListener(pumpTask.avlnr);
         pumpTask.submit();
     }
 
-    private void        onCreate(WebSocketSession session, PumpTask pumpTask) {
+    protected void      onCreate(WebSocketSession session, PumpTask pumpTask) {
         synchronized (map) {
             map.put(session.getId(), pumpTask);
         }
     }
 
-    private void        onClose(WebSocketSession session) {
+    protected boolean   isTaskExists(WebSocketSession session) {
+        synchronized (map) {
+            return map.containsKey(session.getId());
+        }
+    }
+
+    protected void      onClose(WebSocketSession session) {
         TickCursor cursor = null;
         synchronized (map) {
             PumpTask task = map.get(session.getId(), null);
@@ -548,6 +571,7 @@ public class WSHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        metrics.endpointCounter(WebSocketConfig.SUBSCRIPTIONS_METRIC, endpoint()).decrement();
         onClose(session);
         super.afterConnectionClosed(session, status);
     }

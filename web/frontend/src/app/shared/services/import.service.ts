@@ -12,7 +12,7 @@ export class ImportService {
   constructor(private httpClient: HttpClient, private wsService: WSService) {}
 
   startImport(data: object): Observable<number> {
-    return this.httpClient.post<number>('/startImport', data, {headers: {customError: 'true'}});
+    return this.httpClient.post<number>('/initImport', data, {headers: {customError: 'true'}});
   }
 
   importChunks(id: number, file: File, start = 0): Observable<number> {
@@ -38,7 +38,7 @@ export class ImportService {
 
   onUploadProgress(uploadId: number): Observable<ImportProgress> {
     return this.wsService
-      .watch(`/topic/import/${uploadId}`)
+      .watch(`/user/topic/startImport/qsmsg/${uploadId}`)
       .pipe(map(({body}) => JSON.parse(body)));
   }
 

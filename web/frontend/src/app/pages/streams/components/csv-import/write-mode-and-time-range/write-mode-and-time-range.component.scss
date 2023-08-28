@@ -1,0 +1,55 @@
+.settings-container {
+  background-color: rgba(78, 108, 149, 0.3);
+  padding: 1rem 1.2rem;
+  min-height: 22rem;
+  border-radius: 0.2rem;
+}
+
+.row {
+  padding: 0.5rem 1rem;
+}
+
+.col-4 {
+  margin-top: 0.5rem;
+}
+
+.time-range-checkbox {
+  padding-left: 8rem;
+  input[type='checkbox'] {
+    margin-top: 0rem;
+    width: 18px;
+    height: 18px;
+  }
+  span {
+    padding-left: 0.5rem;
+  }
+}
+
+.col-8 {
+  position: relative;
+}
+
+.write-mode-row {
+  padding-bottom: 1rem;
+  margin-bottom: 0.3rem;
+  border-bottom: 1px solid rgb(99, 99, 99);
+}
+
+.write-mode {
+  display: flex;
+  justify-content: start;
+}
+
+.error-message {
+  color: rgb(246, 115, 148);
+}
+
+:host ::ng-deep app-btn-date-picker {
+  input {
+    background-color: rgba(0, 255, 255, 0);
+    padding: 0.3rem;
+    height: 1.6rem;
+    border: 1px solid #adadad;
+    border-radius: 0.4rem;
+  }
+}

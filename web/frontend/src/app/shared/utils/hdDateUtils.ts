@@ -24,13 +24,13 @@ const now = new HdDate();
 
 export const toUtc = (date: HdDate) => {
   const newDate = new HdDate(date);
-  newDate.setMilliseconds(newDate.getMilliseconds() + now.getTimezoneOffset() * 60 * 1000);
+  newDate.setMilliseconds(newDate.getMilliseconds() + new Date().getTimezoneOffset() * 60 * 1000);
   return newDate;
 };
 
 export const fromUtc = (date: HdDate) => {
   const newDate = new HdDate(date);
-  newDate.setMilliseconds(newDate.getMilliseconds() - now.getTimezoneOffset() * 60 * 1000);
+  newDate.setMilliseconds(newDate.getMilliseconds() - new Date().getTimezoneOffset() * 60 * 1000);
   return newDate;
 };
 
@@ -73,7 +73,7 @@ export const beginningOfYear = (date: HdDate) =>
 export const setTimeZone = (date: HdDate, offset: number = 0) => {
   const newDate = new HdDate(date);
   newDate.setMilliseconds(
-    newDate.getMilliseconds() + (now.getTimezoneOffset() + offset) * 60 * 1000,
+    newDate.getMilliseconds() + (new Date().getTimezoneOffset() + offset) * 60 * 1000,
   );
   return newDate;
 };

@@ -11,7 +11,7 @@ import {ButtonsModule} from 'ngx-bootstrap/buttons';
 import {ModalModule} from 'ngx-bootstrap/modal';
 import {TimepickerModule} from 'ngx-bootstrap/timepicker';
 import {TooltipModule} from 'ngx-bootstrap/tooltip';
-import {ContextMenuModule} from 'ngx-contextmenu';
+import {ContextMenuModule} from '@perfectmemory/ngx-contextmenu';
 import {MonacoEditorModule} from 'ngx-monaco-editor';
 import {
   PERFECT_SCROLLBAR_CONFIG,
@@ -47,7 +47,7 @@ import {CreateStreamModalComponent} from './components/modals/create-stream-moda
 import {ModalDescribeComponent} from './components/modals/modal-describe/modal-describe.component';
 import {ModalExportFileComponent} from './components/modals/modal-export-file/modal-export-file.component';
 import {ModalFilterComponent} from './components/modals/modal-filter/modal-filter.component';
-import {ModalImportFileComponent} from './components/modals/modal-import-file/modal-import-file.component';
+import {ModalImportQSMSGFileComponent} from './components/modals/modal-import-QSMSG-file/modal-import-QSMSG-file.component';
 import {ModalPurgeComponent} from './components/modals/modal-purge/modal-purge.component';
 import {ModalRenameComponent} from './components/modals/modal-rename/modal-rename.component';
 import {ModalSendMessageComponent} from './components/modals/modal-send-message/modal-send-message.component';
@@ -61,7 +61,6 @@ import {StreamsLayoutComponent} from './components/streams-layout/streams-layout
 import {StreamsListComponent} from './components/streams-list/streams-list.component';
 import {StreamsTabsComponent} from './components/streams-tabs/streams-tabs.component';
 import {TimelineBarComponent} from './components/timeline-bar/timeline-bar.component';
-import {ChartDataService} from './services/chart-data.service';
 import {SchemaDataService} from './services/schema-data.service';
 import {SendMessagePopupService} from './services/send-message-popup.service';
 import {SidebarContextMenuModule} from './sidebar-context-menu/sidebar-context-menu.module';
@@ -83,6 +82,32 @@ import {StreamsNavigationModule} from './streams-navigation/streams-navigation.m
 import {StreamsRoutingModule} from './streams-routing.module';
 import {FiltersPanelModule} from './components/filters-panel/filters-panel.module';
 import {DynamicFormBuilderModule} from '../../shared/utils/dynamic-form-builder/dynamic-form-builder.module';
+import {ErrorModule} from '../../shared/error/error.module';
+import { LeftSidebarComponent } from './components/left-sidebar/left-sidebar.component';
+import { CreateViewModalComponent } from './components/modals/create-view/create-view-modal.component';
+import { BsDropdownModule } from 'ngx-bootstrap/dropdown';
+import { QqlEditorModule } from '../../shared/qql-editor/qql-editor.module';
+import { AutofocusModule } from '../../shared/directives/autofocus/autofocus.module';
+import { StreamsListSearchComponent } from './components/streams-list/streams-list-search/streams-list-search.component';
+import { PageLoadingModule } from '../../shared/page-loading/page-loading.module';
+import { WriteModesModule } from '../../shared/components/write-modes-control/write-modes.module';
+import {
+    StreamDescribeContentModule
+} from '../../shared/components/stream-describe-content/stream-describe-content.module';
+import { GridTotalComponent } from '../../shared/components/grid-total/grid-total.component';
+import { ModalImportCSVFileComponent } from './components/modals/modal-import-csv-file/modal-import-csv-file.component';
+import { UploadFileComponent } from './components/csv-import/upload-file/upload-file.component';
+import { SetUpParametersComponent } from './components/csv-import/set-up-parameters/set-up-parameters.component';
+import { TimeParametersComponent } from './components/csv-import/time-parameters/time-parameters.component';
+import { GeneralParametersComponent } from './components/csv-import/general-parameters/general-parameters.component';
+import { GroupedParametersComponent } from './components/csv-import/grouped-parameters/grouped-parameters.component';
+import { DelimitersAndSortingParametersComponent } from './components/csv-import/delimiters-and-sorting-parameters/delimiters-and-sorting-parameters.component';
+import { TypesSettingComponent } from './components/csv-import/types-setting/types-setting.component';
+import { SymbolSettingComponent } from './components/csv-import/symbol-setting/symbol-setting.component';
+import { PreviewComponent } from './components/csv-import/preview/preview.component';
+import { WriteModeAndTimeRangeComponent } from './components/csv-import/write-mode-and-time-range/write-mode-and-time-range.component';
+import { ResizableModule } from 'src/app/shared/components/resizable/resizable.module';
+import { ConfirmationModalComponent } from './components/modals/confirmation-modal/confirmation-modal.component';
 
 const DEFAULT_PERFECT_SCROLLBAR_CONFIG: PerfectScrollbarConfigInterface = {
   suppressScrollX: false,
@@ -90,108 +115,119 @@ const DEFAULT_PERFECT_SCROLLBAR_CONFIG: PerfectScrollbarConfigInterface = {
 };
 
 @NgModule({
-  declarations: [
-    StreamsLayoutComponent,
-    StreamsListComponent,
-    StreamDetailsComponent,
-    StreamsTabsComponent,
-    ModalFilterComponent,
-    ModalSettingsComponent,
-    TimelineBarComponent,
-    StreamsGridLiveComponent,
-    StreamViewReverseComponent,
-    ModalTruncateComponent,
-    ModalPurgeComponent,
-    ModalRenameComponent,
-    ModalSendMessageComponent,
-    ModalDescribeComponent,
-    ModalExportFileComponent,
-    ModalImportFileComponent,
-    DeltixChartsComponent,
-    ChartsLayoutComponent,
-    CreateStreamModalComponent,
-    ChartsFilterComponent,
-    BarsPeriodFilterComponent,
-  ],
-  imports: [
-    AutocompleteModule,
-    ReactiveFormsModule,
-    StreamsRoutingModule,
-    StoreModule.forFeature('streams-store', reducers),
-    StoreModule.forFeature('streams', fromStreams.reducer),
-    StoreModule.forFeature('streamDetails', fromStreamDetails.reducer),
-    StoreModule.forFeature('streamProps', fromStreamProps.reducer),
-    StoreModule.forFeature('streamQuery', fromStreamQuery.reducer),
-    EffectsModule.forFeature([
-      StreamsEffects,
-      StreamDetailsEffects,
-      StreamPropsEffects,
-      TimelineBarEffects,
-      FilterEffects,
-      StreamsTabsEffects,
-      StreamQueryEffects,
-      SelectedMessageEffects,
-    ]),
-    PerfectScrollbarModule,
-    AngularSplitModule,
-    TimepickerModule.forRoot(),
-    ModalModule,
-    TooltipModule,
-    ContextMenuModule,
-    StoreModule.forFeature(
-      fromSelectedMessage.selectedMessageFeatureKey,
-      fromSelectedMessage.reducer,
-    ),
-    ConfirmModalModule,
-    SelectModule,
-    StreamsNavigationModule,
-    SimpleModalModule,
-    QueryModule,
-    OrderBookModule,
-    SafeDatePickerModule,
-    AccordionModule,
-    TreeCheckboxesModule,
-    ButtonsModule,
-    // BtnDatePickerModule,
-    NgSelectModule,
-    MultiSelectAutocompleteModule,
-    ClickOutsideModule,
-    DateRangePickerModule,
-    FileBtnModule,
-    LogoModule,
-    RightPaneModule,
-    SplitterSizesModule,
-    SidebarContextMenuModule,
-    QueryBtnModule,
-    DragDropModule,
-    LiveGridModule,
-    MultiselectNormalizeModule,
-    ScrollingModule,
-    MultiSelectModule,
-    TopGlobalMenuModule,
-    SharedModule,
-    MonacoEditorModule,
-    FiltersPanelModule,
-    DynamicFormBuilderModule,
-  ],
-  entryComponents: [
-    ModalFilterComponent,
-    ModalSettingsComponent,
-    ModalTruncateComponent,
-    ModalPurgeComponent,
-    ModalRenameComponent,
-    ModalSendMessageComponent,
-    ModalDescribeComponent,
-  ],
-  providers: [
-    ChartDataService,
-    SchemaDataService,
-    {
-      provide: PERFECT_SCROLLBAR_CONFIG,
-      useValue: DEFAULT_PERFECT_SCROLLBAR_CONFIG,
-    },
-    SendMessagePopupService,
-    TabStorageService,
-  ],
+    declarations: [
+        StreamsLayoutComponent,
+        StreamsListComponent,
+        StreamDetailsComponent,
+        StreamsTabsComponent,
+        ModalFilterComponent,
+        ModalSettingsComponent,
+        TimelineBarComponent,
+        StreamsGridLiveComponent,
+        StreamViewReverseComponent,
+        ModalTruncateComponent,
+        ModalPurgeComponent,
+        ModalRenameComponent,
+        ModalSendMessageComponent,
+        ModalDescribeComponent,
+        ModalExportFileComponent,
+        ModalImportQSMSGFileComponent,
+        DeltixChartsComponent,
+        ChartsLayoutComponent,
+        CreateStreamModalComponent,
+        ChartsFilterComponent,
+        BarsPeriodFilterComponent,
+        LeftSidebarComponent,
+        CreateViewModalComponent,
+        StreamsListSearchComponent,
+        ModalImportCSVFileComponent,
+        UploadFileComponent,
+        SetUpParametersComponent,
+        TimeParametersComponent,
+        GeneralParametersComponent,
+        GroupedParametersComponent,
+        DelimitersAndSortingParametersComponent,
+        TypesSettingComponent,
+        SymbolSettingComponent,
+        PreviewComponent,
+        WriteModeAndTimeRangeComponent,
+        ConfirmationModalComponent,
+    ],
+    imports: [
+        AutocompleteModule,
+        ReactiveFormsModule,
+        StreamsRoutingModule,
+        StoreModule.forFeature('streams-store', reducers),
+        StoreModule.forFeature('streams', fromStreams.reducer),
+        StoreModule.forFeature('streamDetails', fromStreamDetails.reducer),
+        StoreModule.forFeature('streamProps', fromStreamProps.reducer),
+        StoreModule.forFeature('streamQuery', fromStreamQuery.reducer),
+        EffectsModule.forFeature([
+            StreamsEffects,
+            StreamDetailsEffects,
+            StreamPropsEffects,
+            TimelineBarEffects,
+            FilterEffects,
+            StreamsTabsEffects,
+            StreamQueryEffects,
+            SelectedMessageEffects,
+        ]),
+        PerfectScrollbarModule,
+        AngularSplitModule,
+        TimepickerModule.forRoot(),
+        ModalModule,
+        TooltipModule,
+        ContextMenuModule,
+        StoreModule.forFeature(fromSelectedMessage.selectedMessageFeatureKey, fromSelectedMessage.reducer),
+        ConfirmModalModule,
+        SelectModule,
+        StreamsNavigationModule,
+        SimpleModalModule,
+        QueryModule,
+        OrderBookModule,
+        SafeDatePickerModule,
+        AccordionModule,
+        TreeCheckboxesModule,
+        ButtonsModule,
+        // BtnDatePickerModule,
+        NgSelectModule,
+        MultiSelectAutocompleteModule,
+        ClickOutsideModule,
+        DateRangePickerModule,
+        FileBtnModule,
+        LogoModule,
+        RightPaneModule,
+        SplitterSizesModule,
+        SidebarContextMenuModule,
+        QueryBtnModule,
+        DragDropModule,
+        LiveGridModule,
+        MultiselectNormalizeModule,
+        ScrollingModule,
+        MultiSelectModule,
+        TopGlobalMenuModule,
+        SharedModule,
+        MonacoEditorModule,
+        FiltersPanelModule,
+        DynamicFormBuilderModule,
+        ErrorModule,
+        BsDropdownModule,
+        QqlEditorModule,
+        AutofocusModule,
+        PageLoadingModule,
+        WriteModesModule,
+        StreamDescribeContentModule,
+        GridTotalComponent,
+        ResizableModule
+    ],
+    providers: [
+        SchemaDataService,
+        {
+            provide: PERFECT_SCROLLBAR_CONFIG,
+            useValue: DEFAULT_PERFECT_SCROLLBAR_CONFIG,
+        },
+        SendMessagePopupService,
+        TabStorageService,
+    ]
 })
 export class StreamsModule {}

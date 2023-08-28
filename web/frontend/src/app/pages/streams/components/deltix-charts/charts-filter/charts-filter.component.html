@@ -85,103 +85,124 @@
       <p class="title">{{ 'charts.filters.barSize' | translate }}:</p>
       <app-bars-period-filter
           cssClass="in-modal"
-          (periodChange)="onBarsPeriodSubmit()"
+          (periodManuallyChange)="onBarsPeriodSubmit(true)"
+          (periodAutoChange)="onBarsPeriodSubmit()"
           [formControl]="filterForm.get('period')"
           [minInterval]="minInterval$ | async"
           [maxInterval]="maxInterval$ | async"
           [periodicity]="periodicity$ | async"
       ></app-bars-period-filter>
     </ng-container>
-    <button (click)="toggleTrack()" class="btn btn-info" [class.btn-active]="track$ | async" >
+    <button (click)="toggleTrack()" class="btn btn-info" [class.btn-active]="track$ | async">
       {{ 'charts.filters.track' | translate }}
     </button>
     <div class="d-flex filter-right">
       <div [class.loading]="loadingDataState$ | async" class="loader"></div>
     </div>
+    <div *ngIf="exchanges$ | async as exchanges" class="exchange-control-wrapper">
+      <app-multi-select
+          *ngIf="exchanges.length"
+          [formControl]="exchangeControl"
+          [items]="exchanges"
+          [single]="true"
+          [search]="false"
+          [flat]="true"
+      ></app-multi-select>
+    </div>
   </div>
 </div>
 <ng-template #customRangePicker>
-    <div class="modal-content newCustomTimeRangeModal">
-      <div class="modal-header">
-        <h4 class="modal-title pull-left">{{ 'charts.filters.chooseTimeRange' | translate }}</h4>
+  <div class="modal-content newCustomTimeRangeModal">
+    <div class="modal-header">
+      <h4 class="modal-title pull-left">{{ 'charts.filters.chooseTimeRange' | translate }}</h4>
+      <button
+          (click)="hideModal()"
+          aria-label="Close"
+          class="close pull-right"
+          tooltip="Close"
+          type="button">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="d-flex justify-content-between w-100">
+        <div class="time-control time-fromWr">
+          <div class="controlWr datepicker-inputWr">
+            <label class="btn timePickerLabel" for="rangeFromInput">From</label>
+            <input
+                (appSafeDatePickerValueChange)="onRangeChange($event, 'start')"
+                (dateValueChanged)="onRangeChange($event, 'start')"
+                (dateValueInvalid)="setDateIsValid(false, 'start')"
+                (keyup.enter)="setConfig(); hideModal(true)"
+                [appSafeDatePickerValue]="rangeFromValue"
+                [bsConfig]="bsConfig"
+                [isOpen]="false"
+                [maxDate]="rangeToValue"
+                bsDatepicker
+                class="btn bs-datepicker datepicker-input"
+                id="rangeFromInput"
+                triggers=""
+                type="text" />
+          </div>
+        </div>
+        <div class="time-control time-toWr">
+          <div class="controlWr datepicker-inputWr">
+            <label class="btn timePickerLabel" for="rangeToInput">To</label>
+            <input
+                (appSafeDatePickerValueChange)="onRangeChange($event, 'end')"
+                (dateValueChanged)="onRangeChange($event, 'end')"
+                (dateValueInvalid)="setDateIsValid(false, 'end')"
+                (keyup.enter)="setConfig(); hideModal(true)"
+                [appSafeDatePickerValue]="rangeToValue"
+                [bsConfig]="bsConfig"
+                [isOpen]="false"
+                [minDate]="rangeFromValue"
+                bsDatepicker
+                class="btn bs-datepicker datepicker-input"
+                id="rangeToInput"
+                triggers=""
+                type="text" />
+          </div>
+        </div>
+      </div>
+      <div class="d-flex justify-content-center date-picker-container">
+        <bs-daterangepicker-inline
+            (bsValueChange)="onRangeChangeEvent($event)"
+            [(bsValue)]="bsInlineRangeValue"
+            [bsConfig]="{ containerClass: 'theme-default' }">
+        </bs-daterangepicker-inline>
+        <div *ngIf="timeValueError.start || timeValueError.end" class="invalid-time-message">
+          <span *ngIf="timeValueError.start">{{ 'charts.timeValueError' | translate: { key: 'start' } }}  </span>
+          <span *ngIf="timeValueError.end">{{ 'charts.timeValueError' | translate: { key: 'end' } }}</span>
+        </div>
+        <div *ngIf="timeRangeError && !(timeValueError.start || timeValueError.end)" class="invalid-time-message">
+          <span>
+            {{
+            (timeRangeLimits.to ? 'charts.timeRangeError' : 'charts.timeRangeErrorFrom')
+                | translate: timeRangeLimits
+            }}
+          </span>
+        </div>
+      </div>
+      <div class="d-flex justify-content-end btns-panel">
+        <button (click)="hideModal()" class="btn btn-outline-secondary" type="button">
+          {{ 'buttons.cancel' | translate }}
+        </button>
         <button
-            (click)="hideModal()"
-            aria-label="Close"
-            class="close pull-right"
-            tooltip="Close"
+            (click)="hideModal(true)"
+            [disabled]="timeRangeError || timeValueError.start || timeValueError.end"
+            aria-label="Apply"
+            class="btn btn-info"
             type="button">
-          <span aria-hidden="true">&times;</span>
+          {{ 'charts.filters.apply' | translate }}
+        </button>
+        <button
+            (click)="setConfig()"
+            class="btn btn-navy controlWr no-display"
+            type="button">
+          {{ 'charts.filters.applyRange' }}
         </button>
       </div>
-      <div class="modal-body">
-        <div *ngIf="timeRangeError" class="alert alert-warning">
-          {{
-          (timeRangeLimits.to ? 'charts.timeRangeError' : 'charts.timeRangeErrorFrom')
-              | translate: timeRangeLimits
-          }}
-        </div>
-        <div class="d-flex justify-content-between w-100">
-          <div class="time-control time-fromWr">
-            <div class="controlWr datepicker-inputWr">
-              <label class="btn timePickerLabel" for="rangeFromInput">From</label>
-              <input
-                  (appSafeDatePickerValueChange)="onRangeFromChange($event)"
-                  (keyup.enter)="setConfig(); hideModal(true)"
-                  [appSafeDatePickerValue]="rangeFromValue"
-                  [bsConfig]="bsConfig"
-                  [isOpen]="false"
-                  [maxDate]="rangeToValue"
-                  bsDatepicker
-                  class="btn bs-datepicker datepicker-input"
-                  id="rangeFromInput"
-                  triggers=""
-                  type="text" />
-            </div>
-          </div>
-          <div class="time-control time-toWr">
-            <div class="controlWr datepicker-inputWr">
-              <label class="btn timePickerLabel" for="rangeToInput">To</label>
-              <input
-                  (appSafeDatePickerValueChange)="onRangeToChange($event)"
-                  (keyup.enter)="setConfig(); hideModal(true)"
-                  [appSafeDatePickerValue]="rangeToValue"
-                  [bsConfig]="bsConfig"
-                  [isOpen]="false"
-                  [minDate]="rangeFromValue"
-                  bsDatepicker
-                  class="btn bs-datepicker datepicker-input"
-                  id="rangeToInput"
-                  triggers=""
-                  type="text" />
-            </div>
-          </div>
-        </div>
-        <div class="d-flex justify-content-center">
-          <bs-daterangepicker-inline
-              (bsValueChange)="onRangeChangeEvent($event)"
-              [(bsValue)]="bsInlineRangeValue"
-              [bsConfig]="{ containerClass: 'theme-default' }">
-          </bs-daterangepicker-inline>
-        </div>
-        <div class="d-flex justify-content-end btns-panel">
-          <button (click)="hideModal()" class="btn btn-outline-secondary" type="button">
-            {{ 'buttons.cancel' | translate }}
-          </button>
-          <button
-              (click)="hideModal(true)"
-              [disabled]="timeRangeError"
-              aria-label="Apply"
-              class="btn btn-info"
-              type="button">
-            {{ 'charts.filters.apply' | translate }}
-          </button>
-          <button
-              (click)="setConfig()"
-              class="btn btn-navy controlWr no-display"
-              type="button">
-            {{ 'charts.filters.applyRange' }}
-          </button>
-        </div>
-      </div>
     </div>
+  </div>
 </ng-template>

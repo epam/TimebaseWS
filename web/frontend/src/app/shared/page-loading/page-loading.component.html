@@ -1,0 +1,7 @@
+<div class="wrapper" [class.hidden]="!loaded || error" >
+  <ng-content></ng-content>
+</div>
+<div class="loader" [class.show]="!loaded && !error" ></div>
+<app-error [showCopyWhenNotCut]="false" [error]="error?.error?.message" [class.show]="!!error" >
+  <button (click)="closeTab()" class="close-tab-btn btn btn-default" >Close tab</button>
+</app-error>

@@ -1,0 +1,68 @@
+<ng-container [formGroup]="form">
+  <input
+      [class.has-value]="!!form.get('text').value"
+      formControlName="text"
+      class="search-input autofill-dark-blue"
+      id="search"
+      name="search"
+      placeholder="Search"
+      type="text" />
+  <div
+      [class.has-changes]="hasChanges$ | async"
+      class="search-options"
+      #searchDropDown
+      [listenClickOutside]="searchDropDownOpen"
+      (appClickOutside)="onSearchOptionsClickOutside()"
+      [autoClose]="false"
+      (isOpenChange)="searchDropDownOpenChange($event)"
+      dropdown
+  >
+    <div class="search-options-toggle-btn" (click)="closeOtherDropdowns()" dropdownToggle>
+      <svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+          fill="currentColor"
+          viewBox="0 0 490.4 490.4" xml:space="preserve">
+        <g>
+	        <path d="M484.1,454.796l-110.5-110.6c29.8-36.3,47.6-82.8,47.6-133.4c0-116.3-94.3-210.6-210.6-210.6S0,94.496,0,210.796
+		        s94.3,210.6,210.6,210.6c50.8,0,97.4-18,133.8-48l110.5,110.5c12.9,11.8,25,4.2,29.2,0C492.5,475.596,492.5,463.096,484.1,454.796z
+		        M41.1,210.796c0-93.6,75.9-169.5,169.5-169.5s169.6,75.9,169.6,169.5s-75.9,169.5-169.5,169.5S41.1,304.396,41.1,210.796z" />
+        </g>
+      </svg>
+    </div>
+    <ul *dropdownMenu formGroupName="options" class="dropdown-menu common-dropdown">
+      <ng-container *ngFor="let group of optionGroups; let index = index" >
+        <li *ngIf="index !== 0" class="dropdown-divider" ></li>
+        <li *ngFor="let option of group.options;" class="dropdown-item">
+          <label class="container-ch dropdown-checkmark">
+            <input (change)="onOptionChange(group, option, $event)" [formControlName]="group.controlName + option" type="checkbox"/>
+            <span class="checkmark"></span>
+            <a>{{ 'streamListSearch.options.' + group.controlName + '.' + option | translate }}</a>
+          </label>
+        </li>
+      </ng-container>
+      <li [class.disabled]="!(hasChanges$ | async)" class="dropdown-item" >
+        <a (click)="clearOptions()" >{{ 'streamListSearch.clearOptions' | translate }}</a>
+      </li>
+    </ul>
+  </div>
+  <div [class.show-clear]="form.get('text').value" class="input-group-append search-clear">
+    <a
+        (click)="onClearSearch()"
+        [tooltip]="'buttons.clear' | translate"
+        class="icon-text"
+        id="headerSearchResultsClear">
+      <svg
+          fill="none"
+          height="12"
+          id="i-close"
+          stroke="currentcolor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 32 32"
+          width="12"
+          xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 30 L30 2 M30 30 L2 2" />
+      </svg>
+    </a>
+  </div>
+</ng-container>

@@ -1,65 +1,56 @@
-<div class="col-md-12 full-height-page">
-  <div class="page-block">
-    <div *ngIf="showFilters" [formGroup]="filters" class="filters">
-      <div class="filters-left">
-        <div class="filter streams-filter">
-          <label>{{ 'orderBook.filterLabels.streams' | translate }}</label>
-          <ng-multiselect-dropdown
-              [class.has-values]="filters.get('streams').value?.length"
-              [data]="streams$ | async"
-              [placeholder]="'orderBook.selectStreams' | translate"
-              [settings]="{ allowSearchFilter: true, enableCheckAll: false }"
-              appMultiselectNormalize
-              class="flat-multiselect"
-              formControlName="streams"></ng-multiselect-dropdown>
-        </div>
-        <ng-container *ngIf="symbols$ | async as symbols">
-          <div *ngIf="symbols.length" class="filter">
-            <label>{{ 'orderBook.filterLabels.symbol' | translate }}</label>
-            <ng-multiselect-dropdown
-                [class.has-values]="filters.get('symbol').value?.length"
-                [data]="symbols"
-                [placeholder]="'orderBook.selectSymbol' | translate"
-                [settings]="{ allowSearchFilter: true, enableCheckAll: false, singleSelection: true }"
-                appMultiselectNormalize
-                class="flat-multiselect"
-                formControlName="symbol"></ng-multiselect-dropdown>
-          </div>
-        </ng-container>
-      </div>
-      <div *ngIf="exchanges?.length" class="filter exchanges-filter">
-        <label>{{ 'orderBook.filterLabels.exchanges' | translate }}</label>
+<app-top-filters-page-layout>
+  <ng-container [formGroup]="filters" filters>
+    <div class="filters-left">
+      <div class="filter streams-filter">
+        <label>{{ 'orderBook.filterLabels.streams' | translate }}</label>
         <ng-multiselect-dropdown
-            (onDeSelect)="onExchangeDeselect($event)"
-            (onSelect)="onExchangeSelect($event)"
-            [class.has-values]="filters.get('exchanges').value?.length"
-            [data]="exchanges"
-            [placeholder]="'orderBook.selectExchanges' | translate"
-            [settings]="{ allowSearchFilter: true, enableCheckAll: false }"
+          [data]="streamNames$ | async"
+          [placeholder]="'orderBook.selectStreams' | translate"
+          [settings]="{ allowSearchFilter: true, enableCheckAll: false }"
+          appMultiselectNormalize
+          class="flat-multiselect"
+          formControlName="streams"></ng-multiselect-dropdown>
+      </div>
+      <div *ngIf="filters.get('streams').value?.length" class="filter">
+        <label>{{ 'orderBook.filterLabels.symbol' | translate }}</label>
+        <ng-multiselect-dropdown
+            [data]="symbols$ | async"
+            [placeholder]="'orderBook.selectSymbol' | translate"
+            [settings]="{ allowSearchFilter: true, enableCheckAll: false, singleSelection: true }"
             appMultiselectNormalize
             class="flat-multiselect"
-            formControlName="exchanges"></ng-multiselect-dropdown>
+            formControlName="symbol"></ng-multiselect-dropdown>
       </div>
     </div>
-    <div *ngIf="precisionError" class="alert-warning alert">
-      {{ 'orderBook.precisionError' | translate: {symbol: filters.get('symbol').value[0]} }}
+    <div *ngIf="exchanges$ | async as exchanges" class="filter exchanges-filter">
+      <label>{{ 'orderBook.filterLabels.exchanges' | translate }}</label>
+      <ng-multiselect-dropdown
+          (onDeSelect)="onExchangeDeselect($event)"
+          (onSelect)="onExchangeSelect($event)"
+          [data]="exchanges"
+          [placeholder]="'orderBook.selectExchanges' | translate"
+          [settings]="{ allowSearchFilter: true, enableCheckAll: false }"
+          appMultiselectNormalize
+          class="flat-multiselect"
+          formControlName="exchanges"></ng-multiselect-dropdown>
     </div>
-    <div class="page-divider"></div>
+  </ng-container>
+  <ng-container content *ngIf="orderBookFiltersReady">
     <app-order-book
         (destroy)="onBookDestroy()"
         (exchangesChanged)="onExchanges($event)"
-        (precisionError)="onPrecisionError($event)"
         (ready)="onBookReady()"
+        [showLastTime]="true"
+        [orientation]="orientation$ | async"
+        (orientationChange)="onOrientationChanged($event)"
         *ngIf="filters?.get('symbol').value[0]"
         [class.hidden]="loading || noData"
-        [hiddenExchanges]="hiddenExchanges"
-        [streams]="filters.get('streams').value"
+        [hiddenExchanges]="hiddenExchanges$ | async"
+        [streams]="streamKeys | async"
         [symbol]="filters.get('symbol').value[0]"></app-order-book>
-    <ng-container *ngIf="!allExchangesHidden">
-      <div [class.show]="loading" class="loader"></div>
-      <div [class.hidden]="!noData" class="no-data-message">
-        {{ 'orderBook.waitingForData' | translate }}
-      </div>
-    </ng-container>
-  </div>
-</div>
+    <div [class.show]="loading" class="loader"></div>
+    <div [class.hidden]="!noData" class="no-data-message">
+      {{ 'orderBook.waitingForData' | translate }}
+    </div>
+  </ng-container>
+</app-top-filters-page-layout>

@@ -1,0 +1,19 @@
+@import 'node_modules/bootstrap/scss/bootstrap';
+@import "src/app/core/styles/variables";
+
+.filter-icon-wrapper {
+  height: 18px;
+  border-radius: $border-radius;
+
+  .ag-icon {
+    line-height: 20px;
+  }
+}
+
+.highlight {
+  background: $yellow;
+
+  .ag-icon {
+    color: $dark-blue;
+  }
+}

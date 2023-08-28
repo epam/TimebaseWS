@@ -1,10 +1,35 @@
 @import 'src/app/core/styles/variables';
 
+:host, .detailWr {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 app-connection-details {
   position: relative;
   display: block;
 
   &:not(:last-child) {
-    margin-bottom: 2 * $ss;
+    margin-bottom: 10px;
+  }
+}
+
+.tabs-container {
+  margin-bottom: 10px;
+}
+
+app-connection-details {
+  cursor: pointer;
+}
+
+.list-wrapper {
+  position: relative;
+  flex-grow: 1;
+  overflow-y: auto;
+
+  &__inner {
+    position: absolute;
+    width: 100%;
   }
 }

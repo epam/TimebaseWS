@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,12 +14,14 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.websockets.subscription;
 
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
 import com.epam.deltix.tbwg.webapp.model.ErrorDef;
+import com.epam.deltix.tbwg.webapp.services.MetricsService;
 import com.epam.deltix.tbwg.webapp.utils.HeaderAccessorHelper;
 import com.epam.deltix.tbwg.webapp.websockets.WebSocketUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,14 +55,30 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
     private final InboundChannelInterceptor inboundChannelInterceptor = new InboundChannelInterceptor();
 
     private final Map<String, SubscriptionController> controllers = new HashMap<>();
-    private final Map<String, Map<String, Subscription>> subscriptions = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, SubscriptionInfo>> subscriptions = new ConcurrentHashMap<>();
 
     // for those subscriptions 'unsubscribe' event came before 'subscribe'
     private final Map<String, Map<String, Long>> disconnectedSubscriptions = new ConcurrentHashMap<>();
 
+    private static class SubscriptionInfo {
+        private final Subscription subscription;
+        private final String destination;
+
+        public SubscriptionInfo(Subscription subscription, String destination) {
+            this.subscription = subscription;
+            this.destination = destination;
+        }
+    }
+
     @Autowired
     @Lazy
     private SimpMessagingTemplate messagingTemplate;
+
+    private final MetricsService metrics;
+
+    public SubscriptionService(MetricsService metrics) {
+        this.metrics = metrics;
+    }
 
     @Override
     public void register(final String destinationSuffix, final SubscriptionController controller) {
@@ -70,8 +88,8 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
         String destination = DESTINATION_PREFIX + destinationSuffix;
 
         LOG.debug("SubscriptionService registers: destination=%s, controller=%s")
-            .with(destinationSuffix)
-            .with(controller);
+                .with(destinationSuffix)
+                .with(controller);
 
         final SubscriptionController result = controllers.putIfAbsent(destination, controller);
         if (result != null) {
@@ -156,25 +174,28 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
                 .with(subscriptionId)
                 .with(destination);
 
+            final String destinationKey = findDestinationKey(originalDestination);
             final SubscriptionController controller = findController(originalDestination);
             if (controller != null) {
-                final SubscriptionChannelImpl channel = new SubscriptionChannelImpl(messagingTemplate, destination, sessionId, headers);
+                final SubscriptionChannelImpl channel = new SubscriptionChannelImpl(
+                    messagingTemplate, destination, destinationKey, sessionId, headers, metrics
+                );
                 Subscription subscription = null;
 
                 try {
                     subscription = controller.onSubscribe(headers, channel);
                 } catch (final Throwable e) {
                     LOG.warn("SubscriptionService controller thew an exception on subscribe: : session=%s, subscription=%s, destination=%s, exception=%s")
-                        .with(sessionId)
-                        .with(subscriptionId)
-                        .with(destination)
-                        .with(e);
+                            .with(sessionId)
+                            .with(subscriptionId)
+                            .with(destination)
+                            .with(e);
 
                     channel.sendError(e);
                 }
 
                 if (subscription != null) {
-                    addSubscription(sessionId, subscriptionId, subscription);
+                    addSubscription(sessionId, subscriptionId, new SubscriptionInfo(subscription, destinationKey));
                 }
             }
         }
@@ -201,46 +222,53 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
             final String subscriptionId = header.getSubscriptionId();
 
             LOG.debug("SubscriptionService disconnects: session=%s, subscription=%s, destination=%s")
-                .with(sessionId)
-                .with(subscriptionId)
-                .with(destination);
+                    .with(sessionId)
+                    .with(subscriptionId)
+                    .with(destination);
 
             Objects.requireNonNull(sessionId);
             removeSubscriptions(sessionId);
         }
 
         private SubscriptionController findController(String destination) {
-            final String foundKey = controllers.keySet().stream()
-                .filter(k -> destination.toLowerCase().startsWith(k.toLowerCase()))
-                .findFirst().orElse(null);
-
-            return foundKey != null ? controllers.get(foundKey) : null;
+            final String key = findDestinationKey(destination);
+            return key != null ? controllers.get(key) : null;
         }
 
-        private void addSubscription(String sessionId, String subscriptionId, Subscription subscription) {
-            Subscription result = subscriptions
-                .computeIfAbsent(sessionId, s -> new ConcurrentHashMap<>())
-                .putIfAbsent(subscriptionId, subscription);
+        private String findDestinationKey(String destination) {
+            return controllers.keySet().stream()
+                .filter(k -> destination.toLowerCase().startsWith(k.toLowerCase()))
+                .findFirst().orElse(null);
+        }
+
+        private void addSubscription(String sessionId, String subscriptionId, SubscriptionInfo subscription) {
+            SubscriptionInfo result = subscriptions
+                    .computeIfAbsent(sessionId, s -> new ConcurrentHashMap<>())
+                    .putIfAbsent(subscriptionId, subscription);
 
             if (result != null) {
                 throw new IllegalStateException("Subscription already exists at session: " + sessionId + " and subscription: " + subscriptionId);
             }
+
+            metrics.endpointCounter(WebSocketConfig.SUBSCRIPTIONS_METRIC, subscription.destination).increment();
         }
 
         private void removeSubscription(String sessionId, String subscriptionId) {
-            Map<String, Subscription> subscriptionBySession = subscriptions.get(sessionId);
+            Map<String, SubscriptionInfo> subscriptionBySession = subscriptions.get(sessionId);
 
             boolean exists = false;
             if (subscriptionBySession != null) {
-                Subscription subscription = subscriptionBySession.remove(subscriptionId);
+                SubscriptionInfo subscription = subscriptionBySession.remove(subscriptionId);
                 if (subscription != null) {
                     try {
                         exists = true;
-                        subscription.onUnsubscribe();
+                        subscription.subscription.onUnsubscribe();
                     } catch (Throwable e) {
                         LOG.error("SubscriptionService subscription threw an exception on unsubscribe: %s")
-                            .with(e);
+                                .with(e);
                     }
+
+                    metrics.endpointCounter(WebSocketConfig.SUBSCRIPTIONS_METRIC, subscription.destination).decrement();
                 }
             }
 
@@ -252,15 +280,17 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
         }
 
         private void removeSubscriptions(String sessionId) {
-            Map<String, Subscription> subscriptionBySession = subscriptions.remove(sessionId);
+            Map<String, SubscriptionInfo> subscriptionBySession = subscriptions.remove(sessionId);
             if (subscriptionBySession != null) {
-                for (Subscription subscription : subscriptionBySession.values()) {
+                for (SubscriptionInfo subscription : subscriptionBySession.values()) {
                     try {
-                        subscription.onUnsubscribe();
+                        subscription.subscription.onUnsubscribe();
                     } catch (final Throwable e) {
                         LOG.error("SubscriptionService subscription threw an exception on unsubscribe: %s")
-                            .with(e);
+                                .with(e);
                     }
+
+                    metrics.endpointCounter(WebSocketConfig.SUBSCRIPTIONS_METRIC, subscription.destination).decrement();
                 }
             }
 
@@ -298,20 +328,27 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
 
         private final SimpMessagingTemplate template;
         private final String destination;
+        private final String destinationKey;
         private final String session;
         private final MessageHeaders headers;
 
-        public SubscriptionChannelImpl(SimpMessagingTemplate template, String destination, String session,
-                                       SimpMessageHeaderAccessor headerAccessor)
+        private final MetricsService.EndpointCounter sendCounter;
+
+        public SubscriptionChannelImpl(SimpMessagingTemplate template, String destination, String destinationKey, String session,
+                                       SimpMessageHeaderAccessor headerAccessor, MetricsService metrics)
         {
             this.template = template;
             this.destination = destination;
+            this.destinationKey = destinationKey;
             this.session = session;
             this.headers = WebSocketUtils.generateHeaders(headerAccessor);
+
+            sendCounter = metrics.endpointCounter(WebSocketConfig.SEND_MESSAGES_METRIC, destinationKey);
         }
 
         @Override
         public void sendMessage(final Object payload) {
+            sendCounter.increment();
             template.convertAndSend(destination, payload);
         }
 

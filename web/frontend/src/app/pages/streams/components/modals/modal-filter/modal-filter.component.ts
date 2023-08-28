@@ -5,7 +5,7 @@ import {
   OnDestroy,
   OnInit,
 } from '@angular/core';
-import {FormControl} from '@angular/forms';
+import {UntypedFormControl} from '@angular/forms';
 import {ActivatedRoute} from '@angular/router';
 import {select, Store} from '@ngrx/store';
 import {BsModalRef} from 'ngx-bootstrap/modal';
@@ -32,8 +32,8 @@ export class ModalFilterComponent implements OnInit, OnDestroy {
   onFilter: any;
   onClear: any;
   isStream: boolean;
-  symbolsControl = new FormControl([]);
-  typesControl = new FormControl([]);
+  symbolsControl = new UntypedFormControl([]);
+  typesControl = new UntypedFormControl([]);
   stream: string;
   symbol: string;
   space: string;

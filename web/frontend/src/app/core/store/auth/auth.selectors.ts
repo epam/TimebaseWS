@@ -19,11 +19,17 @@ export const getAccessTokenType = createSelector(getAuthState, (state: fromAuth.
     : state.SSOTokenResponse.tokenType,
 );
 
+export const getTokenRefreshTime = createSelector(
+  getAuthState,
+  (state: fromAuth.State) => state.tokenRefreshTime,
+);
+
 export const getAccessRequestData = createSelector(
   getAccessToken,
   getAccessTokenType,
-  (token: string, tokenType: string) => {
-    return {token: token, tokenType: tokenType};
+  getTokenRefreshTime,
+  (token: string, tokenType: string, tokenRefreshTime: number) => {
+    return {token, tokenType, tokenRefreshTime};
   },
 );
 

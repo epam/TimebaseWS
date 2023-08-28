@@ -1,6 +1,7 @@
 <app-modal>
   <ng-container title>
-    {{ 'titles.sendMessage' | translate }} <span class="stream-name">{{ stream.name }}</span>
+    {{ editMessageMode ? ('titles.editMessage' | translate) : ('titles.sendMessage' | translate) }} 
+    <span class="stream-name">{{ stream.name }}</span>
   </ng-container>
   <ng-container content>
     <ng-container *ngIf="!confirmTime; else confirm">
@@ -11,11 +12,8 @@
             {{ button }}
           </button>
         </div>
-          <div [formControl]="writeModeControl" btnRadioGroup class="btn-group radio-group">
-            <button *ngFor="let button of writeModes" [btnRadio]="button" class="btn btn-default">
-              {{ button }}
-            </button>
-          </div>
+          <app-write-modes-control *ngIf="!editMessageMode" [formControl]="writeModeControl" >
+          </app-write-modes-control>
         </div>
         <div class="content">
           <ng-container *ngIf="viewControl.value === 'form'">
@@ -50,7 +48,7 @@
       </ng-container>
     </ng-container>
     <ng-template #confirm>
-      {{ 'sendMessageModal.confirmTruncate' | translate: {stream: stream, confirmTime: confirmTime} }}
+      {{ 'sendMessageModal.confirmTruncate' | translate: {streamName: stream.name || stream.id, confirmTime: confirmTime} }}
     </ng-template>
   </ng-container>
   <div class="footer" footer>
@@ -65,12 +63,18 @@
         </button>
         <div>
           <button
-              (click)="onSubmit()"
-              [tooltip]="'buttons.send' | translate"
+              (click)="editMessageMode ? onSave() : onSubmit()"
+              [tooltip]="editMessageMode ? ('buttons.save' | translate) : ('buttons.send' | translate)"
               class="btn btn-success"
               [disabled]="formGroup.invalid"
               type="button">
-            {{ 'buttons.send' | translate }}
+              <div *ngIf="requestInProgress" class="uploading-text-and-icon">
+                <div>Saving </div>
+                <div class="lds-dual-ring"></div>
+              </div>
+              <span *ngIf="!requestInProgress">
+                {{ editMessageMode ? ('buttons.save' | translate) : ('buttons.send' | translate) }}
+              </span>
           </button>
           <button
               [tooltip]="'buttons.cancel' | translate"
@@ -101,3 +105,4 @@
     </ng-template>
   </div>
 </app-modal>
+<div *ngIf="requestInProgress" class="request-in-progress"></div>

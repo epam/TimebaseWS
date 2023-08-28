@@ -1,0 +1,30 @@
+@import '~src/app/core/styles/variables';
+
+.controlWr {
+  margin-bottom: 8px;
+
+  .btn:not(.btn-from) {
+    margin-bottom: 0;
+    color: $white;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .control-label {
+    line-height: 1.8125rem;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    background-color: $btn-navy;
+  }
+
+  .input-control {
+    font-weight: normal;
+    min-width: 230px;
+    user-select: auto;
+    text-align: left;
+    text-transform: none;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    background: $input-bg !important;
+  }
+}

@@ -12,7 +12,7 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import {FormControl, FormGroup} from '@angular/forms';
+import {UntypedFormControl, UntypedFormGroup} from '@angular/forms';
 import {Observable, ReplaySubject} from 'rxjs';
 import {debounceTime, map, takeUntil} from 'rxjs/operators';
 import {GlobalFiltersService} from '../../../services/global-filters.service';
@@ -86,6 +86,7 @@ import {FieldModel} from './field-model';
           <app-btn-date-picker
             *ngIf="timezone$ | async as timeZone"
             [timeZone]="timeZone"
+            [field]="field"
             [clearBtn]="!field.required"
             [formControlName]="field.name"></app-btn-date-picker>
         </ng-container>
@@ -116,7 +117,7 @@ import {FieldModel} from './field-model';
 export class FieldBuilderComponent implements OnDestroy, OnChanges, OnInit, AfterViewInit {
   @ViewChild('label') label: ElementRef<HTMLElement>;
   @Input() field: FieldModel;
-  @Input() form: FormGroup;
+  @Input() form: UntypedFormGroup;
   @Input() alignLabels = true;
 
   @Output() editJson = new EventEmitter<FieldModel>();
@@ -131,12 +132,12 @@ export class FieldBuilderComponent implements OnDestroy, OnChanges, OnInit, Afte
     private globalFiltersService: GlobalFiltersService,
   ) {}
 
-  get control(): FormControl {
-    return (this.form.get(this.field.name) as FormControl) || null;
+  get control(): UntypedFormControl {
+    return (this.form.get(this.field.name) as UntypedFormControl) || null;
   }
 
-  public getFormChildGroup(form: FormGroup, name: string): FormGroup {
-    return form.get(name) as FormGroup;
+  public getFormChildGroup(form: UntypedFormGroup, name: string): UntypedFormGroup {
+    return form.get(name) as UntypedFormGroup;
   }
 
   ngOnInit() {

@@ -1,6 +1,6 @@
 import {NgModule} from '@angular/core';
 import {EffectsModule} from '@ngrx/effects';
-import {DefaultRouterStateSerializer, StoreRouterConnectingModule} from '@ngrx/router-store';
+import {FullRouterStateSerializer, StoreRouterConnectingModule} from '@ngrx/router-store';
 import {StoreModule} from '@ngrx/store';
 import {StoreDevtoolsModule} from '@ngrx/store-devtools';
 import {environment} from '../../environments/environment';
@@ -32,18 +32,11 @@ import {AuthEffects} from './store/auth/auth.effects';
     }),
     EffectsModule.forRoot([AppEffects]),
     EffectsModule.forFeature([AuthEffects]),
-    StoreRouterConnectingModule.forRoot({serializer: DefaultRouterStateSerializer}),
+    StoreRouterConnectingModule.forRoot({serializer: FullRouterStateSerializer}),
 
     !environment.production ? StoreDevtoolsModule.instrument() : [],
   ],
   providers: [WSService, WebsocketService, AppInitGuard, LoginGuard, AuthGuard],
-  exports: [
-    NotificationsModule,
-    StoreModule,
-    StoreRouterConnectingModule,
-    InterceptorsModule,
-    // LoginGuard,
-    // AuthGuard,
-  ],
+  exports: [NotificationsModule, StoreModule, StoreRouterConnectingModule, InterceptorsModule],
 })
 export class CoreModule {}

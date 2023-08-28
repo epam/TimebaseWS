@@ -1,6 +1,5 @@
 import {Injectable} from '@angular/core';
-import {ContextMenuService} from 'ngx-contextmenu';
-import {IContextMenuClickEvent} from 'ngx-contextmenu/lib/contextMenu.service';
+import {ContextMenuService} from '@perfectmemory/ngx-contextmenu';
 import {take} from 'rxjs/operators';
 
 @Injectable({
@@ -11,7 +10,7 @@ export class ContextMenuControlService {
 
   constructor(private context: ContextMenuService) {}
 
-  show(event: IContextMenuClickEvent, alias = null) {
+  show(event: any, alias = null) {
     this.context.show.next(event);
     this.context.close.pipe(take(1)).subscribe(() => {
       if (this.openMenu === alias) {

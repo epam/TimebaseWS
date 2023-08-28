@@ -3,7 +3,7 @@ import {Injectable} from '@angular/core';
 import {Router} from '@angular/router';
 
 import {AuthFlow, SilentAuthProvider} from '@assets/sso-auth/sso-auth';
-import {Actions, Effect, ofType} from '@ngrx/effects';
+import {Actions, createEffect, ofType} from '@ngrx/effects';
 import {select, Store} from '@ngrx/store';
 import {LocalStorage} from '@ngx-pwa/local-storage';
 
@@ -23,6 +23,7 @@ import {
 import {Observable, of, Subject, throwError} from 'rxjs';
 import {
   catchError,
+  concatMap,
   filter,
   map,
   mergeMap,
@@ -54,7 +55,7 @@ const AUTH_KEY_IN_LS = 'art';
 
 @Injectable()
 export class AuthEffects {
-  @Effect({dispatch: false}) getAuthProviderInfo = this.actions$.pipe(
+   getAuthProviderInfo = createEffect(() => this.actions$.pipe(
     ofType<AuthActions.GetAuthProviderInfo>(AuthActionTypes.GET_AUTH_PROVIDER_INFO),
     switchMap(() =>
       this.httpClient.get<AuthProviderModel>('/authInfo', {
@@ -71,8 +72,8 @@ export class AuthEffects {
       );
       this.appStore.dispatch(new AuthActions.StartAuthProcess());
     }),
-  );
-  @Effect() startAuthProcess = this.actions$.pipe(
+  ), {dispatch: false});
+   startAuthProcess = createEffect(() => this.actions$.pipe(
     ofType<AuthActions.StartAuthProcess>(AuthActionTypes.START_AUTH_PROCESS),
     switchMap(() => {
       return this.appStore.pipe(
@@ -95,6 +96,7 @@ export class AuthEffects {
               const isLoginPage =
                 url != null && typeof url === 'string' ? url.startsWith('/auth') : false;
               if (!isLoginPage) {
+                console.log('auth: navigate to Login page');
                 this.router.navigate(['auth', 'login']);
               }
               return new AuthActions.InitialiseToken();
@@ -103,8 +105,8 @@ export class AuthEffects {
         }
       },
     ),
-  );
-  @Effect({dispatch: false}) loadSSOConfig = this.actions$.pipe(
+  ));
+   loadSSOConfig = createEffect(() => this.actions$.pipe(
     ofType<SsoConfigDependentAction>(
       AuthActionTypes.REDIRECT_TO_AUTH_PROVIDER,
       AuthActionTypes.PROCESS_SIGN_IN_REDIRECT,
@@ -143,12 +145,12 @@ export class AuthEffects {
         }),
       );
     }),
-  );
-  @Effect() silentUpdateCustomToken = this.actions$.pipe(
+  ), {dispatch: false});
+   silentUpdateCustomToken = createEffect(() => this.actions$.pipe(
     ofType<AuthActions.SilentUpdateCustomToken>(AuthActionTypes.SILENT_UPDATE_CUSTOM_TOKEN),
     switchMap(() => this.localStorage.getItem(AUTH_KEY_IN_LS)),
     withLatestFrom(this.appStore.pipe(select(getAuthProvider))),
-    switchMap(([token, authProvider]: [string | null, AuthProviderModel]) => {
+    concatMap(([token, authProvider]: [string | null, AuthProviderModel]) => {
       if (!token) {
         return of(new AuthActions.InitialiseToken());
       }
@@ -156,6 +158,7 @@ export class AuthEffects {
       body_data.append('grant_type', 'refresh_token');
       body_data.append('refresh_token', token || '');
 
+      console.log('auth: update custom token request start');
       return this.httpClient
         .post(authProvider.token_endpoint, body_data.toString(), {
           headers: new HttpHeaders({
@@ -168,12 +171,15 @@ export class AuthEffects {
         })
         .pipe(
           catchError((error) => {
+            console.log('auth: update custom token request failed');
             this.appStore.dispatch(new AppActions.AllowHTTPRequests());
             this.appStore.dispatch(new AuthActions.InitialiseToken());
             this.appStore.dispatch(new AuthActions.LogOut());
             return throwError(error);
           }),
           mergeMap((resp: CustomTokenResponseModel) => {
+            console.log('auth: update custom token request success');
+            this.appStore.dispatch(new AuthActions.TokenUpdated());
             return [
               new AppActions.AllowHTTPRequests(),
               new AuthActions.LogIn({tokenResponse: resp}),
@@ -182,8 +188,8 @@ export class AuthEffects {
           }),
         );
     }),
-  );
-  @Effect({dispatch: false}) silentUpdateSSOToken = this.actions$.pipe(
+  ));
+   silentUpdateSSOToken = createEffect(() => this.actions$.pipe(
     ofType<AuthActions.SilentUpdateSSOToken>(AuthActionTypes.SILENT_UPDATE_SSO_TOKEN),
     switchMap(() => {
       return this.appStore.pipe(
@@ -206,6 +212,7 @@ export class AuthEffects {
         [AuthorizationServiceConfiguration, AuthProviderModel],
         boolean,
       ]) => {
+        console.log('auth: update SSO token request start');
         const authObj = new SilentAuthProvider({
           flow: AuthFlow.CODE,
           clientId: appProviderConfig.client_id,
@@ -218,6 +225,7 @@ export class AuthEffects {
           authorizationServiceConfig: config,
           redirectUrl: silent_auth_redirect_url,
           failureCallback: (/*err: SilentAuthErrorJson*/) => {
+            console.log('auth: update SSO token request failed');
             if (!isTokenInitialized) {
               this.appStore.dispatch(new AppActions.PreventHTTPRequests());
               this.appStore.dispatch(new AuthActions.LogOut());
@@ -226,6 +234,7 @@ export class AuthEffects {
             }
           },
           callback: (tokenResponse: TokenResponse) => {
+            console.log('auth: update SSO token request success');
             this.appStore.dispatch(new AppActions.AllowHTTPRequests());
             this.appStore.dispatch(
               new AuthActions.LogIn({
@@ -240,8 +249,8 @@ export class AuthEffects {
         authObj.getToken();
       },
     ),
-  );
-  @Effect() tryLogin = this.actions$.pipe(
+  ), {dispatch: false});
+   tryLogin = createEffect(() => this.actions$.pipe(
     ofType<AuthActions.TryLogIn>(AuthActionTypes.TRY_LOGIN),
     withLatestFrom(this.appStore.pipe(select(getAuthProvider))),
     switchMap(([action, authProvider]) => {
@@ -284,8 +293,8 @@ export class AuthEffects {
           }),
         );
     }),
-  );
-  @Effect({dispatch: false}) refreshToken = this.actions$.pipe(
+  ));
+   refreshToken = createEffect(() => this.actions$.pipe(
     ofType<AuthActions.LogIn>(AuthActionTypes.LOGIN),
     withLatestFrom(this.appStore.pipe(select(getAuthProvider))),
     tap(([action, authProvider]) => {
@@ -299,11 +308,13 @@ export class AuthEffects {
         .subscribe();
       setTimeout(() => {
         this.appStore.dispatch(new AuthActions.SilentUpdateToken());
-      }, (authProvider.custom_provider ? (action.payload.tokenResponse as CustomTokenResponseModel).expires_in : (action.payload.tokenResponse as TokenResponse).expiresIn) * 900);
+      }, (authProvider.custom_provider ? 
+        Math.round((action.payload.tokenResponse as CustomTokenResponseModel).expires_in * 0.8) : 
+        (action.payload.tokenResponse as TokenResponse).expiresIn) * 900);
     }),
-  );
+  ), {dispatch: false});
   private readonly authorizationHandler: RedirectRequestHandler;
-  @Effect({dispatch: false}) redirectToAuth = this.actions$.pipe(
+   redirectToAuth = createEffect(() => this.actions$.pipe(
     ofType<AuthActions.RedirectToAuthProvider>(AuthActionTypes.REDIRECT_TO_AUTH_PROVIDER),
     switchMap(() => {
       return this.appStore.pipe(
@@ -332,8 +343,8 @@ export class AuthEffects {
       });
       this.authorizationHandler.performAuthorizationRequest(config, request);
     }),
-  );
-  @Effect({dispatch: false}) processSignInRedirect = this.actions$.pipe(
+  ), {dispatch: false});
+   processSignInRedirect = createEffect(() => this.actions$.pipe(
     ofType<AuthActions.ProcessSingInRedirect>(AuthActionTypes.PROCESS_SIGN_IN_REDIRECT),
     mergeMap((action) => {
       return this.appStore.pipe(
@@ -377,9 +388,9 @@ export class AuthEffects {
 
       this.authorizationHandler.completeAuthorizationRequestIfPossible();
     }),
-  );
+  ), {dispatch: false});
   private replayDelay;
-  @Effect(/*{dispatch: false}*/) silentUpdateToken = this.actions$.pipe(
+   silentUpdateToken = createEffect(() => this.actions$.pipe(
     ofType<AuthActions.SilentUpdateToken>(AuthActionTypes.SILENT_UPDATE_TOKEN),
     switchMap(() =>
       this.appStore.pipe(
@@ -389,22 +400,17 @@ export class AuthEffects {
       ),
     ),
     map(([appState, provider]) => {
-      if (appState.preventRequests || this.replayDelay) return {type: 'none'};
+      if (appState.preventRequests) return {type: 'none'};
       this.appStore.dispatch(new AppActions.PreventHTTPRequests());
-      this.replayDelay = setTimeout(() => {
-        clearTimeout(this.replayDelay);
-        delete this.replayDelay;
-      }, 5000);
-
       if (provider.custom_provider) {
         return new AuthActions.SilentUpdateCustomToken();
       } else {
         return new AuthActions.SilentUpdateSSOToken();
       }
     }),
-  );
+  ));
   private refreshTokenSubj = new Subject<any>();
-  @Effect({dispatch: false}) logout = this.actions$.pipe(
+   logout = createEffect(() => this.actions$.pipe(
     ofType<AuthActions.LogOut>(AuthActionTypes.LOGOUT),
     switchMap(() => this.setNotLoggedIn()),
     switchMap((/*action*/) => {
@@ -453,7 +459,7 @@ export class AuthEffects {
         }
       }
     }),
-  );
+  ), {dispatch: false});
 
   constructor(
     private actions$: Actions,

@@ -6,6 +6,7 @@ import { IGetRowsParams }                from 'ag-grid-community/src/ts/rowModel
 import { Observable, ReplaySubject }     from 'rxjs';
 import { filter, skip, takeUntil }       from 'rxjs/operators';
 import { AppState }                      from '../../../core/store';
+import { GridTotalService }              from '../../../shared/components/grid-total/grid-total.service';
 import { SchemaTypeModel }               from '../../../shared/models/schema.type.model';
 import { RightPaneService }              from '../../../shared/right-pane/right-pane.service';
 import { StreamModelsService }           from '../../../shared/services/stream-models.service';
@@ -21,6 +22,7 @@ export class StreamDataService implements IDatasource {
   private schema: SchemaTypeModel[];
   private lastRow = 0;
   private loadedData$ = new ReplaySubject<StreamDetailsModel[]>(1);
+  public getRowsParams: IGetRowsParams;
 
   constructor(
     private httpClient: HttpClient,
@@ -28,6 +30,7 @@ export class StreamDataService implements IDatasource {
     private appStore: Store<AppState>,
     private streamModelsService: StreamModelsService,
     private messageInfoService: RightPaneService,
+    private gridTotalService: GridTotalService,
   ) {}
 
   withTab(activeTab: TabModel, schema: SchemaTypeModel[]) {
@@ -46,21 +49,23 @@ export class StreamDataService implements IDatasource {
   }
 
   public getRows(params: IGetRowsParams): void {
+    this.getRowsParams = params;
+    this.gridTotalService.startLoading();
     const request = params;
     const activeTab = this.activeTab;
     let urlParams = {},
       url;
-    const filter = activeTab.filter || {};
-    if (activeTab.symbol) {
+    const filter = activeTab?.filter || {};
+    if (activeTab?.symbol) {
       url = `${encodeURIComponent(activeTab.stream)}/${encodeURIComponent(activeTab.symbol)}`;
     } else {
-      url = `${encodeURIComponent(activeTab.stream)}`;
+      url = `${encodeURIComponent(activeTab?.stream)}`;
     }
     url += '/select';
     urlParams = {
       ...urlParams,
-      offset: request.startRow + '',
-      rows: request.endRow - request.startRow + '',
+      offset: request?.startRow + '',
+      rows: request?.endRow - request?.startRow + '',
     };
     Object.keys(filter).forEach((key) => {
       if (
@@ -130,6 +135,7 @@ export class StreamDataService implements IDatasource {
           this.appStore.dispatch(new StreamDetailsActions.RemoveErrorMessage());
           if (resp) {
             const data = this.streamModelsService.getStreamModels(resp, this.schema);
+            this.gridTotalService.endLoading(data.length);
             this.appStore.dispatch(new StreamDetailsActions.SetStreamData({streamData: data}));
             if (resp.length) {
               this.appStore.dispatch(new TimelineBarActions.ClearLoadedDates());

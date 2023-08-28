@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,11 +14,12 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.tree;
+package com.epam.deltix.tbwg.webapp.services.tree;
 
 import com.epam.deltix.tbwg.webapp.model.tree.StreamTreeNodeDef;
 import com.epam.deltix.tbwg.webapp.model.tree.TreeNodeDef;
 import com.epam.deltix.tbwg.webapp.model.tree.TreeNodeType;
+import com.epam.deltix.tbwg.webapp.model.tree.ViewTreeNodeDef;
 
 import java.util.*;
 import java.util.function.Supplier;
@@ -39,11 +40,20 @@ public abstract class TreeNode<TChild> {
 
     public TreeNode(TreeConfig config, String id, String name, TreeNodeType type) {
         this.config = config;
-        this.treeNode = type == TreeNodeType.STREAM ?
-            new StreamTreeNodeDef(id, name, type) :
-            new TreeNodeDef(id, name, type);
+        this.treeNode = createTreeNodeDef(id, name, type);
         this.matchSelf = config.getFilter() != null &&
-            (id.toLowerCase().contains(config.getFilter()) || name.toLowerCase().contains(config.getFilter()));
+            (config.getFilter().test(id) || config.getFilter().test(name));
+    }
+
+    private TreeNodeDef createTreeNodeDef(String id, String name, TreeNodeType type) {
+        switch (type) {
+            case STREAM:
+                return new StreamTreeNodeDef(id, name, type);
+            case VIEW:
+                return new ViewTreeNodeDef(id, name, type);
+            default:
+                return new TreeNodeDef(id, name, type);
+        }
     }
 
     public void addAllChildren() {

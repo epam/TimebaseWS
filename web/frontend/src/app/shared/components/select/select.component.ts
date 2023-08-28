@@ -16,7 +16,7 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import {ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR} from '@angular/forms';
+import {ControlValueAccessor, UntypedFormControl, NG_VALUE_ACCESSOR} from '@angular/forms';
 import {ReplaySubject, Subject} from 'rxjs';
 import {delay, distinctUntilChanged, map, startWith, takeUntil} from 'rxjs/operators';
 import {SelectOptionDirective} from './select-option.directive';
@@ -39,8 +39,9 @@ export class SelectComponent
   @HostBinding('style.width.px') width: number;
   @Input() name: string;
   @Input() displayValue: string;
+  @Input() setNull = true;
   @Output() change = new EventEmitter<string>();
-  control = new FormControl();
+  control = new UntypedFormControl();
   @ContentChildren(SelectOptionDirective) private options: QueryList<SelectOptionDirective>;
   @ViewChild('displayValueEl', {static: true}) private displayValueEl: ElementRef<HTMLDivElement>;
   private width$ = new ReplaySubject<void>(1);
@@ -55,7 +56,10 @@ export class SelectComponent
 
   ngOnInit() {
     this.control.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((value) => {
-      this.control.setValue(null, {emitEvent: false});
+      if (this.setNull) {
+        this.control.setValue(null, {emitEvent: false});
+      }
+      
       this.onChange(value);
       this.change.emit(value);
     });

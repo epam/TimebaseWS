@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,6 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.epam.deltix.tbwg.webapp.services.timebase.export;
 
 import com.epam.deltix.gflog.api.Log;
@@ -52,7 +53,7 @@ public class ExportServiceImpl implements ExportService {
     @Override
     public String prepareExport(ExportSourceFactory exportSourceFactory, ExportRequest request,
                                 long startTime, long endTime, long startIndex, long endIndex,
-                                Interval periodicity, boolean convertNamespaces, RecordClassDescriptor[] rcds)
+                                Interval periodicity, RecordClassDescriptor[] rcds)
     {
         if (exportProcesses.incrementAndGet() >= MAX_EXPORT_PROCESSES) {
             LOGGER.error().append("Number of export requests over the limit ").append(MAX_EXPORT_PROCESSES).append(".")
@@ -62,20 +63,13 @@ public class ExportServiceImpl implements ExportService {
             return null;
         }
 
-        String baseFileName = "download";
-        if (exportSourceFactory instanceof StreamsExportSourceFactory) {
-            StreamsExportSourceFactory streamsExportSourceFactory = (StreamsExportSourceFactory) exportSourceFactory;
-            baseFileName = streamsExportSourceFactory.getStreams()[0].getKey().replace(' ', '_');
-        } else if (exportSourceFactory instanceof QueryExportSourceFactory) {
-            baseFileName = "export-query";
-        }
-
+        String baseFileName = exportSourceFactory.getBaseFileName();
         String file = request.getFileName(baseFileName);
 
         StreamingResponseBody body = request.format == ExportFormat.QSMSG ?
             new MessageSource2QMSGFile(
                 exportProcesses,
-                file, exportSourceFactory, request, startTime, endTime, startIndex, endIndex, periodicity, convertNamespaces, rcds
+                file, exportSourceFactory, request, startTime, endTime, startIndex, endIndex, periodicity, rcds
             ) :
             new CSVExporter(exportProcesses,
                 file, exportSourceFactory, request, startTime, endTime, startIndex, endIndex, rcds

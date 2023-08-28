@@ -129,7 +129,7 @@ $cursor-border-radius: 50px;
 .timezone-inputWr {
   width: 100%;
 
-  ng-multiselect-dropdown {
+  app-multi-select {
     width: 100%;
     flex-shrink: 1;
   }

@@ -1,0 +1,40 @@
+.error-alert {
+  visibility: hidden;
+
+  &.show {
+    visibility: visible;
+  }
+}
+
+.alert {
+  padding: 5px 10px;
+  margin-bottom: 10px;
+}
+
+.controlWr {
+  display: flex;
+
+  input {
+    flex-grow: 1;
+  }
+}
+
+::ng-deep {
+  .modal-body {
+    padding-bottom: 0;
+  }
+
+  .modal-footer {
+    padding-top: 0;
+  }
+}
+
+.live-view-checkbox {
+  padding-right: 2rem;
+  label {
+    text-transform: uppercase;
+  }
+  .form-check-input {
+    margin-top: 0.2rem;
+  }
+}

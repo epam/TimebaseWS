@@ -3,17 +3,17 @@ import {QqlSequenceKeyWord, QqlToken} from '../models/qql-editor';
 import {MonacoService} from './monaco.service';
 import IMonarchLanguage = monaco.languages.IMonarchLanguage;
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable()
 export class MonacoQqlTokensService {
   private tokensProvider: IMonarchLanguage;
 
   private streams: string[] = [];
   private fields: string[] = [];
+  private functions: string[] = [];
   private dataTypes: string[] = [];
 
   private lastState: string;
+  private languageKey: string;
 
   constructor(private monacoService: MonacoService) {
     const keywords = [];
@@ -39,7 +39,8 @@ export class MonacoQqlTokensService {
     };
   }
 
-  init() {
+  init(languageKey: string) {
+    this.languageKey = languageKey;
     this.updateTokens();
     this.monacoService.defineTheme('qqlTheme', {
       base: 'vs-dark',
@@ -55,8 +56,10 @@ export class MonacoQqlTokensService {
         {token: QqlToken.string, foreground: '6a8759'},
         {token: QqlToken.dateLiteral, foreground: 'ffc66d'},
         {token: QqlToken.dataType, foreground: 'ffc66d'},
+        {token: QqlToken.functions, foreground: 'ffc66d'},
       ],
     });
+    this.monacoService.setTokensProvider(this.languageKey, this.tokensProvider);
   }
 
   setStreams(streams: string[]) {
@@ -74,17 +77,26 @@ export class MonacoQqlTokensService {
     this.updateTokens();
   }
 
+  setFunctions(functions: string[]) {
+    this.functions = functions;
+    this.updateTokens();
+  }
+
   private regExpForWords(keywords: string[], extraAllowedWrap: string[] = []): RegExp {
     const start = ['\\s', ...extraAllowedWrap];
     const end = ['\\(', '\\s', '$', ...extraAllowedWrap];
     return new RegExp(
-      `(?:${start.join('|')})(${keywords.join('|')})(?=(?:)${end.join('|')})`,
+      `(?:${start.join('|')})(${keywords.map(keyword => keyword.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|')})(?=(?:)${end.join('|')})`,
       'gi',
     );
   }
 
   private updateTokens() {
-    const state = JSON.stringify({streams: this.streams, fields: this.fields});
+    const state = JSON.stringify({
+      streams: this.streams,
+      fields: this.fields,
+      functions: this.functions,
+    });
     if (state === this.lastState) {
       return;
     }
@@ -97,13 +109,17 @@ export class MonacoQqlTokensService {
     // TODO: Add logic to highlight only fields that in current union part
     this.setTokenByKey(
       QqlToken.field,
-      this.fields.length ? this.regExpForWords(this.fields, [',']) : null,
+      this.fields.length ? this.regExpForWords(this.fields, [',', '(', ')']) : null,
     );
     this.setTokenByKey(
       QqlToken.dataType,
-      this.dataTypes.length ? this.regExpForWords(this.dataTypes, [',']) : null,
+      this.dataTypes.length ? this.regExpForWords(this.dataTypes, [',', '(', ')']) : null,
     );
-    this.monacoService.setTokensProvider('qql', this.tokensProvider);
+    this.setTokenByKey(
+      QqlToken.functions,
+      this.dataTypes.length ? this.regExpForWords(this.functions, [',', '(', ')']) : null,
+    );
+    this.monacoService.setTokensProvider(this.languageKey, this.tokensProvider);
   }
 
   private setTokenByKey(key: string, value: RegExp | null) {

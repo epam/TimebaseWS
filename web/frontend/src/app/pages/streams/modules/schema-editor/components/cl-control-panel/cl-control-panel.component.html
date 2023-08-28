@@ -6,6 +6,23 @@
       type="button">
     {{ 'buttons.newClass' | translate }}
   </button>
+
+  <div class="btn-group">
+    <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle" 
+      [disabled]="!availableClasses.length" (click)="toggleBuiltInClassList()">
+      {{ 'buttons.builtIn' | translate }}
+    </button>
+    <div #builtInClassDropdown class="dropdown-items">
+      <ul>
+        <li *ngFor="let builtInClass of builtInClassesList">
+          <button class="dropdown-item" (click)="openConfirmModal(builtInClass)"
+            [disabled]="!availableClasses.includes(builtInClass)"
+            [class.disabled]="!availableClasses.includes(builtInClass)">{{ builtInClass }}</button>
+        </li>
+      </ul>
+    </div>
+  </div>
+
   <button
       (click)="onAskToAdd(true)"
       [disabled]="(iSchemaItemsEdited | async).newEnumAdding"
@@ -26,7 +43,21 @@
 
 <ng-template #modalTemplate>
   <div class="modal-body">
-    {{ requestMessage }}
+    <span>{{ requestMessage }}</span>
+    <ng-container *ngIf="associatedItems.length">
+      <ul *ngIf="removingType === 'class'">
+        <li *ngFor="let associatedItem of associatedItems">
+          class <span class="class-title">{{ associatedItem[0] }}</span> field 
+          <span class="field-title">{{ associatedItem[1] }}</span>
+        </li>
+      </ul>
+      <ul *ngIf="removingType === 'enum'">
+        <li *ngFor="let associatedItem of associatedItems">
+          <span class="field-title">{{ associatedItem[1] }}</span>
+          of class <span class="class-title">{{ associatedItem[0] }}</span>
+        </li>
+      </ul>
+    </ng-container>
   </div>
   <div class="modal-footer d-flex justify-content-end">
     <button

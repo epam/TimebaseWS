@@ -19,6 +19,7 @@ export enum AuthActionTypes {
   PROCESS_SIGN_IN_REDIRECT = '[Auth:SSO] Process sign-in redirection',
 
   INIT_TOKEN = '[Auth] Initialise Token',
+  TOKEN_UPDATED = '[Auth] Token Updated',
   // SET_ACCESS_TOKEN = '[Auth] Set Access token into state',
 
   TRY_LOGIN = '[Auth] Try login',
@@ -140,6 +141,10 @@ export class LogOut implements Action {
   readonly type = AuthActionTypes.LOGOUT;
 }
 
+export class TokenUpdated implements Action {
+  readonly type = AuthActionTypes.TOKEN_UPDATED;
+}
+
 export type AuthActions =
   | GetAuthProviderInfo
   | SetAuthProviderSettings
@@ -148,6 +153,7 @@ export type AuthActions =
   | SilentUpdateSSOToken
   | SilentUpdateCustomToken
   | InitialiseToken
+  | TokenUpdated
   // SetAccessToken |
   | LoadSSOConfiguration
   | SaveSSOConfig

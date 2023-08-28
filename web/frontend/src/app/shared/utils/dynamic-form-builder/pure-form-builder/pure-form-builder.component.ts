@@ -1,5 +1,5 @@
 import {Component, EventEmitter, Input, Output} from '@angular/core';
-import {FormGroup} from '@angular/forms';
+import {UntypedFormGroup} from '@angular/forms';
 import {FieldModel} from '../field-builder/field-model';
 
 @Component({
@@ -8,7 +8,7 @@ import {FieldModel} from '../field-builder/field-model';
   styleUrls: ['./../dynamic-form-builder.module.scss'],
 })
 export class PureFormBuilderComponent {
-  @Input() form: FormGroup;
+  @Input() form: UntypedFormGroup;
   @Input() fields: any[];
   @Input() alignLabels = true;
 

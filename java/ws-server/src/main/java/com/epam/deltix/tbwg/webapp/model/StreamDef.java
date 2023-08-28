@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 EPAM Systems, Inc
+ * Copyright 2023 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,10 +14,11 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model;
+package com.epam.deltix.tbwg.webapp.model;
 
-import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
+import com.epam.deltix.tbwg.webapp.model.charting.ChartTypeDef;
 
 /**
  * Created by Alex Karpovich on 9/10/2018.
@@ -40,5 +41,5 @@ public class StreamDef {
     public int          symbols;
 
     @JsonProperty
-    public ChartType[]  chartType;
+    public ChartTypeDef[] chartType;
 }

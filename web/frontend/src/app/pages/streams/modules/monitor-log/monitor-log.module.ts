@@ -13,28 +13,30 @@ import {MonitorLogLayoutComponent} from './components/monitor-log-layout/monitor
 import {MonitorLogGridDataService} from './services/monitor-log-grid-data.service';
 import {MonitorLogEffects} from './store/monitor-log.effects';
 import * as fromMonitorLog from './store/monitor-log.reducer';
+import { PageLoadingModule } from '../../../../shared/page-loading/page-loading.module';
 
 @NgModule({
   declarations: [MonitorLogLayoutComponent, MonitorLogGridComponent],
-  imports: [
-    StoreModule.forFeature(fromMonitorLog.monitorLogFeatureKey, fromMonitorLog.reducer),
-    EffectsModule.forFeature([MonitorLogEffects]),
-    RouterModule.forChild([
-      {
-        path: '',
-        component: MonitorLogLayoutComponent,
-        data: {
-          monitor: true,
-        },
-      },
-    ]),
-    AngularSplitModule,
-    RightPaneModule,
-    SplitterSizesModule,
-    SharedModule,
-    AgGridModule,
-    FiltersPanelModule,
-  ],
+    imports: [
+        StoreModule.forFeature(fromMonitorLog.monitorLogFeatureKey, fromMonitorLog.reducer),
+        EffectsModule.forFeature([MonitorLogEffects]),
+        RouterModule.forChild([
+            {
+                path: '',
+                component: MonitorLogLayoutComponent,
+                data: {
+                    monitor: true,
+                },
+            },
+        ]),
+        AngularSplitModule,
+        RightPaneModule,
+        SplitterSizesModule,
+        SharedModule,
+        AgGridModule,
+        FiltersPanelModule,
+        PageLoadingModule,
+    ],
   providers: [MonitorLogGridDataService],
 })
 export class MonitorLogModule {}

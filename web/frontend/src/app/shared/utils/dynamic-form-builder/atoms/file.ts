@@ -1,5 +1,5 @@
 import {Component, Input} from '@angular/core';
-import {FormGroup} from '@angular/forms';
+import {UntypedFormGroup} from '@angular/forms';
 
 // text,email,tel,textarea,password,
 @Component({
@@ -80,7 +80,7 @@ import {FormGroup} from '@angular/forms';
 })
 export class FileComponent {
   @Input() field: any = {};
-  @Input() form: FormGroup;
+  @Input() form: UntypedFormGroup;
 
   constructor() {}
 

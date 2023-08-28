@@ -1,0 +1,17 @@
+<app-right-info-wrapper>
+  <ng-container title>View properties</ng-container>
+  <ng-container content>
+    <div *ngIf="infoFormatted$ | async as info" class="table-responsive">
+      <table class="table">
+        <tbody>
+        <ng-container *ngFor="let field of fields">
+          <tr *ngIf="info[field]" >
+            <th>{{ 'viewInfo.fields.' + field | translate }}</th>
+            <td>{{ info[field] }}</td>
+          </tr>
+        </ng-container>
+        </tbody>
+      </table>
+    </div>
+  </ng-container>
+</app-right-info-wrapper>

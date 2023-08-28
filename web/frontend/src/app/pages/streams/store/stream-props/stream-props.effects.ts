@@ -1,7 +1,7 @@
 import {HttpClient} from '@angular/common/http';
 
 import {Injectable} from '@angular/core';
-import {Actions, Effect, ofType} from '@ngrx/effects';
+import {Actions, createEffect, ofType} from '@ngrx/effects';
 import {Subject} from 'rxjs';
 import {mergeMap, switchMap, takeUntil, tap} from 'rxjs/operators';
 import {PropsModel} from '../../models/props.model';
@@ -13,7 +13,7 @@ import {StreamPropsActionTypes} from './stream-props.actions';
 @Injectable()
 export class StreamPropsEffects {
   private stop_subscription$ = new Subject();
-  @Effect() getProps = this.actions$.pipe(
+   getProps = createEffect(() => this.actions$.pipe(
     ofType<StreamPropsActions.GetProps>(StreamPropsActionTypes.GET_PROPS),
     switchMap(() => this.tabsService.activeTabOfSimilarComponent()),
     switchMap((activeTab: TabModel) => {
@@ -26,24 +26,24 @@ export class StreamPropsEffects {
           mergeMap((resp) => [new StreamPropsActions.SetProps({props: resp || null})]),
         );
     }),
-  );
-  @Effect({dispatch: false}) stopSubscriptions = this.actions$.pipe(
+  ));
+   stopSubscriptions = createEffect(() => this.actions$.pipe(
     ofType<StreamPropsActions.StopSubscriptions>(StreamPropsActionTypes.STOP_SUBSCRIPTIONS),
     tap(() => {
       this.stop_subscription$.next(true);
       this.stop_subscription$.complete();
       this.stop_subscription$ = new Subject();
     }),
-  );
+  ), {dispatch: false});
   private changed_props_state$ = new Subject();
-  @Effect({dispatch: false}) changeStateProps = this.actions$.pipe(
+   changeStateProps = createEffect(() => this.actions$.pipe(
     ofType<StreamPropsActions.ChangeStateProps>(StreamPropsActionTypes.CHANGE_STATE_PROPS),
     tap(() => {
       this.changed_props_state$.next(true);
       this.changed_props_state$.complete();
       this.changed_props_state$ = new Subject();
     }),
-  );
+  ), {dispatch: false});
 
   constructor(
     private actions$: Actions,

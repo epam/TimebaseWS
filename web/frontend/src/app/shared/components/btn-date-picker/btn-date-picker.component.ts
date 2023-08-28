@@ -1,6 +1,7 @@
 import {
   ChangeDetectorRef,
   Component,
+  ElementRef,
   EventEmitter,
   forwardRef,
   Input,
@@ -10,14 +11,17 @@ import {
 } from '@angular/core';
 import {ControlValueAccessor, NG_VALUE_ACCESSOR} from '@angular/forms';
 import {HdDate} from '@assets/hd-date/hd-date';
-import {BsDatepickerConfig} from 'ngx-bootstrap/datepicker';
+import {BsDatepickerConfig, BsDatepickerDirective} from 'ngx-bootstrap/datepicker';
 import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 import {SafeDatePickerValueDirective} from '../../directives/safe-date-picker/safe-date-picker-value.directive';
 import {getDateUsingTZ} from '../../locale.timezone';
 import {TimeZone} from '../../models/timezone.model';
 import {GlobalFiltersService} from '../../services/global-filters.service';
+import { FieldModel } from '../../utils/dynamic-form-builder/field-builder/field-model';
 import {dateFromTZToDate, hdDateToTZ} from '../../utils/timezone.utils';
+
+type Placement = 'left' | 'top' | 'bottom' | 'right';
 
 @Component({
   selector: 'app-btn-date-picker',
@@ -32,11 +36,16 @@ import {dateFromTZToDate, hdDateToTZ} from '../../utils/timezone.utils';
   ],
 })
 export class BtnDatePickerComponent implements OnInit, ControlValueAccessor {
+  @Input() inputDisabled: boolean = false;
+  @Input() inputInvalid: boolean = false;
   @Input() value: Date | string = null;
   @Input() clearBtn = false;
+  @Input() field: FieldModel;
   @Output() valueChange = new EventEmitter<Date | string>();
   @ViewChild(SafeDatePickerValueDirective)
   private safeDatePickerValueDirective: SafeDatePickerValueDirective;
+
+  @ViewChild(BsDatepickerDirective) private datePicker: BsDatepickerDirective;
   bsConfig$: Observable<Partial<BsDatepickerConfig>>;
   hasValue = false;
   private maxDate$ = new BehaviorSubject<Date>(null);
@@ -46,6 +55,7 @@ export class BtnDatePickerComponent implements OnInit, ControlValueAccessor {
   constructor(
     private globalFiltersService: GlobalFiltersService,
     private cdRef: ChangeDetectorRef,
+    private elementRef: ElementRef<HTMLElement>,
   ) {}
 
   @Input() set maxDate(maxDate: Date) {
@@ -152,4 +162,31 @@ export class BtnDatePickerComponent implements OnInit, ControlValueAccessor {
   }
 
   onChange(value: Date | string) {}
+
+  openDropDown() {
+    this.datePicker.placement = this.optimalPlacement();
+    this.datePicker.toggle();
+  }
+
+  private optimalPlacement(): Placement {
+    const calendarSize = 313;
+    const rect = this.elementRef.nativeElement.getBoundingClientRect();
+    if (rect.bottom + calendarSize < window.innerHeight) {
+      return 'bottom';
+    }
+
+    if (rect.top - calendarSize > 0) {
+      return 'top';
+    }
+
+    if (rect.right + calendarSize < window.innerWidth) {
+      return 'right';
+    }
+
+    if (rect.left - calendarSize > 0) {
+      return 'left';
+    }
+
+    return 'bottom';
+  }
 }
