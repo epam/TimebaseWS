@@ -35,7 +35,7 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 
 
 @ServletComponentScan
-@SpringBootApplication(scanBasePackages = { "deltix.tbwg", "deltix.spring" })
+@SpringBootApplication(scanBasePackages = { "com.epam.deltix"})
 @EnableWebSocket
 @EnableScheduling
 @EnableWebSocketMessageBroker
@@ -59,7 +59,10 @@ public class Application {
             application.setRegisterShutdownHook(false);
             context = application.run(args);
             shutdownSignal.await();
-        } finally {
+        } catch (Throwable ex) {
+            ex.printStackTrace(System.out);
+        }
+        finally {
             CloseHelper.close(context);
             LogConfigurator.unconfigure();
         }

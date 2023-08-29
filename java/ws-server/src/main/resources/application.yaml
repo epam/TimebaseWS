@@ -22,7 +22,7 @@ timebase:
     group-size: 1000
 grafana:
   pluginsPackages:
-    - epam.rtc.grafana
+    - com.epam.deltix.grafana
   enabled: true
   streams:
   include: .*
