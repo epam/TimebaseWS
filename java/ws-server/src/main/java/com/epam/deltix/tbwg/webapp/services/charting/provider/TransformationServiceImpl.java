@@ -235,6 +235,9 @@ public class TransformationServiceImpl implements TransformationService {
                 query.getStream() + "[" + query.getSymbol() + "]", source, query.getInterval()
             );
 
+            if (source == null)
+                System.out.println("Source is null");
+
             Observable<?> inputObservable = source.getMessageSource()
                 .takeWhile(x -> x.getTimeStampMs() <= endTime);
 

@@ -5,7 +5,7 @@ server:
     enabled: true
     mime-types: text/html,text/css,application/javascript,application/json
 timebase:
-  url: dxtick://localhost:5453
+  url: dxtick://tb-server:8011
   user:
   password:
   streams:

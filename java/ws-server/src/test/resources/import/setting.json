@@ -1,0 +1,1519 @@
+{
+  "generalSettings": {
+    "streamKey": "",
+    "separator": ",",
+    "fileBySymbol": false,
+    "globalSorting": false,
+    "writeMode": "APPEND",
+    "startTime": {
+      "seconds": 1618784116,
+      "nanos": 646000000
+    },
+    "endTime": {
+      "seconds": 1618784296,
+      "nanos": 646000000
+    },
+    "instrumentType": ["CUSTOM"],
+    "startImportRow": 2,
+    "charset": "UTF-8",
+    "nullValues": [
+      ""
+    ],
+    "strategy": "SKIP",
+    "typeToKeywordMapping": {
+      "deltix.qsrv.test.messages.AllTypesMessage": "AllTypesMessage",
+      "deltix.qsrv.test.messages.AllSimpleTypesMessage": "AllSimpleTypesMessage"
+    },
+    "dataTimeFormat": "yyyy-MM-dd\u0027T\u0027HH:mm:ss.SSS\u0027Z\u0027",
+    "timeZone": "UTC"
+  },
+  "mappings": [
+    {
+      "field": {
+        "title": "byteNullableField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "byteNullableField",
+        "fieldType": {
+          "encoding": "INT8",
+          "nullable": true,
+          "name": "INTEGER"
+        }
+      },
+      "column": "AllSimpleTypesMessage.byteNullableField"
+    },
+    {
+      "field": {
+        "title": "nullableTimeOfDayList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableTimeOfDayList",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": false,
+            "name": "TIMEOFDAY"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableTimeOfDayList"
+    },
+    {
+      "field": {
+        "title": "Symbol",
+        "name": "symbol",
+        "fieldType": {
+          "encoding": "UTF8",
+          "nullable": false,
+          "name": "VARCHAR"
+        }
+      },
+      "column": "symbol"
+    },
+    {
+      "field": {
+        "title": "lists",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "lists",
+        "fieldType": {
+          "nullable": true,
+          "name": "OBJECT",
+          "types": [
+            "deltix.qsrv.test.messages.AllListsMessage"
+          ]
+        }
+      },
+      "column": "AllTypesMessage.lists"
+    },
+    {
+      "field": {
+        "title": "intListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "intListOfNullable",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "INT32",
+            "nullable": true,
+            "name": "INTEGER"
+          }
+        }
+      },
+      "column": "AllTypesMessage.intListOfNullable"
+    },
+    {
+      "field": {
+        "title": "textNullableField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "textNullableField",
+        "fieldType": {
+          "encoding": "UTF8",
+          "nullable": true,
+          "name": "VARCHAR"
+        }
+      },
+      "column": "AllSimpleTypesMessage.textNullableField"
+    },
+    {
+      "field": {
+        "title": "timeOfDayField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "timeOfDayField",
+        "fieldType": {
+          "nullable": false,
+          "name": "TIMEOFDAY"
+        }
+      },
+      "column": "AllSimpleTypesMessage.timeOfDayField"
+    },
+    {
+      "field": {
+        "title": "shortNullableField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "shortNullableField",
+        "fieldType": {
+          "encoding": "INT16",
+          "nullable": true,
+          "name": "INTEGER"
+        }
+      },
+      "column": "AllSimpleTypesMessage.shortNullableField"
+    },
+    {
+      "field": {
+        "title": "Keyword",
+        "name": "keyword",
+        "fieldType": {
+          "encoding": "UTF8",
+          "nullable": false,
+          "name": "VARCHAR"
+        }
+      },
+      "column": "keyword"
+    },
+    {
+      "field": {
+        "title": "asciiTextField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "asciiTextField",
+        "fieldType": {
+          "encoding": "UTF8",
+          "nullable": false,
+          "name": "VARCHAR"
+        }
+      },
+      "column": "AllSimpleTypesMessage.asciiTextField"
+    },
+    {
+      "field": {
+        "title": "booleanList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "booleanList",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": false,
+            "name": "BOOLEAN"
+          }
+        }
+      },
+      "column": "AllTypesMessage.booleanList"
+    },
+    {
+      "field": {
+        "title": "enumNullableField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "enumNullableField",
+        "fieldType": {
+          "nullable": true,
+          "name": "deltix.qsrv.test.messages.TestEnum"
+        }
+      },
+      "column": "AllSimpleTypesMessage.enumNullableField"
+    },
+    {
+      "field": {
+        "title": "shortField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "shortField",
+        "fieldType": {
+          "encoding": "INT16",
+          "nullable": false,
+          "name": "INTEGER"
+        }
+      },
+      "column": "AllSimpleTypesMessage.shortField"
+    },
+    {
+      "field": {
+        "title": "nullableAlphanumericListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableAlphanumericListOfNullable",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "ALPHANUMERIC(10)",
+            "nullable": true,
+            "name": "VARCHAR"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableAlphanumericListOfNullable"
+    },
+    {
+      "field": {
+        "title": "nullableTextList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableTextList",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "UTF8",
+            "nullable": false,
+            "name": "VARCHAR"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableTextList"
+    },
+    {
+      "field": {
+        "title": "timeOfDayList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "timeOfDayList",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": false,
+            "name": "TIMEOFDAY"
+          }
+        }
+      },
+      "column": "AllTypesMessage.timeOfDayList"
+    },
+    {
+      "field": {
+        "title": "textList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "textList",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "UTF8",
+            "nullable": false,
+            "name": "VARCHAR"
+          }
+        }
+      },
+      "column": "AllTypesMessage.textList"
+    },
+    {
+      "field": {
+        "title": "nullableByteListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableByteListOfNullable",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "INT8",
+            "nullable": true,
+            "name": "INTEGER"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableByteListOfNullable"
+    },
+    {
+      "field": {
+        "title": "decimalNullableField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "decimalNullableField",
+        "fieldType": {
+          "encoding": "DECIMAL64",
+          "nullable": true,
+          "name": "FLOAT"
+        }
+      },
+      "column": "AllSimpleTypesMessage.decimalNullableField"
+    },
+    {
+      "field": {
+        "title": "Instrument Type",
+        "messageType": "deltix.qsrv.hf.pub.InstrumentMessage",
+        "name": "instrumentType",
+        "fieldType": {
+          "nullable": false,
+          "name": "deltix.timebase.api.messages.InstrumentType"
+        }
+      }
+    },
+    {
+      "field": {
+        "title": "asciiTextListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "asciiTextListOfNullable",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "UTF8",
+            "nullable": true,
+            "name": "VARCHAR"
+          }
+        }
+      },
+      "column": "AllTypesMessage.asciiTextListOfNullable"
+    },
+    {
+      "field": {
+        "title": "doubleList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "doubleList",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "IEEE64",
+            "nullable": false,
+            "name": "FLOAT"
+          }
+        }
+      },
+      "column": "AllTypesMessage.doubleList"
+    },
+    {
+      "field": {
+        "title": "boolNullableField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "boolNullableField",
+        "fieldType": {
+          "nullable": true,
+          "name": "BOOLEAN"
+        }
+      },
+      "column": "AllSimpleTypesMessage.boolNullableField"
+    },
+    {
+      "field": {
+        "title": "listOfLists",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "listOfLists",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": false,
+            "name": "OBJECT",
+            "types": [
+              "deltix.qsrv.test.messages.AllListsMessage"
+            ]
+          }
+        }
+      },
+      "column": "AllTypesMessage.listOfLists"
+    },
+    {
+      "field": {
+        "title": "shortList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "shortList",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "INT16",
+            "nullable": false,
+            "name": "INTEGER"
+          }
+        }
+      },
+      "column": "AllTypesMessage.shortList"
+    },
+    {
+      "field": {
+        "title": "shortListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "shortListOfNullable",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "INT16",
+            "nullable": true,
+            "name": "INTEGER"
+          }
+        }
+      },
+      "column": "AllTypesMessage.shortListOfNullable"
+    },
+    {
+      "field": {
+        "title": "nullableByteList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableByteList",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "INT8",
+            "nullable": false,
+            "name": "INTEGER"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableByteList"
+    },
+    {
+      "field": {
+        "title": "nullableFloatList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableFloatList",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "IEEE32",
+            "nullable": false,
+            "name": "FLOAT"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableFloatList"
+    },
+    {
+      "field": {
+        "title": "byteList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "byteList",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "INT8",
+            "nullable": false,
+            "name": "INTEGER"
+          }
+        }
+      },
+      "column": "AllTypesMessage.byteList"
+    },
+    {
+      "field": {
+        "title": "binaryNullableField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "binaryNullableField",
+        "fieldType": {
+          "nullable": true,
+          "name": "BINARY"
+        }
+      },
+      "column": "AllSimpleTypesMessage.binaryNullableField"
+    },
+    {
+      "field": {
+        "title": "nullableTimeOfDayListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableTimeOfDayListOfNullable",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": true,
+            "name": "TIMEOFDAY"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableTimeOfDayListOfNullable"
+    },
+    {
+      "field": {
+        "title": "decimalField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "decimalField",
+        "fieldType": {
+          "encoding": "DECIMAL64",
+          "nullable": false,
+          "name": "FLOAT"
+        }
+      },
+      "column": "AllSimpleTypesMessage.decimalField"
+    },
+    {
+      "field": {
+        "title": "nullableFloatListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableFloatListOfNullable",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "IEEE32",
+            "nullable": true,
+            "name": "FLOAT"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableFloatListOfNullable"
+    },
+    {
+      "field": {
+        "title": "decimalList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "decimalList",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "DECIMAL64",
+            "nullable": false,
+            "name": "FLOAT"
+          }
+        }
+      },
+      "column": "AllTypesMessage.decimalList"
+    },
+    {
+      "field": {
+        "title": "nullableDoubleList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableDoubleList",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "IEEE64",
+            "nullable": false,
+            "name": "FLOAT"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableDoubleList"
+    },
+    {
+      "field": {
+        "title": "textListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "textListOfNullable",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "UTF8",
+            "nullable": true,
+            "name": "VARCHAR"
+          }
+        }
+      },
+      "column": "AllTypesMessage.textListOfNullable"
+    },
+    {
+      "field": {
+        "title": "enumField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "enumField",
+        "fieldType": {
+          "nullable": false,
+          "name": "deltix.qsrv.test.messages.TestEnum"
+        }
+      },
+      "column": "AllSimpleTypesMessage.enumField"
+    },
+    {
+      "field": {
+        "title": "timestampNullableField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "timestampNullableField",
+        "fieldType": {
+          "nullable": true,
+          "name": "TIMESTAMP"
+        }
+      },
+      "column": "AllSimpleTypesMessage.timestampNullableField"
+    },
+    {
+      "field": {
+        "title": "nullableShortListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableShortListOfNullable",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "INT16",
+            "nullable": true,
+            "name": "INTEGER"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableShortListOfNullable"
+    },
+    {
+      "field": {
+        "title": "nullableAlphanumericList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableAlphanumericList",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "ALPHANUMERIC(10)",
+            "nullable": false,
+            "name": "VARCHAR"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableAlphanumericList"
+    },
+    {
+      "field": {
+        "title": "intField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "intField",
+        "fieldType": {
+          "encoding": "INT32",
+          "nullable": false,
+          "name": "INTEGER"
+        }
+      },
+      "column": "AllSimpleTypesMessage.intField"
+    },
+    {
+      "field": {
+        "title": "floatList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "floatList",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "IEEE32",
+            "nullable": false,
+            "name": "FLOAT"
+          }
+        }
+      },
+      "column": "AllTypesMessage.floatList"
+    },
+    {
+      "field": {
+        "title": "timeOfDayNullableField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "timeOfDayNullableField",
+        "fieldType": {
+          "nullable": true,
+          "name": "TIMEOFDAY"
+        }
+      },
+      "column": "AllSimpleTypesMessage.timeOfDayNullableField"
+    },
+    {
+      "field": {
+        "title": "object",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "object",
+        "fieldType": {
+          "nullable": true,
+          "name": "OBJECT",
+          "types": [
+            "deltix.qsrv.test.messages.AllSimpleTypesMessage"
+          ]
+        }
+      },
+      "column": "AllTypesMessage.object"
+    },
+    {
+      "field": {
+        "title": "nullableLongListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableLongListOfNullable",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "INT64",
+            "nullable": true,
+            "name": "INTEGER"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableLongListOfNullable"
+    },
+    {
+      "field": {
+        "title": "textField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "textField",
+        "fieldType": {
+          "encoding": "UTF8",
+          "nullable": false,
+          "name": "VARCHAR"
+        }
+      },
+      "column": "AllSimpleTypesMessage.textField"
+    },
+    {
+      "field": {
+        "title": "nullableShortList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableShortList",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "INT16",
+            "nullable": false,
+            "name": "INTEGER"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableShortList"
+    },
+    {
+      "field": {
+        "title": "nullableBooleanList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableBooleanList",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": false,
+            "name": "BOOLEAN"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableBooleanList"
+    },
+    {
+      "field": {
+        "title": "nullableDecimalListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableDecimalListOfNullable",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "DECIMAL64",
+            "nullable": true,
+            "name": "FLOAT"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableDecimalListOfNullable"
+    },
+    {
+      "field": {
+        "title": "longList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "longList",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "INT64",
+            "nullable": false,
+            "name": "INTEGER"
+          }
+        }
+      },
+      "column": "AllTypesMessage.longList"
+    },
+    {
+      "field": {
+        "title": "nullableLongList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableLongList",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "INT64",
+            "nullable": false,
+            "name": "INTEGER"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableLongList"
+    },
+    {
+      "field": {
+        "title": "timeOfDayListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "timeOfDayListOfNullable",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": true,
+            "name": "TIMEOFDAY"
+          }
+        }
+      },
+      "column": "AllTypesMessage.timeOfDayListOfNullable"
+    },
+    {
+      "field": {
+        "title": "nullableObjectsList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableObjectsList",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": false,
+            "name": "OBJECT",
+            "types": [
+              "deltix.qsrv.test.messages.AllSimpleTypesMessage"
+            ]
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableObjectsList"
+    },
+    {
+      "field": {
+        "title": "nullableAsciiTextList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableAsciiTextList",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "UTF8",
+            "nullable": false,
+            "name": "VARCHAR"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableAsciiTextList"
+    },
+    {
+      "field": {
+        "title": "longNullableField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "longNullableField",
+        "fieldType": {
+          "encoding": "INT64",
+          "nullable": true,
+          "name": "INTEGER"
+        }
+      },
+      "column": "AllSimpleTypesMessage.longNullableField"
+    },
+    {
+      "field": {
+        "title": "timestampList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "timestampList",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": false,
+            "name": "TIMESTAMP"
+          }
+        }
+      },
+      "column": "AllTypesMessage.timestampList"
+    },
+    {
+      "field": {
+        "title": "objectsListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "objectsListOfNullable",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": true,
+            "name": "OBJECT",
+            "types": [
+              "deltix.qsrv.test.messages.AllSimpleTypesMessage"
+            ]
+          }
+        }
+      },
+      "column": "AllTypesMessage.objectsListOfNullable"
+    },
+    {
+      "field": {
+        "title": "nullableBooleanListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableBooleanListOfNullable",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": true,
+            "name": "BOOLEAN"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableBooleanListOfNullable"
+    },
+    {
+      "field": {
+        "title": "objectsList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "objectsList",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": false,
+            "name": "OBJECT",
+            "types": [
+              "deltix.qsrv.test.messages.AllSimpleTypesMessage"
+            ]
+          }
+        }
+      },
+      "column": "AllTypesMessage.objectsList"
+    },
+    {
+      "field": {
+        "title": "alphanumericListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "alphanumericListOfNullable",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "ALPHANUMERIC(10)",
+            "nullable": true,
+            "name": "VARCHAR"
+          }
+        }
+      },
+      "column": "AllTypesMessage.alphanumericListOfNullable"
+    },
+    {
+      "field": {
+        "title": "nullableAsciiTextListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableAsciiTextListOfNullable",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "UTF8",
+            "nullable": true,
+            "name": "VARCHAR"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableAsciiTextListOfNullable"
+    },
+    {
+      "field": {
+        "title": "doubleNullableField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "doubleNullableField",
+        "fieldType": {
+          "encoding": "IEEE64",
+          "nullable": true,
+          "name": "FLOAT"
+        }
+      },
+      "column": "AllSimpleTypesMessage.doubleNullableField"
+    },
+    {
+      "field": {
+        "title": "asciiTextList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "asciiTextList",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "UTF8",
+            "nullable": false,
+            "name": "VARCHAR"
+          }
+        }
+      },
+      "column": "AllTypesMessage.asciiTextList"
+    },
+    {
+      "field": {
+        "title": "nullableDecimalList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableDecimalList",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "DECIMAL64",
+            "nullable": false,
+            "name": "FLOAT"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableDecimalList"
+    },
+    {
+      "field": {
+        "title": "floatListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "floatListOfNullable",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "IEEE32",
+            "nullable": true,
+            "name": "FLOAT"
+          }
+        }
+      },
+      "column": "AllTypesMessage.floatListOfNullable"
+    },
+    {
+      "field": {
+        "title": "longListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "longListOfNullable",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "INT64",
+            "nullable": true,
+            "name": "INTEGER"
+          }
+        }
+      },
+      "column": "AllTypesMessage.longListOfNullable"
+    },
+    {
+      "field": {
+        "title": "nullableEnumListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableEnumListOfNullable",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": true,
+            "name": "deltix.qsrv.test.messages.TestEnum"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableEnumListOfNullable"
+    },
+    {
+      "field": {
+        "title": "nullableTextListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableTextListOfNullable",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "UTF8",
+            "nullable": true,
+            "name": "VARCHAR"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableTextListOfNullable"
+    },
+    {
+      "field": {
+        "title": "nullableObjectsListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableObjectsListOfNullable",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": true,
+            "name": "OBJECT",
+            "types": [
+              "deltix.qsrv.test.messages.AllSimpleTypesMessage"
+            ]
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableObjectsListOfNullable"
+    },
+    {
+      "field": {
+        "title": "doubleField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "doubleField",
+        "fieldType": {
+          "encoding": "IEEE64",
+          "nullable": false,
+          "name": "FLOAT"
+        }
+      },
+      "column": "AllSimpleTypesMessage.doubleField"
+    },
+    {
+      "field": {
+        "title": "alphanumericList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "alphanumericList",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "ALPHANUMERIC(10)",
+            "nullable": false,
+            "name": "VARCHAR"
+          }
+        }
+      },
+      "column": "AllTypesMessage.alphanumericList"
+    },
+    {
+      "field": {
+        "title": "textAlphaNumericNullableField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "textAlphaNumericNullableField",
+        "fieldType": {
+          "encoding": "ALPHANUMERIC(10)",
+          "nullable": true,
+          "name": "VARCHAR"
+        }
+      },
+      "column": "AllSimpleTypesMessage.textAlphaNumericNullableField"
+    },
+    {
+      "field": {
+        "title": "intNullableField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "intNullableField",
+        "fieldType": {
+          "encoding": "INT32",
+          "nullable": true,
+          "name": "INTEGER"
+        }
+      },
+      "column": "AllSimpleTypesMessage.intNullableField"
+    },
+    {
+      "field": {
+        "title": "textAlphaNumericField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "textAlphaNumericField",
+        "fieldType": {
+          "encoding": "ALPHANUMERIC(10)",
+          "nullable": true,
+          "name": "VARCHAR"
+        }
+      },
+      "column": "AllSimpleTypesMessage.textAlphaNumericField"
+    },
+    {
+      "field": {
+        "title": "binaryField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "binaryField",
+        "fieldType": {
+          "nullable": false,
+          "name": "BINARY"
+        }
+      },
+      "column": "AllSimpleTypesMessage.binaryField"
+    },
+    {
+      "field": {
+        "title": "doubleListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "doubleListOfNullable",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "IEEE64",
+            "nullable": true,
+            "name": "FLOAT"
+          }
+        }
+      },
+      "column": "AllTypesMessage.doubleListOfNullable"
+    },
+    {
+      "field": {
+        "title": "asciiTextNullableField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "asciiTextNullableField",
+        "fieldType": {
+          "encoding": "UTF8",
+          "nullable": true,
+          "name": "VARCHAR"
+        }
+      },
+      "column": "AllSimpleTypesMessage.asciiTextNullableField"
+    },
+    {
+      "field": {
+        "title": "Date/Time",
+        "name": "timestamp",
+        "fieldType": {
+          "nullable": false,
+          "name": "TIMESTAMP"
+        }
+      },
+      "column": "timestamp"
+    },
+    {
+      "field": {
+        "title": "decimalListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "decimalListOfNullable",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "DECIMAL64",
+            "nullable": true,
+            "name": "FLOAT"
+          }
+        }
+      },
+      "column": "AllTypesMessage.decimalListOfNullable"
+    },
+    {
+      "field": {
+        "title": "floatField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "floatField",
+        "fieldType": {
+          "encoding": "IEEE32",
+          "nullable": false,
+          "name": "FLOAT"
+        }
+      },
+      "column": "AllSimpleTypesMessage.floatField"
+    },
+    {
+      "field": {
+        "title": "nullableIntListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableIntListOfNullable",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "INT32",
+            "nullable": true,
+            "name": "INTEGER"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableIntListOfNullable"
+    },
+    {
+      "field": {
+        "title": "timestampListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "timestampListOfNullable",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": true,
+            "name": "TIMESTAMP"
+          }
+        }
+      },
+      "column": "AllTypesMessage.timestampListOfNullable"
+    },
+    {
+      "field": {
+        "title": "nullableDoubleListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableDoubleListOfNullable",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "IEEE64",
+            "nullable": true,
+            "name": "FLOAT"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableDoubleListOfNullable"
+    },
+    {
+      "field": {
+        "title": "boolField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "boolField",
+        "fieldType": {
+          "nullable": false,
+          "name": "BOOLEAN"
+        }
+      },
+      "column": "AllSimpleTypesMessage.boolField"
+    },
+    {
+      "field": {
+        "title": "nullableTimestampList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableTimestampList",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": false,
+            "name": "TIMESTAMP"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableTimestampList"
+    },
+    {
+      "field": {
+        "title": "nullableTimestampListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableTimestampListOfNullable",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": true,
+            "name": "TIMESTAMP"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableTimestampListOfNullable"
+    },
+    {
+      "field": {
+        "title": "byteField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "byteField",
+        "fieldType": {
+          "encoding": "INT8",
+          "nullable": false,
+          "name": "INTEGER"
+        }
+      },
+      "column": "AllSimpleTypesMessage.byteField"
+    },
+    {
+      "field": {
+        "title": "byteListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "byteListOfNullable",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "INT8",
+            "nullable": true,
+            "name": "INTEGER"
+          }
+        }
+      },
+      "column": "AllTypesMessage.byteListOfNullable"
+    },
+    {
+      "field": {
+        "title": "intList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "intList",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "INT32",
+            "nullable": false,
+            "name": "INTEGER"
+          }
+        }
+      },
+      "column": "AllTypesMessage.intList"
+    },
+    {
+      "field": {
+        "title": "timestampField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "timestampField",
+        "fieldType": {
+          "nullable": false,
+          "name": "TIMESTAMP"
+        }
+      },
+      "column": "AllSimpleTypesMessage.timestampField"
+    },
+    {
+      "field": {
+        "title": "floatNullableField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "floatNullableField",
+        "fieldType": {
+          "encoding": "IEEE32",
+          "nullable": true,
+          "name": "FLOAT"
+        }
+      },
+      "column": "AllSimpleTypesMessage.floatNullableField"
+    },
+    {
+      "field": {
+        "title": "longField",
+        "messageType": "deltix.qsrv.test.messages.AllSimpleTypesMessage",
+        "name": "longField",
+        "fieldType": {
+          "encoding": "INT64",
+          "nullable": false,
+          "name": "INTEGER"
+        }
+      },
+      "column": "AllSimpleTypesMessage.longField"
+    },
+    {
+      "field": {
+        "title": "nullableEnumList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableEnumList",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": false,
+            "name": "deltix.qsrv.test.messages.TestEnum"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableEnumList"
+    },
+    {
+      "field": {
+        "title": "nullableIntList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "nullableIntList",
+        "fieldType": {
+          "nullable": true,
+          "name": "ARRAY",
+          "elementType": {
+            "encoding": "INT32",
+            "nullable": false,
+            "name": "INTEGER"
+          }
+        }
+      },
+      "column": "AllTypesMessage.nullableIntList"
+    },
+    {
+      "field": {
+        "title": "enumList",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "enumList",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": false,
+            "name": "deltix.qsrv.test.messages.TestEnum"
+          }
+        }
+      },
+      "column": "AllTypesMessage.enumList"
+    },
+    {
+      "field": {
+        "title": "booleanListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "booleanListOfNullable",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": true,
+            "name": "BOOLEAN"
+          }
+        }
+      },
+      "column": "AllTypesMessage.booleanListOfNullable"
+    },
+    {
+      "field": {
+        "title": "enumListOfNullable",
+        "messageType": "deltix.qsrv.test.messages.AllTypesMessage",
+        "name": "enumListOfNullable",
+        "fieldType": {
+          "nullable": false,
+          "name": "ARRAY",
+          "elementType": {
+            "nullable": true,
+            "name": "deltix.qsrv.test.messages.TestEnum"
+          }
+        }
+      },
+      "column": "AllTypesMessage.enumListOfNullable"
+    }
+  ]
+}

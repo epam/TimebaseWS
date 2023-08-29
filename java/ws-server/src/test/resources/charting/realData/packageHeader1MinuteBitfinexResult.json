@@ -12,7 +12,8 @@
             "close": "41278",
             "low": "41265.5",
             "high": "41308",
-            "volume": "0"
+            "volume": "0",
+            "exchange":"null"
           },
           {
             "time": 1641818700000,
@@ -20,7 +21,8 @@
             "close": "41259",
             "low": "41256.5",
             "high": "41284",
-            "volume": "0"
+            "volume": "0",
+            "exchange":"null"
           },
           {
             "time": 1641818760000,
@@ -28,7 +30,8 @@
             "close": "41303.5",
             "low": "41245.5",
             "high": "41308.5",
-            "volume": "0"
+            "volume": "0",
+            "exchange":"null"
           },
           {
             "time": 1641818820000,
@@ -36,7 +39,8 @@
             "close": "41205.5",
             "low": "41180.5",
             "high": "41303.5",
-            "volume": "0"
+            "volume": "0",
+            "exchange":"null"
           },
           {
             "time": 1641818880000,
@@ -44,7 +48,8 @@
             "close": "41187.5",
             "low": "41162",
             "high": "41216",
-            "volume": "0"
+            "volume": "0",
+            "exchange":"null"
           }
         ]
       }

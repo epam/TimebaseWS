@@ -12,7 +12,8 @@
             "close": "37",
             "low": "35.55",
             "high": "37.42",
-            "volume": "51494"
+            "volume": "51494",
+            "exchange":"null"
           },
           {
             "time": 1638316800000,
@@ -20,7 +21,8 @@
             "close": "32.99",
             "low": "32.3",
             "high": "36.918",
-            "volume": "34644"
+            "volume": "34644",
+            "exchange":"null"
           }
         ]
       }

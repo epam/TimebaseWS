@@ -17,6 +17,7 @@
 
 package com.epam.deltix.tbwg.webapp.controllers;
 
+import com.epam.deltix.tbwg.webapp.model.smd.CurrencyDef;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.timebase.messages.InstrumentKey;
 import com.epam.deltix.timebase.messages.InstrumentMessage;
@@ -1181,6 +1182,18 @@ public class TimebaseController {
     @GetMapping(value = "/schema", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<SchemaDef> getSchema(@RequestParam String key) {
         return ResponseEntity.ok(schemaManipulationService.getSchema(key));
+    }
+
+
+    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
+    @RequestMapping(value = "/currencies", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<CurrencyDef[]> currencies() {
+
+        LOGGER.log(LogLevel.INFO, "GET CURRENCIES() ");
+
+        ArrayList<CurrencyDef> currencies = new ArrayList<CurrencyDef>();
+
+        return ResponseEntity.ok(currencies.toArray(new CurrencyDef[currencies.size()]));
     }
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")

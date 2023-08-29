@@ -53,6 +53,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Scanner;
+import java.util.Set;
 
 import static com.epam.deltix.tbwg.webapp.utils.BordersTimeBarChartsUtils.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -133,7 +134,8 @@ public abstract class ChartingBaseTest {
 
         ReactiveMessageSource reactiveMessageSource = new ReactiveMessageSourceImpl(messageProducer.run(), messageProducer.getObservable());
         Mockito.when(messageSourceFactory.buildSource(any(), any(), anyBoolean(), anyBoolean())).thenReturn(reactiveMessageSource);
-        //Mockito.when(messageSourceFactory.buildSource(any(), any(), any(), any(), anyBoolean())).thenReturn(reactiveMessageSource);
+        Mockito.when(messageSourceFactory.buildSource(any(), any(), (Set<String>)any(), any(), anyBoolean(), anyBoolean())).thenReturn(reactiveMessageSource);
+        //Mockito.when(messageSourceFactory.buildSource(any(), any(), any(), (TimeInterval) any(), anyBoolean(), anyBoolean())).thenReturn(reactiveMessageSource);
     }
 
     public long runTestFullResponseCheck(long pointInterval, Instant startTime, Instant endTime, String resultFilename,
