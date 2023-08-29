@@ -114,6 +114,10 @@ configure(javaProjects) {
     // https://github.com/spring-gradle-plugins/dependency-management-plugin#dependency-management-dsl
     dependencyManagement {
 
+        imports {
+            mavenBom 'com.fasterxml.jackson:jackson-bom:2.13.5'
+        }
+
         dependencies {
             // Enunciate annotations
             dependency 'com.webcohesion.enunciate:enunciate-core-annotations:2.12.1'
@@ -144,15 +148,12 @@ configure(javaProjects) {
             }
 
             dependency 'org.modelmapper:modelmapper:2.3.2'
-            //dependency group: 'com.epam.deltix', name: 'orderbook-core', version: '1.0.18'
             dependency 'com.epam.deltix:orderbook-core:1.0.18'
-
             // ----
 
             //dependency 'deltix:deltix-spring-api-keys:0.1.4'
 
             // spring boot tests
-            dependency 'org.springframework.boot:spring-boot-starter-test:2.7.12'
             dependency 'org.junit.jupiter:junit-jupiter-api:5.8.2'
             //dependency 'com.nimbusds:oauth2-oidc-sdk:6.14'
 
@@ -183,9 +184,11 @@ configure(javaProjects) {
                 entry 'jackson-databind'
                 entry 'jackson-core'
                 entry 'jackson-annotations'
+                entry 'jackson-module-parameter-names'
             }
 
             dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.5'
+            dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.13.5'
 
             dependency 'io.micrometer:micrometer-registry-prometheus:1.9.1'
             dependency 'io.micrometer:micrometer-core:1.9.1'
@@ -207,17 +210,18 @@ configure(javaProjects) {
 
             dependencySet(group: 'org.springframework.boot', version: '2.7.13') {
                 entry 'spring-boot'
+                entry 'spring-boot-autoconfigure'
+                entry 'spring-boot-configuration-processor'
                 entry 'spring-boot-starter'
                 entry 'spring-boot-starter-json'
-                entry 'spring-boot-autoconfigure'
                 entry 'spring-boot-starter-web'
                 entry 'spring-boot-starter-websocket'
                 entry 'spring-boot-starter-actuator'
-                entry 'spring-boot-configuration-processor'
                 entry 'spring-boot-starter-validation'
+                entry 'spring-boot-starter-test'
             }
 
-            dependencySet(group: 'org.apache.tomcat.embed', version: '9.0.78') {
+            dependencySet(group: 'org.apache.tomcat.embed', version: '9.0.64') {
                 entry 'tomcat-embed-core'
                 entry 'tomcat-embed-websocket'
                 entry 'tomcat-embed-el'
@@ -254,6 +258,23 @@ configure(javaProjects) {
             dependency 'org.yaml:snakeyaml:2.0'
 
             dependency 'org.apache.bcel:bcel:6.6.0'
+
+            dependencySet(group: 'io.netty', version: '4.1.77.Final') {
+                entry 'netty-codec'
+                entry 'netty-codec-http'
+                entry 'netty-handler'
+                entry 'netty-buffer'
+                entry 'netty-common'
+                entry 'netty-transport'
+                entry 'netty-resolver'
+                entry 'netty-codec-dns'
+                entry 'netty-codec-socks'
+                entry 'netty-handler-proxy'
+                entry 'netty-resolver-dns'
+                entry 'netty-transport-native-epoll'
+                entry 'netty-transport-native-kqueue'
+                entry 'netty-transport-native-unix-common'
+            }
         }
     }
 

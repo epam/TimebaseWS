@@ -169,6 +169,7 @@ task    devguide(type: Zip, dependsOn: enunciate) {
 }
 
 jar {
+    zip64 = true
     enabled = false
 }
 
