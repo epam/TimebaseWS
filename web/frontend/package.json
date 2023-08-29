@@ -62,7 +62,7 @@
     "ngx-json-viewer": "^2.4.0",
     "ngx-monaco-editor": "^8.1.1",
     "ngx-perfect-scrollbar": "^8.0.0",
-    "pixi.js": "6.0.4",
+    "pixi.js": "6.2.2",
     "prettier": "^2.5.1",
     "react-dom": "^17.0.2",
     "rxjs": "~6.6.0",
@@ -80,6 +80,7 @@
     "@deltix/hd.components-worker": "file:./libs/@deltix/hd.components-worker",
     "@deltix/hd.components-di": "file:./libs/@deltix/hd.components-di",
     "@deltix/ng-autocomplete": "file:./libs/@deltix/ng-autocomplete",
+	"@deltix/hd-date": "file:./libs/@deltix/hd-date",
     "@deltix/ngx-vizceral": "file:./libs/@deltix/ngx-vizceral",
     "@deltix/vizceral": "file:./libs/@deltix/vizceral"
   },

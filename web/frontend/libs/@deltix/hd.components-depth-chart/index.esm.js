@@ -387,6 +387,11 @@ const getPriceByX = state => {
   const {
     x
   } = state.input;
+
+  if (!isFinite(x)) {
+    return [];
+  }
+
   const {
     orientation
   } = state.app.parameters;
@@ -1247,9 +1252,12 @@ const createDepthChartEpic = (orderBook, symbol, parameters, channel, appId) => 
 
     if (filteredBuy.length > 0 || filteredSell.length > 0) {
       const [price, side] = getPriceByX(state);
-      orderBook.sendActionToOrderBookWorker(recordHoveredAction(parameters.groupId, side, {
-        price
-      }));
+
+      if (price) {
+        orderBook.sendActionToOrderBookWorker(recordHoveredAction(parameters.groupId, side, {
+          price
+        }));
+      }
     }
   }
 }), ignoreElements()), action$.pipe(isCreator(changeOnCanvasAction), filter(action => !action.payload.onCanvas), tap(() => {

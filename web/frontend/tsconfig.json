@@ -20,14 +20,28 @@
       "dom",
       "es2020.string",
       "ES2021.String"
-    ],
+     ],
     "paths": {
       "mini-signals": [
         "node_modules/mini-signals/index.js"
       ],
       "@assets/*": [
         "./src/assets/*"
-      ]
+      ],
+      "@deltix/hd.components-depth-chart": ["libs/@deltix/hd.components-depth-chart"],
+      "@deltix/hd.components-depth-chart-common": ["libs/@deltix/hd.components-depth-chart-common"],
+      "@deltix/hd.components-everchart": ["libs/@deltix/hd.components-everchart"],
+      "@deltix/hd.components-multi-app": ["libs/@deltix/hd.components-multi-app"],
+      "@deltix/hd.components-order-book": ["libs/@deltix/hd.components-order-book"],
+      "@deltix/hd.components-order-grid": ["libs/@deltix/hd.components-order-grid"],
+      "@deltix/hd.components-di": ["libs/@deltix/hd.components-di"],
+      "@deltix/hd.components-worker": ["libs/@deltix/hd.components-worker"],
+	  "@deltix/hd-date": ["libs/@deltix/hd-date"],
+      "@deltix/ng-autocomplete": ["libs/@deltix/ng-autocomplete"],
+      "@deltix/ngx-vizceral": ["libs/@deltix/ngx-vizceral"],	  
+      "@deltix/vizceral": ["libs/@deltix/vizceral"],
+      "@deltix/hd.components-common": ["libs/@deltix/hd.components-common"],
+      "@deltix/hd.components-utils": ["libs/@deltix/hd.components-utils"],
     }
   },
   "angularCompilerOptions": {

@@ -398,6 +398,11 @@
     const {
       x
     } = state.input;
+
+    if (!isFinite(x)) {
+      return [];
+    }
+
     const {
       orientation
     } = state.app.parameters;
@@ -1258,9 +1263,12 @@
 
       if (filteredBuy.length > 0 || filteredSell.length > 0) {
         const [price, side] = getPriceByX(state);
-        orderBook.sendActionToOrderBookWorker(hd_componentsOrderBook.recordHoveredAction(parameters.groupId, side, {
-          price
-        }));
+
+        if (price) {
+          orderBook.sendActionToOrderBookWorker(hd_componentsOrderBook.recordHoveredAction(parameters.groupId, side, {
+            price
+          }));
+        }
       }
     }
   }), operators.ignoreElements()), action$.pipe(hd_componentsUtils.isCreator(hd_componentsMultiApp.changeOnCanvasAction), operators.filter(action => !action.payload.onCanvas), operators.tap(() => {
