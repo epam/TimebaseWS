@@ -14,7 +14,8 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services;
+
+package com.epam.deltix.tbwg.webapp.services;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
@@ -28,7 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Service
 public class MetricsService {
 
-    private final MeterRegistry meterRegistry;
+    //    private final MeterRegistry meterRegistry;
     private final Map<String, Map<String, AtomicLong>> endpointGauges = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> gauges = new ConcurrentHashMap<>();
 
@@ -56,14 +57,14 @@ public class MetricsService {
         }
     }
 
-    public MetricsService(MeterRegistry meterRegistry) {
-        this.meterRegistry = meterRegistry;
-    }
+//    public MetricsService(MeterRegistry meterRegistry) {
+//        this.meterRegistry = meterRegistry;
+//    }
 
     public EndpointCounter endpointCounter(String name, String endpoint) {
         return endpoint != null ?
-            new EndpointCounter(longEndpointGauge(name), longEndpointGauge(name, endpoint)) :
-            new EndpointCounter(longEndpointGauge(name));
+                new EndpointCounter(longEndpointGauge(name), longEndpointGauge(name, endpoint)) :
+                new EndpointCounter(longEndpointGauge(name));
     }
 
     public AtomicLong longEndpointGauge(String name) {
@@ -71,12 +72,14 @@ public class MetricsService {
     }
 
     public AtomicLong longEndpointGauge(String name, String endpoint) {
-        return endpointGauges.computeIfAbsent(name, k -> new ConcurrentHashMap<>())
-            .computeIfAbsent(endpoint, k -> meterRegistry.gauge(name, List.of(Tag.of("uri", endpoint)), new AtomicLong()));
+//        return endpointGauges.computeIfAbsent(name, k -> new ConcurrentHashMap<>())
+//            .computeIfAbsent(endpoint, k -> meterRegistry.gauge(name, List.of(Tag.of("uri", endpoint)), new AtomicLong()));
+        return new AtomicLong();
     }
 
     public AtomicLong longGauge(String name) {
-        return gauges.computeIfAbsent(name, k -> meterRegistry.gauge(name, new AtomicLong()));
+//        return gauges.computeIfAbsent(name, k -> meterRegistry.gauge(name, new AtomicLong()));
+        return new AtomicLong();
     }
 
 }
