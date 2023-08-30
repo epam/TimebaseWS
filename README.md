@@ -84,4 +84,3 @@ or start server from command line
 ## Authorization 
 
 > Refer to [Authorization](https://github.com/epam/TimebaseWS/tree/main/guide/authorization/authorization.md).
-
