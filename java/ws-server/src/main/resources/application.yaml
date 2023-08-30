@@ -8,6 +8,12 @@ spring:
   mvc:
     async:
       request-timeout: 3600000 # 60 * 60 * 1000  = 1 hour
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "metrics,prometheus"
+
 timebase:
   url: dxtick://localhost:8011
   readonly: false
