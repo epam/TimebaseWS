@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Service
 public class MetricsService {
 
-    //    private final MeterRegistry meterRegistry;
+    private final MeterRegistry meterRegistry;
     private final Map<String, Map<String, AtomicLong>> endpointGauges = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> gauges = new ConcurrentHashMap<>();
 
@@ -57,9 +57,9 @@ public class MetricsService {
         }
     }
 
-//    public MetricsService(MeterRegistry meterRegistry) {
-//        this.meterRegistry = meterRegistry;
-//    }
+    public MetricsService(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+    }
 
     public EndpointCounter endpointCounter(String name, String endpoint) {
         return endpoint != null ?
@@ -72,14 +72,12 @@ public class MetricsService {
     }
 
     public AtomicLong longEndpointGauge(String name, String endpoint) {
-//        return endpointGauges.computeIfAbsent(name, k -> new ConcurrentHashMap<>())
-//            .computeIfAbsent(endpoint, k -> meterRegistry.gauge(name, List.of(Tag.of("uri", endpoint)), new AtomicLong()));
-        return new AtomicLong();
+        return endpointGauges.computeIfAbsent(name, k -> new ConcurrentHashMap<>())
+            .computeIfAbsent(endpoint, k -> meterRegistry.gauge(name, List.of(Tag.of("uri", endpoint)), new AtomicLong()));
     }
 
     public AtomicLong longGauge(String name) {
-//        return gauges.computeIfAbsent(name, k -> meterRegistry.gauge(name, new AtomicLong()));
-        return new AtomicLong();
+        return gauges.computeIfAbsent(name, k -> meterRegistry.gauge(name, new AtomicLong()));
     }
 
 }
