@@ -22,6 +22,7 @@ import com.epam.deltix.dfp.Decimal64Utils;
 import com.epam.deltix.tbwg.messages.BarMessage;
 import com.epam.deltix.tbwg.webapp.model.charting.line.BarElementDef;
 import com.epam.deltix.tbwg.messages.Message;
+import com.epam.deltix.timebase.messages.InstrumentMessage;
 import com.epam.deltix.util.collections.generated.LongToObjectHashMap;
 
 import javax.security.auth.message.MessageInfo;
@@ -32,7 +33,7 @@ import static com.epam.deltix.tbwg.webapp.utils.BordersTimeBarChartsUtils.*;
 /**
  * The transformation aggregates bars from another bars and converts into dto.
  */
-public class BarConversionTransformation extends AbstractChartTransformation<BarElementDef, BarMessage> {
+public class BarConversionTransformation extends AbstractChartTransformation<BarElementDef, InstrumentMessage> {
 
     private final long periodicity;
     private final long startTime;
@@ -71,11 +72,17 @@ public class BarConversionTransformation extends AbstractChartTransformation<Bar
     }
 
     @Override
-    protected void onNextPoint(BarMessage barMessage) {
-        long barTimestamp = barMessage.getTimeStampMs();
+    protected void onNextPoint(InstrumentMessage message) {
+        long barTimestamp = message.getTimeStampMs();
+
         if (barTimestamp < startTime) {
             return;
         }
+
+        BarMessage barMessage = (message instanceof BarMessage) ? (BarMessage)message : null;
+
+        if (barMessage == null)
+            return;
 
         BarElement barElement = exchangeToBar.get(barMessage.getExchangeId(), null);
         if (barElement == null) {

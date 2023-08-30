@@ -154,18 +154,26 @@ public class TBWGUtils {
     public static ChartTypeDef[] chartTypes(DXTickStream stream) {
         Set<ChartTypeDef> chartTypes = new LinkedHashSet<>();
 
-        RecordClassDescriptor[] descriptors = stream.getStreamOptions().getMetaData().getContentClasses();
+        if (stream != null) {
 
-        if (mayContainSubclasses(descriptors, PackageHeader.class) ||
-                mayContainSubclasses(descriptors, "com.epam.deltix.timebase.messages.universal.PackageHeader")) {
-            chartTypes.add(new ChartTypeDef(ChartType.PRICES_L2));
-            chartTypes.add(new ChartTypeDef(ChartType.TRADES_BBO));
-            chartTypes.add(new ChartTypeDef(ChartType.BARS, "BARS (mid-price)"));
-            chartTypes.add(new ChartTypeDef(ChartType.BARS_ASK, "BARS (ask)"));
-            chartTypes.add(new ChartTypeDef(ChartType.BARS_BID, "BARS (bid)"));
-        } else if (mayContainSubclasses(descriptors, BarMessage.class) ||
-                mayContainSubclasses(descriptors, "com.epam.deltix.timebase.messages.BarMessage")) {
-            chartTypes.add(new ChartTypeDef(ChartType.BARS));
+
+            RecordClassDescriptor[] descriptors = stream.getStreamOptions().getMetaData().getContentClasses();
+
+            if (mayContainSubclasses(descriptors, PackageHeader.class) ||
+                    mayContainSubclasses(descriptors, "com.epam.deltix.timebase.messages.universal.PackageHeader")) {
+                chartTypes.add(new ChartTypeDef(ChartType.PRICES_L2));
+                chartTypes.add(new ChartTypeDef(ChartType.TRADES_BBO));
+                chartTypes.add(new ChartTypeDef(ChartType.BARS, "BARS (mid-price)"));
+                chartTypes.add(new ChartTypeDef(ChartType.BARS_ASK, "BARS (ask)"));
+                chartTypes.add(new ChartTypeDef(ChartType.BARS_BID, "BARS (bid)"));
+            } else if (mayContainSubclasses(descriptors, BarMessage.class) ||
+                    mayContainSubclasses(descriptors, "com.epam.deltix.timebase.messages.BarMessage")) {
+                chartTypes.add(new ChartTypeDef(ChartType.BARS));
+            }
+
+            if (hasLinearChartDescriptors(descriptors)) {
+                chartTypes.add(new ChartTypeDef(ChartType.LINEAR));
+            }
         }
 
         return chartTypes.toArray(new ChartTypeDef[0]);
