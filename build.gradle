@@ -162,14 +162,14 @@ configure(javaProjects) {
 
             // resolving conflicts
             dependency 'com.squareup.okhttp3:okhttp:3.3.1'
-            dependency 'net.minidev:json-smart:2.4.9'
+            dependency 'net.minidev:json-smart:2.4.11'
 
             dependency 'commons-logging:commons-logging:1.2'
             dependency 'commons-cli:commons-cli:1.4'
             dependency 'commons-codec:commons-codec:1.13'
-            dependency 'commons-io:commons-io:2.6'
+            dependency 'commons-io:commons-io:2.7'
 
-            dependency 'com.google.guava:guava:30.1.1-jre'
+            dependency 'com.google.guava:guava:32.0.1-jre'
             dependency 'com.google.code.gson:gson:2.8.9'
             dependency 'com.google.code.findbugs:jsr305:3.0.2'
             dependency 'com.google.code.findbugs:annotations:3.0.1'
@@ -221,13 +221,13 @@ configure(javaProjects) {
                 entry 'spring-boot-starter-test'
             }
 
-            dependencySet(group: 'org.apache.tomcat.embed', version: '9.0.64') {
+            dependencySet(group: 'org.apache.tomcat.embed', version: '9.0.78') {
                 entry 'tomcat-embed-core'
                 entry 'tomcat-embed-websocket'
                 entry 'tomcat-embed-el'
             }
 
-            dependencySet(group: 'org.springframework.security', version: '5.7.8') {
+            dependencySet(group: 'org.springframework.security', version: '5.7.10') {
                 entry 'spring-security-web'
                 entry 'spring-security-messaging'
                 entry 'spring-security-core'
@@ -259,7 +259,7 @@ configure(javaProjects) {
 
             dependency 'org.apache.bcel:bcel:6.6.0'
 
-            dependencySet(group: 'io.netty', version: '4.1.77.Final') {
+            dependencySet(group: 'io.netty', version: '4.1.94.Final') {
                 entry 'netty-codec'
                 entry 'netty-codec-http'
                 entry 'netty-handler'
