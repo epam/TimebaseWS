@@ -155,7 +155,8 @@ configure(javaProjects) {
 
             // spring boot tests
             dependency 'org.junit.jupiter:junit-jupiter-api:5.8.2'
-            //dependency 'com.nimbusds:oauth2-oidc-sdk:6.14'
+            dependency 'com.nimbusds:oauth2-oidc-sdk:9.43.4'
+            dependency 'com.nimbusds:nimbus-jose-jwt:9.37.3'
 
             dependency 'org.hdrhistogram:HdrHistogram:2.1.10'
             dependency 'org.slf4j:slf4j-api:1.7.25'
@@ -174,7 +175,7 @@ configure(javaProjects) {
             dependency 'com.google.code.findbugs:jsr305:3.0.2'
             dependency 'com.google.code.findbugs:annotations:3.0.1'
 
-            dependency 'org.apache.commons:commons-compress:1.21'
+            dependency 'org.apache.commons:commons-compress:1.26.0'
             dependency 'org.apache.commons:commons-lang3:3.7'
             dependency 'org.apache.commons:commons-math3:3.6'
             dependency 'org.apache.commons:commons-text:1.10.0'
@@ -221,7 +222,7 @@ configure(javaProjects) {
                 entry 'spring-boot-starter-test'
             }
 
-            dependencySet(group: 'org.apache.tomcat.embed', version: '9.0.78') {
+            dependencySet(group: 'org.apache.tomcat.embed', version: '9.0.83') {
                 entry 'tomcat-embed-core'
                 entry 'tomcat-embed-websocket'
                 entry 'tomcat-embed-el'
