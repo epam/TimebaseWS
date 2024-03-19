@@ -48,14 +48,11 @@ security:
       - refresh_token
     users:
       - username: admin
-        password: $2a$10$7M3W5JMk1wggimrbVegxWeeasqjrZUjNEiZTpMSYdId92409D2TSq
+#        password: $2a$10$7M3W5JMk1wggimrbVegxWeeasqjrZUjNEiZTpMSYdId92409D2TSq
         authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
       - username: reader
-        password: $2a$10$7M3W5JMk1wggimrbVegxWeeasqjrZUjNEiZTpMSYdId92409D2TSq
+#        password: $2a$10$7M3W5JMk1wggimrbVegxWeeasqjrZUjNEiZTpMSYdId92409D2TSq
         authorities: [ TB_ALLOW_READ]
-      - username: test
-        password: $2a$10$3PL6X1Gn8VjRy4r0od9NLeZrO2YWpUjzozv3jOxU0/RMjsElzPQdu
-        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
     scopes:
       - trust
     accessTokenValiditySeconds: 300 # 5 min

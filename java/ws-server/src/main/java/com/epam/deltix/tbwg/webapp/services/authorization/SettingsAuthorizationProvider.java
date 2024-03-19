@@ -27,14 +27,17 @@ import com.epam.deltix.tbwg.webapp.settings.ApiKeysSettings;
 import com.epam.deltix.tbwg.webapp.settings.AuthoritiesSettings;
 import com.epam.deltix.tbwg.webapp.settings.ProviderType;
 import com.epam.deltix.tbwg.webapp.settings.SecurityOauth2ProviderSettings;
+import io.netty.util.internal.StringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -42,6 +45,22 @@ import java.util.stream.Collectors;
 @Service
 @ConditionalOnProperty(value = "security.authorization.source", havingValue = "CONFIG", matchIfMissing = true)
 public class SettingsAuthorizationProvider implements AuthoritiesProvider, UsersProvider, ApiKeyInfoProvider {
+
+    private final Random rnd = new Random();
+
+    private char nextCharAlphaNumeric() {
+        return (char) (0x30 + rnd.nextInt(0x5A - 0x30 + 1));
+    }
+
+    private String getRandomAlphaNumeric(int size) {
+        StringBuilder sb = new StringBuilder(size);
+        for (int i = 0; i < size; i++) {
+            sb.append(nextCharAlphaNumeric());
+        }
+
+        return sb.toString();
+    }
+
     private static final Log LOGGER = LogFactory.getLog(SettingsAuthorizationProvider.class);
 
     private final ConcurrentMap<String, TbwgUser> users = new ConcurrentHashMap<>();
@@ -54,14 +73,22 @@ public class SettingsAuthorizationProvider implements AuthoritiesProvider, Users
                                          MangleService mangleService)
     {
         List<UserDto> usersList = settings.getUsers();
+
         if (usersList != null) {
             ProviderType providerType = providerSettings.getProviderType();
             usersList.forEach(user -> {
+
+                String pass = user.getPassword();
+                if (providerType == ProviderType.BUILT_IN_OAUTH && StringUtil.isNullOrEmpty(user.getPassword())) {
+                    pass = getRandomAlphaNumeric(16);
+                    LOGGER.warn("Generating random password for user (%s): %s").with(user.getUsername()).with(pass);
+                    pass = new BCryptPasswordEncoder().encode(pass);
+                }
                 users.put(
                     user.getUsername(),
                     new TbwgUser(
                         user.getUsername(),
-                        providerType == ProviderType.BUILT_IN_OAUTH ? user.getPassword() : "",
+                        providerType == ProviderType.BUILT_IN_OAUTH ? pass : "",
                         buildAuthorities(user.getAuthorities())
                     )
                 );
