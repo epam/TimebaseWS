@@ -81,8 +81,8 @@ public class SettingsAuthorizationProvider implements AuthoritiesProvider, Users
                 String pass = user.getPassword();
                 if (providerType == ProviderType.BUILT_IN_OAUTH && StringUtil.isNullOrEmpty(user.getPassword())) {
                     pass = getRandomAlphaNumeric(16);
-                    new BCryptPasswordEncoder().encode(pass);
                     LOGGER.warn("Generating random password for user (%s): %s").with(user.getUsername()).with(pass);
+                    pass = new BCryptPasswordEncoder().encode(pass);
                 }
                 users.put(
                     user.getUsername(),
