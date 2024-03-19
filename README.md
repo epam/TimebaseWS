@@ -31,9 +31,8 @@ TimeBase Administrator also serves as a **REST/WS gateway for TimeBase Server**.
 
 ## Quick Start 
 
-> Default credentials: admin/admin
+### 1. [Start TimeBase Server](https://kb.timebase.info/community/overview/quick-start)
 
-1. [Start TimeBase Server](https://kb.timebase.info/community/overview/quick-start)
 ```bash
 # create a user-defined network
 docker network create --driver bridge timebase-network
@@ -49,7 +48,7 @@ docker run --rm -d \
    --ulimit nofile=65536:65536 \
    finos/timebase-ce-server:6.1
 ```
-2. Run Docker container with [TimeBase WS Server](https://hub.docker.com/r/epam/timebase-ws-server)
+### 2. Run Docker Container with [TimeBase WS Server](https://hub.docker.com/r/epam/timebase-ws-server)
 
 ```bash
 # run the timebase web admin container
@@ -66,6 +65,13 @@ or start server from command line
 ```
 ./gradlew bootRun
 ```
+
+### 3. Login into Web Administrator    
+   Open web page: https://localhost:8099     
+   Default username: admin      
+   Be default user password is generated randomly and can be found in logs:   
+
+   `2024-03-19 13:43:01.319 WARN [main] Generating random password for user (admin): <password>`
 
 ## Deployment 
 
