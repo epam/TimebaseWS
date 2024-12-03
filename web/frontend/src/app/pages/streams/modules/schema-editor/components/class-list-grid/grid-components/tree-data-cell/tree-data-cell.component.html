@@ -4,19 +4,19 @@
   ></span>
   <span
       (click)="onShowHideChildren(!typeItem._props._showChildren)"
-      *ngIf="typeItem._props._children && !typeItem.isEnum"
+      *ngIf="typeItem._props._children?.length && !typeItem.isEnum"
       [ngClass]="{ rotate90: typeItem._props._showChildren }"
       class="showHideChildrenBtn d-flex align-items-center">
     <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <polygon points="6.23,20.23 8,22 18,12 8,2 6.23,3.77 14.46,12" />
     </svg>
   </span>
-  <span *ngIf="!typeItem._props._children && !typeItem.isEnum" class="showHideChildrenBtn"
+  <span *ngIf="!typeItem._props._children?.length && !typeItem.isEnum" class="showHideChildrenBtn"
   ><span class="icon"></span
   ></span>
   <span *ngIf="typeItem.isEnum" class="spacer"></span>
   <span class="cellValue w-100"
   >{{ params.value }}
-    <span *ngIf="typeItem._props._children"> ({{ typeItem._props._children.length }})</span></span
+    <span *ngIf="typeItem._props._children?.length"> ({{ typeItem._props._children.length }})</span></span
   >
 </div>

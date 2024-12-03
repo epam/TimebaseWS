@@ -36,7 +36,7 @@ export class ConfirmationModalComponent implements OnInit {
     this.importFromTextFileService.editedSettings = {};
     this.importFromTextFileService.changedMappingFields.clear();
     this.importFromTextFileService.errorMessages = {};
-    this.importFromTextFileService.settingsUpdated.next(true);
+    this.importFromTextFileService.settingsUpdated$.next(true);
     this.importFromTextFileService.invalidSettings.next(false);
     this.bsModalRef.hide();
     this.importFromTextFileService.warning = 

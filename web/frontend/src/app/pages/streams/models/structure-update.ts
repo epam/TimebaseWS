@@ -11,6 +11,8 @@ export interface StructureUpdate {
 export enum StructureUpdateType {
   stream = 'STREAM',
   view = 'VIEW',
+  topic = 'TOPIC',
+  playback = 'PLAYBACK'
 }
 
 export enum StructureUpdateAction {

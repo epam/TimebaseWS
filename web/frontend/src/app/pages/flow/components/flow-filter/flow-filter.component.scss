@@ -10,8 +10,13 @@
   }
 
   label {
+    font-size: 1rem;
     white-space: nowrap;
     margin: 0 10px 0 0;
+  }
+
+  .filter-type {
+    font-size: 0.8rem;
   }
 
   app-multi-select {

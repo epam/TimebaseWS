@@ -1,14 +1,15 @@
-<div class="details-stream-wrap full-height-page">
+<div *ngIf="!noChart" class="details-stream-wrap full-height-page">
   <as-split
       [appSplitterSizes]="[75, 25]"
       [direction]="'horizontal'"
-      [minSizes]="[930, 280]"
+      [minSizes]="[900, 250]"
       [parentWidthAddon]="62"
       [useStorage]="false">
     <as-split-area [order]="1">
       <div
           class="col-md-12 d-stream w-100">
-        <app-charts-filter></app-charts-filter>
+        <app-charts-filter (setSelectedSymbols)="setSymbolList($event)"
+          [symbolList]="symbolList"></app-charts-filter>
         <div class="grid-wr">
           <ng-template [ngIf]="(streamDetails$ | async).errorMessage">
             <p class="error-message">
@@ -33,7 +34,8 @@
               <span>{{ 'notification_messages._no_chart_type' | translate }}</span>
             </div>
           </ng-template>
-          <app-deltix-charts style="height: 100%; width: 100%"></app-deltix-charts>
+
+          <app-deltix-charts style="width: 100%; height: 98%;" [symbolList]="symbolList"></app-deltix-charts>
         </div>
       </div>
     </as-split-area>
@@ -42,4 +44,8 @@
     </as-split-area>
   </as-split>
   <app-right-toolbar [showMessage]="false" ></app-right-toolbar>
+</div>
+
+<div *ngIf="noChart" style="width: 100%; height: 98%;" class="page-block">
+  <p>{{ 'charts.noChartData' | translate }}</p>
 </div>

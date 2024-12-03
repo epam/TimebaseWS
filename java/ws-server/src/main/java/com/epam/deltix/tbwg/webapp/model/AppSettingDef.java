@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model;
+package com.epam.deltix.tbwg.webapp.model;
 
 /**
  * Created by Alex Karpovich on 10/01/2020.
@@ -22,4 +22,6 @@
 public class AppSettingDef {
     public int  chartMaxPoints = 18000;
     public int  chartMaxVisiblePoints = 6000;
+    public boolean hasInstrumentType = false;
+    public boolean hasNanoseconds = true;
 }

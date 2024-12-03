@@ -28,7 +28,7 @@ export function reducer(state = initialState, action: NotificationsActions): Sta
             type: 'danger',
             ...action.payload,
           }),
-          ...state.alerts,
+          ...state.alerts.filter(alert => alert.message !== action.payload.message),
         ],
       };
     case NotificationsActionTypes.ADD_WARN:
@@ -39,13 +39,24 @@ export function reducer(state = initialState, action: NotificationsActions): Sta
             type: 'warning',
             ...action.payload,
           }),
-          ...state.warns,
+          ...state.warns.filter(warning => warning.message !== action.payload.message),
         ],
       };
     case NotificationsActionTypes.ADD_NOTIFICATION:
+      if (action.payload.type === 'success') {
+        return {
+          ...state,
+          notifications: [
+            new NotificationModel(action.payload),
+            ...state.notifications.filter(notification => notification.type === 'success'),
+          ]
+        }
+      }
       return {
         ...state,
-        notifications: [new NotificationModel(action.payload), ...state.notifications],
+        notifications: [
+          new NotificationModel(action.payload), 
+          ...state.notifications.filter(notification => notification.message !== action.payload.message)],
       };
     case NotificationsActionTypes.REMOVE_ALERT:
       state.alerts.splice(action.payload, 1);
@@ -54,13 +65,9 @@ export function reducer(state = initialState, action: NotificationsActions): Sta
         alerts: [...state.alerts],
       };
     case NotificationsActionTypes.REMOVE_ALERT_BY_ALIAS:
-      state.alerts.splice(
-        state.alerts.findIndex((alert) => alert.alias === action.payload),
-        1,
-      );
       return {
         ...state,
-        alerts: [...state.alerts],
+        alerts: state.alerts.filter(alert => alert.alias !== action.payload),
       };
     case NotificationsActionTypes.REMOVE_WARN:
       state.warns.splice(action.payload, 1);
@@ -68,16 +75,16 @@ export function reducer(state = initialState, action: NotificationsActions): Sta
         ...state,
         warns: [...state.warns],
       };
+    case NotificationsActionTypes.REMOVE_WARN_BY_ALIAS:
+      return {
+        ...state,
+        warns: state.warns.filter(warn => warn.alias !== action.payload),
+      };
     case NotificationsActionTypes.REMOVE_NOTIFICATION:
       state.notifications.splice(action.payload, 1);
       return {
         ...state,
         notifications: [...state.notifications],
-      };
-    case NotificationsActionTypes.REMOVE_WEBSOCKET_NOTIFICATIONS:
-      return {
-        ...state,
-        warns: state.warns.filter(warn => warn.message !== 'Websocket connection was closed unexpectedly')
       };
     default:
       return state;

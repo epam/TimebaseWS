@@ -1,6 +1,6 @@
 import {HttpClient} from '@angular/common/http';
 import {Component, Input, OnInit} from '@angular/core';
-import {UntypedFormGroup} from '@angular/forms';
+import {AbstractControl, UntypedFormGroup} from '@angular/forms';
 import {Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
 import {switchMap, tap} from 'rxjs/operators';
@@ -11,7 +11,7 @@ import {AppState} from '../../../../../core/store';
 @Component({
   selector: 'app-textbox',
   template: `
-    <div [formGroup]="form" class="d-flex">
+    <div [formGroup]="form" class="d-flex input-container">
       <input
         [attr.type]="field.type === 'binary' ? 'text' : field.type"
         class="form-control w-100"
@@ -20,7 +20,8 @@ import {AppState} from '../../../../../core/store';
         [name]="field.name"
         [formControlName]="field.name"
         [attr.tabindex]="field.readonly ? -1 : null"
-        [attr.readonly]="field.readonly || field.upload_file" />
+        [attr.readonly]="field.readonly || field.upload_file"
+        [class.reseting-input]="showCloseBtn" />
       <ng-template [ngIf]="field.upload_file">
         <div class="d-flex btns-wr">
           <input
@@ -39,6 +40,9 @@ import {AppState} from '../../../../../core/store';
           </button>
         </div>
       </ng-template>
+      <div *ngIf="showCloseBtn && control.value" (click)="clear()" class="clear-btn" 
+        [ngStyle]="{'display': control.disabled ? 'none' : 'block'}"
+      ></div>
     </div>
   `,
   styleUrls: ['./textbox.scss'],
@@ -46,6 +50,9 @@ import {AppState} from '../../../../../core/store';
 export class TextBoxComponent implements OnInit {
   @Input() field: any = {};
   @Input() form: UntypedFormGroup;
+  @Input() showCloseBtn = false;
+
+  control: AbstractControl;
 
   constructor(
     private httpClient: HttpClient,
@@ -54,7 +61,7 @@ export class TextBoxComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // console.log('input - ', this.field);
+    this.control = this.form.get(this.field.name);
   }
 
   onUpload(event: Event) {
@@ -93,5 +100,9 @@ export class TextBoxComponent implements OnInit {
         this.form.get(this.field.name).reset(response['file']);
       });
     // $event.target.files
+  }
+
+  clear() {
+    this.form.get(this.field.name).patchValue(null);
   }
 }

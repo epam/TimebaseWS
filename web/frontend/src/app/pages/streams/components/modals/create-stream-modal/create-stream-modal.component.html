@@ -1,34 +1,106 @@
 <app-modal>
-  <h4 class="modal-title pull-left" title>{{ 'text.onCreateStream' | translate }}</h4>
+  <h4 class="modal-title pull-left" title>
+    {{ (topic ? 'text.onCreateTopic' : 'text.onCreateStream') | translate }}</h4>
   <ng-container content>
-    <form (ngSubmit)="onCreateStream()" id="nameForm">
-      <div class="controlWr">
+    <form (ngSubmit)="onCreateStream()" id="nameForm" [class.create-topic-form]="topic">
+      <div class="controlWr" [class.invalid]="streamNameControl?.invalid && !streamNameControl.pristine">
         <label class="btn control-label" for="keyInput">
-          {{ 'forms.enterKey' | translate }}
+          {{ (topic ? 'forms.topicName' : 'forms.streamKey') | translate }}
         </label>
         <input
             appAutofocus
+            autocomplete="off"
             [formControl]="streamNameControl"
             class="btn input-control"
             id="keyInput"
             name="key"
             type="text" />
       </div>
-      <div
-          *ngIf="streamNameControl.invalid && !streamNameControl.pristine"
-          class="alert alert-danger my-1 p-2 fadeInDown animated validation-error">
-        <span *ngIf="streamNameControl.errors?.required" class="d-block">
-          {{ 'forms.validators.requiredField' | translate }}
-        </span>
-        <span *ngIf="streamNameControl.errors?.nameIsForbidden" class="d-block">
-          {{ 'forms.validators.streamNameExists' | translate }}
-        </span>
+      <div *ngIf="topic" class="controlWr" [class.invalid]="copyToStreamControl?.invalid && !copyToStreamControl.pristine">
+        <label class="btn control-label" for="keyInput">
+          {{ 'forms.copyToStream' | translate }}
+        </label>
+        <deltix-ng-autocomplete
+          (changeInput)="topicStreamNameChange($event)"
+          (selectItem)="topicStreamNameChange($event)"
+          [values]="autocomplete$ | async"
+          [free]="true"
+          cssClass="in-modal"
+          name="carbon-copy"
+          [formControl]="copyToStreamControl">
+        </deltix-ng-autocomplete>
       </div>
+      <div *ngIf="!topic || (!copyToExistingStream && copyToStreamControl.value)" class="storage-inputs">
+        <div class="controlWr" [ngStyle]="{ 'flex-basis': (showDistributionFactorInput$ | async) ? '49%' : '100%' }">
+          <label class="btn control-label" for="keyInput">
+            {{ 'forms.version' | translate }}
+          </label>
+          <select
+            class="form-control"
+            [formControl]="versionControl">
+            <ng-container *ngFor="let option of versionOptions">
+              <option [value]="option">
+                {{ option }}
+              </option>
+            </ng-container>
+          </select>
+        </div>
+        <div *ngIf="showDistributionFactorInput$ | async" class="controlWr distribution-factor-input" 
+          [class.invalid]="distributionFactorControl?.invalid && !distributionFactorControl.pristine">
+          <label class="btn control-label" for="keyInput">
+            {{ 'forms.distributionFactor' | translate }}
+          </label>
+          <deltix-ng-autocomplete 
+            (changeInput)="distributionFactorChange($event)"
+            [values]="distributionFactorOptions"
+            [free]="true"
+            cssClass="in-modal"
+            [formControl]="distributionFactorControl">
+          </deltix-ng-autocomplete>
+        </div>
+      </div>
+      <ng-container>
+        <ng-container *ngIf="(streamNameControl?.invalid && !streamNameControl.pristine) || 
+          (distributionFactorControl?.invalid && !distributionFactorControl.pristine); else pendingOrWarninig">
+          <div *ngIf="(streamNameControl?.invalid && !streamNameControl.pristine)" class="validation-error">
+            <ng-container *ngTemplateOutlet="validatorMessage; context: 
+              { error: streamNameControl.errors, nameType: topic ? 'Topic name' : 'Stream key' }"></ng-container>
+          </div>
+          <div *ngIf="(!topic || (!copyToExistingStream && copyToStreamControl.value)) && (showDistributionFactorInput$ | async) &&
+            (distributionFactorControl?.invalid && !distributionFactorControl.pristine)" 
+            class="validation-error">
+            <ng-container *ngTemplateOutlet="validatorMessage; context: { error: distributionFactorControl.errors }"></ng-container>
+          </div>
+        </ng-container>
+        <ng-container *ngIf="topic && copyToStreamControl.value?.length">
+          <div *ngIf="copyToStreamControl?.invalid && !copyToStreamControl.pristine; else pending" class="validation-error">
+            <ng-container 
+              *ngTemplateOutlet="validatorMessage; 
+              context: { error: copyToStreamControl.errors, nameType: 'Stream key', optional: true }"></ng-container>
+          </div>
+          <div *ngIf="copyToStreamControl?.status === 'PENDING' && lastStreamValidationError" class="validation-error">
+            <ng-container 
+              *ngTemplateOutlet="validatorMessage; 
+              context: { error: lastStreamValidationError, nameType: 'Stream key', optional: true }"></ng-container>
+          </div>
+        </ng-container>
+        <ng-template #pendingOrWarninig>
+          <div *ngIf="streamNameControl?.status === 'PENDING' && lastNameValidationError; else warning" class="validation-error">
+            <ng-container *ngTemplateOutlet="validatorMessage; 
+              context: { error: lastNameValidationError, nameType: topic ? 'Topic name' : 'Stream key' }"></ng-container>
+          </div>
+          <ng-template #warning>
+            <div *ngIf="!topic" class="name-warning">{{ 'forms.nameWarninig' | translate }}</div>
+          </ng-template>
+        </ng-template>
+      </ng-container>
     </form>
   </ng-container>
   <ng-container footer>
     <button
-        [disabled]="streamNameControl.invalid || streamNameControl.pristine"
+        [disabled]="streamNameControl.invalid || streamNameControl.pristine || streamNameControl?.status === 'PENDING'
+        || (!topic ? false : copyToStreamControl.invalid) || 
+        ((!topic || (!copyToExistingStream && copyToStreamControl.value)) && (showDistributionFactorInput$ | async) && distributionFactorControl.invalid)"
         aria-label="Close"
         class="btn btn-danger pull-right"
         form="nameForm"
@@ -44,3 +116,25 @@
     </button>
   </ng-container>
 </app-modal>
+
+<ng-template #validatorMessage let-error="error" let-nameType="nameType" let-optional="optional">
+  <span *ngIf="error.required && !optional">
+    {{ 'forms.validators.requiredFieldWithName' | translate : { nameType }  }}
+  </span>
+  <span *ngIf="error.noAlphaNumeric">
+    {{ 'forms.validators.noAlphaNumeric' | translate : { nameType } }}
+  </span>
+  <span *ngIf="error.maxlength">
+    {{ 'forms.validators.maxFieldLength' | translate : { nameType } }}
+  </span>
+  <span *ngIf="error.nameIsForbidden">
+    {{ 'forms.validators.streamKeyExists' | translate : { nameType: 'Stream' } }}
+  </span>
+  <ng-container *ngIf="error.forbiddenSymbols">
+    <span>{{ 'forms.validators.streamKeyIncludesForbiddenSymbols' | translate : { nameType } }} </span>
+    <span>({{ forbiddenCharsForMessage.join(' ') }})</span>
+  </ng-container>
+  <span *ngIf="error.invalidValue">
+    {{ 'forms.validators.invalidDistributionFactor' | translate }}
+  </span>
+</ng-template>

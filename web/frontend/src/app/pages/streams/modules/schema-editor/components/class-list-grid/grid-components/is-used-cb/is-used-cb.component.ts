@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
+import {ChangeDetectionStrategy, Component, Input, OnInit} from '@angular/core';
 import {Store} from '@ngrx/store';
 import {ICellRendererAngularComp} from 'ag-grid-angular';
 import {ICellRendererParams} from 'ag-grid-community';
@@ -15,7 +15,8 @@ import {ChangeSchemaItem} from '../../../../store/schema-editor.actions';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IsUsedCbComponent implements OnInit, ICellRendererAngularComp {
-  public typeItem: SchemaClassTypeModel;
+  @Input() public data: { checked: boolean, readonly: boolean };
+  public typeItem: SchemaClassTypeModel & { readonly?: boolean };
   readOnly$: Observable<boolean>;
 
   constructor(private appStore: Store<AppState>, private permissionsService: PermissionsService) {

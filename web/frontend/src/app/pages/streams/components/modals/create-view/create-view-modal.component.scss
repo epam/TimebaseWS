@@ -1,7 +1,7 @@
 @import 'src/app/core/styles/variables';
 
 :host {
-  width: 600px;
+  width: 400px;
 
   .controlWr {
     display: flex;
@@ -23,7 +23,7 @@ app-qql-editor {
 
 ::ng-deep .modal-xl {
   min-width: 600px;
-  min-height: 500px;
+  min-height: 400px;
 }
 
 .live-view-checkbox {
@@ -34,4 +34,17 @@ app-qql-editor {
   .form-check-input {
     margin-top: 0.2rem;
   }
+}
+
+.editor-loading {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #ffffff0c;
+  color: gray;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

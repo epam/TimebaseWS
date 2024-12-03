@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,8 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.websockets;
+package com.epam.deltix.tbwg.webapp.websockets;
 
+import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
 import com.epam.deltix.tbwg.webapp.services.MetricsService;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.util.concurrent.QuickExecutor;
@@ -63,6 +64,7 @@ public class LiveServiceImpl implements WebSocketConfigurer {
                 .addHandler(new WSQueryHandler(service, executor, metrics), "/ws/v0/query")
                 .addHandler(new WSHandler(service, executor, metrics, service.getFlushPeriodMs()), "/ws/v0/{streamId}/monitor")
                 .addInterceptors(new TemplateHandshakeInterceptor())
+                .addInterceptors(new WebSocketConfig.IpInterceptor())
                 .setAllowedOrigins("*");
     }
 
@@ -84,6 +86,8 @@ public class LiveServiceImpl implements WebSocketConfigurer {
             if (uriTemplateVars != null) {
                 attributes.putAll(uriTemplateVars);
             }
+
+            attributes.put(WSHandler.PRINCIPAL_ATTRIBUTE_NAME, request.getPrincipal());
 
             return true;
         }

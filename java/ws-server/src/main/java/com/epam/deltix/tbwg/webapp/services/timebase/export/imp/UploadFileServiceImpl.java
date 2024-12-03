@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.timebase.export.imp;
 
 import com.epam.deltix.gflog.api.Log;
@@ -78,11 +77,6 @@ public class UploadFileServiceImpl implements UploadFileService {
         cleanDirectory();
     }
 
-    @Scheduled(fixedDelay = 30000)
-    public void reload() {
-        invalidateStaleImports();
-    }
-
     @Override
     public ImportProcess newFileUploadProcess(String fileName, long size, ImportSettings settings) {
         long id = ID_GENERATOR.incrementAndGet();
@@ -140,14 +134,6 @@ public class UploadFileServiceImpl implements UploadFileService {
 
         commitDiskSize(importProcess.getSize());
         uploads.put(id, importProcess);
-    }
-
-    private synchronized void invalidateStaleImports() {
-        long currentTime = System.currentTimeMillis();
-        uploads.values().stream()
-            .filter(i -> currentTime - i.changeTime() > staleImportTimeMs)
-            .map(ImportProcess::id).collect(Collectors.toList())
-            .forEach(this::removeUploadProcess);
     }
 
     private synchronized ImportProcess getUploadProcess(long id) {
@@ -229,7 +215,7 @@ public class UploadFileServiceImpl implements UploadFileService {
 
     @Override
     public void deleteLogFile(Long id) {
-        File file = importLogs.get(id);
+        File file = importLogs.remove(id);
         if (file != null) {
             file.delete();
         }

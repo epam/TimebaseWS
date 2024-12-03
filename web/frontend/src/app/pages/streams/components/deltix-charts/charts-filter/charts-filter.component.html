@@ -5,21 +5,35 @@
         [formGroup]="filterForm"
         class="d-flex align-items-center filter-form"
         id="filterForm">
-      <select
-          (change)="onChartTypeChange()"
-          *ngIf="chartTypes$ | async as chartTypes"
-          class="dropdown btn btn-control dropdown-toggle controlWr chart-types-dropdown"
-          formControlName="chart_type"
-          id="chart_type"
-          name="chart_type">
-        <option *ngFor="let chartType of chartTypes" [ngValue]="chartType.id">
-          {{ chartType.title }}
-        </option>
-      </select>
+      <ng-multiselect-dropdown 
+        *ngIf="chartTypes"
+        (onSelect)="onChartTypeChange($event)"
+        formControlName="chart_type"
+        [tooltip]="'charts.filters.chartType' | translate"
+        placement="bottom"
+        [data]="chartTitles"
+        appMultiselectNormalize
+        [settings]="{ allowSearchFilter: false, enableCheckAll: false, singleSelection: true }"
+        class="flat-multiselect chart-type-select"
+      ></ng-multiselect-dropdown>
+      <ng-multiselect-dropdown 
+        *ngIf="!['BARS_TRADES', 'LINEAR'].includes(filterForm.get('chart_type').value) && sourceOptions?.[streamId]?.length"
+        formControlName="source"
+        [data]="sourceOptions?.[streamId]"
+        (onSelect)="onSourceChange()"
+        appMultiselectNormalize
+        [placeholder]="'charts.filters.chartSource' | translate"
+        [tooltip]="'charts.filters.chartSource' | translate"
+        placement="bottom"
+        [settings]="{ allowSearchFilter: false, enableCheckAll: false, singleSelection: true }"
+        class="flat-multiselect"
+      ></ng-multiselect-dropdown>
       <button
           (click)="switchTimeRange(-1)"
           class="btn btn-navy btn-arrow controlWr"
           form="filterForm"
+          [tooltip]="'charts.filters.previousRange' | translate"
+          placement="bottom"
           type="button">
         <svg
             fill="none"
@@ -40,6 +54,8 @@
           (change)="onTimeRangeChange()"
           [displayValue]="getTitle$ | async"
           formControlName="width"
+          [tooltip]="'charts.filters.selectedRange' | translate"
+          placement="bottom"
           name="width">
         <option *ngFor="let item of widthValuesMs$ | async" [value]="item.val" appSelectOption>
           {{ item.title }}
@@ -50,6 +66,8 @@
           (click)="switchTimeRange(1)"
           class="btn btn-navy btn-arrow controlWr right-navigator-btn"
           form="filterForm"
+          [tooltip]="'charts.filters.nextRange' | translate"
+          placement="bottom"
           type="button">
         <svg
             fill="none"
@@ -65,9 +83,25 @@
           <path d="M12 30 L24 16 12 2" />
         </svg>
       </button>
-      
-      <p *ngIf="showLevels$ | async" class="title">{{ 'charts.filters.levels' | translate }}:</p>
+      <div class="symbols">
+        <app-multi-select
+          formControlName="symbol"
+          [items]="tabSymbolList?.[tabId]"
+          [search]="true"
+          [flat]="true"
+          [contextMenuWidth]="290"
+          [selectAllIsAvailable]="false"
+          [initiallySelectedItems]="selectedSymbols"
+          [selectionNumberUpperLimit]="5"
+          [selectionNumberLowerLimit]="1"
+          [sort]="true"
+          [closeButtonsHidden]="true"
+          [tooltip]="symbolsTooltipText"
+          placement="bottom"
+        ></app-multi-select>
+      </div>
     </form>
+<!--     <p *ngIf="showLevels$ | async" class="title">{{ 'charts.filters.levels' | translate }}:</p> -->
     <deltix-ng-autocomplete
         (selectItem)="onLevelsManuallyChanged()"
         (appClickOutside)="onLevelsModelChange(null, true)"
@@ -79,10 +113,13 @@
         [values]="lvlValues"
         free="true"
         cssClass="in-modal"
+        [tooltip]="'charts.filters.numberOfLevels' | translate"
+        placement="bottom"
+        [invalid]="levelInput && (+levelInput > 100 || +levelInput <= 0)"
         maxlength="3">
     </deltix-ng-autocomplete>
     <ng-container *ngIf="showBarsChart$ | async">
-      <p class="title">{{ 'charts.filters.barSize' | translate }}:</p>
+<!--       <p class="title">{{ 'charts.filters.barSize' | translate }}:</p> -->
       <app-bars-period-filter
           cssClass="in-modal"
           (periodManuallyChange)="onBarsPeriodSubmit(true)"
@@ -91,9 +128,12 @@
           [minInterval]="minInterval$ | async"
           [maxInterval]="maxInterval$ | async"
           [periodicity]="periodicity$ | async"
+          [tooltip]="'charts.filters.barSize' | translate"
+          placement="bottom"
       ></app-bars-period-filter>
     </ng-container>
-    <button (click)="toggleTrack()" class="btn btn-info" [class.btn-active]="track$ | async">
+    <button (click)="toggleTrack()" class="btn btn-info" [class.btn-active]="track$ | async"
+      [tooltip]="'charts.filters.track' | translate" placement="bottom">
       {{ 'charts.filters.track' | translate }}
     </button>
     <div class="d-flex filter-right">
@@ -107,8 +147,18 @@
           [single]="true"
           [search]="false"
           [flat]="true"
+          [tooltip]="'charts.filters.exchanges' | translate"
+          placement="bottom"
       ></app-multi-select>
     </div>
+    <button
+      class="btn btn-info btn-share"
+      tooltip="Share Chart"
+      placement="bottom"
+      container="body"
+      (click)="shareChart()">
+      <ng-container *ngTemplateOutlet="shareIcon"></ng-container>
+    </button>
   </div>
 </div>
 <ng-template #customRangePicker>
@@ -134,7 +184,7 @@
                 (dateValueChanged)="onRangeChange($event, 'start')"
                 (dateValueInvalid)="setDateIsValid(false, 'start')"
                 (keyup.enter)="setConfig(); hideModal(true)"
-                [appSafeDatePickerValue]="rangeFromValue"
+                [appSafeDatePickerValue]="customRangeFromValue"
                 [bsConfig]="bsConfig"
                 [isOpen]="false"
                 [maxDate]="rangeToValue"
@@ -153,7 +203,7 @@
                 (dateValueChanged)="onRangeChange($event, 'end')"
                 (dateValueInvalid)="setDateIsValid(false, 'end')"
                 (keyup.enter)="setConfig(); hideModal(true)"
-                [appSafeDatePickerValue]="rangeToValue"
+                [appSafeDatePickerValue]="customRangeToValue"
                 [bsConfig]="bsConfig"
                 [isOpen]="false"
                 [minDate]="rangeFromValue"
@@ -205,4 +255,27 @@
       </div>
     </div>
   </div>
+</ng-template>
+
+<ng-template #shareIcon>
+  <svg height="23" id="svg2" version="1.1" width="23" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+    xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" 
+    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" 
+    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:svg="http://www.w3.org/2000/svg"><defs 
+    id="defs4"/>
+    <g id="layer1" transform="translate(0,-1036.3622)">
+      <path d="m -22.410713,-3.3303571 a 2.3660715,2.3660715 0 1 1 -4.732143,0 2.3660715,2.3660715 0 1 1 4.732143,0 z" 
+        id="path2985" style="fill:#ffffff;fill-opacity:1;stroke:none" 
+        transform="matrix(0.84528301,0,0,0.84528301,33.943395,1042.1773)"/>
+      <path d="m -22.410713,-3.3303571 a 2.3660715,2.3660715 0 1 1 -4.732143,0 2.3660715,2.3660715 0 1 1 4.732143,0 z" 
+        id="path2985-1" style="fill:#ffffff;fill-opacity:1;stroke:none" 
+        transform="matrix(0.84528301,0,0,0.84528301,33.943395,1052.1773)"/>
+      <path d="m -22.410713,-3.3303571 a 2.3660715,2.3660715 0 1 1 -4.732143,0 2.3660715,2.3660715 0 1 1 4.732143,0 z" 
+        id="path2985-1-7" style="fill:#ffffff;fill-opacity:1;stroke:none" 
+        transform="matrix(0.84528301,0,0,0.84528301,23.943395,1047.1773)"/>
+      <path d="M 13,3 3,8 13,13" id="path3791" 
+        style="fill:none;stroke:#ffffff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" 
+        transform="translate(0,1036.3622)"/>
+    </g>
+  </svg>
 </ng-template>

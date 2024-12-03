@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,14 +14,16 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.websockets;
 
 import com.epam.deltix.gflog.api.LogLevel;
+import com.epam.deltix.qsrv.hf.tickdb.pub.*;
 import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
 import com.epam.deltix.tbwg.webapp.model.ws.*;
 import com.epam.deltix.tbwg.webapp.services.MetricsService;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
+import com.epam.deltix.tbwg.webapp.services.timebase.connections.TbUserDetails;
+import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -29,10 +31,6 @@ import com.google.gson.JsonParseException;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.pub.RawMessage;
-import com.epam.deltix.qsrv.hf.tickdb.pub.CursorException;
-import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
-import com.epam.deltix.qsrv.hf.tickdb.pub.SelectionOptions;
-import com.epam.deltix.qsrv.hf.tickdb.pub.TickCursor;
 import com.epam.deltix.qsrv.hf.tickdb.pub.topic.DirectChannel;
 import com.epam.deltix.qsrv.util.json.DataEncoding;
 import com.epam.deltix.qsrv.util.json.JSONRawMessagePrinter;
@@ -52,6 +50,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.Principal;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -69,6 +68,8 @@ public class WSHandler extends TextWebSocketHandler {
 
     static final Log LOGGER = LogFactory.getLog(WSHandler.class);
 
+    static final String PRINCIPAL_ATTRIBUTE_NAME = "principal";
+
     protected static final int MAX_BUFFER_SIZE = 16 * 1024;
     protected static final int LIMIT_BUFFER_SIZE = MAX_BUFFER_SIZE - (MAX_BUFFER_SIZE % 10);
 
@@ -79,7 +80,7 @@ public class WSHandler extends TextWebSocketHandler {
         final Runnable avlnr = PumpTask.this::submit;
 
         private final JSONRawMessagePrinter printer
-                = new JSONRawMessagePrinter(false, true, DataEncoding.STANDARD, true, false, PrintType.FULL, "$type");
+                = new JSONRawMessagePrinter(false, true, DataEncoding.STANDARD, true, true, PrintType.FULL, "$type");
 
         //final JSONRawMessagePrinter     printer = new JSONRawMessagePrinter(false, true);
 
@@ -205,7 +206,7 @@ public class WSHandler extends TextWebSocketHandler {
     }
 
     private class PeriodicFlushTask implements Runnable {
-        private List<PumpTask> flushTasks = new ArrayList<>();
+        private final List<PumpTask> flushTasks = new ArrayList<>();
 
         public void run()  {
             allTasks().forEach(task -> {
@@ -291,9 +292,31 @@ public class WSHandler extends TextWebSocketHandler {
         return useCache() ? "/ws/v0/monitor" : "/ws/v0/select";
     }
 
+    protected DXTickDB openConnection(WebSocketSession session) {
+        Object principal = session.getAttributes().get(PRINCIPAL_ATTRIBUTE_NAME);
+        if (principal instanceof Principal) {
+            TbUserDetails details = TbUserDetails.create(TBWGUtils.getIp(session));
+            DXTickDB connection = timebase.login((Principal) principal, details);
+            timebase.openSession((Principal) principal, details, session.getId());
+            return connection;
+        } else {
+            throw new IllegalStateException("Unknown principal, authentication required.");
+        }
+    }
+
+    protected void closeConnection(WebSocketSession session) {
+        Object principal = session.getAttributes().get(PRINCIPAL_ATTRIBUTE_NAME);
+        if (principal instanceof Principal) {
+            TbUserDetails details = TbUserDetails.create(TBWGUtils.getIp(session));
+            timebase.closeSession((Principal) principal, details, session.getId());
+        }
+    }
+
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws IOException {
+        DXTickDB connection = openConnection(session);
 
+        LOGGER.info().append("WS Connection [").append(session.getId()).append("]").append(" established").commit();
         metrics.endpointCounter(WebSocketConfig.SUBSCRIPTIONS_METRIC, endpoint()).increment();
 
         session.setTextMessageSizeLimit(MAX_BUFFER_SIZE);
@@ -309,10 +332,11 @@ public class WSHandler extends TextWebSocketHandler {
 
         if (streamId == null && channel == null) {
             list = params.get("streams");
-            if (list != null)
-                selection = match(timebase, list.toArray(new String[list.size()]));
+            if (list != null) {
+                selection = match(connection, list.toArray(new String[0]));
+            }
         } else if (streamId != null) {
-            DXTickStream stream = timebase.getStream(streamId);
+            DXTickStream stream = connection.getStream(streamId);
             if (stream != null) {
                 selection = new DXTickStream[]{ stream };
             }
@@ -349,8 +373,8 @@ public class WSHandler extends TextWebSocketHandler {
 
             //String[] symbols = list.toArray(new String[list.size()]);
 
-            //for (DXTickStream stream : selection)
-            instruments.addAll(symbols);
+            for (DXTickStream stream : selection)
+                Collections.addAll(instruments, matchSymbols(stream, symbols));
         }
 
         ArrayList<String> types = null;
@@ -385,7 +409,7 @@ public class WSHandler extends TextWebSocketHandler {
 
         String[] selectedTypes = types != null ? types.toArray(new String[types.size()]) : null;
 
-        TickCursor cursor = timebase.getConnection().select(
+        TickCursor cursor = connection.select(
                 fromTimestamp,
                 new SelectionOptions(true, live),
                 selectedTypes,
@@ -488,16 +512,15 @@ public class WSHandler extends TextWebSocketHandler {
                 } else if (!subscribeMessage.symbols.isEmpty()) {
                     if (subscribeMessage.symbols.add != null && !subscribeMessage.symbols.add.isEmpty()) {
                         HashSet<IdentityKey> instruments = new HashSet<>();
-
                         for (DXTickStream stream : task.selection)
-                            Collections.addAll(instruments, matchSymbols(stream, subscribeMessage.symbols.add));
+                            Collections.addAll(instruments, matchIdentities(stream, subscribeMessage.symbols.add));
                         cursor.addEntities(collect(instruments), 0, instruments.size());
                     }
                     if (subscribeMessage.symbols.remove != null && !subscribeMessage.symbols.remove.isEmpty()) {
                         HashSet<IdentityKey> instruments = new HashSet<>();
                         for (DXTickStream stream : task.selection)
-                            Collections.addAll(instruments, matchSymbols(stream, subscribeMessage.symbols.remove));
-                        cursor.removeEntities(collect(instruments), 0, instruments.size());
+                            Collections.addAll(instruments, matchIdentities(stream, subscribeMessage.symbols.remove));
+                        cursor.removeEntities(instruments.toArray(new IdentityKey[instruments.size()]), 0, instruments.size());
                     }
                 }
             }
@@ -541,7 +564,7 @@ public class WSHandler extends TextWebSocketHandler {
             if (setSubscriptionMessage.symbols != null && !setSubscriptionMessage.symbols.isEmpty()) {
                 HashSet<IdentityKey> instruments = new HashSet<>();
                 for (DXTickStream stream : task.selection)
-                    Collections.addAll(instruments, matchSymbols(stream, setSubscriptionMessage.symbols));
+                    Collections.addAll(instruments, matchIdentities(stream, setSubscriptionMessage.symbols));
                 cursor.clearAllEntities();
                 cursor.addEntities(collect(instruments), 0, instruments.size());
             } else {
@@ -571,6 +594,7 @@ public class WSHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        closeConnection(session);
         metrics.endpointCounter(WebSocketConfig.SUBSCRIPTIONS_METRIC, endpoint()).decrement();
         onClose(session);
         super.afterConnectionClosed(session, status);

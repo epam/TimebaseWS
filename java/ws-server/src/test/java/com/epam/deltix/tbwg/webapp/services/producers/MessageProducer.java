@@ -16,10 +16,10 @@
  */
 package com.epam.deltix.tbwg.webapp.services.producers;
 
+import com.epam.deltix.tbwg.webapp.services.charting.datasource.ChartDataSource;
 import com.epam.deltix.timebase.messages.InstrumentMessage;
 import io.reactivex.Observable;
 
-public interface MessageProducer {
-    Runnable run();
+public interface MessageProducer extends ChartDataSource {
     Observable<InstrumentMessage> getObservable();
 }

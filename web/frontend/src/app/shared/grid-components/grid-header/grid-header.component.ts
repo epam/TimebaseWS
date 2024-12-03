@@ -1,6 +1,7 @@
 import {
   ChangeDetectorRef,
   Component,
+  ElementRef,
   HostListener,
   OnDestroy,
   OnInit,
@@ -11,7 +12,7 @@ import { ActivatedRoute } from '@angular/router';
 import { ContextMenuComponent, ContextMenuService } from '@perfectmemory/ngx-contextmenu';
 import { ContextMenuContentComponent }              from '@perfectmemory/ngx-contextmenu/lib/components/context-menu-content/context-menu-content.component';
 import {IHeaderAngularComp}                                     from 'ag-grid-angular';
-import {BodyScrollEvent, Column, ColumnApi, IHeaderParams}      from 'ag-grid-community';
+import {BodyScrollEvent, Column, ColumnApi, GridApi, IHeaderParams}      from 'ag-grid-community';
 import {fromEvent, merge, Observable, of, ReplaySubject, timer} from 'rxjs';
 import {filter, mapTo, switchMap, take, takeUntil, tap, map}         from 'rxjs/operators';
 import {ContextMenuControlService}                              from '../../services/context-menu-control.service';
@@ -28,6 +29,7 @@ export class GridHeaderComponent implements OnInit, OnDestroy, IHeaderAngularCom
   @ViewChild('contextMenu') private contextMenuComponent: ContextMenuComponent;
   
   displayName: string;
+  staticField: boolean;
   pinned: string;
   columnMenuItems: GridContextMenuItemData[];
   disableColumns$: Observable<boolean>;
@@ -40,6 +42,7 @@ export class GridHeaderComponent implements OnInit, OnDestroy, IHeaderAngularCom
   sorting: string = 'none';
  
   private columnsApi: ColumnApi;
+  private api: GridApi;
   private colId: string;
   private column: Column;
   private subMenuContainer: ContextMenuContentComponent;
@@ -59,19 +62,22 @@ export class GridHeaderComponent implements OnInit, OnDestroy, IHeaderAngularCom
     private context: ContextMenuService,
     @Optional() private gridContextMenuService: GridContextMenuService,
     private activatedRoute: ActivatedRoute,
-    private gridEventsService: GridEventsService
+    private gridEventsService: GridEventsService,
+    private hostElement: ElementRef,
   ) {}
 
   ngOnInit(): void {
     this.disableColumns$ = this.gridContextMenuService?.onDisableColumns() || of(false);
   }
 
-  agInit(params: IHeaderParams): void {
+  agInit(params: IHeaderParams & { staticField: boolean }): void {
     this.columnsApi = params.columnApi;
     this.column = params.column;
     this.colId = params.column.getColId();
     this.displayName = params.displayName;
+    this.staticField = params.staticField;
     this.pinned = params.column.getPinned();
+    this.api = params.api;
     
     fromEvent(params.api, 'bodyScroll')
       .pipe(
@@ -85,6 +91,10 @@ export class GridHeaderComponent implements OnInit, OnDestroy, IHeaderAngularCom
 
     if (['Symbol', 'Timestamp', 'Original Timestamp'].includes(this.displayName)
      && this.activatedRoute.snapshot.url.some(segment => segment.path === 'live')) {
+      this.sortable = true;
+    }
+
+    if (this.hostElement.nativeElement.closest('app-fields-list')) {
       this.sortable = true;
     }
 
@@ -198,5 +208,32 @@ export class GridHeaderComponent implements OnInit, OnDestroy, IHeaderAngularCom
     this.sorting = ['none', 'descending'].includes(this.sorting) ? 'ascending' : 'descending';
     const key = this.displayName.replace(' ', '-').toLowerCase();
     this.gridEventsService.setRowSortingOrder({ [key]: this.sorting });
+    
+    if (this.hostElement.nativeElement.closest('app-fields-list')) {
+      const rowData = [];
+      this.api.forEachNode(node => rowData.push(node.data));
+      rowData.sort((row1, row2) => {
+        let compareValue1 = row1;
+        let compareValue2 = row2;
+        const keyArray = this.colId.split('.');
+        while (keyArray.length) {
+          let key = keyArray.shift();
+          compareValue1 = compareValue1[key];
+          compareValue2 = compareValue2[key];
+        }
+        if (compareValue1 === compareValue2) {
+          return 0;
+        }
+        if (!compareValue2) {
+          return 0;
+        }
+        if (this.sorting === 'ascending') {
+          return compareValue1 > compareValue2 ? 1 : -1;
+        } else {
+          return compareValue1 > compareValue2 ? -1 : 1;
+        }
+      })
+      this.api.setRowData(rowData);
+    }
   }
 }

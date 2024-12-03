@@ -3,18 +3,18 @@ import { ActivatedRoute }                                from '@angular/router';
 import { StorageMap }                                                   from '@ngx-pwa/local-storage';
 import { combineLatest, merge, Observable, of, ReplaySubject, Subject } from 'rxjs';
 import {
-  buffer,
   concatMap,
   distinctUntilChanged,
   filter,
   last,
-  map, scan,
+  map,
   startWith,
   switchMap,
   take,
   takeUntil,
   tap,
 } from 'rxjs/operators';
+import { StorageService } from './storage.service';
 import { ChartTypes }                                    from '../../pages/streams/models/chart.model';
 import { TabModel }                                      from '../../pages/streams/models/tab.model';
 
@@ -35,7 +35,7 @@ export class TabStorageService<T> implements OnDestroy {
   };
   private localStorageStore = {rightPanel: ['showMessageInfo', 'showProps', 'showViewInfo', 'messageView', 'showChartSettings', 'showDescription']};
   
-  constructor(private localStorage: StorageMap, private activatedRoute: ActivatedRoute) {
+  constructor(private localStorage: StorageMap, private activatedRoute: ActivatedRoute, private storageService: StorageService) {
     this.syncQueue$
       .pipe(
         concatMap(([source$, resolve$]) =>
@@ -137,7 +137,17 @@ export class TabStorageService<T> implements OnDestroy {
   }
   
   replaceTab(from: TabModel, to: TabModel): Observable<boolean> {
+    const tabIds = this.storageService.getTabs().map(tab => tab.id);
     return this.localStorage.keys().pipe(
+      switchMap(key => {
+        if (key.startsWith('tabsStorage')) {
+          const keyIncludesTabId = tabIds.filter(tabId => key.includes(tabId)).length;
+          return !keyIncludesTabId ? this.localStorage.delete(key) : of(key);
+        } else {
+          return of(key);
+        }
+      }),
+      filter(key => !!key),
       concatMap((key) => {
         const syncFlow = Object.keys(this.syncFlowsInTab).find(
           (flow) => key === `tabsStorage${from.id}${flow}`,
@@ -173,7 +183,7 @@ export class TabStorageService<T> implements OnDestroy {
   
   flow<F>(key: string): TabStorageService<F> {
     if (!this.clones[key]) {
-      this.clones[key] = new TabStorageService<F>(this.localStorage, this.activatedRoute);
+      this.clones[key] = new TabStorageService<F>(this.localStorage, this.activatedRoute, this.storageService);
       this.clones[key].setAdditionalKey(`${this.additionalKey || ''}${key}`);
     }
     

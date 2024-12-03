@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.settings;
+package com.epam.deltix.tbwg.webapp.settings;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -28,10 +28,18 @@ public class TimebaseSettings {
     private String url;
     private String user;
     private String password;
+    private Oauth2ClientSettings oauth2Client;
     private StreamsFilter streams;
     private boolean readonly;
     private String currencies;
     private long flushPeriodMs = 500;
+    private boolean enableUac;
+
+    private TbUacSettings uac = new TbUacSettings();
+
+    public boolean isOauth2ClientConfigured() {
+        return oauth2Client != null && oauth2Client.getUrl() != null;
+    }
 
     public String getUrl() {
         return url;
@@ -55,6 +63,14 @@ public class TimebaseSettings {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public Oauth2ClientSettings getOauth2Client() {
+        return oauth2Client;
+    }
+
+    public void setOauth2Client(Oauth2ClientSettings oauth2Client) {
+        this.oauth2Client = oauth2Client;
     }
 
     public StreamsFilter getStreams() {
@@ -91,6 +107,22 @@ public class TimebaseSettings {
 
     public void setFlushPeriodMs(long flushPeriodMs) {
         this.flushPeriodMs = flushPeriodMs;
+    }
+
+    public boolean isEnableUac() {
+        return enableUac;
+    }
+
+    public void setEnableUac(boolean enableUac) {
+        this.enableUac = enableUac;
+    }
+
+    public TbUacSettings getUac() {
+        return uac;
+    }
+
+    public void setUac(TbUacSettings uac) {
+        this.uac = uac;
     }
 
     public static class StreamsFilter {

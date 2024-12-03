@@ -18,10 +18,13 @@ import {
   GetDefaultTypes,
   GetSchema,
   GetSchemaDiff,
+  RemoveSchemaItems,
+  RemoveSelectedSchemaItem,
   SaveSchemaChanges,
   SetDefaultTypes,
   SetSchema,
   SetSchemaDiff,
+  UpdateSchemaAndRemoveType,
 } from './schema-editor.actions';
 import {State} from './schema-editor.reducer';
 import {
@@ -30,6 +33,10 @@ import {
   getSaveSchemaData,
   getStreamId,
 } from './schema-editor.selectors';
+import { TopicService } from '../services/topic.service';
+import { of } from 'rxjs';
+import { SchemaEditorService } from '../services/schema-editor.service';
+import { SchemaValidityService } from '../services/schema-validity.service';
 
 @Injectable()
 export class SchemaEditorEffects {
@@ -47,24 +54,30 @@ export class SchemaEditorEffects {
   getSchema = createEffect(() =>
     this.actions$.pipe(
       ofType(GetSchema),
-      switchMap(() =>
-        this.appStore.pipe(
-          select(getStreamId),
-          filter((streamId) => !!streamId),
-          take(1),
-        ),
+      switchMap(({ topic, streamKey }) =>
+        streamKey ? of({ streamId: streamKey, topic }) :
+          this.appStore.pipe(
+            select(getStreamId),
+            filter((streamId) => !!streamId),
+            take(1),
+            map(streamId => ({ streamId, topic }))
+          ),
       ),
-      switchMap((streamId: string) =>
-        this.httpClient$.get<{types: SchemaClassTypeModel[]; all: SchemaClassTypeModel[]}>(
-          `${encodeURIComponent(streamId)}/schema`,
-          {
-            params: {
-              tree: 'true',
+      switchMap(({ streamId, topic }) => {
+        if (!topic) {
+          return this.httpClient$.get<{types: SchemaClassTypeModel[]; all: SchemaClassTypeModel[]}>(
+            `${encodeURIComponent(streamId)}/schema`,
+            {
+              params: {
+                tree: 'true',
+              },
             },
-          },
-        ),
-      ),
-      map((schema) => SetSchema({schema})),
+          )
+        } else { 
+          return this.topicService.getTopicSchema(streamId);
+        }
+      }),
+      map((schema) => SetSchema({ schema })),
     ),
   );
   getSchemaDiff = createEffect(() =>
@@ -118,7 +131,7 @@ export class SchemaEditorEffects {
     this.actions$.pipe(
       ofType(CreateStream),
       withLatestFrom(this.appStore.pipe(select(getEditSchemaState))),
-      switchMap(([{key}, state]) => {
+      switchMap(([{key, topic, copyToStream, version, distributionFactor, noNotification}, state]) => {
         const all = JSON.parse(JSON.stringify([...state.classes, ...state.enums])),
           types = all.filter((_type) => _type._props && _type._props._isUsed);
         all.forEach((_type) => {
@@ -142,35 +155,64 @@ export class SchemaEditorEffects {
         console.warn('CREATE STREAM DATA:', {
           types,
           all,
-        }); // TODO: Delete this before checkIN
-        return this.httpClient$.post(
-          `/createStream`,
-          {
-            types,
-            all,
-          },
-          {
-            params: {
-              key,
+        }); 
+        if (topic) {
+          const params = {
+            key,
+            schema: { types, all },
+            copyToStream,
+            version,
+            distributionFactor
+          };
+          if (!params.distributionFactor) {
+            delete params.distributionFactor;
+          }
+          if (!version) {
+            delete params.version;
+          }
+          return this.httpClient$.post( '/topics', params).pipe(map(() => ({ topic, noNotification })));
+        } else {
+          const params = {
+            key,
+            version,
+            distributionFactor
+          };
+          if (!params.distributionFactor) {
+            delete params.distributionFactor;
+          }
+          return this.httpClient$.post(
+            `/createStream`,
+            {
+              types,
+              all,
             },
-          },
-        );
+            {
+              params
+            },
+          ).pipe(map(() => ({ topic, noNotification })));
+        }
       }),
       // tap((resp) => console.warn('SUCCESS CREATE STREAM RESPONSE: ', resp)), // TODO: Delete this before checkIN
-      switchMap(() => this.translate.get('text.streamCreated')),
+      tap(() => this.schemaEditorService.streamCreated$.next()),
+      switchMap(({ topic, noNotification }) => noNotification ? of(null) : this.translate.get('text.streamOrTopicCreated', { streamOrTopic: topic ? 'Topic' : 'Stream' })),
       withLatestFrom(this.appStore.pipe(select(getActiveTab))),
       mergeMap(([message, activeTab]) => {
-        return [
+         const actions: any[] = [
           new StreamsTabsActions.RemoveTab({
             tab: activeTab,
-          }),
-          new NotificationsActions.AddNotification({
-            message: message,
-            dismissible: true,
-            closeInterval: 2000,
-            type: 'success',
-          }),
+          })
         ];
+        if (message) {
+          actions.push(
+            new NotificationsActions.AddNotification({
+              message: message,
+              dismissible: true,
+              closeInterval: 2000,
+              type: 'success',
+            })
+          )
+        };
+        return actions;
       }),
     ),
   );
@@ -240,10 +282,63 @@ export class SchemaEditorEffects {
     ),
   );
 
+  UpdateSchemaAndRemoveType = createEffect(() =>
+    this.actions$.pipe(
+      ofType(UpdateSchemaAndRemoveType),
+      withLatestFrom(this.appStore.pipe(select(getSaveSchemaData))),
+      mergeMap(([{ deletingItems, insideModal }, { classes, enums }]) => {
+        if (!deletingItems?.length) {
+          const selectedItem = [...classes, ...enums].find((type) => type._props && type._props._isSelected);
+          if (selectedItem.isEnum) {
+            classes.forEach(type => {
+              type.fields = type.fields
+                .map(field => {
+                  if (field.type.name === selectedItem.name) {
+                    this.schemaValidityService.setErrorOnField(type, field, insideModal);
+                  }
+                  if (field.type.elementType && field.type.elementType?.name === selectedItem.name) {
+                    this.schemaValidityService.setErrorOnField(type, field, insideModal);
+                  }
+                  return field;
+                });
+              });
+          } 
+          return [RemoveSelectedSchemaItem()];
+        } else {
+          const deletingEnumSet = new Set<string>();
+          
+          deletingItems.forEach(item => {
+            if (item.isEnum) {
+              deletingEnumSet.add(item.name);
+            }
+          });
+
+          classes.forEach(type => {
+            type.fields = type.fields
+              .map(field => {
+                if (deletingEnumSet.has(field.type.name)) {
+                  this.schemaValidityService.setErrorOnField(type, field, insideModal);
+                }
+                if (field.type.elementType && deletingEnumSet.has(field.type.elementType?.name)) {
+                  this.schemaValidityService.setErrorOnField(type, field, insideModal);
+                }
+                return field;
+              });
+          });
+          return [RemoveSchemaItems({ deletingItems })];
+          }
+        },
+      ),
+    ),
+  );
+
   constructor(
     private actions$: Actions,
     private appStore: Store<AppState>,
     private httpClient$: HttpClient,
     private translate: TranslateService,
+    private topicService: TopicService,
+    private schemaEditorService: SchemaEditorService,
+    private schemaValidityService: SchemaValidityService
   ) {}
 }

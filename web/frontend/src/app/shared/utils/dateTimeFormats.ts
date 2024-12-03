@@ -68,3 +68,6 @@ export const dateTimeFormats = [
   "dd MMM yyyy'T'HH:mm:ss.SSS'Z'Z",
   "dd MMMM yyyy'T'HH:mm:ss.SSS'Z'Z",
 ];
+
+export const dateTimeFormatsWithNano = dateTimeFormats.filter(format => format.includes('SSS'))
+  .reduce((result, format) => [...result, format.replace('SSS', 'SSSSSS'), format.replace('SSS', 'SSSSSSSSS')], []);

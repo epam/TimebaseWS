@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.controllers;
+package com.epam.deltix.tbwg.webapp.controllers;
 
 import com.epam.deltix.tbwg.webapp.model.tree.*;
 import com.epam.deltix.tbwg.webapp.services.tree.*;
@@ -38,25 +38,35 @@ public class TimeBaseTreeController {
     @RequestMapping(value = "", method = RequestMethod.POST,
         produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TreeNodeDef> tree(@RequestBody TimeBaseStructureRequestDef request) {
+        TreeFilter filter = buildFilter(request.getFilter(), request.getFilterOptions());
+        boolean filterRootOnly = filter != null && request.getFilterOptions() != null && request.getFilterOptions().isFilterRootOnly();
         return ResponseEntity.ok().body(
-            timeBaseTree.buildTree(request.getPaths(),
-                buildFilter(request.getFilter(), request.getFilterOptions()),
-                request.isShowSpaces(), request.isViews())
+            timeBaseTree.buildTree(request.getPaths(), filter, request.isShowSpaces(), request.isViews(),
+                    filterRootOnly)
         );
     }
 
-    private TreeFilter buildFilter(String filter, FilterOptionsRequestDef filterOptions) {
+    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
+    @RequestMapping(value = "/{stream}/{symbol}", method = RequestMethod.POST,
+            produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TreeNodeDef> getSymbolTree(@PathVariable String stream, @PathVariable String symbol, @RequestBody TimeBaseStructureRequestDef request) {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(
+                timeBaseTree.findSymbolTree(stream, symbol, request.isShowSpaces(), request.isViews())
+        );
+    }
+
+    public static TreeFilter buildFilter(String filter, FilterOptionsRequestDef filterOptions) {
         TreeFilter treeFilter = null;
         if (filter != null && !filter.isEmpty()) {
             if (filterOptions == null) {
-                treeFilter = new SearchTreeFilter(filter, FilterMatchType.any);
+                treeFilter = new SearchTreeFilter(filter, false);
             } else {
                 if (filterOptions.getUse() == null) {
-                    treeFilter = new SearchTreeFilter(filter, filterOptions.getMatch());
+                    treeFilter = new SearchTreeFilter(filter, filterOptions.isMatchExactly());
                 } else if (filterOptions.getUse() == FilterType.regExps) {
-                    treeFilter = new RegexTreeFilter(filter, filterOptions.getMatch());
+                    treeFilter = new RegexTreeFilter(filter, filterOptions.isMatchExactly());
                 } else if (filterOptions.getUse() == FilterType.wildCards) {
-                    treeFilter = new WildcardTreeFilter(filter, filterOptions.getMatch());
+                    treeFilter = new WildcardTreeFilter(filter, filterOptions.isMatchExactly());
                 }
             }
         }

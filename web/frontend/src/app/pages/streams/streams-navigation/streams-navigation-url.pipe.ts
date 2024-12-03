@@ -8,7 +8,7 @@ import {StreamsNavigationService} from './streams-navigation.service';
 export class StreamsNavigationUrlPipe implements PipeTransform {
   constructor(private streamsNavigationService: StreamsNavigationService) {}
 
-  transform(item: MenuItem, activeTabType: string): any {
-    return this.streamsNavigationService.url(item, activeTabType);
+  transform(item: MenuItem, activeTabType: string, reverseViewIsDefault: boolean): any {
+    return this.streamsNavigationService.url(item, activeTabType, reverseViewIsDefault);
   }
 }

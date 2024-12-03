@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.interceptors;
 
 import com.epam.deltix.gflog.api.Log;
@@ -27,6 +26,9 @@ import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
 import java.security.Principal;
+import java.util.Map;
+
+import static com.epam.deltix.tbwg.webapp.config.WebSocketConfig.REMOTE_ADDRESS_ATTRIBUTE_NAME;
 
 @Component
 public class WebSocketLogInterceptor implements ChannelInterceptor {
@@ -43,10 +45,10 @@ public class WebSocketLogInterceptor implements ChannelInterceptor {
         try {
             Principal user = accessor.getUser();
             String userName = user != null ? user.getName() : "Unknown";
-
+            String remoteAddr = getRemoteAddr(accessor);
             LOGGER.info()
                 .append("WS command: ").append(accessor.getShortLogMessage(message.getPayload()))
-                .append(", User: ").append(userName)
+                .append(", User: ").append(userName).append(" (").append(remoteAddr).append(")")
                 .commit();
         } catch (Throwable t) {
             LOGGER.error().append("Error pre handle rest query").append(t).commit();
@@ -54,5 +56,15 @@ public class WebSocketLogInterceptor implements ChannelInterceptor {
 
         return message;
     }
-}
 
+    private static String getRemoteAddr(StompHeaderAccessor accessor) {
+        Map<String, Object> attributes = accessor.getSessionAttributes();
+        if (attributes != null && !attributes.isEmpty()) {
+            String ip = (String) attributes.get(REMOTE_ADDRESS_ATTRIBUTE_NAME);
+            if (ip != null) {
+                return ip;
+            }
+        }
+        return "";
+    }
+}

@@ -45,25 +45,18 @@ export function reducer(state = initialState, action: AuthActions): State {
       return state;
 
     case AuthActionTypes.SILENT_UPDATE_TOKEN:
-      const clearedToken = state.providerSettings.custom_provider
+/*       const clearedToken = state.providerSettings.custom_provider
         ? {
             // После очистки токена при вызове AuthGuard выкидывает на логин, тк запрос за новым токеном еще не прошел
             // customTokenResponse: null,
           }
         : {
-            SSOTokenResponse: null,
-          };
+            // SSOTokenResponse: null,
+          }; */
       return {
         ...state,
-        ...clearedToken,
         tokenRefreshTime: Date.now()
       };
-
-    // case AuthActionTypes.SET_ACCESS_TOKEN:
-    //   return {
-    //     ...state,
-    //     token: action.payload.token,
-    //   };
 
     case AuthActionTypes.SAVE_SSO_CONFIG:
       return {
@@ -82,6 +75,7 @@ export function reducer(state = initialState, action: AuthActions): State {
       return {
         ...state,
         ...tokenResp,
+        tokenRefreshTime: Date.now()
       };
 
     default:

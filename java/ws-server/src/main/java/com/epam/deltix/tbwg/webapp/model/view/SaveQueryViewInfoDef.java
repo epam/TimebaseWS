@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,17 +14,14 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model.view;
+package com.epam.deltix.tbwg.webapp.model.view;
 
-import com.epam.deltix.tbwg.messages.ViewType;
 import lombok.Data;
 
 @Data
 public class SaveQueryViewInfoDef {
 
     private String id;
-
-    private ViewType type = ViewType.PERSISTENT;
 
     private String description;
 

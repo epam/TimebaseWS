@@ -2,7 +2,6 @@ import {HttpClient, HttpHeaders} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {Router} from '@angular/router';
 
-import {AuthFlow, SilentAuthProvider} from '@assets/sso-auth/sso-auth';
 import {Actions, createEffect, ofType} from '@ngrx/effects';
 import {select, Store} from '@ngrx/store';
 import {LocalStorage} from '@ngx-pwa/local-storage';
@@ -20,18 +19,20 @@ import {
   TokenRequest,
   TokenResponse,
 } from '@openid/appauth';
-import {Observable, of, Subject, throwError} from 'rxjs';
+import {Observable, of, Subject, throwError, from} from 'rxjs';
 import {
   catchError,
   concatMap,
   filter,
   map,
   mergeMap,
+  retry,
   switchMap,
   take,
   tap,
   withLatestFrom,
 } from 'rxjs/operators';
+import { silentAuth } from '@deltix/sso-auth';
 import {AuthProviderModel} from '../../../models/auth-provider.model';
 import {CustomTokenResponseModel} from '../../../models/customToken-response.model';
 import * as NotificationsActions from '../../modules/notifications/store/notifications.actions';
@@ -170,6 +171,7 @@ export class AuthEffects {
           }),
         })
         .pipe(
+          retry(3),
           catchError((error) => {
             console.log('auth: update custom token request failed');
             this.appStore.dispatch(new AppActions.AllowHTTPRequests());
@@ -213,18 +215,31 @@ export class AuthEffects {
         boolean,
       ]) => {
         console.log('auth: update SSO token request start');
-        const authObj = new SilentAuthProvider({
-          flow: AuthFlow.CODE,
+        from(silentAuth({
           clientId: appProviderConfig.client_id,
-          scope: 'openid profile',
-          timeout: 5000,
+          scope: appProviderConfig.scopes ? appProviderConfig.scopes?.join(' ') : 'openid profile',
           extraAuthParams: {
             audience: appProviderConfig.audience,
+            prompt: 'none',
           },
-          prompt: config.tokenEndpoint.startsWith(location.protocol) ? void 0 : 'consent',
           authorizationServiceConfig: config,
           redirectUrl: silent_auth_redirect_url,
-          failureCallback: (/*err: SilentAuthErrorJson*/) => {
+          timeout: 10000,
+          // flow: AuthFlow.CODE,
+          // requestor: new FetchRequestor(),
+        }))
+          .subscribe({
+            next: (tokenResponse: TokenResponse) => {
+              console.log('auth: update SSO token request success');
+              this.appStore.dispatch(new AppActions.AllowHTTPRequests());
+              this.appStore.dispatch(
+                new AuthActions.LogIn({
+                  tokenResponse: tokenResponse,
+                  }),
+              );
+              this.appStore.dispatch(new AuthActions.InitialiseToken());
+            },
+          error: () => {
             console.log('auth: update SSO token request failed');
             if (!isTokenInitialized) {
               this.appStore.dispatch(new AppActions.PreventHTTPRequests());
@@ -232,21 +247,8 @@ export class AuthEffects {
             } else {
               this.appStore.dispatch(new AppActions.ShowLoginAlert());
             }
-          },
-          callback: (tokenResponse: TokenResponse) => {
-            console.log('auth: update SSO token request success');
-            this.appStore.dispatch(new AppActions.AllowHTTPRequests());
-            this.appStore.dispatch(
-              new AuthActions.LogIn({
-                tokenResponse: tokenResponse,
-              }),
-            );
-            this.appStore.dispatch(new AuthActions.InitialiseToken());
-          },
-          requestor: new FetchRequestor(),
+          }
         });
-
-        authObj.getToken();
       },
     ),
   ), {dispatch: false});
@@ -274,10 +276,10 @@ export class AuthEffects {
         })
         .pipe(
           map((resp: CustomTokenResponseModel) => {
+            this.appStore.dispatch(new NotificationsActions.RemoveAlertByAlias('Authentication error'));
             return new AuthActions.LogIn({tokenResponse: resp});
           }),
           catchError((error) => {
-            console.warn('Login error: ', error);
             this.appStore.dispatch(
               new NotificationsActions.AddAlert({
                 message: `Authentication failed (${
@@ -287,6 +289,7 @@ export class AuthEffects {
                 })`,
                 dismissible: true,
                 closeInterval: 6000,
+                alias: 'Authentication error'
               }),
             );
             return throwError(error);
@@ -336,9 +339,10 @@ export class AuthEffects {
         redirect_uri: login_redirect_url,
         response_type: AuthorizationRequest.RESPONSE_TYPE_CODE,
         client_id: provider.client_id,
-        scope: 'openid profile' /*appProviderConfig.scope*/,
+        scope: provider.scopes ? provider.scopes?.join(' ') : 'openid profile',
         extras: {
           audience: provider.audience,
+          ...(provider.prompt ? { prompt: provider.prompt } : {}),
         },
       });
       this.authorizationHandler.performAuthorizationRequest(config, request);
@@ -412,16 +416,19 @@ export class AuthEffects {
   private refreshTokenSubj = new Subject<any>();
    logout = createEffect(() => this.actions$.pipe(
     ofType<AuthActions.LogOut>(AuthActionTypes.LOGOUT),
-    switchMap(() => this.setNotLoggedIn()),
-    switchMap((/*action*/) => {
-      return this.appStore.pipe(select(getAuthProvider), take(1));
+    switchMap(action => this.setNotLoggedIn().pipe(map(() => action))),
+    switchMap(action => {
+      return this.appStore.pipe(select(getAuthProvider), take(1), map(providerAppConfig => [ providerAppConfig, action ]));
     }),
-    tap((providerAppConfig) => {
+    tap(([ providerAppConfig, action ]: [AuthProviderModel, AuthActions.LogOut]) => {
+      const redirect = !action.payload?.noRedirect;
       if (providerAppConfig.custom_provider) {
         this.refreshTokenSubj.next(true);
         this.refreshTokenSubj.complete();
         this.refreshTokenSubj = new Subject<any>();
-        window.location.href = '/';
+        if (redirect) {
+          window.location.href = '/';
+        }
       } else {
         let url;
         if (providerAppConfig.name === 'auth0' && providerAppConfig.logout_url) {
@@ -436,7 +443,9 @@ export class AuthEffects {
             params.append(logoutDescription.clientIdProperty, providerAppConfig.client_id);
           }
           url = `${logoutDescription.url}?${params.toString()}`;
-          window.location.assign(url);
+          if (redirect) {
+            window.location.assign(url);
+          }
         } else {
           this.appStore.dispatch(
             new AuthActions.LoadSSOConfiguration({provider: providerAppConfig.name}),
@@ -449,13 +458,20 @@ export class AuthEffects {
               withLatestFrom(this.appStore.pipe(select(getTokenResponse))),
             )
             .subscribe(([config, tokenResponse]) => {
-              const params = new URLSearchParams();
-              params.append('post_logout_redirect_uri', login_redirect_url);
-              if (tokenResponse)
-                params.append('id_token_hint', (tokenResponse as TokenResponse).idToken || '');
-              url = `${config.endSessionEndpoint}?${params.toString()}`;
-              window.location.assign(url);
-            });
+              if (tokenResponse) {
+                const params = new URLSearchParams();
+                params.append('post_logout_redirect_uri', login_redirect_url);
+                params.append('id_token_hint', (tokenResponse as TokenResponse).idToken);
+                url = `${config.endSessionEndpoint}?${params.toString()}`;
+                if (redirect) {
+                  window.location.assign(url);
+                }
+              } else {
+                if (redirect) {
+                  window.location.href = '/';
+                }
+              }
+            })
         }
       }
     }),

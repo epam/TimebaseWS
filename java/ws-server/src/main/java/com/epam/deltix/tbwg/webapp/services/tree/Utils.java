@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,12 +14,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.tree;
 
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
 import com.epam.deltix.timebase.messages.IdentityKey;
-import com.epam.deltix.timebase.messages.InstrumentKey;
 
 import java.util.*;
 import java.util.stream.Collectors;

@@ -37,3 +37,7 @@ export const getActiveTabSettings = createSelector(
 export const needToShowOnCloseAlertTabs = createSelector(getTabs, (tabs: TabModel[]) =>
   tabs.filter((tab) => tab?.tabSettings?._showOnCloseAlerts),
 );
+
+export const chartTabNumber = createSelector(getTabs, 
+  (tabs: TabModel[]) => tabs.filter(tab => tab.chart).length,
+);

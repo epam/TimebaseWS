@@ -14,7 +14,7 @@ import {
   defaultGridOptions,
 } from '../../../../../../../shared/utils/grid/config.defaults';
 import {ClassDescriptorChangeModel} from '../../../models/stream.meta.data.change.model';
-import { SchemaEditorService } from '../../../services/add-class.service';
+import { SchemaEditorService } from '../../../services/schema-editor.service';
 import {getSchemaDiff} from '../../../store/schema-editor.selectors';
 
 export interface GridRowDataModel {
@@ -137,9 +137,9 @@ export class GridComponent implements OnInit, OnDestroy {
 
     changes.forEach((change: ClassDescriptorChangeModel) => {
       const CHANGE_SOURCE = change.target || change.source;
-      const allSchemaTypes = this.schemaService.schema.all.map(item => item.name);
+      const allSchemaTypes = this.schemaService.schema?.all.map(item => item.name);
       if (addedClassNames.has(CHANGE_SOURCE.name) || addedClassNames.has(CHANGE_SOURCE.parent)) {
-        if (!addedParentClasses.has(CHANGE_SOURCE.parent) && CHANGE_SOURCE.parent && !allSchemaTypes.includes(CHANGE_SOURCE.parent)) {
+        if (!addedParentClasses.has(CHANGE_SOURCE.parent) && CHANGE_SOURCE.parent && !allSchemaTypes?.includes(CHANGE_SOURCE.parent)) {
           convertedChanges.push({
             groupName: null,
             name: CHANGE_SOURCE.parent,
@@ -162,7 +162,7 @@ export class GridComponent implements OnInit, OnDestroy {
           }
         });
       } else if (removedClassNames.has(CHANGE_SOURCE.name) || removedClassNames.has(CHANGE_SOURCE.parent)) {
-        if (!removedParentClasses.has(CHANGE_SOURCE.parent) && CHANGE_SOURCE.parent && !allSchemaTypes.includes(CHANGE_SOURCE.parent)) {
+        if (!removedParentClasses.has(CHANGE_SOURCE.parent) && CHANGE_SOURCE.parent && !allSchemaTypes?.includes(CHANGE_SOURCE.parent)) {
           convertedChanges.push({
             groupName: null,
             name: CHANGE_SOURCE.parent,

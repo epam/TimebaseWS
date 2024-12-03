@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.tree;
+package com.epam.deltix.tbwg.webapp.services.tree;
 
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
 import com.epam.deltix.tbwg.webapp.model.tree.StreamTreeNodeDef;
@@ -26,6 +26,7 @@ import com.epam.deltix.tbwg.webapp.services.view.ViewService;
 import com.epam.deltix.tbwg.webapp.services.view.md.ViewMd;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
 
+import java.security.AccessControlException;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -75,22 +76,39 @@ public class TickDbTreeNode extends TreeNode<TickDbTreeNode.DBTreeContent> {
     public TickDbTreeNode(TreeConfig config, TimebaseService db, ViewService viewService) {
         super(config, db.getId(), TreeNodeType.DB);
 
+        List<DBTreeContent> dbContent;
         if (config.isViews()) {
-            this.content = viewService.list().stream()
-                .map(v -> new DBTreeContentView(v, db.getStream(v.getStream())))
+            dbContent = viewService.list().stream()
+                .map(v -> {
+                    try {
+                        DXTickStream stream = db.getStream(v.getStream());
+                        if (stream != null) {
+                            return new DBTreeContentView(v, stream);
+                        }
+                    } catch (AccessControlException e) {
+                        // ignore
+                    }
+                    return null;
+                })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         } else {
             if (config.getSettings().isShowViewStreams()) {
-                this.content = Arrays.stream(db.listStreams())
+                dbContent = Arrays.stream(db.listStreams())
                     .map(DBTreeContent::new)
                     .collect(Collectors.toList());
             } else {
-                this.content = Arrays.stream(db.listStreams())
-                    .filter(s -> !ViewService.isViewStream(s.getKey()))
+                dbContent = Arrays.stream(db.listStreams())
+                    .filter(s -> !viewService.isViewStream(s.getKey()))
                     .filter(s -> !ViewService.STREAM_VIEW_INFO.equals(s.getKey()))
                     .map(DBTreeContent::new)
                     .collect(Collectors.toList());
             }
+        }
+        if (config.isFilterRootOnly()) {
+            this.content = dbContent.stream().filter(x -> config.getFilter().testAnyMatch(x.getKey(), x.getName())).collect(Collectors.toList());
+        } else {
+            this.content = dbContent;
         }
 
         this.content.sort(Comparator.comparing(DBTreeContent::getKey, String.CASE_INSENSITIVE_ORDER));
@@ -118,29 +136,23 @@ public class TickDbTreeNode extends TreeNode<TickDbTreeNode.DBTreeContent> {
                     List<String> spaces = Arrays.asList(spacesArray);
                     spaces.sort(Comparator.comparing(s -> s, String.CASE_INSENSITIVE_ORDER));
                     SpaceGroupTreeNode treeNode;
-                    if (config.getFilter() != null) {
-                        Map<String, List<String>> spaceToSymbols = Utils.listSpaceSymbols(
+                    Map<String, List<String>> spaceToSymbols = Utils.listSpaceSymbols(
                             stream, config.getSpaceEntitiesCache(), spaces, config.getFilter()
-                        );
+                    );
+                    if (config.getFilter() != null) {
                         spaces = spaces.stream().filter(s ->
                             spaceToSymbols.containsKey(s) || config.getFilter().test(s)
                         ).collect(Collectors.toList());
-                        treeNode = new SpaceGroupTreeNode(config, stream,
-                            content.getKey(), content.getName(), treeNodeType(),
-                            spaces, spaceToSymbols
-                        );
-                    } else {
-                        treeNode = new SpaceGroupTreeNode(config, stream,
-                            content.getKey(), content.getName(), treeNodeType(),
-                            spaces, null
-                        );
                     }
-
+                    treeNode = new SpaceGroupTreeNode(config, stream,
+                        content.getKey(), content.getName(), treeNodeType(),
+                        spaces, spaceToSymbols
+                    );
                     return setTreeNodeMetadata(treeNode, content);
                 }
             }
 
-            List<String> entities = Utils.listSymbols(stream, config.getFilter());
+            List<String> entities = Utils.listSymbols(stream, config.isFilterRootOnly() ? null : config.getFilter());
             return setTreeNodeMetadata(
                 new SymbolGroupTreeNode(
                     config, content.getKey(), content.getName(), treeNodeType(), entities

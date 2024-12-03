@@ -1,6 +1,7 @@
 <ng-template [ngIf]="!hideTimePicker">
   <div [class.hidden]="hasError" class="time-fromWr">
-    <div class="controlWr datepicker-inputWr">
+    <div class="controlWr datepicker-inputWr" placement="bottom" 
+      [tooltip]="(filterByEndDate ? 'tooltips.endDate' : 'tooltips.startDate') | translate">
       <input
           #dp="bsDatepicker"
           [appSafeDatePickerValue]="dateTitle$ | async"
@@ -21,7 +22,7 @@
       (click)="onDateSubmit()"
       [class.btn-active]="manuallyChanged$ | async"
       [class.hidden]="hasError"
-      [tooltip]="'buttons.apply_start_date' | translate"
+      [tooltip]="'buttons.apply_date' | translate"
       class="btn btn-info controlWr"
       placement="bottom"
       type="submit">
@@ -30,15 +31,16 @@
   <button
       (click)="onClearFilter()"
       [class.hidden]="hasError"
-      [tooltip]="'buttons.clean_start_date' | translate"
+      [tooltip]="'buttons.reset_date' | translate"
       class="btn btn-navy controlWr"
       placement="bottom"
       type="button">
-    {{ 'filtersPanel.clean' | translate }}
+    {{ 'filtersPanel.reset' | translate }}
   </button>
 </ng-template>
 <div [class.hidden]="hasError" class="filterForm d-flex">
-  <button *ngIf="showExportBtn$ | async" (click)="export()" class="btn btn-info export-btn">
+  <button *ngIf="showExportBtn$ | async" (click)="export()" class="btn btn-info export-btn"
+    [tooltip]="'tooltips.export' | translate" placement="bottom">
     {{ 'filtersPanel.export' | translate }}
   </button>
   <button

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model.charting.line;
+package com.epam.deltix.tbwg.webapp.model.charting.line;
 
 public class RawElementDef extends LineElementDef {
 
@@ -55,4 +55,3 @@ public class RawElementDef extends LineElementDef {
         return str.append(values);
     }
 }
-

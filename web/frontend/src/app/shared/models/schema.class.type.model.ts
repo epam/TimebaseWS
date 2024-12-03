@@ -2,6 +2,7 @@ export interface SchemaClassTypeModel {
   fields: SchemaClassFieldModel[];
   isEnum: boolean;
   isAbstract: boolean;
+  id: string;
   name: string;
   parent: string;
   title: string;

@@ -59,10 +59,10 @@ export class MonitorLogGridDataService {
       .pipe(select(getActiveOrFirstTab))
       .pipe(
         take(1),
+        filter((activeTab: TabModel) => !!activeTab.symbol || !!activeTab.stream),
         switchMap((activeTab: TabModel) => {
           let params = {},
             httpUrl;
-          const filter = activeTab.filter || {};
           if (activeTab.symbol) {
             httpUrl = `${encodeURIComponent(activeTab.stream)}/${encodeURIComponent(
               activeTab.symbol,

@@ -8,11 +8,12 @@
     "same_datetime": "Start and end datetime are the same.",
     "stream_purged_succeeded": "Stream purged succeeded",
     "stream_truncated_succeeded": "Stream truncated succeeded",
-    "streamDeletedSucceeded": "Request to delete stream is send",
+    "streamDeletedSucceeded": "Request to delete stream is sent",
+    "symbolDeletedSucceeded": "Request to delete symbol is sent",
     "spaceDeletedSucceeded": "Space will be deleted",
-    "streamRenameSucceeded": "Request to rename stream is send",
+    "streamRenameSucceeded": "Request to rename stream is sent",
     "spaceRenameSucceeded": "Space will be renamed",
-    "symbolRenameSucceeded": "Request to rename symbol is send",
+    "symbolRenameSucceeded": "Request to rename symbol is sent",
     "sendMessageSucceeded": "Message is sent",
     "updateMessageSucceeded": "Message is updated",
     "smallTimeRange": "You select too small time range. Time range should be more than {{range}}ms.",
@@ -32,20 +33,24 @@
     "changeName": "Rename",
     "sendMessage": "Send message to the stream: ",
     "editMessage": "Edit message",
-    "msgDetails": "Stream Message Details",
+    "msgDetails": "Message Details",
     "streamProps": "Stream Properties",
     "symbolProps": "Symbol Properties",
     "versionPrefix": "v.",
     "versionHidden": "v.1.1.32",
     "enums": "Enumerators",
     "classes": "Classes",
+    "removeItems": "Remove",
     "removeSelectedItem": "Remove Selected Item",
     "access_denied": "Access denied",
     "flow_path_home": "Home",
     "search": "Search",
     "filter": "Filter",
     "filter_by_name": "By Name",
-    "filter_by_RPS": "By RSP",
+    "filter_by_MPS": "By MPS",
+    "MPS": "Messages Per Second",
+    "MPS_value": "MPS value",
+    "reset": "Reset",
     "topology": "Topology",
     "flow": {
       "source": "Source",
@@ -66,9 +71,14 @@
       "password": "Password"
     },
     "parenClass": "Parent class",
+    "newKey": "Key",
     "newName": "Name",
     "newValue": "Value",
-    "enterKey": "Stream key",
+    "streamKey": "Stream key",
+    "version": "Storage version",
+    "topicName": "Topic name",
+    "copyToStream": "Copy to stream",
+    "distributionFactor": "Distribution Factor",
     "fieldsList": {
       "name": "Name",
       "value": "Value",
@@ -107,11 +117,18 @@
     },
     "validators": {
       "nameExists": "This name already exists",
-      "streamNameExists": "Stream with this name already exists",
+      "streamKeyExists": "{{nameType}} with this key already exists",
+      "streamKeyIncludesForbiddenSymbols": "{{nameType}} includes forbidden symbols",
+      "requiredField": "Field is required",
       "invalidPattern": "Incorrect field value",
-      "requiredField": "This field is required",
-      "relativeTo": "Field is relative to "
-    }
+      "requiredFieldWithName": "{{nameType}} is required",
+      "maxFieldLength": "{{nameType}} must be up to 255 characters long",
+      "noAlphaNumeric": "{{nameType}} must contain at least one alphanumeric character",
+      "relativeTo": "Field is relative to ",
+      "invalidDistributionFactor": "Distribution factor must be an integer between 1 and 10000 or 'MAX'"
+    },
+    "nameWarninig": "The stream will be given a name the same as its key"
+
   },
   "buttons": {
     "removeNotification": "Remove Notification",
@@ -140,9 +157,12 @@
     "hide_streams_list": "Collapse  streams list",
     "open_streams_list": "Expand  streams list",
     "collapse_all": "Collapse all",
+    "enable_tab_synchronization": "Enable tab synchronization",
+    "disable_tab_synchronization": "Disable tab synchronization",
     "open_symbols": "Expand symbols",
     "hide_symbols": "Collapse symbols",
     "open_in_new_tab": "Open in new tab",
+    "open_context_menu": "Open context menu",
     "show_spaces": "Show spaces",
     "hide_spaces": "Hide spaces",
     "move_up_timebar": "Move up timebar",
@@ -153,9 +173,9 @@
     "open_view_properties": "View properties",
     "global_settings": "Global settings",
     "toggle_datepicker": "Toggle datepicker",
-    "filters": "Symbols & types filters",
-    "clean_start_date": "Clean start date",
-    "apply_start_date": "Apply start date",
+    "filters": "Symbol & type filters",
+    "reset_date": "Reset date",
+    "apply_date": "Apply date",
     "send_query": "Send query",
     "json_copy": "JSON copy",
     "truncate": "Truncate",
@@ -192,11 +212,16 @@
   "tooltips": {
     "query_mode": "Query mode",
     "truncate": "Truncate Stream",
+    "properties": "Properties",
+    "message_details": "Message details",
+    "description": "Description",
     "purge": "Purge Stream",
+    "deleteTopic": "Delete Topic", 
     "deleteStream": "Delete Stream",
     "deleteSpace": "Delete Space",
+    "deleteSymbol": "Delete Symbol",
     "deleteView": "Delete View",
-    "editName": "Change name",
+    "editName": "Rename",
     "describe": "Describe Stream",
     "sendMessage": "Send message",
     "export_toQSMSG_file": "Export to message file",
@@ -207,7 +232,19 @@
     "monitor_mode": "Inspector",
     "chart_mode": "Chart mode",
     "schema_mode": "Schema mode",
-    "flow": "Flow"
+    "flow": "Flow",
+    "export": "Export to QSMSG",
+    "symbolFilter": "Symbol Filter",
+    "messageTypeFilter": "Message Type Filter",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "view": "{{viewType}} view",
+    "writeMode": "Write mode",
+    "writeModeTooltips": {
+      "REWRITE": "Adds data into a stream and removes previous data by truncating using first message time (per symbol)",
+      "INSERT": "Inserts data into a stream",
+      "APPEND": "Adds data into a stream that are not older last time (per symbol)"
+    }
   },
   "contextMenu": {
     "query": "Query",
@@ -215,11 +252,13 @@
     "purge": "Purge",
     "deleteStream": "Delete",
     "deleteSpace": "Delete Space",
-    "editName": "Change name",
+    "editName": "Rename",
     "describe": "Describe",
     "sendMessage": "Send message",
-    "export_toQSMSG_file": "Export to QMSG",
-    "export_toCSV": "Export to CSV",
+    "export_toQSMSG_file": "Export to QSMSG",
+    "export_to_text_file": "Export to text file",
+    "hide": "Hide menu",
+    "show": "Show menu",
     "view_mode": "View",
     "reverse_mode": "Reverse View",
     "live_mode": "Monitor",
@@ -230,12 +269,16 @@
     "create": "Create",
     "createStream": "Create stream",
     "createView": "Create view",
-    "importFromQMSG": "Import from QMSG",
+    "createTopic": "Create topic",
+    "importFromQSMSG": "Import from QSMSG",
     "flow": "Flow",
+    "chart": "Chart",
     "orderBook": "Order book",
+    "knowledgeBase": "Knowledge Base",
     "noOrderBook": "Order book is not available for this stream.",
-    "import_fromQSMSG": "Import from QMSG",
-    "importFromTextFile": "Import from text file"
+    "importFromTextFile": "Import from text file",
+    "playback": "Playback",
+    "generateDDL": "Generate QQL/DDL"
   },
   "gridTitle": {
     "fieldsList": {
@@ -256,35 +299,42 @@
     "purge_explanation": "This operation deletes stream data that is earlier than a specified time.",
     "truncate_explanation": "This operation will remove all data after the selected time.",
     "deleteStreamRequest": "Delete stream",
+    "deleteSymbolRequest": "Delete symbol",
     "deleteSpaceRequest": "Delete space",
     "deleteViewRequest": "Delete view",
+    "deleteTopicRequest": "Delete topic",
     "removeENUMRequest": "Remove ENUM [{{name}}] ?",
+    "removeTypes": "Remove types: ",
     "removeClassRequest": "Remove class [{{name}}] ?",
     "removeClassWithChildsRequest": "Remove class [{{name}}] with all children?",
     "removeClassWithFieldTypeRequest": "Class [{{name}}] will also be removed from:",
-    "removeEnumWithFieldTypeRequest": "Enum [{{name}}] will be removed with field(s):",
+    "removeEnumWithFieldTypeRequest": "Enum [{{name}}] will be removed from field(s):",
     "removeFieldRequest": "Remove field [{{name}}]?",
     "editEnumProps": "Edit enum properties",
     "editClassProps": "Edit class properties",
+    "removeItems": "Select items to be removed",
     "addNewClass": "Add new class",
     "addNewEnum": "Add new enum",
     "addNewField": "Add new field",
     "addNewValue": "Add new value",
     "onCreateStream": "Create stream",
-    "askToCreateStream": "Are you done all changes for new stream [{{streamName}}] and want to complete stream creation?",
+    "onCreateTopic": "Create topic",
+    "unusedEnumWarning": "Enum{{plural}} ({{enums}}) with no binding as field data type will not be added to the schema",
+    "askToCreateStream": "Are you done all changes for new stream [{{name}}] and want to complete stream creation?",
+    "askToCreateTopic": "Are you done all changes for new topic [{{name}}] and want to complete topic creation?",
     "dataLostFieldText": "If existing value is out of bounds:",
     "defaultValueRequiredFieldText": "Default value required. Set default value:",
     "DataConvert": "Data will be converted",
     "onChangeSchema": "Save changed schema.",
     "askToSaveStreamSchema": "Are you done all changes for stream [{{streamName}}] schema and want to save changes?",
-    "streamCreated": "Stream created successfully",
+    "streamOrTopicCreated": "{{ streamOrTopic }} created successfully",
     "streamSchemaChanged": "Stream schema changed successfully",
     "maxRows": "Max rows",
     "loading": "Loading"
   },
   "exportToFile": {
     "title": {
-      "CSV": "Export to CSV: {{stream.name}}",
+      "CSV": "Export to text file: {{stream.name}}",
       "QSMSG": "Export to QSMSG: {{stream.name}}"
     },
     "config": {
@@ -300,6 +350,7 @@
     },
     "all": "All",
     "export": "Export",
+    "exportToFile": "Export to {{filetype}} file",
     "labels": {
       "exportStaticFields": "Export static fields"
     },
@@ -323,7 +374,7 @@
     "recentQueries": "Recent queries",
     "export": "Export",
     "buttons": {
-      "cancel": "Cancel",
+      "cancel": "CANCEL",
       "view": "RUN",
       "monitor": "MONITOR",
       "live": "LIVE",
@@ -332,7 +383,8 @@
         "CSV": "EXPORT TO CSV"
       },
       "share": "Share query",
-      "createView": "Create View"
+      "createView": "Create View",
+      "createViewSelected": "Create View (Selected Text)"
     },
     "createViewModal": {
       "title": "Create View",
@@ -343,15 +395,41 @@
       "liveView": "live"
     }
   },
+  "playback": {
+    "title": "Playback",
+    "buttons": {
+      "cancel": "Cancel",
+      "next": "Next"
+    },
+    "headers": {
+      "source": "Source",
+      "target": "Target",
+      "options": "Options"
+    },
+    "inputLabels": {
+      "streams": "Streams",
+      "stream": "Stream",
+      "topic": "Topic",
+      "playbackSpeed": "Speed",
+      "timeRange": "Time Range",
+      "loop": "Loop",
+      "permanent": "Permanent"
+    },
+    "placeholders": {
+      "stream": "Enter new stream name or select existing",
+      "topic": "Enter new topic name or select existing"
+    }
+  },
   "importFromFile": {
     "title": {
       "QSMSG": "Import from QSMSG",
-      "text": "Import from text file"
+      "importFromTextFile": "Import from text file"
     }, 
     "stepHeaders": {
       "setupParameters": "Setup Parameters",
       "preview": "Preview",
-      "writeModeAndTimeRange": "Write Mode and Time Range"
+      "writeModeAndTimeRange": "Write Mode and Time Range",
+      "streamSchema": "Stream Schema"
     },
     "labels": {
       "stream": "Stream",
@@ -365,6 +443,9 @@
       "addFolder": "Add folder",
       "file": "File",
       "periodicity": "Periodicity",
+      "version": "Storage version",
+      "distributionFactor": "Distribution Factor",
+      "timeZone": "Time zone",
       "interval": "Interval",
       "writeMode": "Write mode",
       "importRange": "Import Range",
@@ -399,23 +480,31 @@
         "nonEmptyCells": "Non-Empty Cells"
       }
     },
+    "warnings": {
+      "dataLoss": "Some data will be lost due to lossy data conversion. Do you want to continue?"
+    },
     "csvImportComment": "Setup parameters for import data into the TimeBase. Settings are applied to all files.",
     "resetSettingsConfirmation": "Do you want to reset settings and field mappings to default values?",
+    "editSchema": "Edit Schema",
+    "createStreamAndImport": "Create Stream And Import",
     "import": "Import",
     "uploadingFile": "File uploading",
     "importingFile": "File importing",
     "cancel": "Cancel",
     "confirm": "Confirm",
     "next": "Next >",
+    "uploading": "Uploading",
     "back": "< Back",
     "close": "Close",
     "downloadLog": "Full Log",
     "removeAll": "Remove All",
     "return": "Return",
+    "continue": "Continue",
     "importFinished": "Import finished",
     "symbolHint": "Use \";\" as delimiter or press \"Enter\" to finish symbol name",
     "logHint": "Download Full Import Log",
-    "selectedFiles": "Selected Files"
+    "selectedFiles": "Selected Files",
+    "createStream": "Create stream"
   },
   "schemaEditor": {
     "importFromJson": {
@@ -467,10 +556,12 @@
     "filterLabels": {
       "streams": "Streams",
       "symbol": "Symbol",
-      "exchanges": "Exchanges"
+      "exchanges": "Exchanges",
+      "source": "Source"
     },
     "selectStreams": "Select streams",
     "selectSymbol": "Select symbol",
+    "selectSource": "Select source",
     "selectExchanges": "Select exchanges",
     "waitingForData": "Waiting for live data...",
     "noData": "No Data",
@@ -486,7 +577,8 @@
         "quantity": "Qty"
       }
     },
-    "lastMessageTime": "Last update:"
+    "lastMessageTime": "Last update:",
+    "noInDepthChart": "Chart can not be built. Not enough data."
   },
   "charts": {
     "timeValueError": "Invalid range {{ key }} value",
@@ -494,6 +586,13 @@
     "timeRangeErrorFrom": "Range should be more then {{from}}",
     "filters": {
       "levels": "Levels",
+      "chartType": "Chart type",
+      "chartSource": "Chart source",
+      "previousRange": "Set previous range",
+      "nextRange": "Set next range",
+      "selectedRange": "Selected time range",
+      "numberOfLevels": "Number of levels",
+      "exchanges": "Exchanges",
       "barSize": "Bar size",
       "chooseTimeRange": "Choose time range",
       "applyRange": "Apply Range",
@@ -503,7 +602,9 @@
     "noData": "No data",
     "viewData": "View data",
     "httpError": "Error while retrieving chart data",
-    "retry": "Retry"
+    "retry": "Retry",
+    "volumes": "Volume",
+    "noChartData": "Stream schema does not support chart visualization"
   },
   "messageInfo": {
     "views": {
@@ -525,7 +626,8 @@
     "messageInfo": "Stream message details",
     "viewInfo": "View details",
     "noMessageSelected": "No message selected",
-    "description": "View stream description"
+    "description": "View stream description",
+    "chartSettings": "Chart settings"
   },
   "fieldBuilder": {
     "editJson": "EDIT JSON DATA"
@@ -543,6 +645,13 @@
     "open": "Open",
     "symbol": "Symbol"
   },
+  "streamSymbolsModal": {
+    "deleteSymbolOfStream": "Delete symbols of stream {{stream.name}}",
+    "chooseSymbol": "Choose symbols",
+    "symbol": "Symbols",
+    "delete": "Delete",
+    "copyFullSymbolList": "Copy full list of symbols"
+  },
   "dropdownTitles": {
     "all": "Show All",
     "more": "More",
@@ -552,7 +661,7 @@
   "filtersPanel": {
     "from": "From",
     "export": "Export",
-    "clean": "Clean",
+    "reset": "Reset",
     "filter": "Filter",
     "apply": "Apply"
   },
@@ -569,22 +678,33 @@
       "tree": "Streams"
     },
     "labels": {
-      "showSpaces": "Display spaces"
+      "showSpaces": "Display Spaces",
+      "hideSystemStreams": "Hide System Streams",
+      "showTopics": "Display Topics",
+      "defaultReverseView": "Reverse View is Default"
+    },
+    "tooltips": {
+      "dateFormat": "Date Format",
+      "timeFormat": "Time Format",
+      "timeZone": "Time Zone"
     }
   },
   "streamList": {
     "treeViews": {
       "streams": "Streams",
-      "views": "Views"
+      "views": "Views",
+      "topics": "Topics"
     },
     "empty": {
       "hasSearch": {
         "streams": "No Streams matches search criteria",
-        "views": "No Views matches search criteria"
+        "views": "No Views matches search criteria",
+        "topics": "No Topics matches search criteria"
       },
       "noSearch": {
         "streams": "Streams list is empty",
-        "views": "Views list is empty"
+        "views": "Views list is empty",
+        "topics": "Topic list is empty"
       }
     }
   },
@@ -602,6 +722,9 @@
     "title": "Create view",
     "queryIsEmpty": "Query is empty",
     "queryIsValid": "Query is valid",
+    "selectedQueryTextIsValid": "Query (selected text) is valid",
+    "queryIsInvalid": "Query is invalid",
+    "selectedQueryIsInvalid": "Selected query is invalid",
     "createView": "Create view",
     "liveView": "live",
     "errors": {
@@ -611,6 +734,7 @@
     }
   },
   "streamListSearch": {
+    "tooltip": "Search options",
     "options": {
       "use": {
         "wildCards": "Use wild cards",
@@ -618,8 +742,11 @@
       },
       "match": {
         "any": "Match anywhere",
-        "exactly": "Match exactly"
-      }
+        "streams": "Match {{ streamType }}"
+      },
+      "matchExactly": {
+        "true": "Match exactly"
+      } 
     },
     "clearOptions": "Reset to defaults"
   },

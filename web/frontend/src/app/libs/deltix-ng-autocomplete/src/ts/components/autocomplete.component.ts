@@ -29,6 +29,7 @@ import {AutocompleteBase} from './autocomplete-base';
           [title]="selectedText"
           [disabled]="disabled"
           [size]="size"
+          [attr.name]="name"
           [maxlength]="maxlength"
           [placeholder]="placeholder"
           [class.edited]="edited"
@@ -73,6 +74,7 @@ import {AutocompleteBase} from './autocomplete-base';
       </div>
     </div>
   `,
+  styles: ['input::placeholder {color: #aaa8a8;}'],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
@@ -104,6 +106,7 @@ export class AutocompleteComponent
   @Input() edited: boolean = false;
   @Input() invalid: boolean = false;
   @Input() filterDisabled: boolean = false;
+  @Input() name = '';
 
   @Output() changeInput: EventEmitter<string> = new EventEmitter<string>();
   @Output() showDropdownChange: EventEmitter<boolean> = new EventEmitter<boolean>();
@@ -141,7 +144,7 @@ export class AutocompleteComponent
   }
 
   onInputClick(event: Event) {
-    if (!this.filteredValues.length) {
+    if (!this.filteredValues?.length) {
       this.showDropdown = false;
       return;
     }
@@ -208,7 +211,7 @@ export class AutocompleteComponent
     this.filteredValues = this.filterDisabled ? this.values : this.values?.filter(
       (value) => !this.selectedText || this.unifyValue(value).includes(this.unifyValue(this.selectedText)),
     );
-    if (!this.filteredValues.length) {
+    if (!this.filteredValues?.length) {
       this.showDropdown = false;
     }
 
@@ -218,7 +221,7 @@ export class AutocompleteComponent
   private countHeight() {
     const rect: ClientRect = this.element.nativeElement.getBoundingClientRect();
     const minHeight = Math.min(350, window.innerHeight - (rect.top + rect.height + 10));
-    this.autoCompleteHeight = Math.min(this.filteredValues.length * this.itemHeight, minHeight);
+    this.autoCompleteHeight = Math.min(this.filteredValues?.length * this.itemHeight, minHeight);
   }
   
   private unifyValue(value: string): string {

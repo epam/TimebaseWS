@@ -1,34 +1,39 @@
 <div class="col-md-12 full-height-page">
   <as-split
-      [appSplitterSizes]="[75, 25]"
-      [minSizes]="[737, 260]"
-      [parentWidthAddon]="62"
-      [useStorage]="false"
-      direction="horizontal">
+    [appSplitterSizes]="[75, 25]"
+    [minSizes]="[737, 260]"
+    [parentWidthAddon]="62"
+    [useStorage]="false"
+    direction="horizontal">
     <as-split-area>
       <as-split
-          (dragEnd)="onDragEnd($event)"
-          [class.show-details]="showDetails$ | async"
-          class="vertical-split"
-          direction="vertical">
+        (dragEnd)="onDragEnd($event)"
+        [class.show-details]="showDetails$ | async"
+        class="vertical-split"
+        direction="vertical">
         <as-split-area [size]="editorSize$ | async">
-          <form (submit)="onSubmit()" [formGroup]="form">
+          <form [formGroup]="form">
             <div #topSplitAreaContainer class="top-split-area-container">
               <div class="query-tools">
                 <div class="query-tools__left">
                   <div class="btn-group" #sendQueryDropDown dropdown>
                     <button
-                        [disabled]="(sendBtnDisabled$ | async) || form.invalid"
-                        [tooltip]="sendBtnText$ | async"
-                        class="btn btn-info send-btn"
-                        placement="right">
-                      {{ sendBtnText$ | async }}
+                      [disabled]="!queryControl.value.trim()"
+                      (click)="onSubmit()"
+                      [tooltip]="sendButtonTooltip$ | async"
+                      container="body"
+                      class="btn btn-info send-btn"
+                      placement="right">
+                      {{ sendBtnText$ | async }} 
+                      <ng-container *ngIf="!(pending$ | async) && selectedText">
+                        <ng-container *ngTemplateOutlet="selectedTextIcon"></ng-container>
+                      </ng-container>
                     </button>
                     <button
-                        [class.disabled]="(sendBtnDisabled$ | async) || form.invalid"
-                        class="btn btn-info dropdown-button dropdown-toggle dropdown-button--separate"
-                        dropdownToggle
-                        type="button"></button>
+                      [disabled]="!queryControl.value.trim()"
+                      class="btn btn-info dropdown-button dropdown-toggle dropdown-button--separate"
+                      dropdownToggle
+                      type="button"></button>
                     <ul *dropdownMenu class="dropdown-menu common-dropdown">
                       <ng-container *ngFor="let type of gridTypesArray">
                         <li *ngIf="(gridType$ | async) !== type" class="dropdown-item">
@@ -39,10 +44,12 @@
                   </div>
                   <div container="body" #lastQueriesDropdown dropdown>
                     <button
-                        [class.disabled]="!(lastQueries$ | async)?.length"
-                        class="btn btn-info dropdown-button"
-                        dropdownToggle
-                        type="button">
+                      [class.disabled]="!(lastQueries$ | async)?.length"
+                      class="btn btn-info dropdown-button"
+                      dropdownToggle
+                      [tooltip]="'qqlEditor.recentQueries' | translate | uppercase"
+                      placement="right"
+                      type="button">
                       {{ 'qqlEditor.recentQueries' | translate }}
                     </button>
                     <ul *dropdownMenu class="dropdown-menu common-dropdown query-dropdown">
@@ -52,11 +59,11 @@
                             <span *ngFor="let stream of query.streams">{{ stream }}</span>
                           </div>
                           <div
-                              [adaptivePosition]="false"
-                              [tooltip]="query.query"
-                              class="query"
-                              container="body"
-                              containerClass="common-dropdown query-dropdown-tooltip">
+                            [adaptivePosition]="false"
+                            [tooltip]="query.query"
+                            class="query"
+                            container="body"
+                            containerClass="common-dropdown query-dropdown-tooltip">
                             {{ query.query }}
                           </div>
                         </a>
@@ -65,19 +72,19 @@
                   </div>
                   <div class="btn-group export-btn" #exportDropdown dropdown>
                     <button
-                        [disabled]="(exporting$ | async) || form.invalid"
-                        [tooltip]="exportBtnText$ | async"
-                        class="btn btn-info"
-                        type="button"
-                        (click)="export()"
-                        placement="right">
+                      [disabled]="(exporting$ | async) || form.invalid"
+                      [tooltip]="exportBtnText$ | async"
+                      class="btn btn-info"
+                      type="button"
+                      (click)="export()"
+                      placement="right">
                       {{ exportBtnText$ | async }}
                     </button>
                     <button
-                        [class.disabled]="(exporting$ | async) || form.invalid"
-                        class="btn btn-info dropdown-button dropdown-toggle dropdown-button--separate"
-                        dropdownToggle
-                        type="button"></button>
+                      [class.disabled]="(exporting$ | async) || form.invalid"
+                      class="btn btn-info dropdown-button dropdown-toggle dropdown-button--separate"
+                      dropdownToggle
+                      type="button"></button>
                     <ul *dropdownMenu class="dropdown-menu common-dropdown">
                       <ng-container *ngFor="let type of exportTypesArray">
                         <li *ngIf="(exportType$ | async) !== type" class="dropdown-item">
@@ -89,25 +96,41 @@
                 </div>
                 <div class="query-tools__right">
                   <button
-                      *ngIf="isWriter$ | async"
-                      (click)="createView()"
-                      [disabled]="(exporting$ | async) || form.invalid"
-                      class="btn btn-info"
-                      type="button"
+                    *ngIf="isWriter$ | async"
+                    (click)="createView()"
+                    [disabled]="(exporting$ | async) || ((form.invalid || queryError[currentTabId]) && !selectedText)"
+                    class="btn btn-info"
+                    type="button"
+                    [tooltip]="(!selectedText ? 'qqlEditor.buttons.createView' : 'qqlEditor.buttons.createViewSelected')
+                     | translate | uppercase"
+                    placement="left"
                   >
                     {{ 'qqlEditor.buttons.createView' | translate }}
+                    <ng-container *ngIf="!(pending$ | async) && selectedText">
+                      <ng-container *ngTemplateOutlet="selectedTextIcon"></ng-container>
+                    </ng-container>
                   </button>
                   <button
-                      (click)="share()"
-                      type="button"
-                      class="btn btn-info btn-share"
-                      [disabled]="!shareUrlValid"
+                    (click)="share()"
+                    type="button"
+                    class="btn btn-info btn-share"
+                    [disabled]="!shareUrlValid"
+                    [tooltip]="'qqlEditor.buttons.share' | translate | uppercase"
+                    placement="left"
                   >
-                    {{ 'qqlEditor.buttons.share' | translate }}
+                    <ng-container *ngTemplateOutlet="shareIcon"></ng-container>
                   </button>
                 </div>
               </div>
-              <app-qql-editor (validUpdate)="onValidUpdate()" formControlName="query"></app-qql-editor>
+              <app-qql-editor #qqlEditor [requestError]="requestError?.[currentTabId]" (removeRequestError)="removeRequestError()" 
+                (setEditorAsReady)="setEditorAsReady()" [selectedText]="selectedText" [errorInsideSelectedText]="errorInsideSelectedText"
+                (setQueryError)="toggleQueryError($event)"
+                (validUpdate)="onValidUpdate()" formControlName="query" (setEditor)="setEditor($event)"
+                [selectedRange]="selectedRange?.[currentTabId]" (setError)="setError($event)">
+              </app-qql-editor>
+            </div>
+            <div *ngIf="!(editorIsReady$ | async)" class="editor-loading">
+              <div class="editor-loading-text">Loading</div>
             </div>
           </form>
         </as-split-area>
@@ -116,18 +139,46 @@
             <div *ngIf="loading$ | async" class="loaderWr display-block">
               <div class="loader display-block">{{ 'text.loading' | translate }}...</div>
             </div>
-            <div [class.hidden]="showGrid || !queryError" class="no-data">Server error. No data.</div>
-            <div [class.hidden]="!showGrid" class="grid">
+            <div class="no-data" *ngIf="!showGrid && requestError?.[currentTabId]">
+              Server error. No data.
+            </div>
+            <div class="submitted-query" *ngIf="showGrid && !requestError?.[currentTabId] && lastSubmittedQuery[currentTabId]">
+              {{ lastSubmittedQuery[currentTabId] }}
+              <div class="submitted-query-full-text">
+                {{ lastSubmittedQuery[currentTabId] }}
+              </div>
+              <button class="copy-query-text" (click)="copyQueryText(lastSubmittedQuery[currentTabId])" 
+                [placement]="'bottom'"
+                adaptivePosition="false"
+                tooltip="Copy"
+                container="body">
+                <svg 
+                  version="1.1" 
+                  id="Layer_1" 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  xmlns:xlink="http://www.w3.org/1999/xlink" 
+                  x="0px" y="0px" 
+                  viewBox="0 0 115.77 122.88"
+                  xml:space="preserve">
+                  <style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;}</style>
+                  <g>
+                    <path class="st0" d="M89.62,13.96v7.73h12.19h0.01v0.02c3.85,0.01,7.34,1.57,9.86,4.1c2.5,2.51,4.06,5.98,4.07,9.82h0.02v0.02 v73.27v0.01h-0.02c-0.01,3.84-1.57,7.33-4.1,9.86c-2.51,2.5-5.98,4.06-9.82,4.07v0.02h-0.02h-61.7H40.1v-0.02 c-3.84-0.01-7.34-1.57-9.86-4.1c-2.5-2.51-4.06-5.98-4.07-9.82h-0.02v-0.02V92.51H13.96h-0.01v-0.02c-3.84-0.01-7.34-1.57-9.86-4.1 c-2.5-2.51-4.06-5.98-4.07-9.82H0v-0.02V13.96v-0.01h0.02c0.01-3.85,1.58-7.34,4.1-9.86c2.51-2.5,5.98-4.06,9.82-4.07V0h0.02h61.7 h0.01v0.02c3.85,0.01,7.34,1.57,9.86,4.1c2.5,2.51,4.06,5.98,4.07,9.82h0.02V13.96L89.62,13.96z M79.04,21.69v-7.73v-0.02h0.02 c0-0.91-0.39-1.75-1.01-2.37c-0.61-0.61-1.46-1-2.37-1v0.02h-0.01h-61.7h-0.02v-0.02c-0.91,0-1.75,0.39-2.37,1.01 c-0.61,0.61-1,1.46-1,2.37h0.02v0.01v64.59v0.02h-0.02c0,0.91,0.39,1.75,1.01,2.37c0.61,0.61,1.46,1,2.37,1v-0.02h0.01h12.19V35.65 v-0.01h0.02c0.01-3.85,1.58-7.34,4.1-9.86c2.51-2.5,5.98-4.06,9.82-4.07v-0.02h0.02H79.04L79.04,21.69z M105.18,108.92V35.65v-0.02 h0.02c0-0.91-0.39-1.75-1.01-2.37c-0.61-0.61-1.46-1-2.37-1v0.02h-0.01h-61.7h-0.02v-0.02c-0.91,0-1.75,0.39-2.37,1.01 c-0.61,0.61-1,1.46-1,2.37h0.02v0.01v73.27v0.02h-0.02c0,0.91,0.39,1.75,1.01,2.37c0.61,0.61,1.46,1,2.37,1v-0.02h0.01h61.7h0.02 v0.02c0.91,0,1.75-0.39,2.37-1.01c0.61-0.61,1-1.46,1-2.37h-0.02V108.92L105.18,108.92z" 
+                    fill="white"></path>
+                  </g>
+                </svg>
+              </button>
+            </div>
+            <div [class.hidden]="!showGrid || requestError?.[currentTabId]" class="grid">
               <ag-grid-angular
-                  [class.hidden]="isLiveGrid"
-                  [gridOptions]="gridOptions$ | async"
-                  class="ag-theme-balham-dark"></ag-grid-angular>
-              <app-grid-total [class.hidden]="isLiveGrid" ></app-grid-total>
+                [class.hidden]="isLiveGrid"
+                [gridOptions]="gridOptions$ | async"
+                class="ag-theme-balham-dark"></ag-grid-angular>
+              <app-grid-total *ngIf="!isLiveGrid" ></app-grid-total>
               <app-live-grid
-                  *ngIf="isLiveGrid"
-                  [filters]="gridLiveFilters"
-                  [schemaData]="rawSchema"
-                  [tabName]="liveGridName$ | async"></app-live-grid>
+                *ngIf="isLiveGrid"
+                [filters]="gridLiveFilters"
+                [schemaData]="rawSchema"
+                [tabName]="liveGridName$ | async"></app-live-grid>
             </div>
           </div>
         </as-split-area>
@@ -139,3 +190,35 @@
   </as-split>
   <app-right-toolbar [tabHasStream]="false"></app-right-toolbar>
 </div>
+
+<ng-template #shareIcon>
+  <svg height="23" id="svg2" version="1.1" width="23" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+    xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" 
+    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" 
+    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:svg="http://www.w3.org/2000/svg"><defs 
+    id="defs4"/>
+    <g id="layer1" transform="translate(0,-1036.3622)">
+      <path d="m -22.410713,-3.3303571 a 2.3660715,2.3660715 0 1 1 -4.732143,0 2.3660715,2.3660715 0 1 1 4.732143,0 z" 
+        id="path2985" style="fill:#ffffff;fill-opacity:1;stroke:none" 
+        transform="matrix(0.84528301,0,0,0.84528301,33.943395,1042.1773)"/>
+      <path d="m -22.410713,-3.3303571 a 2.3660715,2.3660715 0 1 1 -4.732143,0 2.3660715,2.3660715 0 1 1 4.732143,0 z" 
+        id="path2985-1" style="fill:#ffffff;fill-opacity:1;stroke:none" 
+        transform="matrix(0.84528301,0,0,0.84528301,33.943395,1052.1773)"/>
+      <path d="m -22.410713,-3.3303571 a 2.3660715,2.3660715 0 1 1 -4.732143,0 2.3660715,2.3660715 0 1 1 4.732143,0 z" 
+        id="path2985-1-7" style="fill:#ffffff;fill-opacity:1;stroke:none" 
+        transform="matrix(0.84528301,0,0,0.84528301,23.943395,1047.1773)"/>
+      <path d="M 13,3 3,8 13,13" id="path3791" 
+        style="fill:none;stroke:#ffffff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" 
+        transform="translate(0,1036.3622)"/>
+    </g>
+  </svg>
+</ng-template>
+
+<ng-template #selectedTextIcon>
+  <svg fill="#ffffff" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+  width="12px" height="12px" viewBox="0 0 210 210" style="enable-background:new 0 0 210 210;" xml:space="preserve" class="selected-text-icon">
+    <path d="M0,0v210h210V0H0z M137,186H72v-22h65V186z M183,139H26v-21h157V139z M54,93V72h101v21H54z M183,46H26V25h157V46z"/>
+    <g></g><g></g><g></g><g></g><g></g><g></g><g></g>
+    <g></g><g></g><g></g><g></g><g></g><g></g><g></g><g></g>
+  </svg>
+</ng-template>

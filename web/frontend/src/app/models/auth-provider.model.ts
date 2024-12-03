@@ -17,6 +17,8 @@ export class AuthProviderModel {
   token_endpoint: string;
   name: string;
   audience: string;
+  scopes: string[];
+  prompt?: string;
 
   constructor(obj: AuthProviderModel | {}) {
     Object.assign(this, obj);

@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {ChangeDetectionStrategy, Component, Input, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
 import {select, Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
@@ -12,9 +12,10 @@ import {
   SchemaClassTypeModel,
 } from '../../../../../../shared/models/schema.class.type.model';
 import {uniqueName} from '../../../../../../shared/utils/validators';
-import { SchemaEditorService } from '../../services/add-class.service';
+import { SchemaEditorService } from '../../services/schema-editor.service';
 import {
   AddNewFieldForSelectedSchemaItem,
+  RemoveSchemaFields,
   RemoveSelectedField,
 } from '../../store/schema-editor.actions';
 import {
@@ -33,17 +34,23 @@ export const FIELD_NAME_PATTER_REGEXP = /^[a-zA-Z][a-zA-Z\d\$_]*$/;
 })
 export class FlControlPanelComponent implements OnInit, OnDestroy {
   public newFieldIsAdding: Observable<boolean>;
+  @Input() readonly = false;
+  @Input() extendable = true;
 
+  @Input() fieldList: string[];
   @ViewChild('modalTemplate', {static: true}) modalTemplate;
   @ViewChild('modalNewItemTemplate', {static: true}) modalNewItemTemplate;
+  @ViewChild('modalRemoveItemsTemplate', {static: true}) modalRemoveItemsTemplate;
   public askToAddInitialState: {isStatic: boolean};
   public deleteModalRef: BsModalRef;
   public newItemModalRef: BsModalRef;
+  public removeItemsModalRef: BsModalRef;
   public nameForm: UntypedFormGroup;
   public requestMessage = '';
   public ifFieldSelected$: Observable<boolean>;
   public selectedSchemaItem$: Observable<SchemaClassTypeModel>;
-  public deleteBtnDisabled$ = new BehaviorSubject<boolean>(false);;
+  public deleteBtnDisabled$ = new BehaviorSubject<boolean>(false);
+  public itemsToBeRemoved = new Set<string>();
   private destroy$ = new Subject<any>();
   private selectedFieldName: string;
 
@@ -97,10 +104,19 @@ export class FlControlPanelComponent implements OnInit, OnDestroy {
     return CONTROL && CONTROL.hasError('nameIsForbidden') && !CONTROL.pristine;
   }
 
-  public onDeleteSelectedField() {
+  public onDeleteSelected() {
+    if (this.itemsToBeRemoved.size) {
+      const deletingItems = Array.from(this.itemsToBeRemoved);
+      this.appStore.dispatch(RemoveSchemaFields({ deletingItems }));
+      for (let item of deletingItems) {
+        this.schemaEditorService.editedFieldNames.add(item);
+      }
+      this.itemsToBeRemoved.clear();
+    } else {
+      this.appStore.dispatch(RemoveSelectedField());
+      this.schemaEditorService.editedFieldNames.add(this.selectedFieldName);
+    }
     if (this.deleteModalRef) this.deleteModalRef.hide();
-    this.appStore.dispatch(RemoveSelectedField());
-    this.schemaEditorService.editedFieldNames.add(this.selectedFieldName);
   }
 
   public onAskDeleteSelected() {
@@ -118,7 +134,9 @@ export class FlControlPanelComponent implements OnInit, OnDestroy {
         this.requestMessage = message;
         this.deleteModalRef = this.modalService.show(this.modalTemplate, {
           class: 'modal-small createEdit-typeItem-modal',
+          ignoreBackdropClick: true,
         });
+        this.subscribeOnModalHide();
       });
   }
 
@@ -171,5 +189,38 @@ export class FlControlPanelComponent implements OnInit, OnDestroy {
       select(getSelectedSchemaItemAllFields),
       map((fields) => fields.find((f) => f._props._isSelected)),
     );
+  }
+
+  onAskToRemoveItems() {
+    this.removeItemsModalRef = this.modalService.show(this.modalRemoveItemsTemplate, {
+      class: 'modal-small',
+      ignoreBackdropClick: true,
+    });
+  }
+
+  openRemovingConfirmationModal() {
+    if (this.removeItemsModalRef) this.removeItemsModalRef.hide();
+    this.requestMessage = `Remove fields: [${Array.from(this.itemsToBeRemoved).join(', ')}]?`;
+    this.deleteModalRef = this.modalService.show(this.modalTemplate, {
+      class: 'modal-small createEdit-typeItem-modal',
+      ignoreBackdropClick: true,
+    });
+    this.subscribeOnModalHide();
+  }
+
+  private subscribeOnModalHide() {
+    this.deleteModalRef.onHide.pipe(take(1), takeUntil(this.destroy$)).subscribe(() => {
+      this.itemsToBeRemoved.clear();
+    });
+  }
+
+  onRemoveItemsModalCheckboxChange(event: Event, fieldName: string) {
+    (event.target as HTMLInputElement).checked ? this.itemsToBeRemoved.add(fieldName) : 
+      this.itemsToBeRemoved.delete(fieldName);
+  }
+
+  hideRemoveItemsModal() {
+    this.removeItemsModalRef.hide();
+    this.itemsToBeRemoved.clear();
   }
 }

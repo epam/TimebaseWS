@@ -3,7 +3,7 @@ import { getTimeZones, getTimeZoneTitle } from 'src/app/shared/utils/timezone.ut
 import { FormGroup, FormBuilder } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { ImportFromTextFileService } from '../../../services/import-from-text-file.service';
-import { dateTimeFormats } from 'src/app/shared/utils/dateTimeFormats';
+import { dateTimeFormats, dateTimeFormatsWithNano } from 'src/app/shared/utils/dateTimeFormats';
 import { takeUntil, filter } from 'rxjs/operators';
 
 @Component({
@@ -31,10 +31,7 @@ export class TimeParametersComponent implements OnInit, OnDestroy {
       })
 
     const selectedTimeFormat = this.importFromTextFileService.settings.dataTimeFormat;
-    this.dropdownListTimeFormats = [...dateTimeFormats.filter(item => !item.includes('f'))];
-    if (!this.dropdownListTimeFormats.includes(selectedTimeFormat) && !this.invalidDateTimeFormat) {
-      this.dropdownListTimeFormats.unshift(selectedTimeFormat);
-    }
+    this.setTimeFormatOptions(selectedTimeFormat);
     
     this.dropdownListTimeZones = getTimeZones()
       .map((item) => ({name: getTimeZoneTitle(item), id: item.name, offset: item.offset}));
@@ -44,7 +41,7 @@ export class TimeParametersComponent implements OnInit, OnDestroy {
       timeZone: this.importFromTextFileService.settings.timeZone,
     });
 
-    this.importFromTextFileService.settingsUpdated
+    this.importFromTextFileService.settingsUpdated$
       .pipe(
         filter(updateFormData => updateFormData),
         takeUntil(this.destroy$)
@@ -87,13 +84,21 @@ export class TimeParametersComponent implements OnInit, OnDestroy {
       this.invalidDateTimeFormat = '';
       this.toggleErrorMessage.emit( { dataTimeFormat: this.invalidDateTimeFormat } );
     }
-    this.importFromTextFileService.updateSettings('dataTimeFormat', event.trim().replace(/  +/g, ' '), true);
+    this.importFromTextFileService.updateSettings('dataTimeFormat', event?.trim().replace(/  +/g, ' ') ?? '', true);
   }
 
   setDropDownStyle() {
     const dropdown = document.querySelector('.autocomplete-dropdown-menu-wrapper');
     if (dropdown) {
       dropdown.setAttribute('style', 'background-color: #27384d;border: 1px solid #adadad;border-radius: 4px;box-shadow: none;');
+    }
+  }
+
+  private setTimeFormatOptions(selectedTimeFormat: string = '') {
+    const formatList = [...dateTimeFormats, ...dateTimeFormatsWithNano].sort();
+    this.dropdownListTimeFormats = formatList.filter(item => !item.includes('f'));
+    if (selectedTimeFormat && !this.dropdownListTimeFormats.includes(selectedTimeFormat) && !this.invalidDateTimeFormat) {
+      this.dropdownListTimeFormats.unshift(selectedTimeFormat);
     }
   }
 }

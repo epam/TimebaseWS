@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.timebase.csvimport;
+package com.epam.deltix.tbwg.webapp.services.timebase.csvimport;
 
 import com.epam.deltix.tbwg.webapp.utils.CsvImportUtil;
 import lombok.Getter;
@@ -58,8 +58,12 @@ public class Preview {
         }
     }
 
-    public void setStartAndEndTime(List<String> timestampList, String dateFormat) {
+    public void setStartAndEndTime(List<String> timestampList) {
         try {
+            if (CsvImportUtil.isNanoTimeValues(timestampList)) {
+                timestampList = CsvImportUtil.toMsFormat(timestampList);
+            }
+            String dateFormat = CsvImportUtil.determineDateFormat(timestampList);
             long maxTimestampInMs = CsvImportUtil.findMaxTimestampInMs(timestampList, dateFormat);
             if (maxTimestampInMs != Long.MAX_VALUE) {
                 endTime = maxTimestampInMs;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.tree;
+package com.epam.deltix.tbwg.webapp.services.tree;
 
 import com.epam.deltix.tbwg.webapp.model.tree.StreamTreeNodeDef;
 import com.epam.deltix.tbwg.webapp.model.tree.TreeNodeDef;
@@ -41,8 +41,9 @@ public abstract class TreeNode<TChild> {
     public TreeNode(TreeConfig config, String id, String name, TreeNodeType type) {
         this.config = config;
         this.treeNode = createTreeNodeDef(id, name, type);
-        this.matchSelf = config.getFilter() != null &&
-            (config.getFilter().test(id) || config.getFilter().test(name));
+        this.matchSelf = config.getFilter() == null ||
+                (config.isFilterRootOnly() && !type.isRootElement()) ||
+                config.getFilter().testAnyMatch(id, name);
     }
 
     private TreeNodeDef createTreeNodeDef(String id, String name, TreeNodeType type) {
@@ -80,7 +81,7 @@ public abstract class TreeNode<TChild> {
     protected abstract String extractKey(TChild obj);
 
     protected boolean matchFilter() {
-        return config.getFilter() == null || matchSelf || treeNode.getChildrenCount() > 0;
+        return matchSelf || treeNode.getChildrenCount() > 0;
     }
 
     private TreeNode<?> createAndAddChildNode(String key, Supplier<TreeNode<?>> nodeFactory) {

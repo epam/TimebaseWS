@@ -28,7 +28,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-@Ignore
+import static com.epam.deltix.tbwg.webapp.services.ChartingBaseTest.MessageType.PACKAGE_HEADER;
+
 public class ChartingLoadTest extends ChartingBaseTest {
 
     private static final DecimalFormat dfTime = new DecimalFormat("0.0");
@@ -61,7 +62,7 @@ public class ChartingLoadTest extends ChartingBaseTest {
                             startTime.toEpochMilli() - 5 * MINUTE_MILLIS, endTime.toEpochMilli() + 5 * MINUTE_MILLIS,
                             timestampStep, countOfEntries, 1000, 10, 10);
                     list.add(
-                            runTestCheckCountOfPoints(MINUTE_MILLIS, startTime, endTime, MessageType.PACKAGE_HEADER, ChartType.BARS,
+                            runTestCheckCountOfPoints(MINUTE_MILLIS, startTime, endTime, PACKAGE_HEADER, ChartType.BARS,
                                     60, messageProducer, false)
                     );
                 }
@@ -102,7 +103,7 @@ public class ChartingLoadTest extends ChartingBaseTest {
                         startTime.toEpochMilli() - 5 * MINUTE_MILLIS, endTime.toEpochMilli() + 5 * MINUTE_MILLIS,
                         timestampStep, countOfEntries, 1000, 10, 10, true);
                 list.add(
-                        runTestCheckCountOfPoints(MINUTE_MILLIS, startTime, endTime, MessageType.PACKAGE_HEADER, ChartType.BARS,
+                        runTestCheckCountOfPoints(MINUTE_MILLIS, startTime, endTime, PACKAGE_HEADER, ChartType.BARS,
                                 1440, messageProducer, false)
                 );
             }
@@ -117,7 +118,7 @@ public class ChartingLoadTest extends ChartingBaseTest {
                         startTime.toEpochMilli() - 5 * MINUTE_MILLIS, endTime.toEpochMilli() + 5 * MINUTE_MILLIS,
                         timestampStep, countOfEntries, 1000, 10, 10, true);
                 list.add(
-                        runTestCheckCountOfPoints(15 * MINUTE_MILLIS, startTime, endTime, MessageType.PACKAGE_HEADER, ChartType.BARS,
+                        runTestCheckCountOfPoints(15 * MINUTE_MILLIS, startTime, endTime, PACKAGE_HEADER, ChartType.BARS,
                                 96, messageProducer, false)
                 );
             }
@@ -132,25 +133,23 @@ public class ChartingLoadTest extends ChartingBaseTest {
                         startTime.toEpochMilli() - 5 * MINUTE_MILLIS, endTime.toEpochMilli() + 5 * MINUTE_MILLIS,
                         timestampStep, countOfEntries, 1000, 10, 10, true);
                 list.add(
-                        runTestCheckCountOfPoints(HOUR_MILLIS, startTime, endTime, MessageType.PACKAGE_HEADER, ChartType.BARS,
+                        runTestCheckCountOfPoints(HOUR_MILLIS, startTime, endTime, PACKAGE_HEADER, ChartType.BARS,
                                 24, messageProducer, false)
                 );
             }
             value[2][index2] = makeValue(list, countOfTests);
 
             if (index2 == 0) {
-                rowNames.add("PRICES_L2 1 minute           : ");
+                rowNames.add("PRICE_LEVELS 1 minute           : ");
             }
             list.clear();
-            //because of AdaptPeriodicityTransformation
-            int countOfPoints = countOfEntries == 10 ? 2880 : 1440;
             for (int i = 0; i < countOfTests + 1; i++) {
                 PackageHeaderMessageGenerator messageProducer = new PackageHeaderMessageGenerator(0,
                         startTime.toEpochMilli() - 5 * MINUTE_MILLIS, endTime.toEpochMilli() + 5 * MINUTE_MILLIS,
                         timestampStep, countOfEntries, 1000, 100, 10, true);
                 list.add(
-                        runTestCheckCountOfPoints(MINUTE_MILLIS, startTime, endTime, MessageType.PACKAGE_HEADER, ChartType.PRICES_L2,
-                            countOfPoints, messageProducer, false)
+                        runTestCheckCountOfPoints(MINUTE_MILLIS, startTime, endTime, PACKAGE_HEADER, ChartType.PRICE_LEVELS,
+                                1440, messageProducer, false)
                 );
             }
             value[3][index2] = makeValue(list, countOfTests);
@@ -161,10 +160,10 @@ public class ChartingLoadTest extends ChartingBaseTest {
             list.clear();
             for (int i = 0; i < countOfTests + 1; i++) {
                 PackageHeaderMessageGenerator messageProducer = new PackageHeaderMessageGenerator(0,
-                        startTime.toEpochMilli() - 5 * MINUTE_MILLIS, endTime.toEpochMilli() + 5 * MINUTE_MILLIS,
+                        startTime.toEpochMilli(), endTime.toEpochMilli(),
                         timestampStep, countOfEntries, 1000, 100, 10, true);
                 list.add(
-                        runTestCheckCountOfPoints(MINUTE_MILLIS, startTime, endTime, MessageType.PACKAGE_HEADER, ChartType.TRADES_BBO,
+                        runTestCheckCountOfPoints(MINUTE_MILLIS, startTime, endTime, PACKAGE_HEADER, ChartType.TRADES_BBO,
                                 1440, messageProducer, false)
                 );
             }
@@ -195,7 +194,7 @@ public class ChartingLoadTest extends ChartingBaseTest {
             PackageHeaderMessageGzipProducer messageProducer = new PackageHeaderMessageGzipProducer(stream1HourBitfinex,
                     "deltix.qsrv.hf.plugins.data.bitfinex.types.BitfinexPackageHeader");
             list.add(
-                    runTestCheckCountOfPoints(MINUTE_MILLIS, startTime, endTime, MessageType.PACKAGE_HEADER, ChartType.BARS,
+                    runTestCheckCountOfPoints(MINUTE_MILLIS, startTime, endTime, PACKAGE_HEADER, ChartType.BARS,
                             60, messageProducer, false)
             );
         }
@@ -207,19 +206,19 @@ public class ChartingLoadTest extends ChartingBaseTest {
             PackageHeaderMessageGzipProducer messageProducer = new PackageHeaderMessageGzipProducer(stream1HourBitfinex,
                     "deltix.qsrv.hf.plugins.data.bitfinex.types.BitfinexPackageHeader");
             list.add(
-                    runTestCheckCountOfPoints(15 * MINUTE_MILLIS, startTime, endTime, MessageType.PACKAGE_HEADER, ChartType.BARS,
+                    runTestCheckCountOfPoints(15 * MINUTE_MILLIS, startTime, endTime, PACKAGE_HEADER, ChartType.BARS,
                             4, messageProducer, false)
             );
         }
         value[1][0] = makeValue(list, countOfTests);
 
-        rowNames.add("PRICES_L2 1 minute           : ");
+        rowNames.add("PRICE_LEVELS 1 minute           : ");
         list.clear();
         for (int i = 0; i < countOfTests + 1; i++) {
             PackageHeaderMessageGzipProducer messageProducer = new PackageHeaderMessageGzipProducer(stream1HourBitfinex,
                     "deltix.qsrv.hf.plugins.data.bitfinex.types.BitfinexPackageHeader");
             list.add(
-                    runTestCheckCountOfPoints(MINUTE_MILLIS, startTime, endTime, MessageType.PACKAGE_HEADER, ChartType.PRICES_L2,
+                    runTestCheckCountOfPoints(MINUTE_MILLIS, startTime, endTime, PACKAGE_HEADER, ChartType.PRICE_LEVELS,
                             57, messageProducer, false)
             );
         }
@@ -231,8 +230,8 @@ public class ChartingLoadTest extends ChartingBaseTest {
             PackageHeaderMessageGzipProducer messageProducer = new PackageHeaderMessageGzipProducer(stream1HourBitfinex,
                     "deltix.qsrv.hf.plugins.data.bitfinex.types.BitfinexPackageHeader");
             list.add(
-                    runTestCheckCountOfPoints(MINUTE_MILLIS, startTime, endTime, MessageType.PACKAGE_HEADER, ChartType.TRADES_BBO,
-                            58, messageProducer, false)
+                    runTestCheckCountOfPoints(MINUTE_MILLIS, startTime, endTime, PACKAGE_HEADER, ChartType.TRADES_BBO,
+                            60, messageProducer, false)
             );
         }
         value[3][0] = makeValue(list, countOfTests);

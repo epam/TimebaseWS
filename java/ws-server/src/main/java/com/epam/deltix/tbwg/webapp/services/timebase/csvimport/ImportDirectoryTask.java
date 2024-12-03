@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.timebase.csvimport;
 
 import com.epam.deltix.data.stream.MessageSourceMultiplexer;
@@ -203,13 +202,10 @@ public class ImportDirectoryTask implements ImportTask {
     }
 
     private void importSource(DXTickStream stream, FileRawMessageSource[] messageSources) {
-        LoadingOptions options = new LoadingOptions();
-        options.raw = true;
+        LoadingOptions options = new LoadingOptions(true, settings.getGeneralSettings().getWriteMode());
         options.channelQOS = ChannelQualityOfService.MAX_THROUGHPUT;
-        options.writeMode = settings.getGeneralSettings().getWriteMode();
         long lastSendProgressMs = 0;
 
-        importProcess.update();
         try (TickLoader loader = stream.createLoader(options);
              MessageSourceMultiplexer<RawMessage> multiplexer = new MessageSourceMultiplexer<>(messageSources)) {
             loader.addEventListener(report::newWarning);
@@ -232,7 +228,6 @@ public class ImportDirectoryTask implements ImportTask {
                     List<String> skipMessages = getSkipMessages(messageSources);
                     report.sendWarnings(skipMessages);
                     updateStatus(Collections.emptyList(), skipMessages, Collections.emptyList(), ImportState.STARTED);
-                    importProcess.update();
                     lastSendProgressMs = System.currentTimeMillis();
                 }
             }

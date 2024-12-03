@@ -7,6 +7,7 @@ import { Observable, of, ReplaySubject }           from 'rxjs';
 import {
   debounceTime,
   distinctUntilChanged, map,
+  startWith,
   switchMap,
   takeUntil,
   tap,
@@ -36,13 +37,20 @@ export class StreamsListSearchComponent implements OnInit, OnDestroy {
     {
       controlName: 'match',
       nullable: false,
-      options: ['any', 'exactly'],
+      options: ['streams', 'any'],
       default: 'any',
+    },
+    {
+      controlName: 'matchExactly',
+      nullable: true,
+      options: [ 'true' ]
     },
   ];
   
-  defaultConfig = {};
+  currentOptions = [];
+  defaultConfig = {}; 
   hasChanges$: Observable<boolean>;
+  treeView: string;
   
   private destroy$ = new ReplaySubject(1);
   
@@ -59,6 +67,16 @@ export class StreamsListSearchComponent implements OnInit, OnDestroy {
         optionsConfig[group.controlName + option] = group.default === option;
       });
     });
+
+    this.leftSidebarStorageService.watchStorage()
+      .pipe(distinctUntilChanged(equal), takeUntil(this.destroy$))
+      .subscribe(({ treeView }) => {
+        this.treeView = treeView;
+        this.currentOptions = [ ...this.optionGroups ];
+        if ('topics' === treeView) {
+          this.currentOptions.splice(1, 1);
+        }
+      });
     
     this.defaultConfig = optionsConfig;
     
@@ -89,7 +107,7 @@ export class StreamsListSearchComponent implements OnInit, OnDestroy {
           options: patchOptions,
         });
       }),
-      switchMap(() => this.form.get('options').valueChanges),
+      switchMap(() => this.form.get('options').valueChanges.pipe(startWith(this.defaultConfig))),
       distinctUntilChanged(equal),
       takeUntil(this.destroy$),
     ).subscribe(() => {
@@ -156,16 +174,12 @@ export class StreamsListSearchComponent implements OnInit, OnDestroy {
     this.contextMenuService.closeAllContextMenus({eventType: 'cancel'});
   }
 
-  closeOtherDropdowns() {
-    if (this.leftSidebarStorageService.dropdownsOpened.includes('search-options-dropdown')) {
-      this.leftSidebarStorageService.removeOpenedDropdown('search-options-dropdown');
-    } else {
-      this.leftSidebarStorageService.addOpenedDropdown('search-options-dropdown');
+  closeOtherDropdowns(event) {
+    if (document.querySelector('.create-stream-view-dropdown') && event.pointerType) {
+      (document.querySelector('.create-stream-toggle-btn') as HTMLElement).click();
+    }
+    if (document.querySelector('context-menu-content') && event.pointerType) {
       this.onCloseContextMenu();
-      if (this.leftSidebarStorageService.dropdownsOpened.includes('create-stream-dropdown')) {
-        (document.querySelector('.create-stream-toggle-btn') as HTMLElement).click();
-        this.leftSidebarStorageService.removeOpenedDropdown('create-stream-dropdown');
-      }
     }
   }
 }

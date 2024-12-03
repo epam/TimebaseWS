@@ -8,7 +8,6 @@ import {
   ViewChild,
 } from '@angular/core';
 import {UntypedFormControl} from '@angular/forms';
-import {StorageMap} from '@ngx-pwa/local-storage';
 import {IHeaderAngularComp} from 'ag-grid-angular';
 import {
   CellContextMenuEvent,
@@ -55,7 +54,6 @@ export class GridHeaderGlobalMenuComponent implements OnInit, OnDestroy, IHeader
   private updatingFromControl = false;
 
   constructor(
-    private storage: StorageMap,
     private contextMenuControlService: ContextMenuControlService,
     private elementRef: ElementRef,
     private cdRef: ChangeDetectorRef,
@@ -218,6 +216,7 @@ export class GridHeaderGlobalMenuComponent implements OnInit, OnDestroy, IHeader
       this.columnsById.set(column.getColId(), {
         name: column.getColDef().headerName,
         id: column.getColId(),
+        isStaticField: column.getColDef().headerComponentParams?.staticField ?? false
       });
       let parent = column.getOriginalParent();
       if (!parent?.getColGroupDef().headerName) {

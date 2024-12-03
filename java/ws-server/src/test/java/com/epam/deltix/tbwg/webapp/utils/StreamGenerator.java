@@ -31,17 +31,11 @@ public class StreamGenerator {
 
     private static final Random RANDOM = new Random(System.currentTimeMillis());
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Introspector.IntrospectionException {
         try (DXTickDB db = TickDBFactory.createFromUrl("dxtick://localhost:8011")) {
             db.open(false);
             loadBars(10000, "garafana", db);
-        } catch (Introspector.IntrospectionException e) {
-            e.printStackTrace();
         }
-    }
-
-    public static RecordClassDescriptor mkBarMessageDescriptor() throws Introspector.IntrospectionException {
-        return Introspector.createEmptyMessageIntrospector().introspectRecordClass(BarMessage.class);
     }
 
     public static void loadBars(int total, String key, DXTickDB db) throws Introspector.IntrospectionException {
@@ -65,6 +59,10 @@ public class StreamGenerator {
                 loader.send(createBar(price, timestamp += interval, getSymbol()));
             }
         }
+    }
+
+    public static RecordClassDescriptor mkBarMessageDescriptor() throws Introspector.IntrospectionException {
+        return Introspector.createEmptyMessageIntrospector().introspectRecordClass(BarMessage.class);
     }
 
     private static String getSymbol(String ... symbols) {

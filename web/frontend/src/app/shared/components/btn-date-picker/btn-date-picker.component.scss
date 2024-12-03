@@ -40,7 +40,7 @@
 .clear-btn {
   display: none;
   position: absolute;
-  right: 34px;
+  right: 40px;
   top: 4px;
   z-index: 1;
   cursor: pointer;
@@ -57,6 +57,5 @@
 }
 
 .invalid {
-  border-color: rgba(246, 115, 148, 0.6);
-  background-color: rgba(246, 115, 148, 0.1);
+  border: 1px solid rgb(188, 44, 87);
 }

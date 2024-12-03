@@ -67,6 +67,7 @@ import {
   getActiveTabFilters,
 } from '../../../../store/streams-tabs/streams-tabs.selectors';
 import { MonitorLogGridDataService } from '../../services/monitor-log-grid-data.service';
+import { TopicService } from '../../../schema-editor/services/topic.service';
 
 @Component({
   selector: 'app-monitor-log-grid',
@@ -163,6 +164,7 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
     private streamsService: StreamsService,
     private messageInfoService: RightPaneService,
     private schemaService: SchemaService,
+    private topicService: TopicService
   ) {}
   
   ngOnInit() {
@@ -240,13 +242,18 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
         this.loaded$.next(false);
         this.error$.next(null);
       }),
-      switchMap(tab => this.schemaService.getSchema(tab.stream, null, true).pipe(
-        catchError(e => {
-          this.error$.next(e);
-          return of(null);
-        }),
-        filter(s => !!s),
-      )),
+      switchMap((tab: TabModel) => {
+        if (tab.stream.endsWith('#topic#')) {
+          return this.topicService.getTopicSchema(tab.stream.slice(0, tab.stream.length - 7));
+        } else {
+          return this.schemaService.getSchema(tab.stream, null, true).pipe(
+            catchError(e => {
+              this.error$.next(e);
+              return of(null);
+            }),
+            filter(s => !!s))
+        }
+      }),
       tap(() => this.loaded$.next(true)),
     );
     
@@ -295,8 +302,8 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
           },
           width: 180,
           headerTooltip: 'Timestamp',
-          cellRenderer: (params: ICellRendererParams) => this.gridService.dateFormat(params, params.data?.nanoTime, true),
-          tooltipValueGetter: (params: ICellRendererParams) => this.gridService.dateFormat(params, params.data?.nanoTime, true),
+          cellRenderer: (params: ICellRendererParams) => this.gridService.dateFormat(params),
+          tooltipValueGetter: (params: ICellRendererParams) => this.gridService.dateFormat(params),
         },
         {
           headerName: 'Type',

@@ -73,7 +73,7 @@ public class PackageHeaderMessageGenerator implements MessageProducer {
                     L2EntryNew entryL2 = new L2EntryNew();
                     entryL2.setLevel((short) i);
                     entryL2.setSide(QuoteSide.ASK);
-                    entryL2.setPrice(Decimal64Utils.fromDouble(medianPrice - maxPriceEntriesDelta * i / (countOfEntries)));
+                    entryL2.setPrice(Decimal64Utils.fromDouble(medianPrice + maxPriceEntriesDelta * i / (countOfEntries)));
                     entryL2.setSize(Decimal64Utils.fromDouble(random.nextDouble()));
                     entryL2.setExchangeId(AlphanumericUtils.toAlphanumericUInt64("TEST"));
                     entries.add(entryL2);
@@ -108,14 +108,28 @@ public class PackageHeaderMessageGenerator implements MessageProducer {
         };
     }
 
-    @Override
-    public Runnable run() {
-        return run;
-    }
 
     @Override
     public Observable<InstrumentMessage> getObservable() {
         return observable;
 }
 
+    @Override
+    public int getEntityIndex() {
+        return 0; //don't need to implement for one symbol dataSource
+    }
+
+    @Override
+    public String getSymbol() {
+        return null; //don't need to implement for one symbol dataSource
+    }
+
+    @Override
+    public void close() {
+    }
+
+    @Override
+    public void run() {
+        run.run();
+    }
 }

@@ -27,6 +27,7 @@ export class NotificationsComponent implements OnDestroy, OnInit {
         map(notifications => {
           return {
             ...notifications,
+            notifications: this.showLastFiveNotifications(notifications.notifications),
             alerts: this.showLastFiveNotifications(notifications.alerts),
             warns: this.showLastFiveNotifications(notifications.warns)
           }
@@ -62,7 +63,12 @@ export class NotificationsComponent implements OnDestroy, OnInit {
   }
 
   private showLastFiveNotifications(notifications: NotificationModel[]) {
-    return notifications.length > 5 ? notifications.slice(0, 5) : notifications;
+    const resultNotifications = notifications.length ? [
+      notifications[0],
+      ...notifications.slice(1).filter(item => JSON.stringify(item) !== JSON.stringify(notifications[0]))
+    ] : [];
+
+    return resultNotifications.length > 5 ? resultNotifications.slice(0, 5) : resultNotifications;
   }
 
   ngOnDestroy(): void {

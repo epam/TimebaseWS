@@ -8,11 +8,13 @@
       <ng-container *ngIf="!(editJsonField$ | async)">
         <div class="top-button-groups">
         <div [formControl]="viewControl" btnRadioGroup class="btn-group radio-group">
-          <button *ngFor="let button of views" [btnRadio]="button" class="btn btn-default">
+          <button *ngFor="let button of views" [btnRadio]="button" class="btn btn-default"
+            [tooltip]="'tooltips.view' | translate : { viewType: button } | uppercase" 
+            placement="bottom" container="body">
             {{ button }}
           </button>
         </div>
-          <app-write-modes-control *ngIf="!editMessageMode" [formControl]="writeModeControl" >
+          <app-write-modes-control *ngIf="!editMessageMode" [formControl]="writeModeControl">
           </app-write-modes-control>
         </div>
         <div class="content">
@@ -20,6 +22,7 @@
             <app-pure-form-builder
                 *ngIf="fields$ | async as fields"
                 [fields]="fields"
+                [nullableFields]="true"
                 [form]="formGroup"
                 [alignLabels]="false"
                 (editJson)="onEditJson($event)"
@@ -52,6 +55,12 @@
     </ng-template>
   </ng-container>
   <div class="footer" footer>
+    <div class="validation-error-text" 
+      [ngStyle]=" { 'visibility': !validationErrorMessage ? 'hidden' : 'visible' }">
+      <button (click)="scrollToInvalidField(validationErrorMessage.fieldName)" 
+        type="button" class="btn-scroll-to-invalid">
+        {{ validationErrorMessage?.fieldLabel }}:</button>{{ validationErrorMessage?.message }}
+    </div>
     <ng-container *ngIf="!confirmTime; else confirmBtns">
       <ng-container *ngIf="!(editJsonField$ | async)">
         <button
@@ -105,4 +114,4 @@
     </ng-template>
   </div>
 </app-modal>
-<div *ngIf="requestInProgress" class="request-in-progress"></div>
+<div *ngIf="requestInProgress && !confirmTime" class="request-in-progress"></div>

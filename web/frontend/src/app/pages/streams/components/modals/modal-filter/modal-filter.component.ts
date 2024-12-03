@@ -6,7 +6,6 @@ import {
   OnInit,
 } from '@angular/core';
 import {UntypedFormControl} from '@angular/forms';
-import {ActivatedRoute} from '@angular/router';
 import {select, Store} from '@ngrx/store';
 import {BsModalRef} from 'ngx-bootstrap/modal';
 import {merge, Observable, Subject} from 'rxjs';

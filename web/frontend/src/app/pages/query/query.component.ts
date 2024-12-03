@@ -1,4 +1,3 @@
-import { HttpClient }       from '@angular/common/http';
 import {
   AfterViewInit,
   ChangeDetectorRef,
@@ -7,8 +6,8 @@ import {
   OnInit,
   ViewChild,
 }                                              from '@angular/core';
-import { UntypedFormBuilder, UntypedFormControl, UntypedFormGroup } from '@angular/forms';
-import { ActivatedRoute, Router }              from '@angular/router';
+import { AbstractControl, UntypedFormBuilder, UntypedFormControl, UntypedFormGroup } from '@angular/forms';
+import { ActivatedRoute }              from '@angular/router';
 import { select, Store }                       from '@ngrx/store';
 import { TranslateService }                    from '@ngx-translate/core';
 import { GridOptions }                         from 'ag-grid-community';
@@ -18,6 +17,7 @@ import { BsModalService }                      from 'ngx-bootstrap/modal';
 import {
   BehaviorSubject,
   combineLatest,
+  fromEvent,
   Observable,
   of,
   ReplaySubject,
@@ -26,10 +26,12 @@ import {
 }                                              from 'rxjs';
 import {
   catchError,
+  delay,
   distinctUntilChanged,
   filter,
   finalize,
   map,
+  skip,
   switchMap,
   take,
   takeUntil,
@@ -55,12 +57,10 @@ import { GridService }              from '../../shared/services/grid.service';
 import { MonacoQqlConfigService }   from '../../shared/services/monaco-qql-config.service';
 import { MonacoQqlTokensService }   from '../../shared/services/monaco-qql-tokens.service';
 import { PermissionsService }       from '../../shared/services/permissions.service';
-import { SchemaService }            from '../../shared/services/schema.service';
 import { ShareLinkService }         from '../../shared/services/share-link.service';
 import { StorageService }           from '../../shared/services/storage.service';
 import { StreamModelsService }      from '../../shared/services/stream-models.service';
 import { TabStorageService }        from '../../shared/services/tab-storage.service';
-import { copyToClipboard }          from '../../shared/utils/copy';
 import { GridStateModel }           from '../streams/models/grid.state.model';
 import { StreamDetailsModel }       from '../streams/models/stream.details.model';
 import { getActiveTab }             from '../streams/store/streams-tabs/streams-tabs.selectors';
@@ -68,6 +68,10 @@ import { CreateViewQueryComponent } from './create-view/create-view-query.compon
 import { LastQueriesService }       from './services/last-queries.service';
 import { QueryService }             from './services/query.service';
 import * as NotificationsActions    from '../../core/modules/notifications/store/notifications.actions';
+import { getAppInfo } from 'src/app/core/store/app/app.selectors';
+import { TimebaseService } from '../generate-ddl/generate-ddl.service';
+import IRange = monaco.IRange;
+import { QqlEditorComponent } from 'src/app/shared/qql-editor/qql-editor.component';
 
 @Component({
   selector: 'app-query',
@@ -89,8 +93,10 @@ export class QueryComponent implements OnInit, AfterViewInit {
   @ViewChild('sendQueryDropDown', {read: BsDropdownDirective}) sendQueryDropDown: BsDropdownDirective;
   @ViewChild('lastQueriesDropdown', {read: BsDropdownDirective}) lastQueriesDropdown: BsDropdownDirective;
   @ViewChild('exportDropdown', {read: BsDropdownDirective}) exportDropdown: BsDropdownDirective;
+  @ViewChild('qqlEditor') qqlEditor: QqlEditorComponent;
   
   form: UntypedFormGroup;
+  queryControl: AbstractControl;
   loading$ = new BehaviorSubject(false);
   pending$ = new BehaviorSubject(false);
   exporting$ = new BehaviorSubject(false);
@@ -99,6 +105,7 @@ export class QueryComponent implements OnInit, AfterViewInit {
   showGrid = false;
   sendBtnDisabled$: Observable<boolean>;
   sendBtnText$: Observable<string>;
+  sendButtonTooltip$: Observable<string>;
   exportBtnText$: Observable<string>;
   editorOptions: MonacoEditorOptions;
   editorSize$: Observable<number>;
@@ -117,13 +124,25 @@ export class QueryComponent implements OnInit, AfterViewInit {
   shareUrl: string;
   shareUrlValid = false;
   isWriter$: Observable<boolean>;
-  queryError = false;
+  requestError: { [key: string]: boolean } = {};
+  editorIsReady$ = new BehaviorSubject(false);
+  editor;
+  selectedRange: { [key: string]: IRange } = {};
+  currentTabId: string;
   private serverErrorQueries = this.queryService.serverErrorQueries;
+  private validationErrors: { [key: string]: IRange } = {};
   
   private destroy$ = new ReplaySubject(1);
   private currentQuery: Subscription;
   private schema: SchemaTypeModel[];
-  
+  private freshResult: boolean;
+  selectionValue$ = new BehaviorSubject({});
+  selectedText = false;
+  lastSubmittedQuery = {};
+  selectedQuery = {};
+  queryError: { [tabId: string]: boolean } = {};
+  errorInsideSelectedText: boolean;
+
   constructor(
     private fb: UntypedFormBuilder,
     private gridService: GridService,
@@ -133,19 +152,17 @@ export class QueryComponent implements OnInit, AfterViewInit {
     private cdRef: ChangeDetectorRef,
     private tabStorageService: TabStorageService<GridDataStoreModel>,
     private monacoQqlConfigService: MonacoQqlConfigService,
-    private schemaService: SchemaService,
     private translateService: TranslateService,
     private appStore: Store<AppState>,
     private streamModelsService: StreamModelsService,
     private lastQueriesService: LastQueriesService,
     private exportService: ExportService,
     private messageInfoService: RightPaneService,
-    private router: Router,
-    private httpClient: HttpClient,
     private bsModalService: BsModalService,
     private permissionsService: PermissionsService,
     private shareLinkService: ShareLinkService,
     private gridTotalService: GridTotalService,
+    private timebaseService: TimebaseService
   ) {}
   
   ngOnInit() {
@@ -164,6 +181,11 @@ export class QueryComponent implements OnInit, AfterViewInit {
       .subscribe(isLiveGrid => this.isLiveGrid = isLiveGrid);
     
     this.createForm();
+
+    this.tabId()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(id => this.currentTabId = id);
+
     this.gridService
       .infinityScroll((start, end) => {
         return this.tabId().pipe(
@@ -176,6 +198,11 @@ export class QueryComponent implements OnInit, AfterViewInit {
       })
       .pipe(takeUntil(this.destroy$))
       .subscribe();
+
+      if (this.timebaseService.currentQuery) {
+        this.form.patchValue({ query: this.timebaseService.currentQuery });
+        this.timebaseService.currentQuery = null;
+      }
     
     this.liveGridName$ = this.tabId().pipe(map((id) => `gridLive${id}`));
     this.gridOptions$ = this.tabId().pipe(map((tabId) => this.gridService.options(tabId)));
@@ -211,11 +238,13 @@ export class QueryComponent implements OnInit, AfterViewInit {
         this.setQueryError();
       });
   
-    this.tabStorageService.getData().pipe(take(1)).subscribe((storage) => {
-      if (storage?.data?.[1]) {
-        this.gridTotalService.loadedFromCache(storage.data[1].length);
-      }
-    });
+    this.tabStorageService.getData()
+      .pipe(
+        filter(storage => !!storage?.data?.[1] && !this.freshResult),
+        take(1),
+        tap(() => this.gridTotalService.startLoading())
+      )
+      .subscribe((storage) => this.gridTotalService.loadedFromCache(storage.data[1].length));
 
     this.setQueryError();
     
@@ -227,6 +256,14 @@ export class QueryComponent implements OnInit, AfterViewInit {
         takeUntil(this.destroy$),
       )
       .subscribe(({data: [schema, data, rawSchema], query, hideColumnsByDefault, gridType}) => {
+        const editorValue = this.form.get('query').value;
+
+        if (this.editor) {
+          this.updateSelectedText(query, editorValue);
+        } else {
+          this.editorIsReady$.pipe(filter(Boolean)).subscribe(() => this.updateSelectedText(query, editorValue));
+        }
+        
         this.gridType$.next(gridType);
         
         switch (this.gridType$.getValue()) {
@@ -248,6 +285,8 @@ export class QueryComponent implements OnInit, AfterViewInit {
             this.schema = schema;
             this.gridService.hideColumnsByDefault(hideColumnsByDefault);
             this.setGridData(schema, data);
+            this.lastSubmittedQuery[this.currentTabId] = query.trim();
+            this.selectedQuery[this.currentTabId] = query.trim();
             return;
         }
       });
@@ -261,10 +300,13 @@ export class QueryComponent implements OnInit, AfterViewInit {
     
     this.editorOptions = this.monacoQqlConfigService.options();
     this.sendBtnText$ = combineLatest([this.pending$, this.gridType$]).pipe(
-      switchMap(([pending, gridType]) =>
-        this.translateService.get(`qqlEditor.buttons.${pending ? 'cancel' : gridType}`),
-      ),
-    );
+      switchMap(([pending, gridType]) => this.translateService
+        .get(`qqlEditor.buttons.${pending ? 'cancel' : gridType}`))
+      );
+
+    this.sendButtonTooltip$ = combineLatest([this.sendBtnText$, this.pending$, this.selectionValue$]).pipe(
+      map(([btnText, pending, selected]) => btnText + (!pending && selected[this.currentTabId] ? ' (SELECTED TEXT)' : ''))
+    )
     
     this.exportBtnText$ = this.exportType$.pipe(
       switchMap((type) => this.translateService.get(`qqlEditor.buttons.export.${type}`)),
@@ -281,8 +323,16 @@ export class QueryComponent implements OnInit, AfterViewInit {
     
     this.monacoQqlConfigService
       .onCtrlEnter()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(delay(500), takeUntil(this.destroy$))
       .subscribe(() => this.onSubmit());
+
+    fromEvent(window, 'beforeunload').subscribe(() => {
+      this.updateStorage();
+    })
+
+    this.form.get('query').valueChanges
+      .pipe(skip(1), filter(() => this.lastSubmittedQuery[this.currentTabId]))
+      .subscribe(value => this.updateSelectedText(this.lastSubmittedQuery[this.currentTabId], value));
   }
   
   ngAfterViewInit() {
@@ -302,11 +352,54 @@ export class QueryComponent implements OnInit, AfterViewInit {
       });
     });
   }
+
+  copyQueryText(query: string) {
+    navigator.clipboard.writeText(query);
+  }
+
+  private updateStorage(newId: string = '') {
+    const query = this.editor.getModel().getValueInRange(this.selectedRange[this.currentTabId]).trim() || 
+      this.form?.get('query').value.trim();
+
+    if (this.lastSubmittedQuery[this.currentTabId] !== query) {
+      this.tabStorageService.updateData((storageData) => ({
+        ...storageData,
+        hideColumnsByDefault: this.gridService.columnsHiddenByDefault,
+        data: [
+          [],
+          [],
+          { types: [], all: [] },
+        ],
+        gridType: this.gridType$.getValue(),
+        query: this.form.get('query').value,
+        error: null,
+      })).subscribe();
+    }
+  }
   
   onDragEnd({sizes}: IOutputData) {
     this.tabStorageService
       .updateData((data) => ({...data, editorSize: sizes[0] as number}))
       .subscribe();
+  }
+
+  setEditor(editor) {
+    this.editor = editor;
+    this.editor.onDidChangeCursorSelection((e) => {
+      const selectionRange = {
+        endColumn: e.selection.endColumn,
+        endLineNumber: e.selection.endLineNumber,
+        startColumn: e.selection.startColumn,
+        startLineNumber: e.selection.startLineNumber
+      };
+      const selected = editor.getModel().getValueInRange(selectionRange);
+      const currentSelectedTextValue = this.selectionValue$.getValue();
+      this.selectionValue$.next({
+        ...currentSelectedTextValue,
+        [this.currentTabId]: selected
+      });
+      this.selectedText = !!selected;
+    });
   }
   
   onSubmit(gridType: GridTypes = null) {
@@ -318,26 +411,33 @@ export class QueryComponent implements OnInit, AfterViewInit {
       this.currentQuery.unsubscribe();
       return;
     }
-    
-    if (this.form.invalid) {
+
+    if (!this.form.get('query').value) {
       return;
     }
     
+    const query = this.editor.getModel().getValueInRange(this.editor.getSelection()) || 
+      this.form.get('query').value;
+
+    this.selectedRange[this.currentTabId] = this.editor.getSelection();
+    
     this.loading$.next(true);
     this.cdRef.detectChanges();
-    const formData = this.form.getRawValue();
+    const formData = { query };
     this.messageInfoService.clearSelectedMessage();
     this.pending$.next(true);
     this.cdRef.detectChanges();
     this.gridTotalService.startLoading();
-    this.currentQuery = combineLatest([
-      this.queryService.describe(formData.query),
-      ![GridTypes.live, GridTypes.monitor].includes(this.gridType$.getValue())
-        ? this.queryService.query(formData.query, 0, 100).pipe(tap((data) => this.gridTotalService.endLoading(data.length)))
-        : of([]),
-    ])
-      .pipe(
+    this.currentQuery = this.qqlEditor.validateQueryText(query, this.selectedRange[this.currentTabId]).pipe(
+      switchMap(() => combineLatest([
+        this.queryService.describe(formData.query),
+        ![GridTypes.live, GridTypes.monitor].includes(this.gridType$.getValue())
+          ? this.queryService.query(formData.query, 0, 100).pipe(tap((data) => this.gridTotalService.endLoading(data.length)))
+          : of([]),
+        ])),
         catchError((err) => {
+          this.toggleGrid(false);
+          this.requestError[this.currentTabId] = true;
           this.appStore.dispatch(
             new NotificationsActions.AddNotification({
               message: err.error.message,
@@ -347,11 +447,13 @@ export class QueryComponent implements OnInit, AfterViewInit {
               fullErrorText: JSON.stringify(err.error, null, ' ')
             }),
           );
-          this.queryError = true;
-          this.serverErrorQueries.add(this.form.get('query').value);
+          this.queryError[this.currentTabId] = true;
+          this.serverErrorQueries.add(query);
           return throwError(err);
         }),
         finalize(() => {
+          this.freshResult = true;
+          setTimeout(() => this.freshResult = false, 1000);
           this.loading$.next(false);
           this.pending$.next(false);
           this.cdRef.detectChanges();
@@ -366,12 +468,17 @@ export class QueryComponent implements OnInit, AfterViewInit {
               schema,
             ],
             gridType: this.gridType$.getValue(),
-            query: this.form.get('query').value,
+            query,
             error: null,
           })),
         ),
         switchMap(() => this.gridService.onGridReady()),
         switchMap(gridReady => {
+          this.toggleGrid(true);
+          this.lastSubmittedQuery[this.currentTabId] = query;
+          this.selectedQuery[this.currentTabId] = query;
+          this.updateSelectedText(query, this.form.get('query').value);
+          this.removeRequestError();
           if (!this.isLiveGrid) {
             gridReady.api.ensureIndexVisible(0);
           }
@@ -379,7 +486,6 @@ export class QueryComponent implements OnInit, AfterViewInit {
         }),
       )
       .subscribe((tabId) => {
-        const query = this.form.getRawValue().query;
         this.lastQueriesService.add(
           [...new Set(this.monacoQqlConfigService.getStreams(query))],
           query?.trim(),
@@ -396,6 +502,11 @@ export class QueryComponent implements OnInit, AfterViewInit {
       .subscribe((position) => {
         this.monacoQqlConfigService.insertValue(query.query, position);
       });
+    this.editor.focus();
+  }
+
+  setError(errorLocation: IRange) {
+    this.validationErrors[this.currentTabId] = errorLocation;
   }
   
   export(type: ExportTypes = null) {
@@ -458,14 +569,19 @@ export class QueryComponent implements OnInit, AfterViewInit {
         (control: UntypedFormControl) => (control.value?.trim()?.length > 0 ? null : {required: true}),
       ],
     });
+
+    this.queryControl = this.form.get('query');
     
     this.tabId()
-      .pipe(takeUntil(this.destroy$), withLatestFrom(this.appStore.pipe(select(getActiveTab))))
-      .subscribe(([tabId, tab]) => {
+      .pipe(
+        takeUntil(this.destroy$), 
+        withLatestFrom(this.appStore.pipe(select(getActiveTab)), this.appStore.pipe(select(getAppInfo))))
+      .subscribe(([tabId, tab, appInfo]) => {
         const stored = this.storageService.getQueryFilter(tabId);
+        const timebaseVersion = parseFloat(appInfo.timebase?.serverVersion);
         let tabQuery = tab.queryStream ? `SELECT * FROM "${tab.queryStream}" ` : '';
         if (tab.querySymbol) {
-          tabQuery += `WHERE symbol == '${tab.querySymbol}'`;
+          tabQuery += `WHERE symbol ${!timebaseVersion || timebaseVersion > 5.4 ? '==' : '='} '${tab.querySymbol}'`;
         }
         const formValue = stored || {query: tab.queryInitialQuery || tabQuery};
         this.updateShareUrl(formValue.query);
@@ -490,16 +606,152 @@ export class QueryComponent implements OnInit, AfterViewInit {
   }
   
   createView() {
-    this.bsModalService.show(CreateViewQueryComponent, {initialState: {query: this.form.get('query').value}});
+    const query = this.editor.getModel().getValueInRange(this.editor.getSelection()) || 
+      this.form.get('query').value;
+    this.bsModalService.show(CreateViewQueryComponent, {initialState: { query }});
   }
   
   onValidUpdate() {
     this.cdRef.detectChanges();
   }
 
-  setQueryError() {
+  private setQueryError() {
     if (this.serverErrorQueries.has(this.form.get('query').value)) {
-      this.queryError = true;
+      this.queryError[this.currentTabId] = true;
     }
+  }
+
+  setEditorAsReady() {
+    this.editorIsReady$.next(true);
+  }
+
+  removeRequestError() {
+    this.requestError[this.currentTabId] = false;
+  }
+
+  updateSelectedText(query: string, fullText: string) {
+    const selectedRangeText = this.selectedRange[this.currentTabId] ? 
+      this.editor.getModel().getValueInRange(this.selectedRange[this.currentTabId]) : '';
+    const errorRange = this.validationErrors[this.currentTabId];
+
+    if (selectedRangeText.trim() === query.trim()) {
+      this.errorInsideSelectedText = this.isErrorInsideSelectedText(this.selectedRange[this.currentTabId], errorRange);
+      this.monacoQqlConfigService.setSelectedText(this.selectedRange[this.currentTabId], errorRange, this.errorInsideSelectedText);
+    } else {
+      const empty = {
+        startLineNumber: 0,
+        startColumn: 0,
+        endLineNumber: 0,
+        endColumn: 0,
+      };
+      this.selectedRange[this.currentTabId] = empty;
+      const cursorPosition = this.editor?.getPosition();
+
+      this.editor.setSelection(new monaco.Selection(
+        cursorPosition.lineNumber, 
+        cursorPosition.column, 
+        cursorPosition.lineNumber, 
+        cursorPosition.column));
+          
+      this.lastSubmittedQuery[this.currentTabId] = null;
+      this.selectedQuery[this.currentTabId] = null;
+      this.errorInsideSelectedText = this.isErrorInsideSelectedText(this.selectedRange[this.currentTabId], errorRange);
+      this.monacoQqlConfigService.setSelectedText(empty, errorRange, this.errorInsideSelectedText);
+
+      // const match = fullText.includes(query);
+
+      // const queryLines = query.split(/\r?\n/);
+      // const queryInLine = query.replace(/(\r\n|\n|\r)/gm, '').trim();
+      // const model = this.editor.getModel();
+  
+      // const tempRanges = [];
+      // for (let line of queryLines) {
+      //   const matches = model?.findMatches(line, true, false, true, null, true);
+  
+      //   const filteredMatches = [];
+      //   const fragments = new Set<string>();
+      //   matches.forEach(m => {
+      //     if (!fragments.has(m.matches[0])) {
+      //       filteredMatches.push(m);
+      //       fragments.add(m.matches[0]);
+      //     }
+      //   })
+      //   if (filteredMatches?.length) {
+      //     tempRanges.push(filteredMatches);
+      //   }
+      // }
+  
+      // const ranges = [];
+      // if (tempRanges.length) {
+      //   const startOptions = tempRanges[0];
+      //   const endOptions = tempRanges[tempRanges.length - 1];
+        
+      //   for (let startOption of startOptions) {
+      //     for (let endOption of endOptions) {
+      //       const range = {
+      //         endColumn: endOption.range.endColumn,
+      //         endLineNumber: endOption.range.endLineNumber,
+      //         startColumn: startOption.range.startColumn,
+      //         startLineNumber: startOption.range.startLineNumber,
+      //       };
+      //       const textInRange = model.getValueInRange(range).replace(/(\r\n|\n|\r)/gm, '').trim();
+      //       if (queryInLine === textInRange) {
+      //         ranges.push(startOption.range, endOption.range);
+      //       }
+      //     }
+      //   }
+      // }
+  
+      // if (match && this.showGrid && ranges.length) {
+      //   const fullRange = {
+      //     startLineNumber: ranges[0].startLineNumber,
+      //     startColumn: ranges[0].startColumn,
+      //     endLineNumber: ranges[ranges.length - 1].endLineNumber,
+      //     endColumn: ranges[ranges.length - 1].endColumn,
+      //   };
+
+      //   this.selectedRange[this.currentTabId] = fullRange;
+      //   this.monacoQqlConfigService.setSelectedText(this.selectedRange[this.currentTabId], errorRange);
+      // } else {
+      //   const empty = {
+      //     startLineNumber: 0,
+      //     startColumn: 0,
+      //     endLineNumber: 0,
+      //     endColumn: 0,
+      //   };
+      //   this.selectedRange[this.currentTabId] = empty;
+      //   const cursorPosition = this.editor?.getPosition();
+
+      //   this.editor.setSelection(new monaco.Selection(
+      //     cursorPosition.lineNumber, 
+      //     cursorPosition.column, 
+      //     cursorPosition.lineNumber, 
+      //     cursorPosition.column));
+          
+      //   this.lastSubmittedQuery[this.currentTabId] = null;
+      //   this.selectedQuery[this.currentTabId] = null;
+      //   this.monacoQqlConfigService.setSelectedText(empty, errorRange);
+      // }
+      // this.cdRef.detectChanges();
+    }
+  }
+
+  private isErrorInsideSelectedText(selectedTextRange: IRange, errorRange: IRange) {
+    if (!selectedTextRange || !errorRange) {
+      return false;
+    }
+    const emptyRange = selectedTextRange.startLineNumber === selectedTextRange.endLineNumber && 
+      selectedTextRange.startColumn === selectedTextRange.endColumn;
+    if (emptyRange) {
+      return false;
+    }
+    return errorRange.startLineNumber >= selectedTextRange.startLineNumber 
+      && errorRange.endLineNumber <= selectedTextRange.endLineNumber 
+      && errorRange.startColumn >= selectedTextRange.startColumn 
+      && errorRange.endColumn <= selectedTextRange.endColumn;
+  }
+
+  toggleQueryError(error: boolean) {
+    this.queryError[this.currentTabId] = error;
   }
 }

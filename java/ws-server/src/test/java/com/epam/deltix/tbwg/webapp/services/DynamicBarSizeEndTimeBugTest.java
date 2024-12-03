@@ -24,6 +24,9 @@ import org.junit.jupiter.api.DisplayName;
 
 import java.time.Instant;
 
+import static com.epam.deltix.tbwg.webapp.services.ChartingBaseTest.MessageType.BAR_MESSAGE;
+import static com.epam.deltix.tbwg.webapp.services.ChartingBaseTest.MessageType.PACKAGE_HEADER;
+
 public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
 
     @Test
@@ -34,7 +37,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
         String streamDataFilename = "barMessageWeek.csv";
         String resultFilename = "endTimeBug/barMessageWeekBordersEndResult.json";
         BarMessageCsvProducer messageProducer = new BarMessageCsvProducer(streamDataFilename);
-        runTestFullResponseCheck(WEEK_MILLIS, startTime, endTime, resultFilename, MessageType.BAR_MESSAGE, ChartType.BARS, messageProducer);
+        runTestFullResponseCheck(WEEK_MILLIS, startTime, endTime, resultFilename, BAR_MESSAGE, ChartType.BARS, messageProducer);
     }
 
     @Test
@@ -45,7 +48,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
         String streamDataFilename = "barMessageWeek.csv";
         String resultFilename = "endTimeBug/barMessage2WeekBordersEndResult.json";
         BarMessageCsvProducer messageProducer = new BarMessageCsvProducer(streamDataFilename);
-        runTestFullResponseCheck(2 * WEEK_MILLIS, startTime, endTime, resultFilename, MessageType.BAR_MESSAGE, ChartType.BARS, messageProducer);
+        runTestFullResponseCheck(2 * WEEK_MILLIS, startTime, endTime, resultFilename, BAR_MESSAGE, ChartType.BARS, messageProducer);
     }
 
 
@@ -57,7 +60,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
         String streamDataFilename = "endTimeBug/barMessageMonthBordersEnd.csv";
         String resultFilename = "endTimeBug/barMessageMonthBordersEndResult.json";
         BarMessageCsvProducer messageProducer = new BarMessageCsvProducer(streamDataFilename);
-        runTestFullResponseCheck(MONTH_MILLIS, startTime, endTime, resultFilename, MessageType.BAR_MESSAGE, ChartType.BARS, messageProducer);
+        runTestFullResponseCheck(MONTH_MILLIS, startTime, endTime, resultFilename, BAR_MESSAGE, ChartType.BARS, messageProducer);
     }
 
     @Test
@@ -68,7 +71,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
         String streamDataFilename = "endTimeBug/barMessageMonthBordersEnd.csv";
         String resultFilename = "endTimeBug/barMessage2MonthBordersEndResult.json";
         BarMessageCsvProducer messageProducer = new BarMessageCsvProducer(streamDataFilename);
-        runTestFullResponseCheck(2 * MONTH_MILLIS, startTime, endTime, resultFilename, MessageType.BAR_MESSAGE, ChartType.BARS, messageProducer);
+        runTestFullResponseCheck(2 * MONTH_MILLIS, startTime, endTime, resultFilename, BAR_MESSAGE, ChartType.BARS, messageProducer);
     }
 
     @Test
@@ -79,7 +82,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
         String streamDataFilename = "endTimeBug/barMessageQuarterBordersEnd.csv";
         String resultFilename = "endTimeBug/barMessageQuarterBordersEndResult.json";
         BarMessageCsvProducer messageProducer = new BarMessageCsvProducer(streamDataFilename);
-        runTestFullResponseCheck(QUARTER_MILLIS, startTime, endTime, resultFilename, MessageType.BAR_MESSAGE, ChartType.BARS, messageProducer);
+        runTestFullResponseCheck(QUARTER_MILLIS, startTime, endTime, resultFilename, BAR_MESSAGE, ChartType.BARS, messageProducer);
     }
 
     @Test
@@ -90,7 +93,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
         String streamDataFilename = "endTimeBug/barMessageYearBordersEnd.csv";
         String resultFilename = "endTimeBug/barMessage4MonthBordersEndResult.json";
         BarMessageCsvProducer messageProducer = new BarMessageCsvProducer(streamDataFilename);
-        runTestFullResponseCheck(4 * MONTH_MILLIS, startTime, endTime, resultFilename, MessageType.BAR_MESSAGE, ChartType.BARS, messageProducer);
+        runTestFullResponseCheck(4 * MONTH_MILLIS, startTime, endTime, resultFilename, BAR_MESSAGE, ChartType.BARS, messageProducer);
     }
 
     @Test
@@ -101,7 +104,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
         String streamDataFilename = "endTimeBug/barMessageYearBordersEnd.csv";
         String resultFilename = "endTimeBug/barMessage5MonthBordersEndResult.json";
         BarMessageCsvProducer messageProducer = new BarMessageCsvProducer(streamDataFilename);
-        runTestFullResponseCheck(5 * MONTH_MILLIS, startTime, endTime, resultFilename, MessageType.BAR_MESSAGE, ChartType.BARS, messageProducer);
+        runTestFullResponseCheck(5 * MONTH_MILLIS, startTime, endTime, resultFilename, BAR_MESSAGE, ChartType.BARS, messageProducer);
     }
 
     @Test
@@ -112,7 +115,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
         String streamDataFilename = "endTimeBug/barMessageYearBordersEnd.csv";
         String resultFilename = "endTimeBug/barMessage6MonthBordersEndResult.json";
         BarMessageCsvProducer messageProducer = new BarMessageCsvProducer(streamDataFilename);
-        runTestFullResponseCheck(6 * MONTH_MILLIS, startTime, endTime, resultFilename, MessageType.BAR_MESSAGE, ChartType.BARS, messageProducer);
+        runTestFullResponseCheck(6 * MONTH_MILLIS, startTime, endTime, resultFilename, BAR_MESSAGE, ChartType.BARS, messageProducer);
     }
 
     @Test
@@ -123,7 +126,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
         String streamDataFilename = "endTimeBug/barMessageYearBordersEnd.csv";
         String resultFilename = "endTimeBug/barMessage7MonthBordersEndResult.json";
         BarMessageCsvProducer messageProducer = new BarMessageCsvProducer(streamDataFilename);
-        runTestFullResponseCheck(7 * MONTH_MILLIS, startTime, endTime, resultFilename, MessageType.BAR_MESSAGE, ChartType.BARS, messageProducer);
+        runTestFullResponseCheck(7 * MONTH_MILLIS, startTime, endTime, resultFilename, BAR_MESSAGE, ChartType.BARS, messageProducer);
     }
 
     @Test
@@ -134,7 +137,7 @@ public class DynamicBarSizeEndTimeBugTest extends ChartingBaseTest {
         String streamDataFilename = "endTimeBug/barMessageYearBordersEnd.csv";
         String resultFilename = "endTimeBug/barMessageYearBordersEndResult.json";
         BarMessageCsvProducer messageProducer = new BarMessageCsvProducer(streamDataFilename);
-        runTestFullResponseCheck(YEAR_MILLIS, startTime, endTime, resultFilename, MessageType.BAR_MESSAGE, ChartType.BARS, messageProducer);
+        runTestFullResponseCheck(YEAR_MILLIS, startTime, endTime, resultFilename, BAR_MESSAGE, ChartType.BARS, messageProducer);
     }
 
     @Test

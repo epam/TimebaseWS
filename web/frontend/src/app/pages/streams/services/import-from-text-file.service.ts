@@ -1,81 +1,72 @@
-import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Subject, Observable, forkJoin, of, concat } from 'rxjs';
-import { map, switchMap, filter, tap, mapTo, first } from 'rxjs/operators';
+import { map, switchMap, filter, tap, mapTo, distinctUntilChanged } from 'rxjs/operators';
 import { WSService } from 'src/app/core/services/ws.service';
-import { GlobalFiltersService } from 'src/app/shared/services/global-filters.service';
 import { ImportProgress } from '../models/import-progress';
-import JSZip from 'jszip';
+import { SchemaAllTypeModel, SchemaTypeModel } from 'src/app/shared/models/schema.type.model';
+import { WriteMode } from 'src/app/shared/components/write-modes-control/write-mode';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ImportFromTextFileService {
 
-  uploadFileUrl = 'import/csv/init';
-  getPreviewUrl = 'import/csv/preview';
-  getPreviewBasedOnSettingsUrl = 'import/csv/getPreview';
-  getMappingUrl = 'import/csv/mapping';
-  getValidationUrl = 'import/csv/validate';
-  requestProcessUrl = 'import/csv/requestProcess';
-  uploadAllFilesUrl = 'import/csv/uploadChunk';
-  startImportUrl = 'import/csv/start';
-  stopImportUrl = 'import/cancel';
-  finishImportUrl = 'import/finish';
-  getSettingsUrl = 'import/csv/setting';
-  deletePreviewUrl = 'import/csv/preview';
-  validateMappingGeneralUrl = 'import/csv/validate/mapping';
-  getAllFileHeadersUrl = 'import/csv/headers';
-  getNewMappingUrl = 'import/csv/mapping';
+  private uploadFileUrl = 'import/csv/init';
+  private getPreviewUrl = 'import/csv/preview';
+  private getPreviewBasedOnSettingsUrl = 'import/csv/getPreview';
+  private getValidationUrl = 'import/csv/validate';
+  private requestProcessUrl = 'import/csv/requestProcess';
+  private uploadAllFilesUrl = 'import/csv/uploadChunk';
+  private startImportUrl = 'import/csv/start';
+  private stopImportUrl = 'import/cancel';
+  private finishImportUrl = 'import/finish';
+  private getSettingsUrl = 'import/csv/setting';
+  private deletePreviewUrl = 'import/csv/preview';
+  private validateMappingGeneralUrl = 'import/csv/validate/mapping';
+  private getAllFileHeadersUrl = 'import/csv/headers';
+  private getNewMappingUrl = 'import/csv/mapping';
+  private getNewStreanSchemaUrl = 'import/csv/schema';
+  private importSubscriptionUrl = 'user/topic/initImport/csv';  
+  private progressSubscriptionUrl = 'user/topic/startImport/csv';
+  private logUrl='import/csv/log';
 
-  mappingInvalid = new Subject();
-  mappingErrors = [];
+  private previews = {};
+  private totalSize: number = 0;
+  private fileUploadedSize: number = 0;
 
-  uploadedFiles: File[] = [];
-  noUploadedFiles = new BehaviorSubject<boolean>(true);
-  previewFileName: string;
-  headers = [];
-  streamSchema = [];
-  warning: string;
+  public mappingErrors = [];
+  public uploadedFiles: File[] = [];
+  public noUploadedFiles$ = new BehaviorSubject<boolean>(true);
+  public streamSchema = [];
+  public warning: string;
 
-  sessionId: string;
-  sessionIdSubject = new Subject<string>();
-  streamId: string;
-  streamIdSubject = new Subject<string>();
-  uploadingId: string = '';
-  csvFileHeaders = [];
-  csvFileRows = [];
-  streamFieldsDropdown = {};
-  fileId: string;
-  streamFields = [];
-  mapping = [];
-  validation = {};
-  validationSubject = new Subject();
-  mappingValidationSubject = new Subject<void>();
+  public sessionId: string;
+  public streamId: string;
+  public streamIdSubject = new Subject<string>();
+  public uploadingId: string = '';
+  public validation = {};
+  public validationSubject = new Subject();
+  public mappingValidationSubject = new Subject<void>();
 
-  currentMappings = [];
-  originalMapping = [];
-  defaultTypeToKeywordMapping = {};
-  allSymbols: string[];
+  public currentMappings = [];
+  public originalMapping = [];
+  public defaultTypeToKeywordMapping = {};
+  public allSymbols: string[];
 
-  headerDropdownIsOpen: boolean = false;
-  invalidSettings = new BehaviorSubject(false);
+  public invalidSettings = new BehaviorSubject(false);
+  public filesUploadingProgress$ = new BehaviorSubject<number>(0);
 
-  previews = {};
-  totalSize: number = 0;
-  fileUploadedSize: number = 0;
-  filesUploadingProgress$ = new BehaviorSubject<number>(0);
+  public openedSettingsTab: string;
+  public allSymbolsSelected: boolean = false;
 
-  openedSettingsTab: string;
-  allSymbolsSelected: boolean = false;
+  public changedMappingFields = new Set();
+  public instrumentTypes = [];
 
-  changedMappingFields = new Set();
-  instrumentTypes = [];
+  public previewReceived: boolean = false;
+  public settingsReceived: boolean = false;
 
-  previewReceived: boolean = false;
-  settingsReceived: boolean = false;
-
-  settings = {
+  public settings = {
     charset: "UTF-8",
     dataTimeFormat: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
     defaultMessageType: null,
@@ -87,25 +78,28 @@ export class ImportFromTextFileService {
     separator: ",",
     startImportRow: 2,
     strategy: "SKIP",
-    streamKey: "bbos2",
+    streamKey: "",
     symbols: null,
     timeZone: null,
     typeToKeywordMapping: {},
-    writeMode: "APPEND",
+    writeMode: WriteMode.rewrite,
     globalSorting: false,
   }
-  defaultSettings: typeof this.settings;
-  editedSettings: Partial<typeof this.settings> = {};
-  defaultSettingsSet = false;
-  settingsUpdated = new BehaviorSubject<boolean>(false);
-  keywordColumnMapped: boolean;
+  public defaultSettings: typeof this.settings;
+  public editedSettings: Partial<typeof this.settings> = {};
+  public defaultSettingsSet = false;
+  public settingsUpdated$ = new BehaviorSubject<boolean>(false);
 
-  errorMessages = {};
+  public keywordColumnMapped: boolean;
+  public createdStreamSchema: { types: SchemaTypeModel[]; all: SchemaAllTypeModel[] };
+  public schemaIsValid$ = new Subject<boolean>();
+  public errorMessages = {};
 
   constructor(private http: HttpClient, private wsService: WSService) {
 
     this.streamIdSubject.pipe(
       filter(streamId => !!streamId),
+      distinctUntilChanged(),
       switchMap(() => this.getStreamSchema())
     )
     .subscribe((val: any) => {
@@ -121,13 +115,13 @@ export class ImportFromTextFileService {
     });
   }
 
-  initImport(): Observable<string> {
+  public initImport(streamId = this.streamId): Observable<string> {
     const formData = new FormData();
-    formData.append('streamKey', this.streamId);
+    formData.append('streamKey', streamId);
     return this.http.post<string>(this.uploadFileUrl, formData);
   }
 
-  getPreviews() {
+  public getPreviews() {
     const chunkSize = 1024 * 1024;
     const observables = [];
     for (let file of this.uploadedFiles) {
@@ -150,7 +144,7 @@ export class ImportFromTextFileService {
     return forkJoin(observables);
   }
 
-  getNewMapping() {
+  public getNewMapping() {
     const generalSettings = {
       ...this.settings,
       streamKey: this.streamId,
@@ -158,31 +152,7 @@ export class ImportFromTextFileService {
     return this.http.post(`${this.getNewMappingUrl}/${this.sessionId}`, generalSettings);
   }
 
-  // getPreviewsGzip() {
-  //   const gzip = require('gzip-js');
-  //   const options = {
-  //     level: 6,
-  //     name: 'gzip-files',
-  //     timestamp: Date.now()
-  //   };
-  //   const observables = [];
-  //   const headers = new HttpHeaders( { 'Content-Encoding': 'gzip' } );
-
-  //   for (let file of this.uploadedFiles) {
-  //     const compressed = gzip.zip(file, options);
-
-  //     const formData = new FormData();
-  //     const fileObj = new File([compressed], file.name);
-  //     formData.append("file", fileObj, file.name);
-  //     formData.append("fullFile", 'true');
-
-  //     observables.push(this.http.post(`${this.getPreviewUrl}/${this.sessionId}`, formData, {headers}));
-  //   }
-  //   return forkJoin(observables);
-  // }
-
-
-  getPreviewBasedOnSettings(fileName: string) {
+  public getPreviewBasedOnSettings(fileName: string) {
     if (this.previews[fileName]) {
       return of({
         headers: this.previews[fileName].headers,
@@ -228,26 +198,30 @@ export class ImportFromTextFileService {
     }
   }
 
-  deletePreview(fileNames: string[]) {
-    if (fileNames.length <= 10) {
-      const params = {
-        filesName: fileNames
-      }
-      return this.http.delete(`${this.deletePreviewUrl}/${this.sessionId}`, {params});
-    } else {
-      const observables = [];
-      for (let i = 0; i < fileNames.length; i += 10) {
-        const fileNamesChunk = fileNames.slice(i, i + 10);
+  public deletePreview(fileNames: string[]) {
+    if (this.sessionId) {
+      if (fileNames.length <= 10) {
         const params = {
-          filesName: fileNamesChunk
+          filesName: fileNames
         }
-        observables.push(this.http.delete(`${this.deletePreviewUrl}/${this.sessionId}`, {params}));
+        return this.http.delete(`${this.deletePreviewUrl}/${this.sessionId}`, {params});
+      } else {
+        const observables = [];
+        for (let i = 0; i < fileNames.length; i += 10) {
+          const fileNamesChunk = fileNames.slice(i, i + 10);
+          const params = {
+            filesName: fileNamesChunk
+          }
+          observables.push(this.http.delete(`${this.deletePreviewUrl}/${this.sessionId}`, {params}));
+        }
+        return forkJoin(observables);
       }
-      return forkJoin(observables);
+    } else {
+      return of(null);
     }
   }
 
-  getAllFileHeaders() {
+  public getAllFileHeaders() {
     const params = {
       separator: this.settings.separator,
       charset: this.settings.charset
@@ -255,33 +229,11 @@ export class ImportFromTextFileService {
     return this.http.get(`${this.getAllFileHeadersUrl}/${this.sessionId}`, {params});
   }
 
-  getStreamSchema() {
+  public getStreamSchema() {
     return this.http.get(`${this.streamId}/schema`);
   }
 
-  getMapping() {
-    const settings = {
-      ...this.settings,
-      streamKey: this.streamId,
-    }
-    return this.http.post(`${this.getMappingUrl}/${this.sessionId}`, settings);
-  }
-
-  validateMapping(fileName: string) {
-    const dto = {
-      generalSettings: {
-        ...this.settings,
-        streamKey: this.streamId
-      },
-      mappings: this.currentMappings
-    }
-    const params = {
-      fileName
-    }
-    return this.http.post(`${this.getValidationUrl}/${this.sessionId}`, dto, {params});
-  }
-
-  validateMappingGeneral() {
+  public validateMappingGeneral() {
     const dto = {
       generalSettings: {
         ...this.settings,
@@ -292,7 +244,6 @@ export class ImportFromTextFileService {
     return this.http.post(`${this.validateMappingGeneralUrl}/${this.sessionId}`, dto)
       .pipe(tap((res: any) => {
         const mappingError = res.find(item => item.validateResponse.status !== 'VALID');
-        this.mappingInvalid.next(!!mappingError);
         if (mappingError) {
           this.mappingErrors = res.filter(item => item.validateResponse.status !== 'VALID');
         } else {
@@ -301,14 +252,14 @@ export class ImportFromTextFileService {
       }))
   }
 
-  getSettings() {
+  public getSettings() {
     const params = {
       streamKey: this.streamId,
     }
     return this.http.get(`${this.getSettingsUrl}/${this.sessionId}`, {params});
   }
 
-  getFullValidation() {
+  public getFullValidation() {
     const dto = {
       generalSettings: {
         ...this.settings,
@@ -319,20 +270,18 @@ export class ImportFromTextFileService {
     return this.http.post(`${this.getValidationUrl}/${this.sessionId}`, dto);
   }
 
-  formatGridField(field: string) {
+  private formatGridField(field: string) {
     return field.replace('.', '-').toLowerCase();
   }
 
-  setSessionId(sessionId: string) {
+  public setSessionId(sessionId: string) {
     this.sessionId = sessionId;
-    this.sessionIdSubject.next(sessionId);
   }
 
-  endSession(eraseSessionId = true) {
+  public endSession(eraseSessionId = true) {
     if (eraseSessionId) {
       this.uploadedFiles.length = 0;
       this.sessionId = null;
-      this.sessionIdSubject.next(null);
       this.streamId = null;
       this.streamIdSubject.next(this.streamId);
       this.validation = {};
@@ -345,66 +294,39 @@ export class ImportFromTextFileService {
     this.defaultSettingsSet = false;
     this.errorMessages = {};
     this.previewReceived = false;
+    this.createdStreamSchema = null;
     this.settingsReceived = false;
     this.editedSettings = {};
     this.invalidSettings.next(false);
     this.changedMappingFields.clear();
   }
 
-  setStreamId(streamId: string) {
+  public setStreamId(streamId: string) {
     this.streamId = streamId;
     this.streamIdSubject.next(streamId);
   }
 
-  sendFileSize() {
-    const totalSize = this.uploadedFiles.reduce((acc, file) => acc + file.size, 0);
+  public setSettings() {
     const payload = {
       generalSettings: {
         ...this.settings,
         streamKey: this.streamId,
       },
-      mappings: this.currentMappings,
-      totalSize
+      mappings: this.currentMappings
     }
+    return this.http.post(`${this.getSettingsUrl}/${this.sessionId}`, payload);
+  }
+
+  public sendFileSize() {
+    const totalSize = this.uploadedFiles.reduce((acc, file) => acc + file.size, 0);
     const params = {
       totalSize
     }
     this.totalSize = totalSize;
-    return this.http.post(`${this.requestProcessUrl}/${this.sessionId}`, payload, { params } );
+    return this.http.post(`${this.requestProcessUrl}/${this.sessionId}`, null, { params } )
   }
 
-  // uploadGzip() {
-  //   const gzip = require('gzip-js');
-  //   const options = {
-  //     level: 6,
-  //     name: 'gzip-files',
-  //     timestamp: Date.now()
-  //   };
-  //   const observables = [];
-
-  //   const headers = new HttpHeaders( { 'Accept-Encoding': 'gzip' } );
-
-  //   for (let file of this.uploadedFiles) {
-  //     const compressed = gzip.zip(file, options);
-
-  //     const formData = new FormData();
-  //     const fileObj = new File([compressed], file.name);
-  //     formData.append("file", fileObj, file.name);
-  //     formData.append("fullFileSize", file.size.toString());
-
-  //     observables.push(
-  //       this.http.post(`${this.uploadAllFilesUrl}/${this.sessionId}`, formData, { headers } )
-  //         .pipe(tap(() => {
-  //           this.fileUploadedSize += file.size;
-  //           const uploadingProgress = +(this.fileUploadedSize / this.totalSize).toFixed(2);
-  //           this.filesUploadingProgress$.next(+uploadingProgress);
-  //         }))
-  //       );
-  //   }
-  //   return forkJoin(observables);
-  // }
-
-  uploadAllFiles() {
+  public uploadAllFiles() {
     const chunkSize = 1000000;
     const observables = [];
     for (let file of this.uploadedFiles) {
@@ -453,7 +375,7 @@ export class ImportFromTextFileService {
     return forkJoin(observables);
   }
 
-  startImport() {
+  public startImport() {
     const dto = {
       generalSettings: {
         ...this.settings,
@@ -464,7 +386,7 @@ export class ImportFromTextFileService {
     return this.http.post(`${this.startImportUrl}/${this.sessionId}`, dto);
   }
 
-  updateSettings(key: string, value, saveInStorage = false) {
+  public updateSettings(key: string, value, saveInStorage = false) {
 
     this.settings = {
       ...this.settings,
@@ -478,45 +400,52 @@ export class ImportFromTextFileService {
         this.editedSettings = {};
       }
       this.editedSettings[key] = value;
-      this.settingsUpdated.next(false);
+      this.settingsUpdated$.next(false);
     }
   }
 
-  onUploadProgress(): Observable<ImportProgress> {
+  public onUploadProgress(): Observable<ImportProgress> {
     return this.wsService
-      .watch(`/user/topic/startImport/csv/${this.sessionId}`)
+      .watch(`/${this.progressSubscriptionUrl}/${this.sessionId}`)
       .pipe(
         map(({body}) => JSON.parse(body)));
   }
 
-  getUploadDetails() {
-    return this.http.get(`import/csv/log/${this.sessionId}`, {
+  public onImportProgress() {
+    return this.wsService.watch(`/${this.importSubscriptionUrl}/${this.sessionId}`);
+  }
+
+  public getUploadDetails() {
+    return this.http.get(`${this.logUrl}/${this.sessionId}`, {
       responseType: 'blob',
-      // headers: { 'Accept-Encoding': 'gzip' }
     });
   }
 
-  onSocketClosed() {
+  public onSocketClosed() {
     return this.wsService.socketDisconnected();
   }
 
-  finishImport() {
-    return this.http.post(`${this.finishImportUrl}/${this.sessionId}`, {}).pipe(mapTo(null));
+  public finishImport() {
+    if (this.sessionId) {
+      return this.http.post(`${this.finishImportUrl}/${this.sessionId}`, {}).pipe(mapTo(null));
+    } else {
+      return of(null);
+    }
   }
 
-  stopImport() {
+  public stopImport() {
     return this.http.post(`${this.stopImportUrl}/${this.sessionId}`, {}).pipe(mapTo(null));
   }
 
-  updateSettingsValidation() {
+  public updateSettingsValidation() {
     this.invalidSettings.next(Object.values(this.errorMessages).some(errText => errText !== ''));
   }
 
-  updateKeywordColumnMappedProp() {
+  public updateKeywordColumnMappedProp() {
     this.keywordColumnMapped = this.currentMappings.find(item => item.column && item.field.name === 'keyword');
   }
 
-  typeToKeyWordMappingsChanged(mapping = {}, defaultMapping, mappingRequest = false) {
+  public isTypeToKeyWordMappingsChanged(mapping = {}, defaultMapping, mappingRequest = false) {
     if (!mapping) {
       return false;
     }
@@ -530,5 +459,44 @@ export class ImportFromTextFileService {
       const mappingAsArray = Object.entries(mapping)[0];
       return defaultMappingAsArray[0] !== mappingAsArray?.[0] || defaultMappingAsArray[1] !== mappingAsArray?.[1];
     }
+  }
+
+  public getNewStreamSchema() {
+    const params = {
+      enumCheck: false,
+      enumValuesCount: 20,
+      enumRepeatRate: 10,
+      staticCheck: false
+    };
+    return this.http.get(`${this.getNewStreanSchemaUrl}/${this.sessionId}`, { params });
+  }
+
+  public createStream(streamName: string, storageVersion: string, distributionFactor: number) {
+    const params = {
+      key: streamName,
+      version: storageVersion,
+      distributionFactor
+    };
+    if (!params.distributionFactor) {
+      delete params.distributionFactor;
+    }
+    const { types, all } = this.createdStreamSchema;
+    return this.http.post('/createStream',
+      {
+        types,
+        all,
+      },
+      {
+        params
+      },
+    );
+  }
+
+  public schemaIsValidAsObservable() {
+    return this.schemaIsValid$.asObservable();
+  }
+  
+  public deleteStream(streamKey: string) {
+    return this.http.post(`${encodeURIComponent(streamKey)}/delete`, {});
   }
 }

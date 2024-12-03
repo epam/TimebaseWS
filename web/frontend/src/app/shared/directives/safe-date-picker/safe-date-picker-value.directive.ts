@@ -12,7 +12,7 @@ import {
 import { parseDate }             from 'ngx-bootstrap/chronos';
 import { BsDatepickerDirective } from 'ngx-bootstrap/datepicker';
 import { ReplaySubject, timer }  from 'rxjs';
-import { takeUntil }             from 'rxjs/operators';
+import { takeUntil, filter }             from 'rxjs/operators';
 
 @Directive({
   selector: '[appSafeDatePickerValue]',
@@ -36,7 +36,10 @@ export class SafeDatePickerValueDirective implements OnInit, OnDestroy, OnChange
       (this.getDateRegexp().test(dateString) && 
       !!parseDate(dateString, this.datePicker._config.dateInputFormat).getTime());
     if (this.lastManuallyEnteredValid) {
-      this.dateValueChanged.emit(new Date(dateString));
+      this.dateValueChanged.emit(parseDate(
+        dateString,
+        this.datePicker._config.dateInputFormat,
+      ));
     } else {
       this.dateValueInvalid.emit();
     }
@@ -48,35 +51,37 @@ export class SafeDatePickerValueDirective implements OnInit, OnDestroy, OnChange
   }
 
   ngOnInit() {
-    this.datePicker.bsValueChange.pipe(takeUntil(this.destroy$)).subscribe((value) => {
-      if (this.isNull && this.lastManuallyEntered && value?.getTime()) {
-        this.appSafeDatePickerValue = parseDate(
-          this.lastManuallyEntered,
-          this.datePicker._config.dateInputFormat,
-        );
-        this.setValue();
+    this.datePicker.bsValueChange
+      .pipe(filter(value => value?.toString() !== 'Invalid Date'), takeUntil(this.destroy$))
+      .subscribe(value => {
+        if (this.isNull && this.lastManuallyEntered && value?.getTime()) {
+          this.appSafeDatePickerValue = parseDate(
+            this.lastManuallyEntered,
+            this.datePicker._config.dateInputFormat,
+          );
+          this.setValue();
+          this.isNull = false;
+          this.appSafeDatePickerValueChange.emit(this.safeValue(this.appSafeDatePickerValue));
+          return;
+        }
+
         this.isNull = false;
-        this.appSafeDatePickerValueChange.emit(this.safeValue(this.appSafeDatePickerValue));
-        return;
-      }
+        if (value === null) {
+          return;
+        }
 
-      this.isNull = false;
-      if (value === null) {
-        return;
-      }
+        const lastSafeValue = this.safeValue(this.appSafeDatePickerValue);
+        const safeValue = this.safeValue(value);
 
-      const lastSafeValue = this.safeValue(this.appSafeDatePickerValue);
-      const safeValue = this.safeValue(value);
+        if (safeValue?.getTime() !== lastSafeValue?.getTime()) {
+          this.appSafeDatePickerValue = safeValue;
+          this.appSafeDatePickerValueChange.emit(safeValue);
+        }
 
-      if (safeValue?.getTime() !== lastSafeValue?.getTime()) {
-        this.appSafeDatePickerValue = safeValue;
-        this.appSafeDatePickerValueChange.emit(safeValue);
-      }
-
-      if (safeValue?.getTime() !== value?.getTime()) {
-        this.setValue();
-      }
-    });
+        if (safeValue?.getTime() !== value?.getTime()) {
+          this.setValue();
+        }
+      });
   }
 
   ngOnDestroy() {

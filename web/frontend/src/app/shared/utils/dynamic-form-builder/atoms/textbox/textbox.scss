@@ -16,3 +16,23 @@
 .btn-upload:focus {
   box-shadow: inset 0 0 $ss darken($primary, 50%) !important;
 }
+
+.input-container {
+  position: relative;
+}
+
+.clear-btn {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  z-index: 1;
+  cursor: pointer;
+
+  &::before {
+    content: '×';
+  }
+}
+
+.reseting-input {
+  padding-right: 1rem !important;
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 
 import com.epam.deltix.containers.AlphanumericUtils;
@@ -22,10 +21,10 @@ import com.epam.deltix.dfp.Decimal64Utils;
 import com.epam.deltix.tbwg.messages.BarMessage;
 import com.epam.deltix.tbwg.webapp.model.charting.line.BarElementDef;
 import com.epam.deltix.tbwg.messages.Message;
+import com.epam.deltix.tbwg.webapp.services.charting.datasource.ChartDataSource;
 import com.epam.deltix.timebase.messages.InstrumentMessage;
 import com.epam.deltix.util.collections.generated.LongToObjectHashMap;
 
-import javax.security.auth.message.MessageInfo;
 import java.util.Collections;
 
 import static com.epam.deltix.tbwg.webapp.utils.BordersTimeBarChartsUtils.*;
@@ -33,7 +32,7 @@ import static com.epam.deltix.tbwg.webapp.utils.BordersTimeBarChartsUtils.*;
 /**
  * The transformation aggregates bars from another bars and converts into dto.
  */
-public class BarConversionTransformation extends AbstractChartTransformation<BarElementDef, InstrumentMessage> {
+public class BarConversionTransformation extends SymbolFilterChartTransformation<BarElementDef, InstrumentMessage> {
 
     private final long periodicity;
     private final long startTime;
@@ -58,8 +57,10 @@ public class BarConversionTransformation extends AbstractChartTransformation<Bar
         }
     }
 
-    public BarConversionTransformation(long aggregation, long startTime, long endTime) {
-        super(Collections.singletonList(BarMessage.class), Collections.singletonList(BarElementDef.class));
+    public BarConversionTransformation(long aggregation, long startTime, long endTime, String symbol,
+                                       ChartDataSource dataSource, boolean isSingleSymbolSource) {
+        super(Collections.singletonList(BarMessage.class), Collections.singletonList(BarElementDef.class),
+                dataSource, symbol, isSingleSymbolSource);
 
         this.periodicity = aggregation;
         this.startTime = startTime;
@@ -73,44 +74,42 @@ public class BarConversionTransformation extends AbstractChartTransformation<Bar
 
     @Override
     protected void onNextPoint(InstrumentMessage message) {
-        long barTimestamp = message.getTimeStampMs();
+        if (message instanceof BarMessage && isProcessSymbol()) {
+            BarMessage barMessage = (BarMessage) message;
 
-        if (barTimestamp < startTime) {
-            return;
-        }
-
-        BarMessage barMessage = (message instanceof BarMessage) ? (BarMessage)message : null;
-
-        if (barMessage == null)
-            return;
-
-        BarElement barElement = exchangeToBar.get(barMessage.getExchangeId(), null);
-        if (barElement == null) {
-            exchangeToBar.put(barMessage.getExchangeId(), barElement = new BarElement(barMessage.getExchangeId()));
-        }
-
-        flushPrev(barElement, barTimestamp);
-
-        if (barTimestamp > endTime) {
-            return;
-        }
-
-        if (barElement.timestamp == Long.MIN_VALUE) {
-            barElement.timestamp = getTransformationTimestamp(barTimestamp, periodicity);
-            barElement.closeBarTimestamp = getTransformationStopBarTimestamp(barTimestamp, periodicity);
-            barElement.open = barMessage.getOpen();
-            barElement.close = barMessage.getClose();
-            barElement.high = barMessage.getHigh();
-            barElement.low = barMessage.getLow();
-            barElement.volume = barMessage.getVolume();
-        } else {
-            if (Double.isNaN(barElement.open)) {
-                barElement.open = barMessage.getOpen();
+            long barTimestamp = barMessage.getTimeStampMs();
+            if (barTimestamp < startTime) {
+                return;
             }
-            barElement.close = (Double.isNaN(barMessage.getClose()) ? barElement.close : barMessage.getClose());
-            barElement.high = (Double.isNaN(barMessage.getHigh()) ? barElement.high : Math.max(barMessage.getHigh(), barElement.high));
-            barElement.low = (Double.isNaN(barMessage.getLow()) ? barElement.low : Math.min(barMessage.getLow(), barElement.low));
-            barElement.volume += (Double.isNaN(barMessage.getVolume()) ? 0.0f : barMessage.getVolume());
+
+            BarElement barElement = exchangeToBar.get(barMessage.getExchangeId(), null);
+            if (barElement == null) {
+                exchangeToBar.put(barMessage.getExchangeId(), barElement = new BarElement(barMessage.getExchangeId()));
+            }
+
+            flushPrev(barElement, barTimestamp);
+
+            if (barTimestamp > endTime) {
+                return;
+            }
+
+            if (barElement.timestamp == Long.MIN_VALUE) {
+                barElement.timestamp = getTransformationTimestamp(barTimestamp, periodicity);
+                barElement.closeBarTimestamp = getTransformationStopBarTimestamp(barTimestamp, periodicity);
+                barElement.open = barMessage.getOpen();
+                barElement.close = barMessage.getClose();
+                barElement.high = barMessage.getHigh();
+                barElement.low = barMessage.getLow();
+                barElement.volume = barMessage.getVolume();
+            } else {
+                if (Double.isNaN(barElement.open)) {
+                    barElement.open = barMessage.getOpen();
+                }
+                barElement.close = (Double.isNaN(barMessage.getClose()) ? barElement.close : barMessage.getClose());
+                barElement.high = (Double.isNaN(barMessage.getHigh()) ? barElement.high : Math.max(barMessage.getHigh(), barElement.high));
+                barElement.low = (Double.isNaN(barMessage.getLow()) ? barElement.low : Math.min(barMessage.getLow(), barElement.low));
+                barElement.volume += (Double.isNaN(barMessage.getVolume()) ? 0.0f : barMessage.getVolume());
+            }
         }
     }
 
@@ -140,11 +139,11 @@ public class BarConversionTransformation extends AbstractChartTransformation<Bar
 
     private void send(BarElement barElement) {
         bar.setTime(barElement.timestamp);
-        bar.setOpen(Decimal64Utils.toString(Decimal64Utils.fromDouble(barElement.open)));
-        bar.setClose(Decimal64Utils.toString(Decimal64Utils.fromDouble(barElement.close)));
-        bar.setLow(Decimal64Utils.toString(Decimal64Utils.fromDouble(barElement.low)));
-        bar.setHigh(Decimal64Utils.toString(Decimal64Utils.fromDouble(barElement.high)));
-        bar.setVolume(Decimal64Utils.toString(Decimal64Utils.fromDouble(barElement.volume)));
+        bar.setOpen(Decimal64Utils.toFloatString(Decimal64Utils.fromDouble(barElement.open)));
+        bar.setClose(Decimal64Utils.toFloatString(Decimal64Utils.fromDouble(barElement.close)));
+        bar.setLow(Decimal64Utils.toFloatString(Decimal64Utils.fromDouble(barElement.low)));
+        bar.setHigh(Decimal64Utils.toFloatString(Decimal64Utils.fromDouble(barElement.high)));
+        bar.setVolume(Decimal64Utils.toFloatString(Decimal64Utils.fromDouble(barElement.volume)));
         bar.setExchange(AlphanumericUtils.isValidAlphanumeric(barElement.exchange) ?
                 AlphanumericUtils.toString(barElement.exchange) : null);
 

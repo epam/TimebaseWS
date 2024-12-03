@@ -4,6 +4,7 @@
     [class.border-green]="data.borderGreen"
     [class.border-red]="data.borderRed"
     [style.border-color]="data.borderColor"
+    [class.data-invalid]="data.isBars && data.barDataInvalid"
     class="chart-tooltip">
   <div class="chart-tooltip__inner">
     <div *ngIf="!data.isBars">
@@ -12,9 +13,10 @@
     </div>
     <div class="linear-data-container" *ngIf="data.isLinear">
       <div
+          *ngFor="let line of data.linearData"
           [style.color]="line.isHighlight ? line.highlightColor : null"
           [class.highlight-line]="line.isHighlight"
-          *ngFor="let line of data.linearData">
+          >
         {{ line.name }}: {{ line.value }}
       </div>
     </div>
@@ -23,19 +25,22 @@
       <div>End: {{ data.to }}</div>
     </ng-container>
     <div *ngIf="data.isBars || data.isBBO" class="tooltip-content">
-      <ng-container *ngIf="data.isBars && data.point.BARS">
-        <div>Open: {{ data.point.BARS.open }}</div>
-        <div>Close: {{ data.point.BARS.close }}</div>
-        <div>Low: {{ data.point.BARS.low }}</div>
-        <div>High: {{ data.point.BARS.high }}</div>
+      <ng-container *ngIf="data.isBars && data.point[data.symbol + '_BARS']">
+        <div>Open: {{ data.point[data.symbol + '_BARS'].open }}</div>
+        <div>Close: {{ data.point[data.symbol + '_BARS'].close }}</div>
+        <div>Low: {{ data.point[data.symbol + '_BARS'].low }}</div>
+        <div>High: {{ data.point[data.symbol + '_BARS'].high }}</div>
+        <div *ngIf="data.point[data.symbol + '_BARS'].volume">
+          Volume: {{ data.point[data.symbol + '_BARS'].volume === 'NaN' ? '-' : data.point[data.symbol + '_BARS'].volume }}
+        </div>
       </ng-container>
       <ng-container *ngIf="data.isBBO">
-        <ng-container *ngIf="data.point.BBO">
-          <div>Ask price: {{ data.point.BBO.askPrice }}</div>
-          <div>Bid price: {{ data.point.BBO.bidPrice }}</div>
+        <ng-container *ngIf="data.point[data.symbol + '_BBO']">
+          <div>Ask price: {{ data.point[data.symbol + '_BBO'].askPrice }}</div>
+          <div>Bid price: {{ data.point[data.symbol + '_BBO'].bidPrice }}</div>
         </ng-container>
-        <ng-container *ngIf="data.point.TRADES">
-          <div>Trade value: {{ data.point.TRADES.value }}</div>
+        <ng-container *ngIf="data.point[data.symbol + '_TRADES']">
+          <div>Trade value: {{ data.point[data.symbol + '_TRADES'].value }}</div>
         </ng-container>
       </ng-container>
     </div>
@@ -54,12 +59,49 @@
     </ng-container>
   </ng-container>
 </ng-container>
-<div *ngIf="((showNoData$ | async) || (this.noPoints$ | async)) && !(httpError$ | async)" class="no-data">
-  {{ 'charts.noData' | translate }}
-</div>
+
 <div [class.hide]="(hideLine$ | async)" class="end-of-stream"></div>
-<div #chartRef (mouseleave)="onChartMouseLeave()" (mouseenter)="onChartMouseEnter()" [class.hide-chart]="httpError$ | async" class="chartWr"></div>
+<div #chartRef (mouseleave)="onChartMouseLeave()" (mouseenter)="onChartMouseEnter()" 
+  [class.hide-chart]="httpError$ | async" class="chartWr">
+  <ng-container *ngFor="let symbol of symbolList; let i = index;">
+    <div *ngIf="i" class="chart-bottom" 
+      [ngStyle]="{'top': i * symbolChartHeight + '%'}">
+    </div>
+    <div [class.hide]="httpError$ | async" class="chart-symbol" 
+      [ngStyle]="{'top': i * symbolChartHeight + 0.3 + '%', 
+        'left': (chartWidth - symbolNameWidth) / 2 + 'px',
+        'right': (chartWidth - symbolNameWidth) / 2 + 'px'}">
+      <span #symbolName class="chart-label-text">{{ symbol }}</span>
+    </div>
+    <div *ngIf="volumeHeaderTop" [class.hide]="httpError$ | async" class="chart-volume" 
+      [ngStyle]="{'top': i * symbolChartHeight + volumeHeaderTop + '%', 
+        'left': chartWidth / 2 - 30 + 'px',
+        'right': chartWidth / 2 - 30 + 'px'}">
+      <span class="chart-label-text">{{ 'charts.volumes' | translate }}</span>
+    </div>
+    <ng-container *ngIf="((showNoData$ | async) || !!(noPoints$ | async)?.length) && !(httpError$ | async)">
+      <div *ngIf="(noPoints$ | async)?.includes(symbol)"
+        [ngStyle]="{'bottom': (100 - (i + 1) * symbolChartHeight) < 5 ? '0%' : 100 - (i + 1) * symbolChartHeight + '%', 
+          'top': (i * symbolChartHeight + 0.4) < 5 ? '0%' : i * symbolChartHeight + 0.4 + '%'}" class="no-data">
+        {{ 'charts.noData' | translate }}
+      </div>
+    </ng-container>
+    <ng-container *ngIf="closedMarketRanges[symbol]?.length && marketHoursVisible">
+      <div *ngFor="let range of closedMarketRanges[symbol]" class="closed-market" [ngStyle]="{ 
+        'bottom': (100 - (i + 1) * symbolChartHeight) < 5 ? '0%' : 100 - (i + 1) * symbolChartHeight + '%', 
+        'top': (i * symbolChartHeight + 0.4) < 5 ? '0%' : i * symbolChartHeight + 0.4 + '%',
+        'left': (chartWidth * (range.from - filterRange.from)) / (filterRange.to - filterRange.from) + 'px',
+        'right': (chartWidth * (filterRange.to - range.to)) / (filterRange.to - filterRange.from) + 'px' }" >
+      </div>
+    </ng-container>
+  </ng-container>
+</div>
+<app-chart-scroll [ngStyle]="{'visibility': showChartScroll ? 'visible' : 'hidden'}"
+ [selectedRange]="selectedRange" [streamId]="streamId" [symbolName]="symbolName" 
+ [scrollRange]="scrollRange" [symbolList]="symbolList$ | async">
+</app-chart-scroll>
 <div [class.hide]="httpError$ | async" class="chart-date">{{ chartDate$ | async }}</div>
+
 <context-menu menuClass="sidebar-context-menu">
   <ng-template contextMenuItem>
     <a [routerLink]="viewDataRoute.route" [queryParams]="viewDataRoute.params">{{ 'charts.viewData' | translate }}</a>

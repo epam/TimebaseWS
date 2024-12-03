@@ -58,7 +58,7 @@ export class WSService extends RxStomp implements OnDestroy {
       let stompConnectedSubscription: Subscription;
       stompConnectedSubscription = this.connected$.subscribe(() => {
         this.appStore.dispatch(
-          new NotificationsActions.RemoveWebSocketNotifications(),
+          new NotificationsActions.RemoveWarnByAlias('WS disconnection'),
         );
         this._debug(`Will subscribe to ${destination}`);
         stompSubscription = this._stompClient.subscribe(
@@ -89,6 +89,7 @@ export class WSService extends RxStomp implements OnDestroy {
                 new NotificationsActions.AddWarn({
                   message: 'Websocket connection was closed unexpectedly',
                   dismissible: true,
+                  alias: 'WS disconnection'
                 }),
               );
               this.notificationTime = Date.now();

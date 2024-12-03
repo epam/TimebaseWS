@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,8 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model.input;
+package com.epam.deltix.tbwg.webapp.model.input;
 
+import com.epam.deltix.tbwg.webapp.model.ModelDataSourceType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.webcohesion.enunciate.metadata.DocumentationExample;
@@ -57,6 +58,13 @@ public class OrderBookRequest {
     @DocumentationExample(value = "ticks")
     @JsonProperty
     public String[]             streams;
+
+    /**
+     * Specified order book source level.
+     */
+    @DocumentationExample(value = "L2")
+    @JsonProperty
+    public ModelDataSourceType source = ModelDataSourceType.L2;
 
     /**
      * Specified message types of filter.

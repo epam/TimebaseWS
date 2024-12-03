@@ -1,0 +1,57 @@
+.scroll-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.chart-scroll-wrapper {
+  height: 10px;
+  width: 95%;
+  margin: 5px 8px;
+  overflow-y: hidden;
+  overflow-x: scroll;
+  cursor: pointer;
+
+  .chart-scroll-inner {
+    height: 10px;
+  }
+}
+
+.scroll-tooltip {
+  visibility: hidden;
+  color: rgba(39, 56, 77, 0.8);
+  background-color: rgb(201, 229, 251);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem 0.1rem; 
+  position: absolute;
+  bottom: -1.6rem;
+  z-index: 1000;
+  text-align: center;
+  border-radius: 0.2rem;
+}
+
+.btn-outline-light {
+  padding: 0.05rem 0.5rem 0.07rem;
+  width: 30px;
+  z-index: 20;
+
+  &:hover {
+    background-color: rgba(128, 128, 128, 0.3);
+  }
+}
+
+.arrowToStart {
+  transform: rotate(180deg);
+}
+
+@-moz-document url-prefix() {
+  .btn-outline-light {
+    display: none;
+  }
+  .chart-scroll-wrapper {
+    min-width: calc(100% - 1rem);
+  }
+}

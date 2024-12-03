@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,8 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.charting;
+package com.epam.deltix.tbwg.webapp.services.charting;
 
+import com.epam.deltix.tbwg.webapp.model.ModelDataSourceType;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -26,9 +27,10 @@ import lombok.Setter;
 public class ChartingSettings {
     private String stream;
     private String qql;
-    private String symbol;
+    private String[] symbols;
     private ChartType type;
     private TimeInterval interval;
     private long pointInterval;
     private int levels;
+    private ModelDataSourceType dataSource;
 }

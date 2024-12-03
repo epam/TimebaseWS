@@ -1,0 +1,233 @@
+form {
+  padding: 0rem 2rem;
+}
+
+::ng-deep .modal-xl {
+  min-width: 750px;
+  min-height: 580px;
+}
+
+label:not(:first-of-type) {
+  margin-top: 0.5rem;
+}
+
+.parent-row {
+  margin-top: 0.3rem;
+  &:last-of-type {
+    margin-top: 0.5rem;
+  }
+}
+
+label {
+  margin-top: 0.3rem;
+  margin-left: 1rem;
+}
+
+label.target-stream-label, label.target-topic-label {
+  margin-left: 3rem;
+}
+
+label.target-stream-label {
+  padding-top: 0.1rem;
+}
+
+:host ::ng-deep ng-multiselect-dropdown {
+  flex-grow: 1;
+  max-width: 10rem;
+  .dropdown-btn {
+    display: block;
+    max-height: 7.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dropdown-list {
+    max-width: 100%;
+    ul.item2 {
+      overflow-x: hidden;
+    }
+  }
+}
+
+.multiselect-wrapper {
+  flex-grow: 1;
+  margin: 0;
+  padding: 0;
+  border: 1ps solid transparent;
+  border-radius: 0.2rem;
+  &.invalid {
+    border: 1px solid rgb(188, 44, 87);
+  }
+}
+
+:host ::ng-deep deltix-ng-autocomplete {
+  padding: 0;
+  margin-left: 1rem;
+  .invalid {
+    outline: 1px solid rgb(188, 44, 87);
+    outline-offset: -1px;
+  }
+}
+
+.time-range-checkbox {
+  padding-top: 0.3rem;
+  input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+  }
+  span {
+    padding-left: 0.5rem;
+  }
+}
+
+input[type='radio'], input[type='checkbox'] {
+  cursor: pointer;
+}
+
+.topics-checkbox {
+  display: inline-block;
+  padding-left: 1rem;
+  input[type='radio'] {
+    margin-left: 1rem;
+    margin-top: 0.5rem;
+    width: 19px;
+    height: 19px;
+  }
+  input[type='radio'].topic-checkbox {
+    margin-top: 0.3rem;
+  }
+  label {
+    cursor: pointer;
+  }
+  label:first-of-type {
+    margin-top: 0.4rem;
+  }
+  label.target-topic-label {
+    margin-top: 0.3rem;
+  }
+}
+
+.cyclical-checkbox, .speed-checkbox {
+  @extend .time-range-checkbox;
+  padding-left: 1.5rem;
+  span {
+    padding-left: 2.5rem;
+  }
+}
+
+:host ::ng-deep app-btn-date-picker .datepicker-inputWr {
+  justify-content: flex-end;
+}
+
+.error-messages {
+  position: absolute;
+  bottom: -3rem;
+  right: 6rem;
+  left: 1rem;
+  margin: 2rem 2rem 0.3rem;
+  color: #ffffff;
+  background-color: rgba(141, 32, 65, 0.7);
+  border: 1px solid transparent;
+  border-radius: 0.1rem;
+  text-align: center;
+}
+
+.error-message {
+  display: inline-block;
+  margin: 0.1rem 0rem;
+  white-space: nowrap;
+}
+
+.error-message-not-empty {
+  margin: 0.1rem 0.8rem;
+}
+
+.playback-speed-input {
+  margin-left: 2rem;
+  padding: 0;
+  display: flex;
+  & > div {
+    padding: 0.2rem 0.3rem;
+    font-size: 14px;
+    &.disabled {
+      opacity: 0.5;
+    }
+  }
+  & > deltix-ng-autocomplete {
+    width: 5rem;
+    margin-left: 0;
+  }
+}
+
+footer {
+  margin: 0rem;
+  padding: 0rem 1.5rem 0.5rem;
+}
+
+h3 {
+  font-size: 0.9rem;
+  border-bottom: 1px solid white;
+  padding-bottom: 0.3rem;
+  margin-bottom: 1rem;
+  &:not(:first-of-type) {
+    margin-top: 1rem;
+  }
+}
+
+.input-with-label {
+  display: flex;
+  max-width: 41rem;
+  &:first-of-type {
+    margin-bottom: 0.8rem;
+  }
+
+  label {
+    min-width: 6rem;
+  }
+}
+
+.speed-input {
+  display: flex;
+  & > label {
+    padding-left: 0;
+    margin-top: 0.5rem;
+  }
+
+  & > .speed-checkbox {
+    padding-left: 0.6rem;
+  }
+}
+
+.time-range-inputs {
+  display: flex;
+}
+
+.form-check-input {
+  margin-left: 0.5rem;
+  margin-top: 0;
+}
+
+app-btn-date-picker {
+  margin-left: 2rem;
+  max-width: 14rem;
+}
+
+.time-range-separator {
+  padding: 0.2rem 0.2rem 0 0.7rem;
+}
+
+.col-6 {
+  max-width: 18rem;
+}
+
+.col-2 {
+  max-width: 7rem;
+  margin-bottom: 0.5rem;
+  &:last-of-type {
+    margin-top: -0.1rem;
+  }
+}
+
+.target-streams-label {
+  margin-top: 0.5rem;
+  margin-bottom: 0.2rem;
+}

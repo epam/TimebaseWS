@@ -27,6 +27,7 @@ import {
   maxBarSize,
 }                                                                         from '../../../../../../shared/models/bar-chart-period';
 import { PeriodsService }                                                 from '../../../../../../shared/services/periods.service';
+import { StreamsService } from 'src/app/shared/services/streams.service';
 
 interface PeriodUnit {
   aggregation: number;
@@ -129,6 +130,7 @@ export class BarsPeriodFilterComponent implements OnInit, ControlValueAccessor, 
     private periodsService: PeriodsService,
     private elementRef: ElementRef<HTMLElement>,
     private clickOutsideService: ClickOutsideService,
+    private streamsService: StreamsService
   ) {}
   
   ngOnInit(): void {
@@ -143,6 +145,9 @@ export class BarsPeriodFilterComponent implements OnInit, ControlValueAccessor, 
     ]).pipe(
       distinctUntilChanged(equal),
       map(([periods, minInterval, maxInterval]) => {
+        if (!this.streamsService.barPeriods) {
+          this.streamsService.barPeriods = periods;
+        }
         const filtered = periods.filter(
           (period) => period.aggregation >= minInterval && period.aggregation <= maxInterval,
         );

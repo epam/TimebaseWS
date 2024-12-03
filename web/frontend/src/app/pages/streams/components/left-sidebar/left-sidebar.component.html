@@ -2,7 +2,8 @@
   <div class="sidebar-sticky">
     <div class="sidebar__logo-container">
       <app-logo [menuSmall]="menuSmall"></app-logo>
-      <a (click)="toggleMenu()" class="menu-hide">
+      <a (click)="toggleMenu()" class="menu-hide" 
+        [tooltip]="(menuSmall ? 'contextMenu.show' : 'contextMenu.hide') | translate" container="body">
         <svg
             fill="none"
             height="12"
@@ -22,7 +23,7 @@
       <div dropdown container="body" class="create-btn-wrapper" >
         <button
             class="create-stream-toggle-btn"
-            (click)="closeOtherDropdowns()"
+            (click)="closeOtherDropdowns($event)"
             dropdownToggle
             *ngIf="isWriter$ | async"
             [adaptivePosition]="!menuSmall"
@@ -43,9 +44,10 @@
                 d="m453.332031 512h-394.664062c-32.363281 0-58.667969-26.304688-58.667969-58.667969v-394.664062c0-32.363281 26.304688-58.667969 58.667969-58.667969h394.664062c32.363281 0 58.667969 26.304688 58.667969 58.667969v394.664062c0 32.363281-26.304688 58.667969-58.667969 58.667969zm-394.664062-480c-14.699219 0-26.667969 11.96875-26.667969 26.667969v394.664062c0 14.699219 11.96875 26.667969 26.667969 26.667969h394.664062c14.699219 0 26.667969-11.96875 26.667969-26.667969v-394.664062c0-14.699219-11.96875-26.667969-26.667969-26.667969zm0 0" />
           </svg>
         </button>
-        <ul *dropdownMenu class="dropdown-menu common-dropdown">
+        <ul *dropdownMenu class="dropdown-menu common-dropdown create-stream-view-dropdown">
           <li class="dropdown-item" ><a (click)="createStream()" >{{ 'contextMenu.createStream' | translate }}</a></li>
           <li class="dropdown-item" ><a (click)="createView()" >{{ 'contextMenu.createView' | translate }}</a></li>
+          <li *ngIf="showTopics$ | async" class="dropdown-item" ><a (click)="createTopic()" >{{ 'contextMenu.createTopic' | translate }}</a></li>
         </ul>
       </div>
       <app-query-btn
@@ -56,28 +58,43 @@
           [tooltip]="'tooltips.query_mode' | translate"
           container="body"></app-query-btn>
       <button
-          (click)="onImportFromQMSG()"
+          (click)="onImportFromQSMSG()"
           *ngIf="isWriter$ | async"
           [adaptivePosition]="!menuSmall"
           [placement]="menuSmall ? 'right' : 'top'"
-          [tooltip]="'contextMenu.importFromQMSG' | translate"
+          [tooltip]="'contextMenu.importFromQSMSG' | translate"
           container="body">
-        <svg
-            enable-background="new 0 0 512 512"
-            fill="currentColor"
-            height="16"
-            version="1.1"
-            viewBox="0 0 512 512"
-            width="16"
-            xmlns="http://www.w3.org/2000/svg">
-          <g>
-            <g>
-              <path
-                  d="m153.7,171.5l81.9-88.1v265.3c0,11.3 9.1,20.4 20.4,20.4 11.3,0 20.4-9.1 20.4-20.4v-265.3l81.9,88.1c7.7,8.3 20.6,8.7 28.9,1.1 8.3-7.7 8.7-20.6 1.1-28.9l-117.3-126.2c-11.5-11.6-25.6-5.2-29.9,0l-117.3,126.2c-7.7,8.3-7.2,21.2 1.1,28.9 8.2,7.6 21.1,7.2 28.8-1.1z" />
-              <path
-                  d="M480.6,341.2c-11.3,0-20.4,9.1-20.4,20.4V460H51.8v-98.4c0-11.3-9.1-20.4-20.4-20.4S11,350.4,11,361.6v118.8    c0,11.3,9.1,20.4,20.4,20.4h449.2c11.3,0,20.4-9.1,20.4-20.4V361.6C501,350.4,491.9,341.2,480.6,341.2z" />
-            </g>
-          </g>
+          <svg fill="white" width="20" height="20" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+            <g id="Import"><g>
+            <path  d="M5.552,20.968a2.577,2.577,0,0,1-2.5-2.73c-.012-2.153,0-4.306,0-6.459a.5.5,0,0,1,1,0c0,2.2-.032,4.4,0,6.6.016,1.107.848,1.589,1.838,1.589H18.353A1.546,1.546,0,0,0,19.825,19a3.023,3.023,0,0,0,.1-1.061V11.779h0a.5.5,0,0,1,1,0c0,2.224.085,4.465,0,6.687a2.567,2.567,0,0,1-2.67,2.5Z"/>
+            <path  d="M11.63,15.818a.459.459,0,0,0,.312.138c.014,0,.027.005.042.006s.027,0,.041-.006a.457.457,0,0,0,.312-.138l3.669-3.669a.5.5,0,0,0-.707-.707l-2.815,2.815V3.515a.5.5,0,0,0-1,0V14.257L8.668,11.442a.5.5,0,0,0-.707.707Z"/>
+            </g></g>
+          </svg>
+      </button>
+      <button
+        (click)="onImportFromSCV()"
+        *ngIf="isWriter$ | async"
+        [adaptivePosition]="!menuSmall"
+        [placement]="menuSmall ? 'right' : 'top'"
+        [tooltip]="'contextMenu.importFromTextFile' | translate"
+        container="body">
+        <svg fill="white" height="16" width="16" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+          viewBox="0 0 548.291 548.291"
+          xml:space="preserve">
+        <g>
+          <path d="M486.201,196.124h-13.166V132.59c0-0.396-0.062-0.795-0.115-1.196c-0.021-2.523-0.825-5-2.552-6.963L364.657,3.677
+            c-0.033-0.031-0.064-0.042-0.085-0.075c-0.63-0.704-1.364-1.29-2.143-1.796c-0.229-0.154-0.461-0.283-0.702-0.418
+            c-0.672-0.366-1.387-0.671-2.121-0.892c-0.2-0.055-0.379-0.134-0.577-0.188C358.23,0.118,357.401,0,356.562,0H96.757
+            C84.894,0,75.256,9.649,75.256,21.502v174.616H62.09c-16.968,0-30.729,13.753-30.729,30.73v159.812
+            c0,16.961,13.761,30.731,30.729,30.731h13.166V526.79c0,11.854,9.638,21.501,21.501,21.501h354.776
+            c11.853,0,21.501-9.647,21.501-21.501V417.392h13.166c16.966,0,30.729-13.764,30.729-30.731V226.854
+            C516.93,209.872,503.167,196.124,486.201,196.124z M96.757,21.502h249.054v110.006c0,5.943,4.817,10.751,10.751,10.751h94.972
+            v53.864H96.757V21.502z M202.814,225.042h41.68l14.063,29.3c4.756,9.756,8.336,17.622,12.147,26.676h0.48
+            c3.798-10.242,6.9-17.392,10.95-26.676l13.587-29.3h41.449l-45.261,78.363l47.638,82.185h-41.927l-14.525-29.06
+            c-5.956-11.197-9.771-19.528-14.299-28.825h-0.478c-3.334,9.297-7.381,17.628-12.381,28.825l-13.336,29.06h-41.455l46.455-81.224
+            L202.814,225.042z M66.08,255.532v-30.489h123.382v30.489h-43.828v130.049h-36.434V255.532H66.08z M451.534,520.962H96.757v-103.57
+            h354.776V520.962z M471.764,255.532h-43.831v130.049h-36.442V255.532h-43.119v-30.489h123.393V255.532z"/>
+        </g>
         </svg>
       </button>
       <a
@@ -124,11 +141,32 @@
               stroke="currentColor" />
         </svg>
       </a>
+      <a
+        (click)="onCloseContextMenu()"
+        class="generate-link"
+        [queryParams]="{ newTab: '1' }"
+        [routerLink]="['generate-qql-ddl']"
+        [tooltip]="'contextMenu.generateDDL' | translate"
+        container="body"
+        >G
+      </a>
+      <a
+        (click)="onCloseContextMenu()"
+        class="generate-link"
+        href="https://kb.timebase.info/docs/development/tools/Web%20Admin/admin_guide"
+        target="_blank"
+        [tooltip]="'contextMenu.knowledgeBase' | translate"
+        container="body"
+        >?
+      </a>
     </div>
-    <app-streams-list></app-streams-list>
+    <app-streams-list (resetSearch)="resetSearch()"></app-streams-list>
   </div>
   <div class="ver-container">
     <div class="logo-ver">{{ 'titles.versionPrefix' | translate }}{{ version$ | async }}</div>
     <div class="logo-ver-hidden">{{ 'titles.versionHidden' | translate }}</div>
+  </div>
+  <div *ngFor="let id of activePlaybackIds" class="active-playbacks">
+    <app-playback [playbackId]="id" [pinned]="true"></app-playback>
   </div>
 </nav>

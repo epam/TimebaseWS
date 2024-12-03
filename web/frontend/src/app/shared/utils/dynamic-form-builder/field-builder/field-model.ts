@@ -27,6 +27,7 @@ export class FieldModel {
   required?: boolean;
   default?: any;
   password?: boolean;
+  nanotimeSupport?: boolean;
   readonly?: boolean;
   upload_file?: boolean;
   upload_file_info?: string;

@@ -30,7 +30,7 @@ export class SetUpParametersComponent implements OnInit {
 
     this.isDefaultSettingsButtonDisabled();
 
-    this.importFromTextFileService.settingsUpdated
+    this.importFromTextFileService.settingsUpdated$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.isDefaultSettingsButtonDisabled());
 
@@ -76,7 +76,7 @@ export class SetUpParametersComponent implements OnInit {
     const defaultSettings = this.importFromTextFileService.defaultSettings;
 
     this.typeToKeywordMappingChangedProp = editedSettings.typeToKeywordMapping && 
-      this.importFromTextFileService.typeToKeyWordMappingsChanged(
+      this.importFromTextFileService.isTypeToKeyWordMappingsChanged(
         editedSettings.typeToKeywordMapping, defaultSettings.typeToKeywordMapping);
 
     const value = (!this.importFromTextFileService.defaultSettingsSet && 
@@ -96,7 +96,7 @@ export class SetUpParametersComponent implements OnInit {
         return this.interpretAsNullSettingAsString(changedValue) !== this.interpretAsNullSettingAsString(defaultSettings[key]);
       }
       if (key === 'typeToKeywordMapping') {
-        return this.importFromTextFileService.typeToKeyWordMappingsChanged(
+        return this.importFromTextFileService.isTypeToKeyWordMappingsChanged(
           editedSettings[key], defaultSettings[key]);
       }
       return changedValue && changedValue !== defaultSettings[key] && key !== 'defaultMessageType';

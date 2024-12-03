@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,12 +14,11 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.timebase;
 
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
-import com.epam.deltix.timebase.messages.IdentityKey;
+import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickDB;
 import com.epam.deltix.qsrv.hf.pub.RawMessage;
 import com.epam.deltix.qsrv.hf.tickdb.pub.SelectionOptions;
 import com.epam.deltix.qsrv.hf.tickdb.pub.query.InstrumentMessageSource;
@@ -30,7 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class StreamConsumer extends Thread implements Closeable {
+public class StreamConsumer extends MonitorConsumer {
 
     private static final Log LOGGER = LogFactory.getLog(StreamConsumer.class);
 
@@ -40,18 +39,19 @@ public class StreamConsumer extends Thread implements Closeable {
     private final String[] ids;
     private final String[] types;
     private final Consumer<RawMessage> messageConsumer;
-    private final TimebaseService timebase;
+    private final DXTickDB db;
 
     private volatile InstrumentMessageSource cursor;
     private volatile boolean active = false;
+    private volatile boolean closed = false;
 
     public StreamConsumer(TimebaseService timebase, long startTime, String stream, String qql, List<String> symbols,
                           List<String> types, Consumer<RawMessage> messageConsumer) {
-        this.timebase = timebase;
+        this.db = timebase.getConnection();
         this.startTime = startTime;
         this.stream = stream;
         this.qql = qql;
-        this.ids = symbols != null ? symbols.toArray(new String[symbols.size()]) : null;
+        this.ids = TBWGUtils.matchSymbols(timebase.getStream(stream), symbols);
         this.types = types == null ? null: types.toArray(new String[types.size()]);
         this.messageConsumer = messageConsumer;
     }
@@ -61,6 +61,9 @@ public class StreamConsumer extends Thread implements Closeable {
         active = true;
         try (final InstrumentMessageSource cursor = openCursor()) {
             this.cursor = cursor;
+            if (closed) {
+                return;
+            }
             while (cursor.next()) {
                 if (!active) {
                     break;
@@ -84,9 +87,9 @@ public class StreamConsumer extends Thread implements Closeable {
 
         InstrumentMessageSource messageSource;
         if (stream != null) {
-            messageSource = timebase.getConnection().select(startTime, options, types, ids, timebase.getStream(stream));
+            messageSource = db.select(startTime, options, types, ids, db.getStream(stream));
         } else if (qql != null) {
-            messageSource = timebase.getConnection().executeQuery(qql, options, null, ids, startTime);
+            messageSource = db.executeQuery(qql, options, null, ids, startTime);
         } else {
             throw new RuntimeException("Unknown message source");
         }
@@ -118,6 +121,7 @@ public class StreamConsumer extends Thread implements Closeable {
 
     @Override
     public void close() {
+        closed = true;
         if (!active) {
             return;
         }

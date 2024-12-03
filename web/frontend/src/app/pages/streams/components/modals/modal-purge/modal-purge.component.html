@@ -10,15 +10,19 @@
         >{{ 'buttons.purge' | translate }} {{ 'titles.toTime' | translate }}:</span
         >
         <app-time-bar-picker
-            [(selectedDate)]="selectedDate"
-            [endDate]="endDate"
-            [startDate]="startDate"
-            method="purge"></app-time-bar-picker>
+          [selectedDate]="selectedDate"
+          (selectedDateChange)="selectedDateChange($event)"
+          [endDate]="endDate"
+          [startDate]="startDate"
+          [dateInvalid]="submitDisabled$ | async"
+          method="purge"></app-time-bar-picker>
       </div>
     </ng-template>
   </ng-container>
   <ng-container footer>
+    <div class="error-message">{{ validationErrorMessage }}</div>
     <button
+        [disabled]="submitDisabled$ | async"
         (click)="onPurgeSubmit()"
         [tooltip]="'buttons.purge' | translate"
         class="btn btn-info"

@@ -1,7 +1,8 @@
 <form [formGroup]="form" class="form-horizontal props-form">
   <div [appFieldBuilderGroup]="fields">
     <div *ngFor="let field of fields; trackBy: trackByName">
-      <app-field-builder [alignLabels]="alignLabels" (editJson)="onEditJson($event)" [field]="field" [form]="form"></app-field-builder>
+      <app-field-builder [alignLabels]="alignLabels" [nullableFields]="nullableFields" 
+        (editJson)="onEditJson($event)" [field]="field" [form]="form"></app-field-builder>
     </div>
   </div>
 </form>

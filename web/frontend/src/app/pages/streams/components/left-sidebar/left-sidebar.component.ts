@@ -1,19 +1,24 @@
-import { Component, OnInit }          from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, OnInit, ViewChild }          from '@angular/core';
 import { select, Store }              from '@ngrx/store';
-import { StorageMap }                 from '@ngx-pwa/local-storage';
 import { BsModalService }             from 'ngx-bootstrap/modal';
 import { ContextMenuService }         from '@perfectmemory/ngx-contextmenu';
-import { Observable }                 from 'rxjs';
-import { map, take }                  from 'rxjs/operators';
+import { Observable, Subject, fromEvent }                 from 'rxjs';
+import { distinctUntilChanged, map, take, takeUntil }                  from 'rxjs/operators';
+
 import { AppState }                   from '../../../../core/store';
 import { getAppInfo }                 from '../../../../core/store/app/app.selectors';
+import * as StreamsActions            from '../../store/streams-list/streams.actions';
 import { GlobalResizeService }        from '../../../../shared/services/global-resize.service';
+import { PlaybackService } from '../../services/playback.service';
 import { LeftSidebarStorageService }  from '../../../../shared/services/left-sidebar-storage.service';
 import { PermissionsService }         from '../../../../shared/services/permissions.service';
 import { CreateStreamModalComponent } from '../modals/create-stream-modal/create-stream-modal.component';
 import { CreateViewModalComponent }   from '../modals/create-view/create-view-modal.component';
 import { ModalImportQSMSGFileComponent }   from '../modals/modal-import-QSMSG-file/modal-import-QSMSG-file.component';
-import * as StreamsActions            from '../../store/streams-list/streams.actions';
+import { ModalImportCSVFileComponent } from '../modals/modal-import-csv-file/modal-import-csv-file.component';
+import { StreamsListComponent } from '../streams-list/streams-list.component';
+import { eventKeyMatchesTarget } from 'src/app/shared/utils/eventKeyMatchesTarget';
+import { GlobalFiltersService } from 'src/app/shared/services/global-filters.service';
 
 @Component({
   selector: 'app-left-sidebar',
@@ -25,15 +30,45 @@ export class LeftSidebarComponent implements OnInit {
   menuSmall = false;
   isWriter$: Observable<boolean>;
   version$: Observable<string>;
+  activePlaybackIds: number[];
+  showTopics$: Observable<boolean>;
+  private searchValue = '';
+  @ViewChild(StreamsListComponent) streamsListComponent: StreamsListComponent;
+
+  private destroy$ = new Subject<any>();
+
+  @HostListener('keydown', ['$event']) handleKeyDown(event: KeyboardEvent) {
+    if (!eventKeyMatchesTarget(event.key, ['ArrowUp', 'ArrowDown'])) {
+      const eventInFilter = document.activeElement.closest('app-streams-list-search');
+      if (eventInFilter) {
+        this.searchValue = '';
+        this.streamsListComponent.searchMenuItem('');
+      } else {
+        const noAlternateKeys = !event.altKey && !event.ctrlKey;
+        const symbols = ['.', '-', '_', '#', ' ', '!', '/'];
+        if ((event.code.includes('Key') || event.code.includes('Digit') || symbols.includes(event.key)) && this.searchValue.length < 14 && noAlternateKeys) {
+          this.searchValue += event.key.toLowerCase();
+        } else if (eventKeyMatchesTarget(event.key, ['Backspace'])) {
+          this.searchValue = this.searchValue.slice(0, this.searchValue.length - 1);
+        };
+        this.streamsListComponent.searchMenuItem(this.searchValue);
+      }
+    } else {
+      event.preventDefault();
+      return null;
+    }
+  }
   
   constructor(
     private globalResizeService: GlobalResizeService,
-    private storage: StorageMap,
     private permissionsService: PermissionsService,
     private bsModalService: BsModalService,
     private contextMenuService: ContextMenuService,
     private appStore: Store<AppState>,
     private leftSidebarStorageService: LeftSidebarStorageService,
+    private playbackService: PlaybackService,
+    private globalFiltersService: GlobalFiltersService,
+    private cdRef: ChangeDetectorRef
   ) { }
   
   ngOnInit(): void {
@@ -45,11 +80,44 @@ export class LeftSidebarComponent implements OnInit {
       this.menuSmall = menuSmall;
       this.updateMenuSmall(this.menuSmall);
     });
+
+    this.activePlaybackIds = Array.from(this.playbackService.activeSessions);
+    this.playbackService.activeSessionsSubject
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(activeSessiodIds => {
+        this.activePlaybackIds = activeSessiodIds;
+        this.cdRef.markForCheck();
+      })
+
+    fromEvent(document, 'focusin')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((event: FocusEvent) => {
+        const focusOutside = !(event.target as HTMLElement).closest('app-left-sidebar');
+        const focusInFilter = (event.target as HTMLElement).closest('app-streams-list-search');
+        if (focusOutside || focusInFilter) {
+          this.searchValue = '';
+          this.streamsListComponent.searchMenuItem('');
+        }
+      });
+
+    this.showTopics$ = this.globalFiltersService.getFilters().pipe(
+      map((f) => f?.showTopics),
+      distinctUntilChanged(),
+    );
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next(true);
+    this.destroy$.complete();
   }
   
   toggleMenu() {
     this.menuSmall = !this.menuSmall;
     this.updateMenuSmall(this.menuSmall);
+  }
+
+  public resetSearch() {
+    this.searchValue = '';
   }
   
   private updateMenuSmall(menuSmall: boolean) {
@@ -63,11 +131,18 @@ export class LeftSidebarComponent implements OnInit {
     }
   }
   
-  
   createStream() {
     this.bsModalService.show(CreateStreamModalComponent, {
       class: 'modal-small',
       ignoreBackdropClick: true,
+    });
+  }
+
+  createTopic() {
+    this.bsModalService.show(CreateStreamModalComponent, {
+      class: 'modal-small',
+      ignoreBackdropClick: true,
+      initialState: { topic: true },
     });
   }
   
@@ -82,23 +157,28 @@ export class LeftSidebarComponent implements OnInit {
     this.contextMenuService.closeAllContextMenus({eventType: 'cancel'});
   }
 
-  closeOtherDropdowns() {
-    if (this.leftSidebarStorageService.dropdownsOpened.includes('create-stream-dropdown')) {
-      this.leftSidebarStorageService.removeOpenedDropdown('create-stream-dropdown');
-    } else {
-      this.leftSidebarStorageService.addOpenedDropdown('create-stream-dropdown');
+  closeOtherDropdowns(event) {
+    if (document.querySelector('.open:not(.visible)') && event.pointerType 
+      && document.querySelector('app-streams-list-search .dropdown-menu.show')) {
+      (document.querySelector('.search-options-toggle-btn') as HTMLElement).click();
+    }
+    if (document.querySelector('context-menu-content') && event.pointerType) {
       this.onCloseContextMenu();
-      if (this.leftSidebarStorageService.dropdownsOpened.includes('search-options-dropdown')) {
-        (document.querySelector('.search-options-toggle-btn') as HTMLElement).click();
-        this.leftSidebarStorageService.removeOpenedDropdown('search-options-dropdown');
-      }
     }
   }
   
-  onImportFromQMSG() {
+  onImportFromQSMSG() {
     this.bsModalService.show(ModalImportQSMSGFileComponent, {
-      class: 'scroll-content-modal',
+      class: 'modal-xl',
       ignoreBackdropClick: true,
+    });
+    this.onCloseContextMenu();
+  }
+
+  onImportFromSCV() {
+    this.bsModalService.show(ModalImportCSVFileComponent, {
+      ignoreBackdropClick: true,
+      class: 'modal-xl',
     });
     this.onCloseContextMenu();
   }

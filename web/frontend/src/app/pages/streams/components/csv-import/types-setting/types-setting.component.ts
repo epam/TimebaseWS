@@ -33,7 +33,7 @@ export class TypesSettingComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.getErrorMessages();
-    this.importFromTextFileService.settingsUpdated
+    this.importFromTextFileService.settingsUpdated$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.getErrorMessages());
 
@@ -67,7 +67,7 @@ export class TypesSettingComponent implements OnInit, OnDestroy {
       ...mappingFormControls,
     });
 
-    this.importFromTextFileService.settingsUpdated
+    this.importFromTextFileService.settingsUpdated$
       .pipe(
         filter(updateFormData => updateFormData),
         takeUntil(this.destroy$))

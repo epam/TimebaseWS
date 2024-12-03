@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,13 +14,15 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.timebase;
+package com.epam.deltix.tbwg.webapp.services.timebase;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import com.epam.deltix.qsrv.hf.pub.RawMessage;
+import com.epam.deltix.qsrv.util.json.DataEncoding;
 import com.epam.deltix.qsrv.util.json.JSONRawMessagePrinter;
 import com.epam.deltix.qsrv.util.json.JSONRawMessagePrinterFactory;
+import com.epam.deltix.qsrv.util.json.PrintType;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
 import com.epam.deltix.tbwg.webapp.utils.cache.CachedMessageBufferImpl;
 import org.springframework.stereotype.Service;
@@ -67,6 +69,23 @@ public class MonitorServiceImpl implements MonitorService {
     }
 
     @Override
+    public synchronized void subscribeTopic(String sessionId, String subscriptionId, String key,
+                                            Consumer<String> consumer)
+    {
+        BufferedConsumer bufferedConsumer = new BufferedConsumer();
+        TopicConsumer topicConsumer = new TopicConsumer(timebase, key, bufferedConsumer);
+        ScheduledFuture<?> scheduledFuture = scheduledExecutorService.scheduleAtFixedRate(() -> {
+                    String messages = bufferedConsumer.messageBuffer.flush();
+                    if (messages != null && !messages.isEmpty()) {
+                        consumer.accept(messages);
+                    }
+                }, FLUSH_PERIOD_MS, FLUSH_PERIOD_MS, TimeUnit.MILLISECONDS
+        );
+        executorService.submit(topicConsumer);
+        table.put(sessionId, subscriptionId, new Task(scheduledFuture, topicConsumer));
+    }
+
+    @Override
     public synchronized void unsubscribe(String sessionId, String subscriptionId) {
         Task task = table.remove(sessionId, subscriptionId);
         if (task != null)
@@ -83,7 +102,9 @@ public class MonitorServiceImpl implements MonitorService {
 
     private static final class BufferedConsumer implements Consumer<RawMessage> {
 
-        private final JSONRawMessagePrinter printer = JSONRawMessagePrinterFactory.create("$type");
+        private final JSONRawMessagePrinter printer =
+                new JSONRawMessagePrinter(false, true,DataEncoding.STANDARD, true, true,PrintType.FULL, "$type");
+
         private final CachedMessageBufferImpl messageBuffer = new CachedMessageBufferImpl(printer);
 
         @Override
@@ -94,9 +115,9 @@ public class MonitorServiceImpl implements MonitorService {
 
     private static final class Task {
         private final ScheduledFuture<?> scheduledFuture;
-        private final StreamConsumer streamConsumer;
+        private final MonitorConsumer streamConsumer;
 
-        private Task(ScheduledFuture<?> scheduledFuture, StreamConsumer streamConsumer) {
+        private Task(ScheduledFuture<?> scheduledFuture, MonitorConsumer streamConsumer) {
             this.scheduledFuture = scheduledFuture;
             this.streamConsumer = streamConsumer;
         }

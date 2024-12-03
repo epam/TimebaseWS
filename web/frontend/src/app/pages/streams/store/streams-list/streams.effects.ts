@@ -239,34 +239,59 @@ export class StreamsEffects {
       ).pipe(
         switchMap(() => this.translate.get('notification_messages')),
         mergeMap((messages) => {
-          return [
-            new NotificationsActions.AddNotification({
-              message: action.payload.spaceName
-                ? messages.spaceDeletedSucceeded
-                : messages.streamDeletedSucceeded,
-              dismissible: true,
-              closeInterval: 2000,
-              type: 'success',
-            }),
-            ...(action.payload.spaceName
-              ? [
-                  new StreamsActions.SetStreamStatesSubscription({
-                    dbState: {
-                      deleted: [
-                        {
-                          streamId: action.payload.streamKey,
-                          space: action.payload.spaceName,
-                        },
-                      ],
-                    },
-                  }),
-                ]
-              : []),
-          ];
+          if (!action.payload.noNotification) {
+            return [
+              new NotificationsActions.AddNotification({
+                message: action.payload.spaceName
+                  ? messages.spaceDeletedSucceeded
+                  : messages.streamDeletedSucceeded,
+                dismissible: true,
+                closeInterval: 2000,
+                type: 'success',
+              }),
+              ...(action.payload.spaceName
+                ? [
+                    new StreamsActions.SetStreamStatesSubscription({
+                      dbState: {
+                        deleted: [
+                          {
+                            streamId: action.payload.streamKey,
+                            space: action.payload.spaceName,
+                          },
+                        ],
+                      },
+                    }),
+                  ]
+                : []),
+            ];
+          } else {
+            return [];
+          }
         }),
       );
     }),
   ));
+  deleteSymbols = createEffect(() => this.actions$.pipe(
+    ofType<StreamsActions.AskToDeleteSymbols>(StreamsActionTypes.ASK_TO_DELETE_SYMBOLS),
+    switchMap((action) => {
+      const url = '/deleteSymbols';
+      return this.httpClient.post(`${encodeURIComponent(action.payload.streamKey)}${url}`, action.payload.symbols)
+      .pipe(
+        switchMap(() => this.translate.get('notification_messages')),
+        mergeMap((messages) => {
+          return [
+            new NotificationsActions.AddNotification({
+              message: messages.symbolDeletedSucceeded,
+              dismissible: true,
+              closeInterval: 2000,
+              type: 'success',
+            }),
+          ];
+        }),
+      );
+    })
+  ))
+
    askToRenameStream = createEffect(() => this.actions$.pipe(
     ofType<StreamsActions.AskToRenameStream>(StreamsActionTypes.ASK_TO_RENAME_STREAM),
     switchMap((action) => {

@@ -80,7 +80,14 @@
     color: $white;
     height: 27px;
     display: inline-block;
-    margin-right: 3 * $ss;
+  }
+
+  .create-stream-toggle-btn, a {
+    margin-right: 2 * $ss;
+  }
+
+  app-query-btn, button {
+    margin-right: 1 * $ss;
   }
 }
 
@@ -116,4 +123,14 @@
 
 .common-dropdown {
   min-width: 0;
+}
+
+.active-playbacks {
+  margin: 0.01rem auto;
+}
+
+.generate-link {
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 200;
 }

@@ -21,6 +21,12 @@ dependencies {
     // Timebase Client
     api("org.finos.timebase-ce:timebase-client") {
         exclude group: 'org.finos.timebase-ce', module: 'timebase-s3'
+        exclude group: 'org.finos.timebase-ce', module: 'timebase-snmpagent'
+    }
+
+    implementation ('org.finos.timebase-ce:timebase-qql') {
+        exclude group: 'org.finos.timebase-ce', module: 'timebase-computations-api'
+        exclude group: 'org.finos.timebase-ce', module: 'timebase-computations-std'
     }
 
     // Timebase Commons
@@ -28,6 +34,7 @@ dependencies {
     implementation "com.epam.deltix:timebase-util"
     implementation "com.epam.deltix:timebase-messages"
     implementation "com.epam.deltix:timebase-collections"
+
 
     implementation 'com.epam.deltix:orderbook-core'
 
@@ -91,6 +98,7 @@ dependencies {
     compileOnly 'com.webcohesion.enunciate:enunciate-core-annotations'
 
     testImplementation 'com.google.code.findbugs:annotations'
+
 
     testImplementation "junit:junit",
             'org.springframework.boot:spring-boot-starter-test',

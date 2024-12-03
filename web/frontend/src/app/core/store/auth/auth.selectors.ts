@@ -19,6 +19,14 @@ export const getAccessTokenType = createSelector(getAuthState, (state: fromAuth.
     : state.SSOTokenResponse.tokenType,
 );
 
+export const getAccessTokenValidityTime = createSelector(getAuthState, (state: fromAuth.State) =>
+  !(state.providerSettings && (state.customTokenResponse || state.SSOTokenResponse))
+    ? null
+    : state.providerSettings.custom_provider
+    ? state.customTokenResponse.expires_in
+    : state.SSOTokenResponse.expiresIn,
+);
+
 export const getTokenRefreshTime = createSelector(
   getAuthState,
   (state: fromAuth.State) => state.tokenRefreshTime,
@@ -28,8 +36,9 @@ export const getAccessRequestData = createSelector(
   getAccessToken,
   getAccessTokenType,
   getTokenRefreshTime,
-  (token: string, tokenType: string, tokenRefreshTime: number) => {
-    return {token, tokenType, tokenRefreshTime};
+  getAccessTokenValidityTime,
+  (token: string, tokenType: string, tokenRefreshTime: number, tokenValidityTime: number) => {
+    return {token, tokenType, tokenRefreshTime, tokenValidityTime};
   },
 );
 

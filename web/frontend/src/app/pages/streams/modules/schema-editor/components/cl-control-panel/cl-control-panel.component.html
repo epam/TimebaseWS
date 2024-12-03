@@ -1,39 +1,48 @@
 <div class="cl-control-panel">
   <button
+      *ngIf="extendable"
       (click)="onAskToAdd()"
-      [disabled]="(iSchemaItemsEdited | async).newClassAdding"
+      [disabled]="(iSchemaItemsEdited | async).newClassAdding || readonly"
       class="btn btn-sm btn-outline-success"
       type="button">
     {{ 'buttons.newClass' | translate }}
   </button>
 
-  <div class="btn-group">
+  <div class="btn-group" *ngIf="extendable">
     <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle" 
-      [disabled]="!availableClasses.length" (click)="toggleBuiltInClassList()">
+      [disabled]="!availableClasses.length || readonly" (click)="toggleBuiltInClassList()">
       {{ 'buttons.builtIn' | translate }}
     </button>
     <div #builtInClassDropdown class="dropdown-items">
       <ul>
         <li *ngFor="let builtInClass of builtInClassesList">
           <button class="dropdown-item" (click)="openConfirmModal(builtInClass)"
-            [disabled]="!availableClasses.includes(builtInClass)"
+            [disabled]="!availableClasses.includes(builtInClass) || readonly"
             [class.disabled]="!availableClasses.includes(builtInClass)">{{ builtInClass }}</button>
         </li>
       </ul>
     </div>
   </div>
 
-  <button
+  <button *ngIf="extendable"
       (click)="onAskToAdd(true)"
-      [disabled]="(iSchemaItemsEdited | async).newEnumAdding"
+      [disabled]="(iSchemaItemsEdited | async).newEnumAdding || readonly"
       class="btn btn-sm btn-outline-warning"
       type="button">
     {{ 'buttons.newEnum' | translate }}
   </button>
   <div class="spacer"></div>
   <button
+    (click)="onAskToRemoveItems()"
+    [title]="'titles.removeItems' | translate"
+    [disabled]="!classEnumList?.length || readonly"
+    class="btn btn-sm btn-outline-danger d-flex justify-content-center align-items-center delete-selected-btn"
+    type="button">
+    {{ 'buttons.remove' | translate }}
+  </button>
+  <button
       (click)="onAskDeleteSelected()"
-      [disabled]="!(selectedItem$ | async)"
+      [disabled]="!(selectedItem$ | async) || readonly"
       [title]="'titles.removeSelectedItem' | translate"
       class="btn btn-sm btn-outline-danger d-flex justify-content-center align-items-center delete-selected-btn"
       type="button">
@@ -43,7 +52,21 @@
 
 <ng-template #modalTemplate>
   <div class="modal-body">
-    <span>{{ requestMessage }}</span>
+    <span *ngIf="removingType === 'multi'">
+      {{ 'text.removeTypes' | translate }}
+      <span *ngIf="deletingTypes.classes.length">classes [<span class="isClass">{{ deletingTypes.classes.join(', ') }}</span>]</span>
+      <span *ngIf="deletingTypes.classes.length && deletingTypes.enums.length">, </span>
+      <span *ngIf="deletingTypes.enums.length">enums [<span class="isEnum">{{ deletingTypes.enums.join(', ') }}</span>]</span>?
+    </span>
+    <span *ngIf="removingType !== 'multi'">{{ requestMessage }}</span>
+    <ng-container *ngIf="childTypes?.length">
+      <h5 class="associated-items-header">Child types</h5>
+      <ul>
+        <li *ngFor="let childType of childTypes">
+          <span class="field-title">{{ childType }}</span>
+        </li>
+      </ul>
+    </ng-container>
     <ng-container *ngIf="associatedItems.length">
       <ul *ngIf="removingType === 'class'">
         <li *ngFor="let associatedItem of associatedItems">
@@ -57,6 +80,15 @@
           of class <span class="class-title">{{ associatedItem[0] }}</span>
         </li>
       </ul>
+      <ng-container *ngIf="removingType === 'multi'">
+        <h5 class="associated-items-header">Associated schema items</h5>
+        <ul>
+          <li *ngFor="let associatedItem of associatedItems">
+            class <span class="class-title">{{ associatedItem[0] }}</span> field 
+            <span class="field-title">{{ associatedItem[1] }}</span>
+          </li>
+        </ul>
+      </ng-container>
     </ng-container>
   </div>
   <div class="modal-footer d-flex justify-content-end">
@@ -164,6 +196,45 @@
     </button>
     <button
         (click)="newItemModalRef.hide()"
+        aria-label="Close"
+        class="btn btn-outline-light pull-right"
+        type="button">
+      <span aria-hidden="true">{{ 'buttons.cancel' | translate }}</span>
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #modalRemoveItemsTemplate>
+  <div class="modal-header">
+    <h4 class="modal-title pull-left">
+      {{ 'text.removeItems' | translate }}
+    </h4>
+  </div>
+  <div class="modal-body">
+    <ul class="class-enum-field-list">
+      <li *ngFor="let classEnum of classEnumList">
+        <label class="container-ch">
+          <input type="checkbox" (change)="onRemoveItemsModalCheckboxChange($event, classEnum.id, classEnum.isEnum)">
+          <span class="checkmark"></span>
+          <span *ngFor="let count of classEnum.hierarchy.slice(1)" class="spacer"></span>
+          <span [ngClass]="{'item-name': true, 'isEnum': classEnum.isEnum, 'isClass': !classEnum.isEnum }">
+            {{ classEnum.name }}
+          </span>
+        </label>
+      </li>
+    </ul>
+  </div>
+  <div class="modal-footer d-flex justify-content-end">
+    <button
+        (click)="openRemovingConfirmationModal()"
+        aria-label="Close"
+        class="btn btn-danger pull-right"
+        [disabled]="!enumsSelectedToBeRemoved.size && !classesSelectedToBeRemoved.size"
+        type="button">
+      <span aria-hidden="true">{{ 'buttons.removeSelected' | translate }}</span>
+    </button>
+    <button
+        (click)="hideRemoveItemsModal()"
         aria-label="Close"
         class="btn btn-outline-light pull-right"
         type="button">

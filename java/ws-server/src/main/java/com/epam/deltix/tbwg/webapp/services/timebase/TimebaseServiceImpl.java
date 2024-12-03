@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.timebase;
 
 import com.epam.deltix.data.stream.DXChannel;
@@ -25,19 +24,31 @@ import com.epam.deltix.qsrv.hf.spi.conn.DisconnectEventListener;
 import com.epam.deltix.qsrv.hf.spi.conn.Disconnectable;
 import com.epam.deltix.qsrv.hf.tickdb.comm.client.TickDBClient;
 import com.epam.deltix.qsrv.hf.tickdb.pub.*;
+import com.epam.deltix.qsrv.hf.tickdb.pub.topic.TopicDB;
+import com.epam.deltix.tbwg.webapp.services.timebase.connections.DetailedTbUser;
+import com.epam.deltix.tbwg.webapp.services.timebase.connections.TbUser;
+import com.epam.deltix.tbwg.webapp.services.timebase.connections.TbUserConnectionsService;
+import com.epam.deltix.tbwg.webapp.services.timebase.connections.TbUserDetails;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.UnknownStreamException;
+import com.epam.deltix.tbwg.webapp.settings.Oauth2ClientSettings;
 import com.epam.deltix.tbwg.webapp.settings.TimebaseSettings;
 import com.epam.deltix.util.collections.generated.ObjectArrayList;
 import com.epam.deltix.util.collections.generated.ObjectToObjectHashMap;
 import com.epam.deltix.util.lang.StringUtils;
 import com.epam.deltix.util.lang.Util;
+import com.epam.deltix.util.oauth.KeystoreConfig;
+import com.epam.deltix.util.oauth.Oauth2Client;
+import com.epam.deltix.util.oauth.Oauth2ClientConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Base64Utils;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import java.security.Principal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -63,15 +74,22 @@ public class TimebaseServiceImpl implements TimebaseService {
     private String dbUrl = null;
     private String serverVersion = null;
 
+    private final TbUserConnectionsService userConnectionsService;
+
     private final TimebaseSettings timebaseSettings;
     private final SystemMessagesService systemMessagesService;
 
     @Autowired
-    public TimebaseServiceImpl(TimebaseSettings timebaseSettings, SystemMessagesService systemMessagesService) {
+    public TimebaseServiceImpl(TimebaseSettings timebaseSettings,
+                               SystemMessagesService systemMessagesService,
+                               TbUserConnectionsService userConnectionsService) {
+
         this.timebaseSettings = timebaseSettings;
         this.systemMessagesService = systemMessagesService;
+        this.userConnectionsService = userConnectionsService;
     }
 
+    @Override
     public String getServerVersion() {
         if (serverVersion == null) {
             try {
@@ -82,18 +100,23 @@ public class TimebaseServiceImpl implements TimebaseService {
         return serverVersion;
     }
 
+    @Override
     public boolean      isConnected() {
         try {
             return ((TickDBClient)getConnection()).isConnected();
         } catch (Exception ex) {
             return false;
         }
-
     }
 
     @Override
     public String getId() {
         return db.getId();
+    }
+
+    @Override
+    public TopicDB getTopicDB() {
+        return getConnection().getTopicDB();
     }
 
     private static class EventListener implements DisconnectEventListener {
@@ -107,7 +130,6 @@ public class TimebaseServiceImpl implements TimebaseService {
         public void onDisconnected() {
             if (db instanceof Disconnectable)
                 ((Disconnectable)db).removeDisconnectEventListener(this);
-            Util.close(db);
             LOGGER.info("Disconnected event received");
         }
 
@@ -165,6 +187,44 @@ public class TimebaseServiceImpl implements TimebaseService {
             String decoded = !StringUtils.isEmpty(password) ? new String(Base64Utils.decodeFromString(password)) : null;
             db = !StringUtils.isEmpty(userName) ? TickDBFactory.createFromUrl(url, userName, decoded) : TickDBFactory.createFromUrl(url);
 
+            if (timebaseSettings.isOauth2ClientConfigured() && db instanceof TickDBClient) {
+                Oauth2ClientSettings oauth2ClientSettings = timebaseSettings.getOauth2Client();
+
+                Oauth2ClientConfig.Builder builder = Oauth2ClientConfig.builder().withUrl(oauth2ClientSettings.getUrl());
+                if (oauth2ClientSettings.isKeystoreConfigured()) {
+                    if (oauth2ClientSettings.getKeystore().getKeystoreType().equalsIgnoreCase("PKCS12")) {
+                        builder.withClientCredentials(
+                            oauth2ClientSettings.getClientId(),
+                            KeystoreConfig.builder().withPkcs12(
+                                oauth2ClientSettings.getKeystore().getKeystoreLocation(),
+                                oauth2ClientSettings.getKeystore().getKeystoreAlias(),
+                                new String(Base64Utils.decodeFromString(oauth2ClientSettings.getKeystore().getKeystorePassword()))
+                            ).build()
+                        );
+                    } else {
+                        builder.withClientCredentials(
+                            oauth2ClientSettings.getClientId(),
+                            KeystoreConfig.builder().withJks(
+                                oauth2ClientSettings.getKeystore().getKeystoreLocation(),
+                                oauth2ClientSettings.getKeystore().getKeystoreAlias(),
+                                new String(Base64Utils.decodeFromString(oauth2ClientSettings.getKeystore().getKeystorePassword()))
+                            ).build()
+                        );
+                    }
+                } else {
+                    builder.withClientCredentials(
+                        oauth2ClientSettings.getClientId(),
+                        new String(Base64Utils.decodeFromString(oauth2ClientSettings.getClientSecret()))
+                    );
+                }
+
+                if (oauth2ClientSettings.getScope() != null) {
+                    builder = builder.withParameter("scope", oauth2ClientSettings.getScope());
+                }
+
+                ((TickDBClient) db).setOauth2Client(Oauth2Client.create(builder.build()));
+            }
+
             TickDBFactory.setApplicationName(db, "TB Web Gateway");
             LOGGER.info("Opening connection to TimeBase on %s.").with(url);
             db.open(timebaseSettings.isReadonly());
@@ -188,6 +248,61 @@ public class TimebaseServiceImpl implements TimebaseService {
         return db;
     }
 
+    public synchronized DXTickDB getOrCreateUserConnection(TbUser user) {
+        String url = timebaseSettings.getUrl();
+        return userConnectionsService.connect(user, connection -> {
+            DXTickDB userConnection = connection;
+            if (userConnection == null || isNotConnected(userConnection)) {
+                Util.close(userConnection);
+
+                String userName = user.getName();
+                userConnection = TickDBFactory.createFromUrl(url, userName, user.getToken());
+                TickDBFactory.setApplicationName(userConnection, "TB Web Gateway (" + user + ")");
+                if (timebaseSettings.getUac().isConnectionPerIp()) {
+                    setExternalAddress(userConnection, user);
+                }
+
+                LOGGER.info("Opening connection to TimeBase on %s (User: %s).").with(url).with(user);
+                userConnection.open(timebaseSettings.isReadonly());
+
+                if (userConnection instanceof Disconnectable) {
+                    ((Disconnectable) userConnection).addDisconnectEventListener(new EventListener(userConnection));
+                    LOGGER.info("Subscribe to disconnect event on %s (User: %s).").with(url).with(user);
+                }
+
+                if (userConnection instanceof DBStateNotifier) {
+                    ((DBStateNotifier) userConnection).addStateListener(systemMessagesService.getStateListener(userName));
+                } else {
+                    LOGGER.error().append("Cannot add ")
+                        .append(DBStateListener.class.getSimpleName())
+                        .commit();
+                }
+            }
+
+            if (userConnection instanceof TickDBClient) {
+                ((TickDBClient) userConnection).setAccessToken(user.getToken());
+            }
+
+            return userConnection;
+        });
+    }
+
+    private void setExternalAddress(DXTickDB connection, TbUser user) {
+        if (connection instanceof TickDBClient) {
+            TickDBClient client = (TickDBClient) connection;
+            if (user instanceof DetailedTbUser) {
+                TbUserDetails details = ((DetailedTbUser) user).getDetails();
+                if (details == null || details.getIp() == null || details.getIp().isEmpty()) {
+                    throw new IllegalStateException("Unknown user (" + user + ") IP address.");
+                }
+
+                client.setExternalAddress(details.getIp());
+            } else {
+                throw new IllegalStateException("Unknown user (" + user + ") details.");
+            }
+        }
+    }
+
     private boolean isNotConnected(DXTickDB db) {
         return !((Disconnectable) db).isConnected();
     }
@@ -202,7 +317,8 @@ public class TimebaseServiceImpl implements TimebaseService {
         LOGGER.info("Closing TickDBClient connection to %s.")
                 .with(dbUrl);
         Util.close(db);
-        LOGGER.info("Closing Security metadata provider.");
+        userConnectionsService.close();
+        LOGGER.info("Connection closed.");
     }
 
     public boolean          isReadonly() {
@@ -214,7 +330,72 @@ public class TimebaseServiceImpl implements TimebaseService {
     }
 
     public DXTickDB         getConnection() {
+        TbUser user = userConnectionsService.loggedInUser();
+        if (user != null) {
+            return getOrCreateUserConnection(user);
+        }
+
         return getOrCreate(timebaseSettings.getUrl(), timebaseSettings.getUser(), timebaseSettings.getPassword());
+    }
+
+    @Override
+    public DXTickDB login(Principal principal, TbUserDetails details) {
+        if (timebaseSettings.isEnableUac()) {
+            if (principal instanceof JwtAuthenticationToken) {
+                JwtAuthenticationToken token = (JwtAuthenticationToken) principal;
+                TbUser user = createTbUser(principal, token, details);
+                userConnectionsService.login(user);
+                return getOrCreateUserConnection(user);
+            } else {
+                userConnectionsService.logout();
+                throw new AccessDeniedException("OAuth2 token authentication required");
+            }
+        }
+
+        return getConnection();
+    }
+
+    @Override
+    public void logout(Principal principal, TbUserDetails userDetails) {
+        if (timebaseSettings.isEnableUac()) {
+            userConnectionsService.logout();
+        }
+    }
+
+    @Override
+    public void openSession(Principal principal, TbUserDetails details, String sessionId) {
+        if (timebaseSettings.isEnableUac()) {
+            if (principal instanceof JwtAuthenticationToken) {
+                JwtAuthenticationToken token = (JwtAuthenticationToken) principal;
+                userConnectionsService.openSession(createTbUser(principal, token, details), sessionId);
+            } else {
+                throw new AccessDeniedException("OAuth2 token authentication required");
+            }
+        }
+    }
+
+    @Override
+    public void closeSession(Principal principal, TbUserDetails details, String sessionId) {
+        if (timebaseSettings.isEnableUac()) {
+            if (principal instanceof JwtAuthenticationToken) {
+                JwtAuthenticationToken token = (JwtAuthenticationToken) principal;
+                userConnectionsService.closeSession(createTbUser(principal, token, details), sessionId);
+            } else {
+                throw new AccessDeniedException("OAuth2 token authentication required");
+            }
+        }
+    }
+
+    private TbUser createTbUser(Principal principal, JwtAuthenticationToken token, TbUserDetails details) {
+        if (timebaseSettings.getUac().isConnectionPerIp()) {
+            if (details == null || details.getIp() == null || details.getIp().isEmpty()) {
+                throw new IllegalArgumentException("Unknown principal (" + principal.getName() + ") IP address.");
+            }
+
+            return DetailedTbUser.create(principal.getName(), token.getToken().getTokenValue(), details);
+        } else {
+            return TbUser.create(principal.getName(), token.getToken().getTokenValue());
+        }
     }
 
     public DXChannel[]      listChannels() {
@@ -257,7 +438,7 @@ public class TimebaseServiceImpl implements TimebaseService {
     }
 
     public DXTickStream getOrCreateStream(String key, Consumer<StreamOptions> optionsProcessor, Class<?>... classes) {
-        DXTickStream stream = db.getStream(key);
+        DXTickStream stream = getConnection().getStream(key);
         if (stream == null) {
             stream = createStream(key, optionsProcessor, introspectClasses(classes));
         }
@@ -266,7 +447,7 @@ public class TimebaseServiceImpl implements TimebaseService {
     }
 
     public DXTickStream getOrCreateStream(String key, Consumer<StreamOptions> optionsProcessor, RecordClassDescriptor... descriptors) {
-        DXTickStream stream = db.getStream(key);
+        DXTickStream stream = getConnection().getStream(key);
         if (stream == null) {
             stream = createStream(key, optionsProcessor, descriptors);
         }
@@ -280,7 +461,7 @@ public class TimebaseServiceImpl implements TimebaseService {
         StreamOptions options = new StreamOptions(StreamScope.DURABLE, key, "", 1);
         optionsProcessor.accept(options);
         options.setPolymorphic(descriptors);
-        DXTickStream stream = db.createStream(key, options);
+        DXTickStream stream = getConnection().createStream(key, options);
         LOGGER.info().append("Stream ").append(key).append(" created.").commit();
 
         return stream;

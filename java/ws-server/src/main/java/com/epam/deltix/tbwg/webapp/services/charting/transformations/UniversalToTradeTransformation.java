@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,11 +14,12 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 
 import com.epam.deltix.tbwg.messages.ExecutionTag;
 import com.epam.deltix.tbwg.messages.Message;
+import com.epam.deltix.tbwg.webapp.services.charting.datasource.ChartDataSource;
+import com.epam.deltix.timebase.messages.InstrumentMessage;
 import com.epam.deltix.timebase.messages.MessageInfo;
 import com.epam.deltix.timebase.messages.universal.AggressorSide;
 import com.epam.deltix.timebase.messages.universal.QuoteSide;
@@ -30,12 +31,13 @@ import java.util.Collections;
 /**
  * The transformation filters package headers and leaves only trades.
  */
-public class UniversalToTradeTransformation extends AbstractChartTransformation<ExecutionTag, MessageInfo> {
+public class UniversalToTradeTransformation extends SymbolFilterChartTransformation<ExecutionTag, InstrumentMessage> {
 
     private final ExecutionTag tradeTag = new ExecutionTag();
 
-    public UniversalToTradeTransformation() {
-        super(Collections.singletonList(PackageHeader.class), Collections.singletonList(ExecutionTag.class));
+    public UniversalToTradeTransformation(String symbol, ChartDataSource source, boolean isSingleSymbolSource) {
+        super(Collections.singletonList(PackageHeader.class), Collections.singletonList(ExecutionTag.class),
+                source, symbol, isSingleSymbolSource);
     }
 
     @Override
@@ -44,7 +46,7 @@ public class UniversalToTradeTransformation extends AbstractChartTransformation<
     }
 
     @Override
-    protected void onNextPoint(MessageInfo marketMessage) {
+    protected void onNextPoint(InstrumentMessage marketMessage) {
         if (marketMessage instanceof PackageHeader) {
             PackageHeader message = (PackageHeader) marketMessage;
             if (message.getEntries() != null) {

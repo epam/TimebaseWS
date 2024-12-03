@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,14 +14,19 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.authorization;
+package com.epam.deltix.tbwg.webapp.services.authorization;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
 public class TbwgUser extends User {
+
+    public static TbwgUser create(String name, String password) {
+        return new TbwgUser(name, password, new ArrayList<>());
+    }
 
     public TbwgUser(String username, String password, Collection<? extends GrantedAuthority> authorities) {
         super(username, password, authorities);

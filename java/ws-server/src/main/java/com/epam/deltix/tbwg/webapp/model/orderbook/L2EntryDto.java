@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model.orderbook;
+package com.epam.deltix.tbwg.webapp.model.orderbook;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -44,7 +44,7 @@ public class L2EntryDto {
 
     public String getPrice() {
         if (priceStr == null) {
-            priceStr = Decimal64Utils.isNaN(price) || Decimal64Utils.isNull(price) ? null : Decimal64Utils.toString(price);
+            priceStr = Decimal64Utils.isNaN(price) || Decimal64Utils.isNull(price) ? null : Decimal64Utils.toFloatString(price);
         }
 
         return priceStr;
@@ -60,7 +60,7 @@ public class L2EntryDto {
 
     public String getQuantity() {
         if (quantityStr == null) {
-            quantityStr = Decimal64Utils.isNaN(quantity) || Decimal64Utils.isNull(quantity) ? null : Decimal64Utils.toString(quantity);
+            quantityStr = Decimal64Utils.isNaN(quantity) || Decimal64Utils.isNull(quantity) ? null : Decimal64Utils.toFloatString(quantity);
         }
 
         return quantityStr;

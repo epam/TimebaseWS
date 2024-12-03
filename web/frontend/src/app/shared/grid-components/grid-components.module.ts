@@ -27,7 +27,6 @@ import { GridHeaderPreviewComponent } from './grid-header-preview/grid-header-pr
     GridHeaderComponent,
     TreeDataCellComponent,
     IsAbstractCbComponent,
-    IsUsedCbComponent,
     ResolutionComponent,
     GridSearchComponent,
     GridTextFilterComponent,

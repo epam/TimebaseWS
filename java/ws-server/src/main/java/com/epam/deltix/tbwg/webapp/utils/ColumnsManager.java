@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,10 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.utils;
 
-import com.epam.deltix.tbwg.webapp.model.schema.TypeDef;
+import com.epam.deltix.qsrv.hf.pub.md.json.TypeDef;
 import com.epam.deltix.timebase.messages.universal.PackageHeader;
 
 /**
@@ -34,5 +33,9 @@ public class ColumnsManager {
             type.setVisible("packageType");
             type.setVisible("entries");
         }
+//        else if (ConnectionStatusChangeMessage.CLASS_NAME.equals(type.getName())) {
+//            for (int i = 0; i < type.getFields().length; i++)
+//                type.getFields()[i].setHidden(true);
+//        }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,9 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.timebase.csvimport;
 
+import com.epam.deltix.tbwg.webapp.utils.DateFormatter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
@@ -31,6 +31,7 @@ import com.epam.deltix.tbwg.webapp.utils.CsvImportUtil;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -40,8 +41,9 @@ import static com.epam.deltix.tbwg.webapp.utils.CsvImportUtil.messageTypeHasFiel
 public class CsvValueConvertor {
 
     private final CsvImportGeneralSettings generalSettings;
-    private final SimpleDateFormat dateFormat;
+    private final Map<String, DateFormatter> fieldDateFormatters = new HashMap<>();
     private final RecordClassDescriptor[] descriptors;
+    private final CsvTimestampParser timestampParser;
     private final Gson jsonFormatter = new GsonBuilder()
             .setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
             .create();
@@ -49,9 +51,7 @@ public class CsvValueConvertor {
     public CsvValueConvertor(RecordClassDescriptor[] descriptors, CsvImportGeneralSettings generalSettings) {
         this.descriptors = descriptors;
         this.generalSettings = generalSettings;
-        dateFormat = new SimpleDateFormat(generalSettings.getDataTimeFormat());
-        dateFormat.setTimeZone(TimeZone.getTimeZone(generalSettings.getTimeZone()));
-
+        timestampParser = new CsvTimestampParser(generalSettings.getDataTimeFormat(), generalSettings.getTimeZone());
     }
 
     public ValidateResponse isConvertibleValue(StreamFieldInfo fieldInfo, String[] line,
@@ -163,7 +163,7 @@ public class CsvValueConvertor {
         try {
             switch (dataType.getCode()) {
                 case T_DATE_TIME_TYPE:
-                    return convertTimestampValue(format, value);
+                    return convertTimestampField(format, value, ((DateTimeDataType)dataType).hasNanosecondPrecision());
                 case T_BOOLEAN_TYPE:
                 case T_CHAR_TYPE:
                 case T_TIME_OF_DAY_TYPE:
@@ -197,11 +197,22 @@ public class CsvValueConvertor {
         return castObjectValue(list, dataType);
     }
 
-    private Object convertTimestampValue(String format, String value) throws ParseException {
-        if (format == null) format = generalSettings.getDataTimeFormat();
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(format);
-        simpleDateFormat.setTimeZone(TimeZone.getTimeZone(generalSettings.getTimeZone()));
-        return simpleDateFormat.parse(value).getTime();
+    private Object convertTimestampField(String fieldFormat, String value, boolean nanoTime) throws ParseException {
+        if (fieldFormat == null) {
+            return timestampParser.toConvertedLong(value, nanoTime);
+        } else {
+            DateFormatter fieldDateFormatter = getFieldDateFormatter(fieldFormat);
+            return fieldDateFormatter.toConvertedLong(value, nanoTime);
+        }
+    }
+
+    private DateFormatter getFieldDateFormatter(String fieldFormat) {
+        DateFormatter fieldFormatter = fieldDateFormatters.get(fieldFormat);
+        if (fieldFormatter == null) {
+            fieldFormatter = new DateFormatter(fieldFormat, generalSettings.getTimeZone());
+            fieldDateFormatters.put(fieldFormat, fieldFormatter);
+        }
+        return fieldFormatter;
     }
 
     private DataType getDataType(StreamFieldInfo fieldInfo, RecordClassDescriptor descriptor) {
@@ -216,7 +227,7 @@ public class CsvValueConvertor {
 //            case INSTRUMENT_TYPE:
 //                return convertInstrumentType(value);
             case TIMESTAMP:
-                return convertTimestampMs(value);
+                return timestampParser.toConvertedLong(value, true);
             case KEYWORD:
                 return convertMessageType(value);
             case SYMBOL:
@@ -275,19 +286,6 @@ public class CsvValueConvertor {
 //            throw new IllegalArgumentException("Enumeration 'InstrumentType' does not have value to '" + instrumentType + "'.");
 //        }
 //    }
-
-    private long convertTimestampMs(String value) {
-        try {
-            long time = dateFormat.parse(value).getTime();
-            if (time < 0) {
-                throw new RuntimeException();
-            }
-            return time;
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Cannot parse timestamp value '" + value +
-                    "' to '" + generalSettings.getDataTimeFormat() + "' format.");
-        }
-    }
 
     private Object castObjectValue(Object value, DataType type) {
         if (value == null)
@@ -392,5 +390,38 @@ public class CsvValueConvertor {
             list.add(castObjectValue(o, elementDataType));
         }
         return list.toArray();
+    }
+
+    static class CsvTimestampParser {
+        private final boolean isNsSettingFormate;
+        private final DateFormatter nsDateFormatter;
+        private final DateFormatter dateFormatter;
+
+        public CsvTimestampParser(String dataTimeFormat, String timeZone) {
+            isNsSettingFormate = CsvImportUtil.isNsFormat(dataTimeFormat);
+            if (isNsSettingFormate) {
+                nsDateFormatter = new DateFormatter(dataTimeFormat, timeZone);
+                dateFormatter = new DateFormatter(CsvImportUtil.toMsFormat(dataTimeFormat), timeZone);
+            } else {
+                nsDateFormatter = new DateFormatter(CsvImportUtil.toNsFormat(dataTimeFormat), timeZone);
+                dateFormatter = new DateFormatter(dataTimeFormat, timeZone);
+            }
+        }
+
+        public long toConvertedLong(String value, boolean nanoResult) {
+            if (isNsSettingFormate) {
+                try {
+                    return nsDateFormatter.toConvertedLong(value, nanoResult);
+                } catch (DateTimeParseException e) {
+                    return dateFormatter.toConvertedLong(value, nanoResult);
+                }
+            } else {
+                try {
+                    return dateFormatter.toConvertedLong(value, nanoResult);
+                } catch (DateTimeParseException e) {
+                    return nsDateFormatter.toConvertedLong(value, nanoResult);
+                }
+            }
+        }
     }
 }

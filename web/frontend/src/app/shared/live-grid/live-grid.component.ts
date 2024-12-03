@@ -57,6 +57,7 @@ import {
   getContextMenuItems,
   gridStateLSInit,
 }                                                                                    from '../utils/grid/config.defaults';
+import { TopicService } from 'src/app/pages/streams/modules/schema-editor/services/topic.service';
 
 interface RowSortingOrder {
   symbol?: string,
@@ -154,7 +155,8 @@ export class LiveGridComponent implements OnInit, OnDestroy, OnChanges {
     private globalFiltersService: GlobalFiltersService,
     private tabStorageService: TabStorageService<HasRightPanel>,
     private messageInfoService: RightPaneService,
-    private schemaService: SchemaService
+    private schemaService: SchemaService,
+    private topicService: TopicService
   ) {}
 
   ngOnInit() {
@@ -187,10 +189,14 @@ export class LiveGridComponent implements OnInit, OnDestroy, OnChanges {
     this.appStore.pipe(
       select(getActiveTab),
       switchMap((tab: TabModel) => {
-        return tab?.stream ? this.schemaService.getSchema(tab.stream) : of(this.schemaData);
+        if (tab?.stream?.endsWith('#topic#')) {
+          return this.topicService.getTopicSchema(tab.stream.slice(0, tab.stream.length - 7));
+        } else {
+          return tab?.stream ? this.schemaService.getSchema(tab.stream) : of(this.schemaData);
+        } 
       }),
       switchMap(schema => {
-        schema.all.forEach(type => {
+        schema?.all.forEach(type => {
           type.fields.forEach(field => {
             if (field.static) {
               this.staticFields = { ...this.staticFields, [field.name]: field.value };
@@ -358,8 +364,8 @@ export class LiveGridComponent implements OnInit, OnDestroy, OnChanges {
           sortable: false,
           width: 180,
           headerTooltip: 'Timestamp',
-          cellRenderer: (params: ICellRendererParams) => this.gridService.dateFormat(params, params.data?.nanoTime, true),
-          tooltipValueGetter: (params: ICellRendererParams) => this.gridService.dateFormat(params, params.data?.nanoTime, true),
+          cellRenderer: (params: ICellRendererParams) => this.gridService.dateFormat(params),
+          tooltipValueGetter: (params: ICellRendererParams) => this.gridService.dateFormat(params),
         },
         {
           headerName: 'Type',

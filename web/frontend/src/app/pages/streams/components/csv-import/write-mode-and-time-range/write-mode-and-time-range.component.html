@@ -1,5 +1,5 @@
 <h5>{{ 'importFromFile.stepHeaders.writeModeAndTimeRange' | translate }}  </h5>
-<form class="settings-container">
+<form class="settings-container" [formGroup]="form">
   <div class="row write-mode-row">
     <div class="col-4">{{ 'importFromFile.labels.writeMode' | translate }}</div>
     <div class="col-8 write-mode">
@@ -9,7 +9,11 @@
   </div>
   <div class="row">
     <div class="col-4">{{ 'importFromFile.labels.importRange' | translate }}</div>
-    <div class="col-8 error-message">{{ timeRangeValidationError }}</div>
+    <div class="col-8 error-message">
+      {{ timeValueValidationError.startTime }} 
+      <span class="space"></span>
+      {{ timeValueValidationError.endTime }} 
+      {{ timeRangeValidationError }}</div>
   </div>
   <div class="row">
     <div class="col-4 time-range-checkbox">
@@ -20,6 +24,7 @@
       <app-btn-date-picker
         (valueChange)="onTimeChange($event, 'startTime')"
         [value]="startTime"
+        formControlName="startTime"
         [inputDisabled]="inputsAreDisabled.startTime"
         [inputInvalid]="inputsInvalid.startTime">
       </app-btn-date-picker>
@@ -34,6 +39,7 @@
       <app-btn-date-picker
         (valueChange)="onTimeChange($event, 'endTime')"
         [value]="endTime"
+        formControlName="endTime"
         [timeZone]="selectedTimezone"
         [minDate]="endTimeMin"
         [inputDisabled]="inputsAreDisabled.endTime"

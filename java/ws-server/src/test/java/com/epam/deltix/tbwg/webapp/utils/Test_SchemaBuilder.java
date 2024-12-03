@@ -20,13 +20,12 @@ import com.epam.deltix.qsrv.hf.pub.md.ClassDescriptor;
 import com.epam.deltix.qsrv.hf.pub.md.Introspector;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassSet;
-import com.epam.deltix.tbwg.webapp.model.schema.SchemaBuilder;
-import com.epam.deltix.tbwg.webapp.model.schema.SchemaDef;
+import com.epam.deltix.qsrv.hf.pub.md.json.SchemaBuilder;
+import com.epam.deltix.qsrv.hf.pub.md.json.SchemaDef;
 import com.epam.deltix.timebase.messages.universal.PackageHeader;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 
 /**

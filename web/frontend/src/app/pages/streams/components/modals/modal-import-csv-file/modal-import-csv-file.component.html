@@ -1,16 +1,65 @@
 <app-resizable [minWidth]="800" [minHeight]="minHeight" [storageKey]="'file-import-modal-size'" 
-  [contentClassName]="'import-file-content'" [contentHeightDifference]="150" [modalBodyHeightDifference]="120">
+  [contentClassName]="'import-file-content'" [contentHeightDifference]="170" [modalBodyHeightDifference]="120">
   <app-modal>
     <ng-container title>
-      {{ 'importFromFile.title.text' | translate }} 
-      <span class="stream-title">to <b>{{ stream }}</b></span>
+      {{ 'importFromFile.title.importFromTextFile' | translate }} 
+      <span *ngIf="streamInput || currentStreamId" class="stream-title">
+        to <b>{{ streamInput ?? currentStreamId }}</b>
+      </span>
     </ng-container>
     <div class="import-file-content" content>
-      <app-upload-file [fileButtonsDisabled]="nextButtonDisabled" [stream]="stream" *ngIf="importStepIs('uploading')" #uploadFile></app-upload-file>
-      <app-set-up-parameters *ngIf="importStepIs('parameters-setting')"></app-set-up-parameters>
-      <app-preview *ngIf="importStepIs('preview')"></app-preview>
-      <app-write-mode-and-time-range *ngIf="importStepIs('time-range')" #timeRange></app-write-mode-and-time-range>
-      <div *ngIf="importStepIs('import-progress')" class="import-progress-container">
+      <ng-container *ngIf="importStepIs(TextFileImportStepsEnum.uploading)">
+        <div *ngIf="!streamInput" class="form-group">
+          <div [ngStyle]="{ 'width': importToExistingStream ? '100%' : '90%' }">
+            <label>{{ 'importFromFile.labels.stream' | translate }}</label>
+            <deltix-ng-autocomplete
+              (changeInput)="onStreamChange($event)"
+              [values]="autocomplete$ | async"
+              [placeholder]="'importFromFile.placeholders.stream' | translate"
+              cssClass="in-modal"
+              [formControl]="streamNameControl"
+              [invalid]="!!validationErrorMessages.stream">
+            </deltix-ng-autocomplete>
+          </div>
+          <div *ngIf="!importToExistingStream" class="version-and-df">
+            <div>
+              <label>{{ 'importFromFile.labels.version' | translate }}</label>
+              <app-multi-select
+                class="version-select"
+                [items]="versionOptions"
+                [single]="true"
+                [search]="false"
+                [flat]="true"
+                [formControl]="versionControl"
+              ></app-multi-select>
+            </div>
+            <div>
+              <label class="inline-label">{{ 'importFromFile.labels.distributionFactor' | translate }}</label>
+              <deltix-ng-autocomplete 
+                [values]="distributionFactorOptions"
+                (changeInput)="distributionFactorChange($event)"
+                [single]="true"
+                [search]="false"
+                [flat]="true"
+                cssClass="in-modal"
+                [formControl]="distributionFactorControl"
+                [disabled]="distributionFactorControlDisabled$ | async"
+                [invalid]="distributionFactorControlInvalid">
+              </deltix-ng-autocomplete>
+            </div>
+          </div>
+        </div>
+        <app-upload-file 
+          [invalid]="!!validationErrorMessages.file" [fileButtonsDisabled]="nextButtonDisabled" [stream]="streamInput" 
+          #uploadFile (fileListChanged)="fileListChanged()" ></app-upload-file>
+      </ng-container>
+      <app-new-stream-schema *ngIf="importStepIs(TextFileImportStepsEnum.schema)" (schemaChanged)="setSchemaChanged()">
+      </app-new-stream-schema>
+      <app-set-up-parameters *ngIf="importStepIs(TextFileImportStepsEnum.parametersSetting)"></app-set-up-parameters>
+      <app-preview *ngIf="importStepIs(TextFileImportStepsEnum.preview)"></app-preview>
+      <app-write-mode-and-time-range *ngIf="importStepIs(TextFileImportStepsEnum.timeRange)" 
+        (updateValidity)="toggleNextButtonState($event)" #timeRange></app-write-mode-and-time-range>
+      <div *ngIf="importStepIs(TextFileImportStepsEnum.importProgress)" class="import-progress-container">
         <ng-container *ngIf="!importError">
           <div class="upload-progress-bar">
             <div [style.width.%]="progress$ | async" class="upload-progress-bar__fill"></div>
@@ -31,28 +80,39 @@
       </div>
     </div>
     <div footer>
-      <ng-container *ngIf="!importStepIs('import-progress'); else importProgressFooter">
-        <button *ngIf="!importStepIs('uploading')" 
+      <div class="error-messages" *ngIf="importStepIs(TextFileImportStepsEnum.uploading)">
+        <div *ngFor="let message of validationErrorMessages | keyvalue: originalOrder" class="error-message" 
+          [class.error-message-not-empty]="!!message.value">{{ message.value }}</div>
+      </div>
+
+      <ng-container *ngIf="!importStepIs(TextFileImportStepsEnum.importProgress); else importProgressFooter">
+        <button 
+          *ngIf="!importStepIs(TextFileImportStepsEnum.uploading)" 
           (click)="previousStep()" class="btn btn-primary">
           {{ 'importFromFile.back' | translate }}
         </button>
-        <button *ngIf="importStepIs('uploading')" (click)="nextStep()" class="btn btn-primary" 
-          [disabled]="(noUploadedFiles() | async) || nextButtonDisabled">
+        <button *ngIf="importStepIs(TextFileImportStepsEnum.uploading)" (click)="nextStep()" class="btn btn-primary" 
+          [disabled]="(noUploadedFiles$ | async) || (noSelectedStream$ | async) || nextButtonDisabled || 
+            (distributionFactorControlInvalid && !importToExistingStream && !(distributionFactorControlDisabled$ | async))"> 
             <span *ngIf="!nextButtonDisabled">{{ 'importFromFile.next' | translate }}</span>
             <div *ngIf="nextButtonDisabled" class="uploading-text-and-icon">
               <div>Uploading </div>
               <div class="lds-dual-ring"></div>
             </div>
         </button>
-        <button *ngIf="importStepIs('parameters-setting')" (click)="nextStep()" class="btn btn-primary" 
+        <button *ngIf="importStepIs(TextFileImportStepsEnum.schema)" (click)="nextStep()" class="btn btn-primary"
+          [disabled]="nextButtonDisabled || !(schemaIsValid$ | async)">
+          {{ 'importFromFile.next' | translate }}
+        </button>
+        <button *ngIf="importStepIs(TextFileImportStepsEnum.parametersSetting)" (click)="nextStep()" class="btn btn-primary" 
           [disabled]="(importSettingsAreInvalid() | async) || nextButtonDisabled">
           {{ 'importFromFile.next' | translate }}
         </button>
-        <button *ngIf="importStepIs('preview')" (click)="nextStep()" class="btn btn-primary" 
+        <button *ngIf="importStepIs(TextFileImportStepsEnum.preview)" (click)="nextStep()" class="btn btn-primary" 
           [disabled]="invalidMappings().length || nextButtonDisabled">
           {{ 'importFromFile.next' | translate }}
         </button>
-        <button *ngIf="importStepIs('time-range')" (click)="nextStep()" class="btn btn-primary"
+        <button *ngIf="importStepIs(TextFileImportStepsEnum.timeRange)" (click)="nextStep()" class="btn btn-primary"
           [disabled]="nextButtonDisabled">
           {{ 'importFromFile.next' | translate }}
         </button>

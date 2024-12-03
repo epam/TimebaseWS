@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,12 +14,12 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.utils;
 
 import com.epam.deltix.containers.AlphanumericUtils;
 import com.epam.deltix.containers.generated.DoubleDoublePair;
 import com.epam.deltix.dfp.Decimal;
+import com.epam.deltix.dfp.Decimal64Utils;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.grafana.test.GrafanaTestEnum;
@@ -33,8 +33,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-
-import static com.epam.deltix.dfp.Decimal64Utils.*;
 
 public class GrafanaStreamCreator extends DefaultApplication {
 
@@ -99,7 +97,7 @@ public class GrafanaStreamCreator extends DefaultApplication {
         long start = end - duration;
         GrafanaTestMessage grafanaTestMessage = new GrafanaTestMessage();
         long count = 0;
-        try (TickLoader loader = stream.createLoader()) {
+        try (TickLoader loader = stream.createLoader(LoadingOptions.withRewriteMode(false))) {
             for (long timestamp = start; timestamp <= end; timestamp += step) {
                 fill(grafanaTestMessage, timestamp);
                 loader.send(grafanaTestMessage);
@@ -143,13 +141,13 @@ public class GrafanaStreamCreator extends DefaultApplication {
     @Decimal
     private long price(GrafanaTestEnum testEnum) {
         DoubleDoublePair range = ranges.get(testEnum);
-        return fromDouble(range.getFirst() + (range.getSecond() - range.getFirst()) * random.nextDouble());
+        return Decimal64Utils.fromDouble(range.getFirst() + (range.getSecond() - range.getFirst()) * random.nextDouble());
     }
 
     private void fillPrices(GrafanaTestMessage testMessage) {
         @Decimal long price = price(testMessage.getPriceType());
-        @Decimal long highPrice = add(price, fromDouble(delta.getFirst() + (delta.getSecond() - delta.getFirst()) * random.nextDouble()));
-        @Decimal long lowPrice = subtract(price, fromDouble(delta.getFirst() + (delta.getSecond() - delta.getFirst()) * random.nextDouble()));
+        @Decimal long highPrice = Decimal64Utils.add(price, Decimal64Utils.fromDouble(delta.getFirst() + (delta.getSecond() - delta.getFirst()) * random.nextDouble()));
+        @Decimal long lowPrice = Decimal64Utils.subtract(price, Decimal64Utils.fromDouble(delta.getFirst() + (delta.getSecond() - delta.getFirst()) * random.nextDouble()));
         testMessage.setPrice(price);
         testMessage.setHighPrice(highPrice);
         testMessage.setLowPrice(lowPrice);

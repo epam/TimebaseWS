@@ -123,17 +123,20 @@ export class RightPaneService implements OnDestroy {
   
   cellClicked(click: CellClickedEvent | RowClickedEvent) {
     this.tabStorageService.flow('rightPanel').updateDataSync((data) => {
-      return {...data, rowIndex: click.rowIndex};
+      return {...data, rowIndex: click?.rowIndex};
     });
     this.updateFrom();
     
     if (this.readyApi.api.getPinnedTopRow(0)?.data) {
-      this.readyApi.api.setPinnedTopRowData([click.data]);
+      this.readyApi.api.setPinnedTopRowData([click?.data]);
     }
   }
   
-  doubleClicked(message: StreamDetailsModel) {
+  doubleClicked(message: StreamDetailsModel, rowIndex = null) {
     this.readyApi.api.setPinnedTopRowData([message]);
+    if (typeof rowIndex === 'number') {
+      this.tabStorageService.flow('rightPanel').updateDataSync((data) => ({...data, rowIndex }));
+    }
     this.updateFrom();
     this.onPinnedRowDataChanged(true);
   }
@@ -204,6 +207,21 @@ export class RightPaneService implements OnDestroy {
         ...update,
       };
     });
+  }
+
+  saveOrderBookSource(tabId: string, source: string) {
+    const sources = JSON.parse(sessionStorage.getItem('rightPaneBookSources'));
+    sessionStorage.setItem(
+      'rightPaneBookSources',
+      JSON.stringify({
+        ...sources,
+        [tabId]: source
+      })
+    )
+  }
+
+  getOrderBookSource(tabId: string) {
+    return JSON.parse(sessionStorage.getItem('rightPaneBookSources'))?.[tabId];
   }
   
   private updateFrom() {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -52,7 +52,20 @@ public class FeedStatusTransformation extends AbstractChartTransformation<Messag
                 );
             }
         }
-
+//        if (marketMessage instanceof SecurityStatusMessage) {
+//            SecurityStatusMessage statusMessage = (SecurityStatusMessage) marketMessage;
+//            if (statusMessage.getStatus() == SecurityStatus.FEED_DISCONNECTED) {
+//                disconnected = true;
+//                sendMessage(
+//                    new FeedStatusMessage(statusMessage.getTimeStampMs(), statusMessage.getExchangeId(), FeedStatus.NOT_AVAILABLE)
+//                );
+//            } else if (statusMessage.getStatus() == SecurityStatus.FEED_CONNECTED) {
+//                disconnected = false;
+//                sendMessage(
+//                    new FeedStatusMessage(statusMessage.getTimeStampMs(), statusMessage.getExchangeId(), FeedStatus.AVAILABLE)
+//                );
+//            }
+//        } else
         if (marketMessage instanceof SecurityFeedStatusMessage) {
             SecurityFeedStatusMessage statusMessage = (SecurityFeedStatusMessage) marketMessage;
             if (statusMessage.getStatus() == FeedStatus.NOT_AVAILABLE) {

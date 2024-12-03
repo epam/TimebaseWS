@@ -18,7 +18,7 @@ export class GroupedParametersComponent implements OnInit {
 
   ngOnInit(): void {
     this.getErrorMessages();
-    this.importFromTextFileService.settingsUpdated
+    this.importFromTextFileService.settingsUpdated$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.getErrorMessages());
   }

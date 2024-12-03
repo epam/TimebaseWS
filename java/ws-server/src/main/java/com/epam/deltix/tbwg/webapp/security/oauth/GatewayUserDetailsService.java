@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,9 +14,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.security.oauth;
+package com.epam.deltix.tbwg.webapp.security.oauth;
 
-import com.epam.deltix.tbwg.webapp.services.authorization.AuthoritiesProvider;
+import com.epam.deltix.tbwg.webapp.services.authorization.TbwgUser;
+import com.epam.deltix.tbwg.webapp.services.authorization.UsersProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,14 +25,16 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+
 @Service
 public class GatewayUserDetailsService implements UserDetailsService {
 
-    private final AuthoritiesProvider authoritiesProvider;
+    private final UsersProvider usersProvider;
 
     @Autowired
-    public GatewayUserDetailsService(AuthoritiesProvider authoritiesProvider) {
-        this.authoritiesProvider = authoritiesProvider;
+    public GatewayUserDetailsService(UsersProvider usersProvider) {
+        this.usersProvider = usersProvider;
     }
 
     @Override
@@ -40,7 +43,12 @@ public class GatewayUserDetailsService implements UserDetailsService {
             throw new IllegalArgumentException("Username cannot be blank.");
         }
 
-        return new User(username, "", authoritiesProvider.getAuthorities(username));
+        TbwgUser user = usersProvider.getUser(username);
+        if (user != null) {
+            return new User(user.getUsername(), "", user.getAuthorities());
+        } else {
+            return new User(username, "", new ArrayList<>());
+        }
     }
 
 }

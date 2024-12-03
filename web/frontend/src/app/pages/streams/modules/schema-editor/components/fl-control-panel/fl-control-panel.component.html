@@ -1,8 +1,9 @@
 <ng-template [ngIf]="selectedSchemaItem$ | async">
   <div class="cl-control-panel">
     <button
+        *ngIf="extendable"
         (click)="onAskToAdd()"
-        [disabled]="newFieldIsAdding | async"
+        [disabled]="(newFieldIsAdding | async) || readonly"
         class="btn btn-sm btn-outline-success"
         type="button">
       {{
@@ -12,16 +13,24 @@
     </button>
     <button
         (click)="onAskToAdd(true)"
-        *ngIf="!(selectedSchemaItem$ | async).isEnum"
-        [disabled]="newFieldIsAdding | async"
+        *ngIf="!(selectedSchemaItem$ | async).isEnum && extendable"
+        [disabled]="(newFieldIsAdding | async) || readonly"
         class="btn btn-sm btn-outline-warning"
         type="button">
       {{ 'buttons.newStaticField' | translate }}
     </button>
     <div class="spacer"></div>
     <button
+      (click)="onAskToRemoveItems()"
+      [title]="'titles.removeItems' | translate"
+      [disabled]="!fieldList?.length || readonly"
+      class="btn btn-sm btn-outline-danger d-flex justify-content-center align-items-center delete-selected-btn"
+      type="button">
+      {{ 'buttons.remove' | translate }}
+    </button>
+    <button
         (click)="onAskDeleteSelected()"
-        [disabled]="deleteBtnDisabled$ | async"
+        [disabled]="(deleteBtnDisabled$ | async) || !fieldList?.length || readonly"
         [title]="'titles.removeSelectedItem' | translate"
         class="btn btn-sm btn-outline-danger d-flex justify-content-center align-items-center delete-selected-btn"
         type="button">
@@ -36,7 +45,7 @@
   </div>
   <div class="modal-footer d-flex justify-content-end">
     <button
-        (click)="onDeleteSelectedField()"
+        (click)="onDeleteSelected()"
         aria-label="Close"
         class="btn btn-danger pull-right"
         type="button">
@@ -129,6 +138,42 @@
     </button>
     <button
         (click)="newItemModalRef.hide()"
+        aria-label="Close"
+        class="btn btn-outline-light pull-right"
+        type="button">
+      <span aria-hidden="true">{{ 'buttons.cancel' | translate }}</span>
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #modalRemoveItemsTemplate>
+  <div class="modal-header">
+    <h4 class="modal-title pull-left">
+      {{ 'text.removeItems' | translate }}
+    </h4>
+  </div>
+  <div class="modal-body">
+    <ul class="class-enum-field-list">
+      <li *ngFor="let field of fieldList">
+        <label class="container-ch">
+          <input type="checkbox" (change)="onRemoveItemsModalCheckboxChange($event, field)">
+          <span class="checkmark"></span>
+          <span class='item-name field-name'>{{ field }}</span>
+        </label>
+      </li>
+    </ul>
+  </div>
+  <div class="modal-footer d-flex justify-content-end">
+    <button
+        (click)="openRemovingConfirmationModal()"
+        aria-label="Close"
+        class="btn btn-danger pull-right"
+        [disabled]="!itemsToBeRemoved.size"
+        type="button">
+      <span aria-hidden="true">{{ 'buttons.removeSelected' | translate }}</span>
+    </button>
+    <button
+        (click)="hideRemoveItemsModal()"
         aria-label="Close"
         class="btn btn-outline-light pull-right"
         type="button">

@@ -37,7 +37,8 @@
 
     &.delete-selected-btn {
       padding: 0 2 * $ss;
-      margin: 0;
+      margin-right: 0rem;
+      margin-left: 0.5rem;
     }
   }
 }
@@ -81,4 +82,43 @@ ul {
   .field-title {
     color: #66a174;
   }
+}
+
+.item-name {
+  font-size: 12px;
+}
+
+.isEnum {
+  color: #ffc107;
+}
+
+.isClass {
+  color: #28a745;
+}
+
+.checkmark {
+  top: 0.2rem;
+}
+
+.container-ch {
+  border-bottom: 1px solid rgba(128, 128, 128, 0.4);
+}
+
+.class-enum-field-list {
+  margin: 0.5rem 1rem;
+  width: 500px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.spacer {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  width: 5 * $ss;
+}
+
+.associated-items-header {
+  margin-left: 4rem;
+  margin-top: 1rem;
 }

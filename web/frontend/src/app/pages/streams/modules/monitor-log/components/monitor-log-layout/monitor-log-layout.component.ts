@@ -197,7 +197,7 @@ export class MonitorLogLayoutComponent implements OnInit, AfterViewInit, OnDestr
         takeUntil(this.destroy$),
       )
       .subscribe(([tabModel, data, tabs, activeTabId]: [TabModel, Data, TabModel[], string]) => {
-        if (tabModel.stream && tabModel.stream !== this.lastStream) {
+        if (tabModel.stream && tabModel.stream !== this.lastStream && !tabModel.stream.endsWith('#topic#')) {
           this.lastStream = tabModel.stream;
           this.streamDetailsStore.dispatch(
             new StreamDetailsActions.GetSymbols({

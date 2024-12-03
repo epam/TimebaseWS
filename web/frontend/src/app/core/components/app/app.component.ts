@@ -3,7 +3,8 @@ import {select, Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
 import {RxStompConfig} from '@stomp/rx-stomp';
 import {Versions} from '@stomp/stompjs/esm5/versions';
-import {filter, switchMap, take, withLatestFrom} from 'rxjs/operators';
+import {filter, first, switchMap, take, withLatestFrom} from 'rxjs/operators';
+import { fromEvent } from 'rxjs';
 import {TabNavigationService} from 'src/app/shared/services/tab-navigation.service';
 import {ConnectionStatus} from '../../../shared/models/connection-status';
 import {CheckConnectionService} from '../../../shared/services/check-connection.service';
@@ -14,6 +15,7 @@ import * as AppActions from '../../store/app/app.actions';
 import {getAppState} from '../../store/app/app.selectors';
 import * as AuthActions from '../../store/auth/auth.actions';
 import {getAccessToken, getIsLoggedIn} from '../../store/auth/auth.selectors';
+import { WindowRef } from 'src/app/shared/services/window-ref.service';
 
 @Component({
   selector: 'app-root',
@@ -25,6 +27,7 @@ export class AppComponent implements OnInit {
     private translate: TranslateService,
     private appStore: Store<AppState>,
     private wsService: WSService,
+    private windowRef: WindowRef,
     private checkConnectionService: CheckConnectionService,
     private tabNavigationService: TabNavigationService
   ) {
@@ -33,6 +36,10 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    if (this.windowRef?.nativeWindow?.self !== this.windowRef?.nativeWindow?.top) {
+      return;
+    }
+
     this.appStore.dispatch(new AuthActions.GetAuthProviderInfo());
     const shareTab = new URLSearchParams(location.search).get('shareTab');
     if (shareTab) {
@@ -123,5 +130,28 @@ export class AppComponent implements OnInit {
       }
     });
     this.tabNavigationService.addNavigationEventListeners();
-  }
+
+    fromEvent(window, 'load')
+      .pipe(first())
+      .subscribe(() => {
+        const tabCount = localStorage.getItem('tabCount');
+        const currentTabCount = !isNaN(+tabCount) ? +tabCount + 1 : 1;
+        localStorage.setItem('tabCount', `${currentTabCount}`);
+        if (currentTabCount > 1) {
+          this.appStore.dispatch(
+            new NotificationsActions.AddNotification({
+              message: 'You may encounter synchronization issues, because Web Administrator is already opened in another tab or window.',
+              dismissible: true,
+              closeInterval: 5000,
+              type: 'warning',
+            }),
+          );
+        }
+      });
+
+    fromEvent(window, 'beforeunload').pipe(first()).subscribe(() => {
+      const tabCount = localStorage.getItem('tabCount');
+      localStorage.setItem('tabCount', !isNaN(+tabCount) ? `${+tabCount - 1}` : null);
+    })
+  };
 }

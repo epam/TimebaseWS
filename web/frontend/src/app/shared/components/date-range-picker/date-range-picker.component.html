@@ -1,18 +1,66 @@
-<div class="date-range">
-  <app-btn-date-picker
+<ng-container *ngIf="!timeRangeOptional; else optionalTimeRange">
+  <div class="date-range">
+    <label *ngIf="showLabels">{{ 'importFromFile.labels.startTime' | translate }}</label>
+    <app-btn-date-picker
       (valueChange)="onStartValueChanged($event)"
       [formControl]="startControl"
       [maxDate]="endControl.value"
       [minDate]="minDate"
       [clearBtn]="clearBtn"
       [timeZone]="selectedTimezone$ | async"
-  ></app-btn-date-picker>
-  <app-btn-date-picker
+      [inputDisabled]="rangeDisabled"
+      [inputInvalid]="startInvalid"
+    ></app-btn-date-picker>
+
+    <label *ngIf="showLabels">{{ 'importFromFile.labels.endTime' | translate }}</label>
+    <app-btn-date-picker
       (valueChange)="onEndValueChanged($event)"
       [formControl]="endControl"
       [maxDate]="maxDate"
       [minDate]="startControl.value"
       [timeZone]="selectedTimezone$ | async"
       [clearBtn]="clearBtn"
-  ></app-btn-date-picker>
-</div>
+      [inputDisabled]="rangeDisabled"
+      [inputInvalid]="endInvalid"
+    ></app-btn-date-picker>
+  </div>
+</ng-container>
+
+<ng-template #optionalTimeRange>
+  <div class="row">
+    <div class="col-4 time-range-checkbox">
+      <input class="form-check-input" type="checkbox" (change)="toggleTimeRangeState('start')">
+      <span>{{ 'importFromFile.labels.startTime' | translate }}</span>
+    </div>
+    <div class="col-8">
+      <app-btn-date-picker
+        (valueChange)="onStartValueChanged($event)"
+        [formControl]="startControl"
+        [maxDate]="endControl.value"
+        [minDate]="minDate"
+        [clearBtn]="clearBtn"
+        [timeZone]="selectedTimezone$ | async"
+        [inputDisabled]="timeRangeOptional.startTimeDisabled"
+        [inputInvalid]="timeInvalid.startTime"
+      ></app-btn-date-picker>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-4 time-range-checkbox">
+      <input class="form-check-input" type="checkbox" (change)="toggleTimeRangeState('end')">
+      <span>{{ 'importFromFile.labels.endTime' | translate }}</span>
+    </div>
+    <div class="col-8">
+      <app-btn-date-picker
+        (valueChange)="onEndValueChanged($event)"
+        [formControl]="endControl"
+        [maxDate]="maxDate"
+        [minDate]="startControl.value"
+        [timeZone]="selectedTimezone$ | async"
+        [clearBtn]="clearBtn"
+        [inputDisabled]="timeRangeOptional.endTimeDisabled"
+        [inputInvalid]="timeInvalid.endTime"
+      ></app-btn-date-picker>
+    </div>
+  </div>
+</ng-template>

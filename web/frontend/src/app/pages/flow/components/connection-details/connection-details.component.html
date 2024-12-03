@@ -10,10 +10,10 @@
   </div>
   <div *ngIf="!showTables" class="connection-info">
     <div *ngIf="loadersLength$ | async" [style.color]="colors['loader']">
-      {{ 'titles.flow.loaders' | translate }} {{ loadersLength$ | async }}, RPS: {{ loadersRPS$ | async }}
+      {{ 'titles.flow.loaders' | translate }} {{ loadersLength$ | async }}, Messages Per Second: {{ loadersRPS$ | async }}
     </div>
     <div *ngIf="cursorsLength$ | async" [style.color]="colors['cursor']">
-      {{ 'titles.flow.cursors' | translate }} {{ cursorsLength$ | async }}, RPS: {{ cursorsRPS$ | async }}
+      {{ 'titles.flow.cursors' | translate }} {{ cursorsLength$ | async }}, Messages Per Second: {{ cursorsRPS$ | async }}
     </div>
   </div>
 </div>
@@ -31,7 +31,7 @@
     <div *ngIf="items.length" class="connection-table">
       <div class="connection-table__header">
         <div>ID</div>
-        <div>RPS</div>
+        <div>Messages Per Second</div>
       </div>
       <div *ngFor="let loader of items" class="connection-table__row">
         <div>{{ loader.id }}</div>

@@ -4,7 +4,7 @@
         [appSplitterSizes]="[14, 86]"
         [disabled]="resizerDisable$ | async"
         [fixSizes]="(resizerDisable$ | async) ? [50, null] : null"
-        [minSizes]="[220, 0]"
+        [minSizes]="[280, 0]"
         direction="horizontal"
         storageKey="globalResizer">
       <as-split-area>
@@ -20,4 +20,5 @@
       </as-split-area>
     </as-split>
   </div>
+  <app-playback cdkDrag *ngIf="activePlayBackId" [playbackId]="activePlayBackId"></app-playback>
 </div>

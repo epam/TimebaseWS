@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.timebase.export.imp;
+package com.epam.deltix.tbwg.webapp.services.timebase.export.imp;
 
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
 
@@ -32,8 +32,7 @@ public class FileImportProcessImpl implements FileImportProcess {
 
     private volatile ImportTask task;
     private volatile boolean cancelled;
-
-    private long updateTime;
+    private volatile boolean active;
 
     public FileImportProcessImpl(File directory, String diskFileName, long id, String fileName, long size, ImportSettings settings) {
         this.id = id;
@@ -45,7 +44,6 @@ public class FileImportProcessImpl implements FileImportProcess {
             fileOnDisk.delete();
         }
         fileOnDisk.deleteOnExit();
-        update();
     }
 
     @Override
@@ -55,7 +53,6 @@ public class FileImportProcessImpl implements FileImportProcess {
 
     @Override
     public synchronized void write(InputStream is, long offset, long size) {
-        update();
         try (FileOutputStream outputStream = new FileOutputStream(fileOnDisk, true)) {
             byte[] buffer = new byte[BUFFER_SIZE];
             int length;
@@ -64,14 +61,11 @@ public class FileImportProcessImpl implements FileImportProcess {
             }
         } catch (Throwable t) {
             throw new RuntimeException(t);
-        } finally {
-            update();
         }
     }
 
     @Override
     public InputStream read() throws FileNotFoundException {
-        update();
         return new FileInputStream(fileOnDisk);
     }
 
@@ -91,16 +85,6 @@ public class FileImportProcessImpl implements FileImportProcess {
     }
 
     @Override
-    public long changeTime() {
-        return updateTime;
-    }
-
-    @Override
-    public void update() {
-        updateTime = System.currentTimeMillis();
-    }
-
-    @Override
     public void importTask(ImportTask task) {
         this.task = task;
         if (cancelled) {
@@ -116,6 +100,16 @@ public class FileImportProcessImpl implements FileImportProcess {
     @Override
     public boolean isRunningTask() {
         return task != null && task.getImportState() == ImportState.STARTED;
+    }
+
+    @Override
+    public boolean isActive() {
+        return active;
+    }
+
+    @Override
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     @Override

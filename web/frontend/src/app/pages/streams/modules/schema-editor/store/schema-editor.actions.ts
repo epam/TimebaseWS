@@ -5,6 +5,7 @@ import {
   SchemaClassTypeModel,
 } from '../../../../../shared/models/schema.class.type.model';
 import {StreamMetaDataChangeModel} from '../models/stream.meta.data.change.model';
+import { ClassEnumListItem } from '../models/class-enum-list-item.model';
 
 export enum SchemaEditorActionTypes {
   GET_DEFAULT_TYPES = '[EditSchema] Get Default Types',
@@ -23,8 +24,10 @@ export enum SchemaEditorActionTypes {
 
   ADD_NEW_SCHEMA_ITEM = '[EditSchema] Add New Schema Item',
   REMOVE_SELECTED_SCHEMA_ITEM = '[EditSchema] Remove Selected Schema Item',
+  REMOVE_SCHEMA_ITEMS = '[EditSchema] Remove Schema Items',
   ADD_NEW_FIELD_FOR_SELECTED_SCHEMA_ITEM = '[EditSchema] Add New Field For Selected Schema Item',
   REMOVE_SELECTED_SCHEMA_FIELD = '[EditSchema] Remove Selected Field',
+  REMOVE_SCHEMA_FIELDS = '[EditSchema] Remove Fields',
 
   CHANGE_SELECTED_FIELD_PROPS = '[EditSchema] ChangeSelectedFieldProp',
 
@@ -38,6 +41,8 @@ export enum SchemaEditorActionTypes {
   SAVE_SCHEMA_CHANGES = '[EditSchema] Save schema changes',
   REMOVE_SCHEMA_DIFF = '[EditSchema] Remove schema diff',
   CREATE_STREAM = '[EditSchema] Create Stream',
+
+  UPDATE_SCHEMA_VALIDITY = '[EditSchema] Update Schema Validity'
 }
 
 export const GetDefaultTypes = createAction(SchemaEditorActionTypes.GET_DEFAULT_TYPES);
@@ -46,7 +51,10 @@ export const SetDefaultTypes = createAction(
   props<{defaultTypes: DefaultTypeModel[]}>(),
 );
 
-export const GetSchema = createAction(SchemaEditorActionTypes.GET_SCHEMA);
+export const GetSchema = createAction(
+  SchemaEditorActionTypes.GET_SCHEMA,
+  props<{topic: boolean, streamKey?: string}>(),
+);
 
 export const SetSchema = createAction(
   SchemaEditorActionTypes.SET_SCHEMA,
@@ -74,7 +82,7 @@ export const RemoveSchemaDiff = createAction(
 
 export const CreateStream = createAction(
   SchemaEditorActionTypes.CREATE_STREAM,
-  props<{key: string}>(),
+  props<{key: string, topic: boolean, copyToStream?: string, version: string, distributionFactor: string, noNotification?: boolean}>(),
 );
 
 export const SetStreamId = createAction(
@@ -83,7 +91,7 @@ export const SetStreamId = createAction(
 );
 export const SetSelectedSchemaItem = createAction(
   SchemaEditorActionTypes.SET_SELECTED_SCHEMA_ITEM,
-  props<{itemName: string}>(),
+  props<{itemId: string}>(),
 );
 export const SetSelectedFieldForSchemaItem = createAction(
   SchemaEditorActionTypes.SET_SELECTED_FIELD_OF_SCHEMA_ITEM,
@@ -134,14 +142,25 @@ export const AddNewSchemaItem = createAction(
     title: string;
     isUsed?: boolean;
     parentName?: string;
+    parentId?: string
   }>(),
 );
 
 export const RemoveSelectedSchemaItem = createAction(
   SchemaEditorActionTypes.REMOVE_SELECTED_SCHEMA_ITEM,
 );
+export const RemoveSchemaItems = createAction(
+  SchemaEditorActionTypes.REMOVE_SCHEMA_ITEMS,
+  props<{
+    deletingItems: ClassEnumListItem[]
+  }>()
+)
 export const RemoveSelectedField = createAction(
   SchemaEditorActionTypes.REMOVE_SELECTED_SCHEMA_FIELD,
+);
+export const RemoveSchemaFields = createAction(
+  SchemaEditorActionTypes.REMOVE_SCHEMA_FIELDS,
+  props<{deletingItems: string[]}>()
 );
 export const EditSchemaResetState = createAction(SchemaEditorActionTypes.EDIT_SCHEMA_RESET_STATE);
 
@@ -159,4 +178,9 @@ export const EditSchemaMergeState = createAction(
     classes: SchemaClassTypeModel[];
     enums: SchemaClassTypeModel[];
   }>(),
-)
+);
+
+export const UpdateSchemaAndRemoveType = createAction(
+  SchemaEditorActionTypes.UPDATE_SCHEMA_VALIDITY,
+  props<{ insideModal: boolean, deletingItems?: ClassEnumListItem[] }>(),
+);

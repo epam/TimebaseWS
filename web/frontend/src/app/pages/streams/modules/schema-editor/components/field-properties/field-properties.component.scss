@@ -40,6 +40,10 @@
   }
 }
 
+.no-padding {
+  padding-bottom: 0;
+}
+
 app-pure-form-builder {
   padding: 5 * $ss 5 * $ss 0;
 }

@@ -2,12 +2,12 @@
 
 .import-file-content {
   min-width: 368 * $ss;
-  height: 32rem;
+  height: 80%;
 }
 
 ::ng-deep .modal-xl {
   min-width: 800px;
-  min-height: 665px;
+  min-height: 600px;
 }
 
 .range-labels {
@@ -62,7 +62,6 @@
   padding: 15px 10px 5px;
   border-radius: 4px;
   overflow: auto;
-  min-height: 25rem;
 
   .upload-message {
     margin-bottom: 10px;
@@ -89,9 +88,8 @@
 }
 
 .stream-title {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
-  margin-left: 0.8rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-left: 0.6rem;
 }
 
 .import-progress-container {
@@ -130,6 +128,7 @@
 
 .btn-primary {
   min-width: 90px;
+  z-index: 10;
 }
 
 .uploading-text-and-icon {
@@ -150,4 +149,52 @@ div[footer] {
 
 svg {
   margin-top: -0.3rem;
+}
+
+.form-group {
+  display: flex;
+  justify-content: space-between;
+}
+
+:host ::ng-deep app-multi-select.version-select {
+  width: 7rem;
+  .header {
+    height: 1.8rem !important;
+  }
+}
+
+.version-and-df {
+  display: flex;
+  align-self: right;
+  justify-content: flex-end;
+    div {
+      flex-basis: 7rem;
+      align-self: right;
+      margin-left: 0.4rem;
+    }
+}
+
+:host ::ng-deep  {
+  input.invalid {
+    outline: 1px solid rgb(188, 44, 87);
+  }
+}
+
+.error-messages {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  width: 70%;
+  color: rgb(250, 118, 118);
+  text-align: center;
+}
+
+.error-message {
+  display: inline-block;
+  margin: 0.1rem 0rem;
+  white-space: nowrap;
+}
+
+.error-message-not-empty {
+  margin: 0.1rem 0.8rem;
 }

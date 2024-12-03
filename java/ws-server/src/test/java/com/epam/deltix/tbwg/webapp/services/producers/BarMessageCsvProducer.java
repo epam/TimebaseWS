@@ -30,6 +30,8 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Stream;
 
+import static com.epam.deltix.tbwg.webapp.services.ChartingBaseTest.RESOURCE_FOLDER_PREFIX;
+
 public class BarMessageCsvProducer implements MessageProducer {
 
     private final Runnable run;
@@ -39,8 +41,8 @@ public class BarMessageCsvProducer implements MessageProducer {
         PublishSubject<InstrumentMessage> subject = PublishSubject.create();
         observable = subject;
         run = () -> {
-            InputStream is = getClass().getClassLoader().getResourceAsStream(ChartingBaseTest.RESOURCE_FOLDER_PREFIX + filename);
-            Assertions.assertNotNull(is, "Can't open file resources/" + ChartingBaseTest.RESOURCE_FOLDER_PREFIX + filename + " with messages");
+            InputStream is = getClass().getClassLoader().getResourceAsStream(RESOURCE_FOLDER_PREFIX + filename);
+            Assertions.assertNotNull(is, "Can't open file resources/" + RESOURCE_FOLDER_PREFIX + filename + " with messages");
             // todo try CSVXReader, but fastly it's don't work
             Scanner scanner = new Scanner(new InputStreamReader(is, StandardCharsets.UTF_8));
             String[] columnDescriptions = scanner.nextLine().split(",");
@@ -72,14 +74,28 @@ public class BarMessageCsvProducer implements MessageProducer {
         };
     }
 
-    @Override
-    public Runnable run() {
-        return run;
-    }
 
     @Override
     public Observable<InstrumentMessage> getObservable() {
         return observable;
     }
 
+    @Override
+    public int getEntityIndex() {
+        return 0; //don't need to implement for one symbol dataSource
+    }
+
+    @Override
+    public String getSymbol() {
+        return null; //don't need to implement for one symbol dataSource
+    }
+
+    @Override
+    public void close() {
+    }
+
+    @Override
+    public void run() {
+        run.run();
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 
 import com.epam.deltix.dfp.Decimal64Utils;
@@ -23,6 +22,7 @@ import com.epam.deltix.tbwg.messages.FeedStatusMessage;
 import com.epam.deltix.tbwg.messages.Message;
 import com.epam.deltix.tbwg.messages.SnapshotMessage;
 import com.epam.deltix.tbwg.webapp.model.charting.line.BBOElementDef;
+import com.epam.deltix.timebase.messages.InstrumentMessage;
 import com.epam.deltix.timebase.messages.service.FeedStatus;
 
 import java.util.Collections;
@@ -66,32 +66,35 @@ public class BboAggregationTransformation extends AbstractChartTransformation<BB
 
     @Override
     protected void onNextPoint(BboPoint point) {
-        if (point.getTimeStampMs() < startTime) {
-            return;
-        }
+        if (point instanceof BboPoint) {
+            BboPoint bboPoint = (BboPoint) point;
+            if (bboPoint.getTimeStampMs() < startTime) {
+                return;
+            }
 
-        bidPrice = point.getBidPrice();
-        askPrice = point.getAskPrice();
+            bidPrice = bboPoint.getBidPrice();
+            askPrice = bboPoint.getAskPrice();
 
-        if (bidPrice != Decimal64Utils.NULL && askPrice != Decimal64Utils.NULL) {
-            if (filter.test(point)) {
-                send(point.getTimeStampMs());
+            if (bidPrice != Decimal64Utils.NULL && askPrice != Decimal64Utils.NULL) {
+                if (filter.test(bboPoint)) {
+                    send(bboPoint.getTimeStampMs());
+                }
             }
         }
     }
 
     private void send(long timestamp) {
         bbo.setTime(timestamp);
-        bbo.setBidPrice(Decimal64Utils.toString(bidPrice));
-        bbo.setAskPrice(Decimal64Utils.toString(askPrice));
+        bbo.setBidPrice(Decimal64Utils.toFloatString(bidPrice));
+        bbo.setAskPrice(Decimal64Utils.toFloatString(askPrice));
 
         sendMessage(bbo);
     }
 
     private void sendEmpty(long timestamp) {
         bbo.setTime(timestamp);
-        bbo.setBidPrice(Decimal64Utils.toString(Decimal64Utils.NaN));
-        bbo.setAskPrice(Decimal64Utils.toString(Decimal64Utils.NaN));
+        bbo.setBidPrice(Decimal64Utils.toFloatString(Decimal64Utils.NaN));
+        bbo.setAskPrice(Decimal64Utils.toFloatString(Decimal64Utils.NaN));
 
         sendMessage(bbo);
     }

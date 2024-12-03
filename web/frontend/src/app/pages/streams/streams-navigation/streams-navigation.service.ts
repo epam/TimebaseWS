@@ -13,14 +13,22 @@ export class StreamsNavigationService {
 
   constructor(private router: Router) {}
 
-  url(item: MenuItem, activeTabType: string): string[] {
+  url(item: MenuItem, activeTabType: string, reverseViewIsDefault: boolean): string[] {
     if (!item || item.type === MenuItemType.group) {
       return null;
     }
+
+    if (activeTabType === 'chart' && item.meta.symbol) {
+      return ['chart'];
+    }
+    const isTopic = item.type === MenuItemType.topic;
+    const isSchemaTab = activeTabType === 'schema' || activeTabType === 'schema-edit';
+
+    const topicName = item.id + (isSchemaTab ? '' : '#topic#');
     
     return [
-      ...this.routePrefix(activeTabType, !!item.meta.symbol, !!item.meta.chartType.length),
-      ...[item.meta.stream?.id, item.meta.symbol].filter(Boolean),
+      ...this.routePrefix(activeTabType, !!item.meta.symbol, !!item.meta.chartType.length, isTopic, reverseViewIsDefault),
+      ...[item.meta.stream?.id, item.meta.symbol, isTopic ? topicName : ''].filter(Boolean),
     ];
   }
 
@@ -37,12 +45,23 @@ export class StreamsNavigationService {
     }
 
     const params = {...this.paramsCache.get(key)};
+    const isTopic = item.type === MenuItemType.topic ? true : '';
     
-    params['streamName'] = item.meta.stream.name;
+    params['name'] = !item.meta.symbol ? item.name : item.meta.stream.name;
     params['isView'] = item.meta.isView ? '1' : '';
+    params['isTopic'] = isTopic;
 
     if (item.meta.space) {
       params['space'] = item.meta.space?.id || '';
+    }
+    if (activeTabType === 'chart' && item.meta.symbol) {
+      params['space'] = item.meta.space?.id ?? null;
+      if (isTopic) {
+        params['stream'] = item.id + '#topic#';
+      } else {
+        params['stream'] = item.meta.stream.id; 
+      }
+      params['symbol'] = item.meta.symbol;
     }
 
     return params;
@@ -75,8 +94,9 @@ export class StreamsNavigationService {
 
     delete itemParams['chartType'];
     delete itemParams['chartTypeTitles'];
-    delete itemParams['streamName'];
+    delete itemParams['name'];
     delete itemParams['isView'];
+    delete itemParams['isTopic'];
 
     return (
       routerUrl.startsWith(`${itemUrl}/`) &&
@@ -84,14 +104,26 @@ export class StreamsNavigationService {
     );
   }
 
-  private routePrefix(activeTabType: string, hasSymbol: boolean, hasChartTypes: boolean) {
-    const key = `${activeTabType}-${hasSymbol}-${hasChartTypes}`;
+  private routePrefix(activeTabType: string, hasSymbol: boolean, hasChartTypes: boolean, isTopic: boolean, reverseViewIsDefault: boolean) {
+    let activeTabName: string;
+    if (isTopic && ['schema-edit', 'schema'].includes(activeTabType)) {
+      activeTabName = 'schema';
+    } else if (!isTopic && ['stream-create', 'schema'].includes(activeTabType)) {
+      activeTabName = 'schema-edit';
+    } else if (activeTabType !== 'live' && isTopic) {
+      activeTabName = 'live';
+    } else {
+      activeTabName = activeTabType;
+    }
+
+    const key = `${activeTabName}-${hasSymbol}-${hasChartTypes}-${reverseViewIsDefault}`;
     if (!this.routeStartCache.get(key)) {
       this.routeStartCache.set(key, [
         '/',
         appRoute,
         hasSymbol ? 'symbol' : 'stream',
-        this.openDefault(activeTabType, hasSymbol, hasChartTypes) ? 'view' : activeTabType,
+        this.openDefault(activeTabName, hasSymbol, hasChartTypes) ? 
+          (isTopic ? 'live' : (reverseViewIsDefault ? 'reverse' : 'view')) : activeTabName,
       ]);
     }
 
@@ -102,7 +134,7 @@ export class StreamsNavigationService {
     return (
       this.hasNoCurrentView(activeTabType, hasSymbol, hasChartTypes) ||
       !activeTabType ||
-      ['query', 'flow', 'orderBook'].includes(activeTabType)
+      ['query', 'flow', 'orderBook', 'generateDDL'].includes(activeTabType)
     );
   }
 

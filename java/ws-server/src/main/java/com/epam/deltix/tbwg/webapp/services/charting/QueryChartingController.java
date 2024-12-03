@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,12 +14,12 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.charting;
 
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
+import com.epam.deltix.tbwg.webapp.model.ModelDataSourceType;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.Subscription;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
@@ -29,6 +29,7 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
 import java.time.Instant;
+import java.util.List;
 
 @Controller
 public class QueryChartingController implements SubscriptionController {
@@ -41,6 +42,7 @@ public class QueryChartingController implements SubscriptionController {
     private static final String POINT_INTERVAL_HEADER = "pointInterval";
     private static final String LEVELS_HEADER = "levels";
     private static final String QUERY_HEADER = "query";
+    private static final String SOURCE_HEADER = "source";
 
     private final LiveChartingService liveChartingService;
 
@@ -88,23 +90,29 @@ public class QueryChartingController implements SubscriptionController {
             levels = Integer.parseInt(levelsHeader);
         }
 
-        return subscribe(
-            headerAccessor, channel,
-            chartType, null, query, null,
-            new TimeInterval(startTime, endTime), pointInterval, levels
+        ModelDataSourceType source;
+        try {
+            source = ModelDataSourceType.valueOf(headerAccessor.getFirstNativeHeader(SOURCE_HEADER));
+        } catch (Exception e){
+            throw new IllegalArgumentException("Unknown datasource, specify '" + SOURCE_HEADER + "' STOMP header.");
+        }
+
+        return subscribe(headerAccessor, channel, chartType, query,
+                new TimeInterval(startTime, endTime), pointInterval, levels, source
         );
     }
 
     private Subscription subscribe(SimpMessageHeaderAccessor headerAccessor, SubscriptionChannel channel,
-                                   ChartType chartType, String stream, String query, String instrument,
-                                   TimeInterval timeInterval, long pointInterval, int levels)
+                                   ChartType chartType, String query,
+                                   TimeInterval timeInterval, long pointInterval, int levels,
+                                   ModelDataSourceType source)
     {
         String sessionId = headerAccessor.getSessionId();
         String subscriptionId = headerAccessor.getSubscriptionId();
 
         LOG.info().append("Live chart subscribe: ")
-            .append(stream != null ? stream : query)
-            .append("[").append(instrument != null ? instrument : "")
+            .append(query)
+            .append("[")
             .append("|").append(timeInterval)
             .append("|").append(chartType)
             .append("|").append(pointInterval)
@@ -116,7 +124,7 @@ public class QueryChartingController implements SubscriptionController {
         liveChartingService.subscribe(
             sessionId, subscriptionId,
             new ChartingSettings(
-                stream, query, instrument, chartType, timeInterval, pointInterval, levels
+                null, query, null, chartType, timeInterval, pointInterval, levels, source
             ),
             channel
         );

@@ -139,6 +139,12 @@ export class LogIn implements Action {
 
 export class LogOut implements Action {
   readonly type = AuthActionTypes.LOGOUT;
+
+  constructor(
+    public payload?: {
+      noRedirect?: boolean
+    }
+  ) {}
 }
 
 export class TokenUpdated implements Action {

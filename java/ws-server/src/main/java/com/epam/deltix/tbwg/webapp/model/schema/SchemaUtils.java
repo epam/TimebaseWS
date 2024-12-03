@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,12 +14,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.model.schema;
 
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.pub.md.*;
+import com.epam.deltix.qsrv.hf.pub.md.json.FieldDef;
+import com.epam.deltix.qsrv.hf.pub.md.json.SchemaDef;
 import com.epam.deltix.qsrv.hf.tickdb.schema.*;
 import com.epam.deltix.tbwg.webapp.model.schema.changes.CreateFieldChangeDef;
 import com.epam.deltix.tbwg.webapp.model.schema.changes.FieldChangeWrapper;
@@ -29,7 +30,8 @@ import com.epam.deltix.tbwg.webapp.model.schema.changes.FieldTypeChangeDef;
 import javax.annotation.Nullable;
 import java.util.*;
 
-import static com.epam.deltix.tbwg.webapp.model.schema.SchemaBuilder.getDataTypeDef;
+import static com.epam.deltix.qsrv.hf.pub.md.json.SchemaBuilder.getDataTypeDef;
+import static com.epam.deltix.qsrv.hf.pub.md.json.SchemaBuilder.toSchemaDef;
 
 public final class SchemaUtils {
 
@@ -334,5 +336,17 @@ public final class SchemaUtils {
             }
             return true;
         });
+    }
+
+    public static SchemaDef getSchemaDef(String[] classNames)
+            throws ClassNotFoundException, Introspector.IntrospectionException {
+        Introspector it = Introspector.createEmptyMessageIntrospector();
+        RecordClassDescriptor[] descriptors = new RecordClassDescriptor[classNames.length];
+        for (int i = 0; i < classNames.length; i++) {
+            descriptors[i] = it.introspectRecordClass(Class.forName(classNames[i]));
+        }
+        RecordClassSet set = new RecordClassSet();
+        set.addContentClasses(descriptors);
+        return toSchemaDef(set, false);
     }
 }

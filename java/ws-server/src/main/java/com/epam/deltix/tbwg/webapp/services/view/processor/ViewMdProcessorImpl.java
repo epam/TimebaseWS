@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.view.processor;
 
 import com.epam.deltix.gflog.api.Log;
@@ -69,7 +68,7 @@ public class ViewMdProcessorImpl implements ViewMdEventsListener, ViewProcessing
     public void initialized(ViewMd viewMd) {
         LOGGER.info().append("View init: ").append(viewMd).commit();
 
-        if (!viewMd.getState().isFinal()) {
+        if (!isFinal(viewMd.getState())) {
             actionsExecutor.submit(() -> startTaskAction(viewMd));
         }
     }
@@ -94,7 +93,7 @@ public class ViewMdProcessorImpl implements ViewMdEventsListener, ViewProcessing
 
         if (viewMd.getState() == ViewState.RESTARTED) {
             actionsExecutor.submit(() -> startTaskAction(viewMd));
-        } else if (viewMd.getState().isFinal()) {
+        } else if (isFinal(viewMd.getState())) {
             actionsExecutor.submit(() -> removeTaskAction(viewMd));
         }
     }
@@ -128,6 +127,10 @@ public class ViewMdProcessorImpl implements ViewMdEventsListener, ViewProcessing
             worker.close();
         }
         LOGGER.info().append("Worker removed: ").append(viewMd).commit();
+    }
+
+    public boolean isFinal(ViewState state) {
+        return state == ViewState.FAILED || state == ViewState.COMPLETED || state == ViewState.STOPPED || state == ViewState.REMOVED;
     }
 
 }

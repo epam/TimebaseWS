@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.orderbook;
 
 
@@ -23,9 +22,7 @@ import com.epam.deltix.orderbook.core.api.MarketSide;
 import com.epam.deltix.orderbook.core.api.OrderBook;
 import com.epam.deltix.orderbook.core.api.OrderBookFactory;
 import com.epam.deltix.orderbook.core.api.OrderBookQuote;
-import com.epam.deltix.orderbook.core.options.OrderBookOptionsBuilder;
-import com.epam.deltix.orderbook.core.options.OrderBookType;
-import com.epam.deltix.orderbook.core.options.UpdateMode;
+import com.epam.deltix.orderbook.core.options.*;
 import com.epam.deltix.tbwg.webapp.model.orderbook.*;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
@@ -54,6 +51,7 @@ public class OrderBookDebuggerImpl implements OrderBookDebugger {
 
     private static final String SNAPSHOT_NOT_FOUND_ERROR = "Initial snapshot not found for symbol '%s'. Order book cannot be built.";
     private static final String PACKAGE_HEADER_NOT_FOUND_ERROR = "Package Header messages not found for symbol '%s'. Order book cannot be built.";
+    private static final String ORDER_BOOK_HAS_INVALID_STATE = "Invalid order book state.";
     private static final String ORDER_BOOK_IS_EMPTY_ERROR = "Order book is empty.";
 
     @Value("${order-book-debugger.snapshot-lookup-ms:60000}")
@@ -70,24 +68,24 @@ public class OrderBookDebuggerImpl implements OrderBookDebugger {
         if (request.isReverse()) {
             return reverseSnapshot(
                 request.getStreams(), request.getSymbol(), request.getFrom(),
-                request.getOffset(), request.getTypes(), request.getSymbols(), request.getSpace()
+                request.getOffset(), request.getTypes(), request.getSymbols(), request.getSpace(), request.getLevel()
             );
         } else {
             return snapshot(
                 request.getStreams(), request.getSymbol(), request.getFrom(),
-                request.getOffset(), request.getTypes(), request.getSymbols(), request.getSpace()
+                request.getOffset(), request.getTypes(), request.getSymbols(), request.getSpace(), request.getLevel()
             );
         }
     }
 
     private L2PackageDto snapshot(String[] streamKeys, String symbol, long startTime, long offset,
-                                  String[] types, String[] symbols, String space)
+                                  String[] types, String[] symbols, String space, DataModelType bookLevel)
     {
         boolean snapshotFound = false;
         boolean packageHeaderFound = false;
         long from = startTime == Long.MIN_VALUE ? Long.MIN_VALUE : startTime - snapshotLookupMs;
         try (TickCursor cursor = select(streamKeys, symbols, from, types, space, false)) {
-            OrderBook<OrderBookQuote> book = createOrderBook(symbol);
+            OrderBook<OrderBookQuote> book = createBook(symbol, DataModelType.LEVEL_TWO);
 
             long currentOffset = -1;
             while (cursor.next()) {
@@ -127,18 +125,18 @@ public class OrderBookDebuggerImpl implements OrderBookDebugger {
         } catch (Throwable t) {
             LOGGER.error().append("Failed to build order book").append(t).commit();
 
-            L2PackageDto snapshot = buildBook(startTime, createOrderBook(symbol));
+            L2PackageDto snapshot = buildBook(startTime, createBook(symbol, bookLevel));
             snapshot.error = t.getMessage();
             return snapshot;
         }
 
-        L2PackageDto snapshot = buildBook(startTime, createOrderBook(symbol));
+        L2PackageDto snapshot = buildBook(startTime, createBook(symbol, bookLevel));
         snapshot.error = String.format(PACKAGE_HEADER_NOT_FOUND_ERROR, symbol);
         return snapshot;
     }
 
     private L2PackageDto reverseSnapshot(String[] streamKeys, String symbol, long startTime, long offset,
-                                         String[] types, String[] symbols, String space)
+                                         String[] types, String[] symbols, String space, DataModelType bookLevel)
     {
         boolean snapshotFound = false;
         List<PackageHeaderInfo> messages = new ArrayList<>();
@@ -147,7 +145,7 @@ public class OrderBookDebuggerImpl implements OrderBookDebugger {
             int currentOffset = 0;
 
             while (cursor.next()) {
-                InstrumentMessage message = cursor.getMessage();
+                MessageInfo message = cursor.getMessage();
 
                 if (currentOffset >= offset) {
                     if (messageTimestamp == Long.MIN_VALUE) {
@@ -171,7 +169,7 @@ public class OrderBookDebuggerImpl implements OrderBookDebugger {
             }
 
             if (snapshotFound) {
-                OrderBook<OrderBookQuote> book = createOrderBook(symbol);
+                OrderBook<OrderBookQuote> book = createBook(symbol, bookLevel);
                 for (int i = messages.size() - 1; i >= 0; --i) {
                     if (messages.get(i).getPackageType() != PackageType.INCREMENTAL_UPDATE) {
                         ((PackageHeader) messages.get(i)).setPackageType(PackageType.VENDOR_SNAPSHOT);
@@ -189,33 +187,56 @@ public class OrderBookDebuggerImpl implements OrderBookDebugger {
         } catch (Throwable t) {
             LOGGER.error().append("Failed to build order book").append(t).commit();
 
-            L2PackageDto snapshot = buildBook(startTime, createOrderBook(symbol));
+            L2PackageDto snapshot = buildBook(startTime, createBook(symbol, bookLevel));
             snapshot.error = t.getMessage();
             return snapshot;
         }
 
-        L2PackageDto snapshot = buildBook(startTime, createOrderBook(symbol));
+        L2PackageDto snapshot = buildBook(startTime, createBook(symbol, bookLevel));
         snapshot.error = messages.size() > 0 ?
             String.format(SNAPSHOT_NOT_FOUND_ERROR, symbol) :
             String.format(PACKAGE_HEADER_NOT_FOUND_ERROR, symbol);
         return snapshot;
     }
 
+    private OrderBook<OrderBookQuote> createBook(String symbol, DataModelType bookLevel) {
+        final BindOrderBookOptionsBuilder commonOpt = new OrderBookOptionsBuilder()
+            .symbol(symbol)
+            .quoteLevels(bookLevel);
+            //.allowModifyIncreaseSize(true);
+
+        commonOpt.updateMode(bookLevel == DataModelType.LEVEL_ONE ?
+            UpdateMode.NON_WAITING_FOR_SNAPSHOT :
+            UpdateMode.WAITING_FOR_SNAPSHOT);
+
+        final OrderBookOptions opt = new OrderBookOptionsBuilder()
+            .parent(commonOpt.build())
+            .orderBookType(OrderBookType.SINGLE_EXCHANGE)
+            .build();
+
+        return OrderBookFactory.create(opt);
+    }
+
     private L2PackageDto buildBook(long timestamp, OrderBook<OrderBookQuote> book) {
         L2PackageDto packageDto = new L2PackageDto();
         packageDto.timestamp = timestamp;
-        packageDto.setSecurityId(book.getSymbol().orElse(""));
+        packageDto.setSecurityId(book.getSymbol().orElse(null));
         packageDto.type = L2PackageType.SNAPSHOT_FULL_REFRESH;
         packageDto.entries = new ArrayList<>();
 
         Arrays.asList(new QuoteSide[]{ QuoteSide.ASK, QuoteSide.BID }).forEach(quoteSide -> {
             MarketSide<OrderBookQuote> side = book.getMarketSide(quoteSide);
-            for (short i = 0; i < side.depth(); ++i) {
-                OrderBookQuote quote = side.getQuote(i);
+            short level = -1;
+            for (OrderBookQuote quote : side) {
+                level++;
+
+                if (quote == null) {
+                    continue;
+                }
 
                 L2EntryDto l2Entry = new L2EntryDto();
                 l2Entry.action = L2Action.INSERT;
-                l2Entry.level = i;
+                l2Entry.level = level;
                 l2Entry.setPrice(quote.getPrice());
                 l2Entry.setQuantity(quote.getSize());
                 l2Entry.side = quoteSide == QuoteSide.BID ? Side.BUY : Side.SELL;
@@ -281,14 +302,14 @@ public class OrderBookDebuggerImpl implements OrderBookDebugger {
         return instruments.toArray(new IdentityKey[instruments.size()]);
     }
 
-    private OrderBook<OrderBookQuote> createOrderBook(String symbol) {
-        return OrderBookFactory.create(
-            new OrderBookOptionsBuilder()
-                .symbol(symbol)
-                .orderBookType(OrderBookType.SINGLE_EXCHANGE)
-                .updateMode(UpdateMode.WAITING_FOR_SNAPSHOT)
-                .quoteLevels(DataModelType.LEVEL_TWO)
-                .build()
-        );
-    }
+//    private OrderBook<OrderBookQuote> createOrderBook(String symbol) {
+//        return OrderBookFactory.create(
+//            new OrderBookOptionsBuilder()
+//                .symbol(symbol)
+//                .orderBookType(OrderBookType.SINGLE_EXCHANGE)
+//                .updateMode(UpdateMode.WAITING_FOR_SNAPSHOT)
+//                .quoteLevels(DataModelType.LEVEL_TWO)
+//                .build()
+//        );
+//    }
 }

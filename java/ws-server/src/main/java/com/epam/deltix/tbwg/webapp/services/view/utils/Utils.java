@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,12 +14,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.view.utils;
 
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
-import com.epam.deltix.qsrv.hf.pub.md.ClassDescriptor;
 import com.epam.deltix.qsrv.hf.pub.md.ClassSet;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassSet;
@@ -112,7 +110,20 @@ public class Utils {
 //
 //        return mapping;
 //    }
-//
+
+    public static boolean isSchemaValid(DXTickStream stream, RecordClassDescriptor[] types) {
+        SchemaAnalyzer schemaAnalyzer = new SchemaAnalyzer(Utils.getSchemaMapping(types, stream.getTypes()));
+        RecordClassSet fileSchema = new RecordClassSet(types);
+        RecordClassSet streamSchema = new RecordClassSet(stream.getTypes());
+        StreamMetaDataChange change = schemaAnalyzer.getChanges(
+                fileSchema, MetaDataChange.ContentType.Polymorphic,
+                streamSchema, MetaDataChange.ContentType.Polymorphic
+        );
+
+        SchemaChange.Impact changeImpact = change.getChangeImpact();
+        return changeImpact == SchemaChange.Impact.None || changeImpact == SchemaChange.Impact.DataConvert ;
+    }
+
     public static RecordClassDescriptor findType(RecordClassDescriptor[] types, RecordClassDescriptor type) {
 //        ClassMappings classMappings = new ClassMappings();
         String name = type.getName();
@@ -127,5 +138,14 @@ public class Utils {
 
         return null;
     }
+
+//    public static RecordClassDescriptor[] updateTypes(RecordClassDescriptor[] types) {
+//        SchemaUpdater migrator = new SchemaUpdater(new ClassMappings());
+//        try {
+//            return migrator.update(types);
+//        } catch (Exception e) {
+//            return types;
+//        }
+//    }
 
 }

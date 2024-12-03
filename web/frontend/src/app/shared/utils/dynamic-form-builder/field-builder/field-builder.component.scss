@@ -35,3 +35,8 @@ select {
   text-transform: initial;
   flex-basis: auto;
 }
+
+.invalid:not(.form-group) {
+  outline: 1px solid rgba(249, 42, 42, 0.8);
+  background-color: rgba(249, 42, 42, 0.05);
+}

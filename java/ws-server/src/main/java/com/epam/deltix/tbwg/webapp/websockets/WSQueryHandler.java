@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,10 +14,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.websockets;
 
 import com.epam.deltix.gflog.api.LogLevel;
+import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickDB;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import com.google.gson.JsonParseException;
 import com.epam.deltix.qsrv.hf.pub.ChannelQualityOfService;
@@ -61,6 +61,8 @@ public class WSQueryHandler extends WSHandler {
             try {
                 WSMessage wsMessage = gson.fromJson(message.getPayload(), WSMessage.class);
                 if (wsMessage.messageType == MessageType.SUBSCRIBE_QUERY) {
+                    DXTickDB connection = openConnection(session);
+
                     if (isTaskExists(session)) {
                         LOGGER.info("Task for session %s already exists. Resubscribe is not supported...").with(session.getId());
                         session.sendMessage(new TextMessage(
@@ -121,4 +123,15 @@ public class WSQueryHandler extends WSHandler {
 
         super.handleTextMessage(session, message);
     }
+
+//    private IdentityKey[] listIdentities(List<String> symbols) {
+//        List<IdentityKey> ids = new ArrayList<>();
+//        for (String symbol : symbols) {
+//            for (InstrumentType type : types) {
+//                ids.add(new ConstantInstrumentKey(type, symbol));
+//            }
+//        }
+//
+//        return ids.toArray(new IdentityKey[0]);
+//    }
 }

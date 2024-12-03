@@ -1,19 +1,17 @@
 import { Component, OnDestroy, OnInit }                    from '@angular/core';
-import { UntypedFormBuilder, FormControl, UntypedFormGroup, Validators } from '@angular/forms';
+import { AbstractControl, UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { Store }                                           from '@ngrx/store';
 import { TranslateService }                   from '@ngx-translate/core';
 import { BsModalRef }                         from 'ngx-bootstrap/modal';
-import { of, ReplaySubject }                                   from 'rxjs';
-import { debounceTime, delay, map, switchMap, takeUntil, tap } from 'rxjs/operators';
+import { BehaviorSubject, Subject }                                   from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { AppState }                                            from '../../../../../core/store';
 import { ErrorLocation }                      from '../../../../../shared/models/query';
 import { MonacoQqlConfigService }             from '../../../../../shared/services/monaco-qql-config.service';
 import { MonacoQqlTokensService }             from '../../../../../shared/services/monaco-qql-tokens.service';
 import { ViewsService }                       from '../../../../../shared/services/views.service';
 import { noSpecialSymbols }                   from '../../../../../shared/utils/validators';
-import { QueryService }                       from '../../../../query/services/query.service';
-import * as NotificationsActions
-                                              from '../../../../../core/modules/notifications/store/notifications.actions';
+import * as NotificationsActions from '../../../../../core/modules/notifications/store/notifications.actions';
 
 @Component({
   selector: 'app-create-view-modal',
@@ -28,14 +26,16 @@ export class CreateViewModalComponent implements OnInit, OnDestroy {
   errorLocation: ErrorLocation;
   form: UntypedFormGroup;
   beErrorText: string;
-  queryError: string;
+  queryText = '';
+  qureryError = true;
+  titleControl: AbstractControl;
+  isLiveControl: AbstractControl;
+  editorIsReady$ = new BehaviorSubject(false);
   
-  private destroy$ = new ReplaySubject();
+  private destroy$ = new Subject();
   
   constructor(
-    private queryService: QueryService,
     private viewsService: ViewsService,
-    private monacoQqlConfigService: MonacoQqlConfigService,
     private fb: UntypedFormBuilder,
     private bsModalRef: BsModalRef,
     private appStore: Store<AppState>,
@@ -48,11 +48,14 @@ export class CreateViewModalComponent implements OnInit, OnDestroy {
       query: [null],
       live: true
     });
+
+    this.titleControl = this.form.get('title');
+    this.isLiveControl = this.form.get('live');
   }
   
   createView() {
-    const {title, query, live} = this.form.getRawValue();
-    this.viewsService.save(title, query, live).pipe(
+    const {title, live} = this.form.getRawValue();
+    this.viewsService.save(title, this.queryText, live).pipe(
       switchMap(() => this.translateService.get('qqlEditor.createViewModal.successCreated', {name: title})),
     ).subscribe((message) => {
       this.bsModalRef.hide();
@@ -68,6 +71,15 @@ export class CreateViewModalComponent implements OnInit, OnDestroy {
       this.form.get('title').setErrors({beError: true});
       this.beErrorText = error.error.message;
     });
+  }
+
+  queryChanged({ text, error }) {
+    this.queryText = text;
+    this.qureryError = error;
+  }
+
+  setEditorAsReady() {
+    this.editorIsReady$.next(true);
   }
   
   ngOnDestroy() {

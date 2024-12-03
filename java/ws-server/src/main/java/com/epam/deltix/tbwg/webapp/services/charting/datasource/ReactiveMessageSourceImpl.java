@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.charting.datasource;
 
 import com.epam.deltix.timebase.messages.InstrumentMessage;
@@ -26,11 +25,11 @@ public class ReactiveMessageSourceImpl implements ReactiveMessageSource {
 
     private final AtomicBoolean isRun = new AtomicBoolean();
 
-    private final Runnable run;
+    private final ChartDataSource dataSource;
     private final Observable<InstrumentMessage> observable;
 
-    public ReactiveMessageSourceImpl(Runnable run, Observable<InstrumentMessage> observable) {
-        this.run = run;
+    public ReactiveMessageSourceImpl(ChartDataSource dataSource, Observable<InstrumentMessage> observable) {
+        this.dataSource = dataSource;
         this.observable = observable;
     }
 
@@ -40,12 +39,17 @@ public class ReactiveMessageSourceImpl implements ReactiveMessageSource {
             throw new IllegalStateException("Query already run");
         }
 
-        run.run();
+        dataSource.run();
     }
 
     @Override
     public Observable<InstrumentMessage> getMessageSource() {
         return observable;
+    }
+
+    @Override
+    public ChartDataSource getDataSource() {
+        return dataSource;
     }
 
     @Override

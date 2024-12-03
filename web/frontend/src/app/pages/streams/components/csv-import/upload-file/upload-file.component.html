@@ -1,4 +1,4 @@
-<div class="upload-file-container">
+<div class="upload-file-container" [ngClass]=" { 'max-height-100': !!stream }">
   <form class="form-group files-form-group" [formGroup]="form">
     <div class="buttons-container">
       <div class="file-input-container">
@@ -27,7 +27,7 @@
       </span>
     </button>
   </div>
-  <div class="uploaded-files-container">
+  <div class="uploaded-files-container" [ngStyle]=" { 'border': invalid ? '1px solid rgb(188, 44, 87)' : '1px solid transparent' }">
     <ul>
       <ng-container *ngIf="uploadedFileNamesSorted?.length; else defaultFileOrder">
         <li *ngFor="let fileName of uploadedFileNamesSorted" class="uploaded-file-title">

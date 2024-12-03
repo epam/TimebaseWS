@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.websockets.subscription;
 
 import com.epam.deltix.gflog.api.Log;
@@ -22,8 +21,13 @@ import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
 import com.epam.deltix.tbwg.webapp.model.ErrorDef;
 import com.epam.deltix.tbwg.webapp.services.MetricsService;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
+import com.epam.deltix.tbwg.webapp.services.timebase.connections.TbUserDetails;
 import com.epam.deltix.tbwg.webapp.utils.HeaderAccessorHelper;
+import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
 import com.epam.deltix.tbwg.webapp.websockets.WebSocketUtils;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.Message;
@@ -39,9 +43,8 @@ import org.springframework.messaging.support.ExecutorChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.security.Principal;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Lazy
@@ -73,6 +76,10 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
     @Autowired
     @Lazy
     private SimpMessagingTemplate messagingTemplate;
+
+    @Autowired
+    @Lazy
+    private TimebaseService timebaseService;
 
     private final MetricsService metrics;
 
@@ -182,8 +189,12 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
                 );
                 Subscription subscription = null;
 
+                Principal principal = headers.getUser();
+                TbUserDetails details = TbUserDetails.create(TBWGUtils.getIp(headers));
+                timebaseService.login(principal, details);
                 try {
                     subscription = controller.onSubscribe(headers, channel);
+                    timebaseService.openSession(principal, details, getSessionId(sessionId, subscriptionId));
                 } catch (final Throwable e) {
                     LOG.warn("SubscriptionService controller thew an exception on subscribe: : session=%s, subscription=%s, destination=%s, exception=%s")
                             .with(sessionId)
@@ -192,6 +203,8 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
                             .with(e);
 
                     channel.sendError(e);
+                } finally {
+                    timebaseService.logout(principal, details);
                 }
 
                 if (subscription != null) {
@@ -201,9 +214,11 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
         }
 
         private synchronized void onUnsubscribe(final SimpMessageHeaderAccessor header) {
+            final Principal principal = header.getUser();
             final String destination = header.getDestination();
             final String sessionId = header.getSessionId();
             final String subscriptionId = header.getSubscriptionId();
+            final TbUserDetails details = TbUserDetails.create(TBWGUtils.getIp(header));
 
             Objects.requireNonNull(sessionId);
             Objects.requireNonNull(subscriptionId);
@@ -213,21 +228,25 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
                 .with(subscriptionId)
                 .with(destination);
 
+            timebaseService.closeSession(principal, details, getSessionId(sessionId, subscriptionId));
             removeSubscription(sessionId, subscriptionId);
         }
 
         private synchronized void onDisconnect(final SimpMessageHeaderAccessor header) {
+            final Principal principal = header.getUser();
             final String destination = header.getDestination();
             final String sessionId = header.getSessionId();
-            final String subscriptionId = header.getSubscriptionId();
+            final TbUserDetails details = TbUserDetails.create(TBWGUtils.getIp(header));
 
-            LOG.debug("SubscriptionService disconnects: session=%s, subscription=%s, destination=%s")
+            LOG.debug("SubscriptionService disconnects: session=%s, destination=%s")
                     .with(sessionId)
-                    .with(subscriptionId)
                     .with(destination);
 
             Objects.requireNonNull(sessionId);
-            removeSubscriptions(sessionId);
+            List<String> subscriptionIds = removeSubscriptions(sessionId);
+            for (String subscriptionId : subscriptionIds) {
+                timebaseService.closeSession(principal, details, getSessionId(sessionId, subscriptionId));
+            }
         }
 
         private SubscriptionController findController(String destination) {
@@ -279,9 +298,11 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
             }
         }
 
-        private void removeSubscriptions(String sessionId) {
+        private List<String> removeSubscriptions(String sessionId) {
+            List<String> removedSubscriptions = new ArrayList<>();
             Map<String, SubscriptionInfo> subscriptionBySession = subscriptions.remove(sessionId);
             if (subscriptionBySession != null) {
+                removedSubscriptions.addAll(subscriptionBySession.keySet());
                 for (SubscriptionInfo subscription : subscriptionBySession.values()) {
                     try {
                         subscription.subscription.onUnsubscribe();
@@ -295,6 +316,8 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
             }
 
             disconnectedSubscriptions.remove(sessionId);
+
+            return removedSubscriptions;
         }
 
         private Long getDisconnectedSubscription(String sessionId, String subscriptionId) {
@@ -320,6 +343,10 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
 
         private String makeFullDestination(String destination, String sessionId, String subscriptionId) {
             return destination + "?session=" + sessionId + "&subscription=" + subscriptionId;
+        }
+
+        private String getSessionId(String sessionId, String subscriptionId) {
+            return sessionId + "|" + subscriptionId;
         }
 
     }
@@ -359,6 +386,22 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
                 new ErrorDef(payload.toString(), "stomp_error"),
                 headers
             );
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+
+            if (!(o instanceof SubscriptionChannelImpl)) return false;
+
+            SubscriptionChannelImpl that = (SubscriptionChannelImpl) o;
+
+            return new EqualsBuilder().append(destination, that.destination).append(destinationKey, that.destinationKey).append(session, that.session).isEquals();
+        }
+
+        @Override
+        public int hashCode() {
+            return new HashCodeBuilder(17, 37).append(destination).append(destinationKey).append(session).toHashCode();
         }
     }
 

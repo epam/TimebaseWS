@@ -44,7 +44,7 @@
   transform: translateY(-50%);
   display: flex;
   align-items: center;
-  width: 20px;
+  width: 22px;
   cursor: pointer;
 
   &::after {
@@ -59,20 +59,32 @@
 
   svg {
     height: 30px;
+    padding-right: 2px;
   }
 }
 
 .common-dropdown {
   .dropdown-item {
     padding: 0;
+    &:last-of-type {
+      padding-left: 1.6rem;
+    }
 
     a {
-      padding: 7px 10px;
+      padding: 3px 10px;
       color: $white;
     }
 
     .checkmark {
-      margin: 7px 10px;
+      margin: 3px 10px;
+    }
+  }
+}
+
+.dropdown-menu.common-dropdown {
+  .dropdown-item {
+    a {
+      padding: 0.2rem 5 * $ss;         
     }
   }
 }
@@ -97,4 +109,8 @@
   margin-top: -0.5px;
   display: flex;
   align-items: center;
+}
+
+.dropdown-divider {
+  margin: 0.2rem 0;
 }

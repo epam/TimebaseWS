@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.timebase.export.imp;
+package com.epam.deltix.tbwg.webapp.services.timebase.export.imp;
 
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
 import com.epam.deltix.util.lang.Disposable;
@@ -25,10 +25,6 @@ public interface ImportProcess extends Disposable {
 
     long getSize();
 
-    long changeTime();
-
-    void update();
-
     void importTask(ImportTask task);
 
     boolean ready();
@@ -36,4 +32,8 @@ public interface ImportProcess extends Disposable {
     boolean isRunningTask();
 
     void updateTaskChannel(SubscriptionChannel channel);
+
+    boolean isActive();
+
+    void setActive(boolean active);
 }

@@ -7,8 +7,20 @@
       </button>
     </div>
   </div>
+  <div class="filter__item nodes-filter">
+    <label>{{ 'titles.filter' | translate }}: </label>
+    <label class="filter-type">{{ 'titles.filter_by_name' | translate }}</label>
+    <app-multi-select
+        formControlName="nodes"
+        placeholder="Select"
+        [items]="nodesList$ | async"
+        [flat]="true"
+    ></app-multi-select>
+  </div>
   <div class="filter__item">
-    <label>{{ 'titles.filter_by_RPS' | translate }}</label>
+    <label class="filter-type" [tooltip]="'titles.MPS' | translate" placement="bottom">
+      {{ 'titles.filter_by_MPS' | translate }}
+    </label>
     <div class="rps-filter-type">
       <app-select class="flat-multiselect in-modal"
           [displayValue]="(rpsFilterTypeVal$ | async) | translate"
@@ -19,7 +31,7 @@
         </option>
       </app-select>
     </div>
-    <deltix-ng-autocomplete
+    <deltix-ng-autocomplete *ngIf="form.get('rpsType').value !== 'all'"
         cssClass="in-modal"
         (changeInput)="onRPSFilterChangeInput($event)"
         (selectItem)="onRPSFilterChangeInput($event)"
@@ -27,18 +39,10 @@
         [size]="6"
         [free]="true"
         formControlName="rpsVal"
-        maxlength="3">
+        maxlength="3"
+        [tooltip]="'titles.MPS_value' | translate" 
+        placement="bottom">
     </deltix-ng-autocomplete>
-  </div>
-  <div class="filter__item nodes-filter">
-    <label>{{ 'titles.filter' | translate }}: </label>
-    <label>{{ 'titles.filter_by_name' | translate }}</label>
-    <app-multi-select
-        formControlName="nodes"
-        placeholder="Select"
-        [items]="nodesList$ | async"
-        [flat]="true"
-    ></app-multi-select>
   </div>
 </form>
 

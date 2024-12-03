@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,8 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.timebase.csvimport;
+package com.epam.deltix.tbwg.webapp.services.timebase.csvimport;
 
+import com.epam.deltix.qsrv.hf.pub.md.json.SchemaDef;
 import com.epam.deltix.tbwg.webapp.model.input.FieldMappingValidateResponse;
 import com.epam.deltix.tbwg.webapp.model.input.FieldToColumnMapping;
 import com.epam.deltix.tbwg.webapp.model.input.FieldValidateResponse;
@@ -48,11 +49,11 @@ public interface CsvImportService {
 
     long getProcessId(String id);
 
-    void startImport(long processId, CsvImportSettings settings, SubscriptionChannel channel);
+    void startImport(String id, SubscriptionChannel channel);
 
     CsvImportSettings generateDefaultSettings(String id, String streamKey);
 
-    String initImport();
+    String initImport(String streamKey);
 
     void addPreview(String id, MultipartFile files, boolean fullFile);
 
@@ -62,11 +63,15 @@ public interface CsvImportService {
 
     List<String[]> getPreviewFileData(String id, String fileName, CsvImportSettings settings);
 
-    CsvImportSettings getSettings(String id);
-
     Set<String> getHeadersSet(String id, char separator, String charset);
 
+    SchemaDef generateSchema(String id, boolean enumCheck, int enumValuesCount, int enumRepeatRate, boolean staticCheck);
+
     List<FieldToColumnMapping> getMappings(String id, CsvImportGeneralSettings settings);
+
+    void setActiveImport(String id);
+
+    void inactiveImport(String id);
 
     StreamingResponseBody getImportLog(String id);
 }

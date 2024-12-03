@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.tree;
+package com.epam.deltix.tbwg.webapp.services.tree;
 
 import com.epam.deltix.qsrv.hf.tickdb.pub.DBStateListener;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DBStateNotifier;
@@ -30,7 +30,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -44,17 +43,11 @@ public class TimeBaseTreeServiceImpl implements TimeBaseTreeService, DBStateList
 
         public TreePath(String path) {
             if (path.equals("/")) {
-                this.elements = new String[] { "" };
+                this.elements = new String[]{""};
             } else {
                 this.elements = Arrays.stream(path.split("/", -1))
-                    .map(e -> {
-                        try {
-                            return URLDecoder.decode(e, StandardCharsets.UTF_8.toString());
-                        } catch (UnsupportedEncodingException ex) {
-                            throw new RuntimeException(ex);
-                        }
-                    })
-                    .toArray(String[]::new);
+                        .map(e -> URLDecoder.decode(e, StandardCharsets.UTF_8))
+                        .toArray(String[]::new);
             }
         }
 
@@ -85,7 +78,7 @@ public class TimeBaseTreeServiceImpl implements TimeBaseTreeService, DBStateList
         this.timebaseService = timebaseService;
         this.viewService = viewService;
         this.spaceEntitiesCache = new SpaceEntitiesCacheImpl();
-        messagesService.subscribe(this);
+        messagesService.masterNotifier().subscribe(this);
     }
 
     @PreDestroy
@@ -126,14 +119,14 @@ public class TimeBaseTreeServiceImpl implements TimeBaseTreeService, DBStateList
     }
 
     @Override
-    public TreeNodeDef buildTree(List<String> paths, TreeFilter filter, boolean showSpaces, boolean views) {
+    public TreeNodeDef buildTree(List<String> paths, TreeFilter filter, boolean showSpaces, boolean views, boolean filterRootOnly) {
         List<TreePath> treePaths = paths.stream()
             .map(TreePath::new)
             .collect(Collectors.toList());
 
         return walk(
             new TickDbTreeNode(
-                new TreeConfig(filter, showSpaces, views, settings, splitGroupsStrategy, spaceEntitiesCache),
+                new TreeConfig(filter, showSpaces, views, filterRootOnly, settings, splitGroupsStrategy, spaceEntitiesCache),
                 timebaseService, viewService
             ),
             treePaths, 1
@@ -141,35 +134,35 @@ public class TimeBaseTreeServiceImpl implements TimeBaseTreeService, DBStateList
     }
 
     @Override
-    public String findSymbol(String stream, String symbol, boolean showSpaces, boolean views) {
-        // todo: the method is in progress
-
+    public TreeNodeDef findSymbolTree(String stream, String symbol, boolean showSpaces, boolean views) {
         TickDbTreeNode dbTreeNode = new TickDbTreeNode(
-            new TreeConfig(null, showSpaces, views, settings, splitGroupsStrategy, spaceEntitiesCache),
+            new TreeConfig(null, showSpaces, views, false, settings, splitGroupsStrategy, spaceEntitiesCache),
             timebaseService, viewService
         );
 
-        String result = "";
         TreeNode<?> node = dbTreeNode.addChild(stream);
-        if (node == null) {
-            return result;
-        }
 
         while (true) {
-            result += "/" + node.treeNode.getId();
+            if (node == null) {
+                break;
+            } else {
+                node.addAllChildren();
+            }
+
+            String id = node.treeNode.getId();
+            if (id.equals(symbol)) break;
+
             if (node instanceof SymbolGroupTreeNode) {
                 node = ((SymbolGroupTreeNode) node).findSymbol(symbol);
                 continue;
             } else if (node instanceof SpaceGroupTreeNode) {
-
-            } else if (node instanceof SymbolTreeNode) {
-                break;
+                node = ((SpaceGroupTreeNode) node).findSymbol(symbol);
+                continue;
             }
-
             break;
         }
 
-        return result;
+        return dbTreeNode.getTreeNodeDef();
     }
 
     private static TreeNode<?> walk(TreeNode<?> node, List<TreePath> treePaths, int depth) {

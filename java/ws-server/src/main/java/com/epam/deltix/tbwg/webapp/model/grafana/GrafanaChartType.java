@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model.grafana;
+package com.epam.deltix.tbwg.webapp.model.grafana;
 
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 
@@ -28,7 +28,7 @@ public enum GrafanaChartType {
             case BARS:
                 return ChartType.BARS;
             case PRICES_L2:
-                return ChartType.PRICES_L2;
+                return ChartType.PRICE_LEVELS;
             default:
                 return null;
         }

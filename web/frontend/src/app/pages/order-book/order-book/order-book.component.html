@@ -10,8 +10,11 @@
   <div [style.flex-basis.%]="headerPercents[2]" class="size">{{ 'orderBook.size' | translate }}</div>
   <div [style.flex-basis.%]="headerPercents[3]" class="exchange">{{ 'orderBook.exchange' | translate }}</div>
 </div>
+<div *ngIf="inDepthChart && noDataForInDepthChart && noChartMessageVisible" class="order-book-chart-no-data">
+  <div>{{ 'orderBook.noInDepthChart' | translate }}</div>
+</div>
 <div
-    *ngIf="inDepthChart"
+    *ngIf="inDepthChart && !noDataForInDepthChart"
     (appClickOutside)="closeOrientationDropDown()"
     [style.left.px]="bookWidth + padding"
     (click)="toggleOrientationDropDown()"

@@ -1,10 +1,9 @@
 import { HttpErrorResponse }                                             from '@angular/common/http';
-import { Component, OnDestroy, OnInit }                                  from '@angular/core';
-import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
-import { HdDate }                                                        from '@assets/hd-date/hd-date';
+import { Component, OnDestroy, OnInit, TemplateRef, ViewChild }                       from '@angular/core';
+import { UntypedFormBuilder, UntypedFormGroup, Validators }              from '@angular/forms';
 import { select, Store }                                                 from '@ngrx/store';
 import { TranslateService }                                              from '@ngx-translate/core';
-import { BsModalRef }                                                    from 'ngx-bootstrap/modal';
+import { BsModalRef, BsModalService }                                                    from 'ngx-bootstrap/modal';
 import {
   BehaviorSubject,
   combineLatest,
@@ -12,6 +11,7 @@ import {
   of,
   ReplaySubject,
   Subject,
+  Subscription,
   throwError,
 }                                                                        from 'rxjs';
 import {
@@ -31,7 +31,6 @@ import { dateToTimezone }       from '../../../../../shared/locale.timezone';
 import { GlobalFiltersService } from '../../../../../shared/services/global-filters.service';
 import { ImportService }        from '../../../../../shared/services/import.service';
 import { StreamsService }       from '../../../../../shared/services/streams.service';
-import { toUtc }                from '../../../../../shared/utils/hdDateUtils';
 import {
   dateToUTC,
   getTimeZones,
@@ -47,6 +46,20 @@ import { PeriodicityType }                                               from '.
 import * as fromStreams
                                                                          from '../../../store/streams-list/streams.reducer';
 import { streamsListStateSelector }                                      from '../../../store/streams-list/streams.selectors';
+import { StreamModel } from '../../../models/stream.model';
+import { SchemaClassTypeModel } from 'src/app/shared/models/schema.class.type.model';
+import { SeLayoutComponent } from '../../../modules/schema-editor/components/se-layout/se-layout.component';
+import { AppState } from 'src/app/core/store';
+import { getActiveTab } from '../../../store/streams-tabs/streams-tabs.selectors';
+import * as NotificationsActions from '../../../../../core/modules/notifications/store/notifications.actions';
+import * as StreamsActions from '../../../store/streams-list/streams.actions';
+import { KeyValue } from '@angular/common';
+
+const minHeightValues = {
+  fileInput: 570,
+  schema: 665,
+  uploading: 350
+};
 
 @Component({
   selector: 'app-modal-import-QSMSG-file',
@@ -54,11 +67,15 @@ import { streamsListStateSelector }                                      from '.
   styleUrls: ['./modal-import-QSMSG-file.component.scss'],
 })
 export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
+  @ViewChild(SeLayoutComponent) schemaEditor!: SeLayoutComponent;
+  @ViewChild('dataLossWarning') dataLossWarning: TemplateRef<HTMLElement>;
+
   form: UntypedFormGroup;
   autocomplete$: Observable<string[]>;
   
   uploading = false;
   uploadingFile = false;
+  uploadingFileProgress = 0;
   importFinished = false;
   importError = false;
   progress$: Observable<number>;
@@ -70,10 +87,36 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
   nullTimezone = nullTimezone;
   showFileBy$: Observable<boolean>;
   fileByConfig = ['space', 'symbol'];
+  versionOptions = [ { id: '4', name: '4' }, { id: '5', name: '5' } ];
   stream: string;
+  displayStreamName: string;
   existingStream$: Observable<string>;
-  streamsKeys: string[];
-  
+  newStreamCreated: boolean = false;
+  streamList: StreamModel[];
+  importStep: 'fileInput' | 'schema' = 'fileInput';
+  distributionFactorOptions = ['1', 'MAX'];
+  fileUploadingSubscription: Subscription;
+  schema: { types: SchemaClassTypeModel[]; all: SchemaClassTypeModel[] };
+  nameOfCreatingStream: string;
+  schemaButtonDisabled: boolean = false;
+  importButtonDisabled: boolean = false;
+  schemaEditingDisabled: boolean = false;
+  minHeight: number = minHeightValues.fileInput;
+  stremaKey: string;
+  conformationModalOpen = false;
+  schemaInvalid$: Observable<boolean>;
+  showDistributionFactorInput$ = new BehaviorSubject(false);
+  importToExistingStream: boolean;
+  validationErrorMessages = {
+    file: '',
+    stream: '',
+    distributionFactor: '',
+    startTime: '',
+    endTime: '',
+    timeRange: ''
+  };
+
+  private confirmationModal: BsModalRef;
   private uploadProgress$ = new BehaviorSubject(0);
   private importProgress$ = new BehaviorSubject(0);
   private uploadId: number;
@@ -85,9 +128,11 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
     private streamsStore: Store<fromStreams.FeatureState>,
     private importService: ImportService,
     private bsModalRef: BsModalRef,
+    private modalService: BsModalService,
     private translateService: TranslateService,
     private globalFiltersService: GlobalFiltersService,
     private streamsService: StreamsService,
+    private appStore: Store<AppState>,
   ) {}
   
   ngOnInit(): void {
@@ -110,23 +155,31 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
       id: timezone.name,
       name: getTimeZoneTitle(timezone),
     }));
-    
+
     const validateRange = (fg: UntypedFormGroup) => {
       if (!fg.get('setRange').value) {
         return null;
       }
       
-      const range = fg.get('range').value;
+      const rangeControl = fg.get('range');
+      const range = rangeControl.value;
       
-      return range.start || range.end ? null : {needRange: true};
+      if (rangeControl.touched) {
+        this.validationErrorMessages.startTime = range.start && range.start === 'Invalid Date' ? 'Invalid start time' : '';
+        this.validationErrorMessages.endTime = range.end && range.end === 'Invalid Date' ? 'Invalid end time' : '';
+        this.validationErrorMessages.timeRange = !range.start && !range.end ? 'Invalid time range' : '';
+      }
+      
+      return range.start !== 'Invalid Date' && range.end !== 'Invalid Date' && (range.start || range.end) ? 
+        null : { needRange: true };
     };
     
     this.form = this.fb.group(
       {
         file: [null, Validators.required],
         fileBy: 'space',
-        stream: [this.stream || '', Validators.required],
-        writeMode: WriteMode.append,
+        stream: ['', Validators.required],
+        writeMode: WriteMode.rewrite,
         description: '',
         symbols: [[]],
         setRange: false,
@@ -137,19 +190,43 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
           },
           {
             validators: (group: UntypedFormGroup) => {
-              if (group.get('type').value[0].id !== PeriodicityType.regular) {
+              if (group.value.type !== PeriodicityType.regular) {
                 return null;
               }
-              
-              return group.get('value').value?.aggregation ? null : {required: true};
+              return group.value.value?.aggregation ? null : { required: true };
             },
           },
         ),
+        version: '5',
+        distributionFactor: 'MAX',
         timezone: null,
         range: {start: null, end: null},
       },
-      {validators: [validateRange]},
+      {validators: [validateRange, this.validateDistributionFactor()]},
     );
+
+    this.form.get('range').valueChanges
+      .pipe(take(1), takeUntil(this.destroy$))
+      .subscribe(() => this.form.get('range').markAsTouched());
+
+    this.form.get('version').valueChanges.pipe(takeUntil(this.destroy$))
+      .subscribe(version => this.showDistributionFactorInput$.next(version === '4'));
+
+    this.form.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(formData => {
+        this.validationErrorMessages.file = (!formData.file && !this.form.get('file').pristine) ? 
+          'Importing file is required' : '';
+        this.validationErrorMessages.stream = (!formData.stream && !this.form.get('stream').pristine) ? 
+          'Stream is required' : '';
+      });
+
+    this.form.valueChanges
+      .pipe(
+        takeUntil(this.destroy$), 
+        distinctUntilChanged(), 
+        filter(() => this.importStep === 'fileInput' && !this.uploading))
+      .subscribe(() => this.finishImportSession());
     
     this.showFileBy$ = this.form.get('file').valueChanges.pipe(
       startWith(this.form.get('file').value),
@@ -173,7 +250,12 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
         if (!state.streams) {
           return [];
         }
-        this.streamsKeys = state.streams.map(stream => stream.key);
+        if (this.stream) {
+          this.displayStreamName = state.streams.find(stream => stream.key === this.stream)?.name;
+          this.form.patchValue({ stream: this.displayStreamName ?? '' }); 
+        }
+        
+        this.streamList = state.streams;
         
         return state.streams.map((stream) => stream.name);
       }),
@@ -208,7 +290,18 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
       this.form.get('stream').valueChanges.pipe(startWith(this.stream), debounceTime(300)),
     ]).pipe(
       map(([streams, stream]) => {
-        return streams.includes(stream) || this.streamsKeys.includes(stream) ? stream : null
+        if (streams.includes(stream)) {
+          const targetStream = this.streamList.find(s => s.name === stream);
+          if (!targetStream || targetStream.name !== this.displayStreamName) {
+            this.displayStreamName = null;
+          }
+          this.importToExistingStream = !!(targetStream?.key ?? null);
+          return targetStream?.key ?? null;
+        } else {
+          this.displayStreamName = null;
+          this.importToExistingStream = false;
+          return null;
+        }
       }),
       publishReplay(1),
       refCount(),
@@ -223,10 +316,30 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
         }
       }),
       switchMap(stream => stream ? this.streamsService.getProps(stream) : of(null)),
-      map(props => props?.props?.description),
-      distinctUntilChanged(),
+      map(props => ({ description: props?.props?.description, version: props?.props?.version })),
+      distinctUntilChanged((props1, props2) => JSON.stringify(props1) === JSON.stringify(props2)),
       takeUntil(this.destroy$),
-    ).subscribe(description => this.form.get('description').patchValue(description));
+    ).subscribe(({ description, version }) => {
+      this.form.get('version').patchValue(version ?? '5');
+      this.form.get('description').patchValue(description);
+    });
+
+    combineLatest([
+      this.appStore.pipe(select(getActiveTab)),
+      this.existingStream$
+    ])
+      .pipe(filter(([tab, stream]) => (tab?.schemaEdit || tab?.schemaView) && !stream), takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.schemaEditingDisabled = true;
+        this.appStore.dispatch(
+          new NotificationsActions.AddNotification({
+            message: 'You may encounter synchronization issues when editing a schema. To make editing possible please close the tab with a schema',
+            dismissible: true,
+            closeInterval: 15000,
+            type: 'warning',
+          }),
+        );
+      })
 
     this.bsModalRef.onHide
       .pipe(first(), takeUntil(this.destroy$))
@@ -238,86 +351,43 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
   }
   
   import() {
-    const formData = this.form.getRawValue();
-    this.uploading = true;
-    this.uploadingFile = true;
-    
-    const periodicity = {
-      type: formData.periodicity.type,
-    };
-    
-    if (periodicity.type === PeriodicityType.regular) {
-      periodicity['value'] = formData.periodicity.value.number;
-      periodicity['unit'] = formData.periodicity.value.units;
+    if (!this.uploadId) {
+      this.uploadingFile = true;
+      this.importButtonDisabled = true;
+      const formData = this.form.getRawValue();
+
+      this.initImport(formData)
+        .pipe(
+          switchMap((uploadId: number) => {
+            this.uploadId = uploadId;
+            return this.importService.importChunks(uploadId, formData.file[0]);
+          }),
+          tap(uploadProgress => this.uploadingFileProgress = Math.ceil(uploadProgress * 100)),
+          catchError((e: HttpErrorResponse) => this.catchResponceError(e)),
+          takeUntil(this.cancel$),
+          filter(progress => +progress === 1)
+        ).subscribe({
+          next: () => {
+            this.importButtonDisabled = false;
+            this.checkDataLosses();
+          },
+          error: () => {
+            this.uploadingFile = false;
+            this.importButtonDisabled = false;
+          } 
+        });
+    } else {
+      this.checkDataLosses();
     }
-    
-    this.existingStream$.pipe(
-        take(1),
-        switchMap(showWriteMode => {
-          return this.importService
-            .startImport({
-              fileName: formData.file[0].name,
-              fileSize: formData.file[0].size,
-              stream: formData.stream,
-              periodicity: periodicity,
-              description: formData.description,
-              fileBySymbol: formData.fileBy === 'symbol',
-              symbols: formData.symbols.length ? formData.symbols : null,
-              from: formData.setRange ? this.toUtcDate(formData.range.start) : null,
-              to: formData.setRange ? this.toUtcDate(formData.range.end) : null,
-              writeMode: showWriteMode ? formData.writeMode : null,
-            });
-        }),
-        switchMap((uploadId) => {
-          this.uploadId = uploadId;
-          return combineLatest([
-            this.importService.importChunks(uploadId, formData.file[0]),
-            this.importService.onUploadProgress(uploadId).pipe(startWith(null)),
-          ]);
-        }),
-        catchError((e: HttpErrorResponse) => {
-          this.messages.unshift({type: ImportProgressType.error, message: e.error.message});
-          this.importError = true;
-          return throwError(e);
-        }),
-        takeUntil(this.cancel$),
-      )
-      .subscribe(([fileProgress, importProgress]) => {
-        this.uploadProgress$.next(fileProgress * 100);
-        this.uploadingFile = fileProgress !== 1;
-        if (importProgress) {
-          if (importProgress.type === ImportProgressType.progress) {
-            this.importProgress$.next(parseFloat(importProgress.message) * 100);
-          }
-          
-          if (
-            importProgress.type === ImportProgressType.state &&
-            importProgress.message === ImportStateMessage.finished
-          ) {
-            this.importProgress$.next(100);
-            this.importFinished = true;
-          }
-          
-          if (
-            [
-              ImportProgressType.info,
-              ImportProgressType.error,
-              ImportProgressType.warning,
-            ].includes(importProgress.type)
-          ) {
-            this.messages.unshift(importProgress);
-          }
-          
-          if (importProgress.type === ImportProgressType.error) {
-            this.importError = true;
-          }
-        }
-      }
-    );
+  }
+
+  createStreamAndImport() {
+    this.schemaEditor.onCreateStream();
   }
   
   cancelImport() {
     this.cancel$.next();
+    this.minHeight = minHeightValues.fileInput;
     const cancel$ = this.uploadId ? this.importService.cancelImport(this.uploadId) : of(null);
     cancel$.pipe(finalize(() => this.return())).subscribe();
   }
@@ -326,12 +396,25 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
     this.bsModalRef.hide();
   }
   
-  return() {
+  return(removeUploadId = true) {
+    this.importStep = 'fileInput';
+    this.minHeight = minHeightValues.fileInput;
+    
+    if (this.newStreamCreated && (!this.importFinished || this.importError)) {
+      this.newStreamCreated = false;
+      this.appStore.dispatch(
+        new StreamsActions.AskToDeleteStream({ streamKey: this.nameOfCreatingStream, noNotification: true }))
+    }
+
     this.uploadProgress$.next(0);
     this.importProgress$.next(0);
-    this.uploadId = null;
+    if (removeUploadId) {
+      this.uploadId = null;
+    }
+    
     this.uploading = false;
     this.uploadingFile = false;
+    this.uploadingFileProgress = 0;
     this.importFinished = false;
     this.importError = false;
     this.messages = [];
@@ -340,16 +423,216 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    this.cancelImport();
   }
-  
-  private toUtcDate(date: Date): string {
-    if (!date) {
-      return null;
-    }
+
+  editSchema() {
+    const storageVersion = this.form.get('version').value;
+    const distributionFactor = this.form.get('distributionFactor').value;
+    this.streamsService.streamCreationData = {
+      storageVersion,
+      distributionFactor: storageVersion !== '4' ? null : (distributionFactor === 'MAX' ? 0 : +distributionFactor)
+    };
+
+    const minHeight = window.innerHeight - 60 < minHeightValues.schema ? 
+      window.innerHeight - 60 : minHeightValues.schema;
+    if (!this.uploadId) {
+      this.schemaButtonDisabled = true;
+      const formData = this.form.getRawValue();
     
-    return toUtc(
-      new HdDate(dateToUTC(date, this.form.get('timezone').value).toISOString()),
-    )?.toISOString();
+      this.initImport(formData)
+        .pipe(
+          switchMap(uploadId => {
+            this.uploadId = uploadId;
+            this.fileUploadingSubscription = this.importService.onFileUploadProgress(uploadId).subscribe();
+            return this.importService.importChunks(uploadId, formData.file[0]);
+          }),
+          tap(uploadProgress => this.uploadingFileProgress = Math.ceil(uploadProgress * 100)),
+          catchError((e: HttpErrorResponse) => this.catchResponceError(e)),
+          takeUntil(this.cancel$),
+          filter(progress => +progress === 1),
+          switchMap(() => this.importService.getNewStreamSchema(this.uploadId)),
+        ).subscribe({ 
+          next: schema => {
+            this.schema = schema;
+            this.schemaButtonDisabled = false;
+            this.openSchemaEditor(minHeight);
+          },
+          error: () => this.schemaButtonDisabled = false
+        });
+    } else {
+      this.openSchemaEditor(minHeight);
+    }
+  }
+
+  private openSchemaEditor(minHeight: number) {
+    this.importStep = 'schema';
+    this.minHeight = minHeight; 
+    setTimeout(() => this.schemaInvalid$ = this.schemaEditor.hasSchemaError$);
+  }
+
+  private initImport(formData) {
+    const periodicity = {
+      type: formData.periodicity.type,
+    };
+    
+    if (periodicity.type === PeriodicityType.regular) {
+      periodicity['value'] = formData.periodicity.value.number;
+      periodicity['unit'] = formData.periodicity.value.units;
+    }
+
+    const existingStreamKey = this.streamList.find(s => s.name === formData.stream)?.key;
+    if (!existingStreamKey) {
+      this.nameOfCreatingStream = formData.stream;
+    };
+    this.stremaKey = existingStreamKey ?? formData.stream;
+    const distributionFactor = formData.version !== '4' ? 
+      null : formData.distributionFactor === 'MAX' ? 0 : +formData.distributionFactor;
+    
+    return this.importService.startImport({
+      fileName: formData.file[0].name,
+      fileSize: formData.file[0].size,
+      stream: this.stremaKey,
+      version: formData.version,
+      distributionFactor,
+      periodicity: periodicity,
+      description: formData.description,
+      fileBySymbol: formData.fileBy === 'symbol',
+      symbols: formData.symbols.length ? formData.symbols : null,
+      from: formData.setRange ? formData.range.start : null,
+      to: formData.setRange ? formData.range.end : null,
+      writeMode: formData.writeMode,
+     });
+  }
+
+  private catchResponceError(e: HttpErrorResponse) {
+    this.messages.push({type: ImportProgressType.error, message: e.error.message});
+    this.importError = true;
+    return throwError(e);
+  }
+
+  checkDataLosses(newStream: boolean = false) {
+    if (newStream) {
+      this.newStreamCreated = true;
+    }
+    this.importService.checkDataLosses(this.uploadId, this.stremaKey)
+      .pipe(take(1), takeUntil(this.destroy$))
+      .subscribe({
+        next: schemaIsValid => {
+          if (schemaIsValid) {
+            this.startImport();
+          } else {
+            this.showDataLossWarning();
+          }
+        },
+        error: () => {
+          if (this.newStreamCreated) {
+            this.newStreamCreated = false;
+            this.appStore.dispatch(
+              new StreamsActions.AskToDeleteStream({ streamKey: this.nameOfCreatingStream, noNotification: true }))
+          }
+        }
+      })
+  }
+
+  showDataLossWarning() {
+    this.conformationModalOpen = true;
+    this.confirmationModal = this.modalService.show(this.dataLossWarning);
+  }
+
+  closeConfirmationModal(deleteStream = false) {
+    this.conformationModalOpen = false;
+    this.confirmationModal?.hide();
+    if (this.newStreamCreated && deleteStream) {
+      this.newStreamCreated = false;
+      this.appStore.dispatch(
+        new StreamsActions.AskToDeleteStream({ streamKey: this.nameOfCreatingStream, noNotification: true }))
+    }
+  }
+
+  startImport() {
+    this.uploading = true;
+    this.minHeight = minHeightValues.uploading;
+    this.closeConfirmationModal();
+
+    this.importService.onUploadProgress(this.uploadId).pipe(
+      catchError((e: HttpErrorResponse) => this.catchResponceError(e)),
+      takeUntil(this.cancel$),
+    ).subscribe(importProgress => this.reportImportProgress([1, importProgress]))
+  }
+
+
+  backToFileInput() {
+    this.uploadingFileProgress = 0;
+    this.minHeight = minHeightValues.fileInput;
+    this.importStep = 'fileInput';
+  }
+
+  private finishImportSession() {
+    if (this.uploadId) {
+      this.fileUploadingSubscription?.unsubscribe();
+      this.cancelImport();
+      this.uploadId = null;
+      this.schema = null;
+    }
+  }
+
+  private reportImportProgress([fileProgress, importProgress]) {
+      this.uploadProgress$.next(fileProgress * 100);
+      this.uploadingFile = fileProgress !== 1;
+      if (importProgress) {
+        if (importProgress.type === ImportProgressType.progress) {
+          this.importProgress$.next(parseFloat(importProgress.message) * 100);
+        }
+        
+        if (
+          importProgress.type === ImportProgressType.state &&
+          importProgress.message === ImportStateMessage.finished
+        ) {
+          this.importProgress$.next(100);
+          this.importFinished = true;
+        }
+        
+        if (
+          [
+            ImportProgressType.info,
+            ImportProgressType.error,
+            ImportProgressType.warning,
+          ].includes(importProgress.type)
+        ) {
+          this.messages.push(importProgress);
+        }
+        
+        if (importProgress.type === ImportProgressType.error) {
+          this.importError = true;
+        }
+      }
+    }
+
+  distributionFactorChange(value: string) {
+    this.form.get('distributionFactor').patchValue(value);
+  }
+
+  validateDistributionFactor() {
+    return (formGroup: UntypedFormGroup) => {
+      if (formGroup.get('version').value === '5') {
+        this.validationErrorMessages.distributionFactor = '';
+        return null;
+      } else {
+        if (this.importToExistingStream) {
+          this.validationErrorMessages.distributionFactor = '';
+          return null;
+        } else {
+          const value = formGroup.get('distributionFactor').value;
+          const distributionFactorIsValid = value === 'MAX' || (value % 1 === 0 && value > 0 && value < 10001);
+          this.validationErrorMessages.distributionFactor = distributionFactorIsValid ? 
+            '' : "Distribution factor must be an integer between 1 and 10000 or 'MAX'";
+          return distributionFactorIsValid ? null : { invalidValue: true };
+        }
+      }
+    }
+  }
+
+  originalOrder = (a: KeyValue<number,string>, b: KeyValue<number,string>) => {
+    return 0;
   }
 }

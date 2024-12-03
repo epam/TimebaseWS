@@ -57,7 +57,7 @@ export class GeneralParametersComponent implements OnInit, OnDestroy {
     this.textareaIsDisabled = !formControlValue || formControlValue === 'Empty Cells';
     this.textareaValue = formControlValue.split(', ').filter(value => value !== 'Empty Cells').join(';');
 
-    this.importFromTextFileService.settingsUpdated
+    this.importFromTextFileService.settingsUpdated$
       .pipe(
         filter(updateFormData => updateFormData),
         takeUntil(this.destroy$)

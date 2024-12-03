@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.view;
 
 import com.epam.deltix.gflog.api.Log;
@@ -88,6 +87,18 @@ public class ViewServiceImpl implements ViewService, ViewProcessingListener, Vie
     @Scheduled(fixedDelayString = "${views.processor.refresh-period-ms:60000}")
     public void refresh() {
         workersManager.refresh();
+    }
+
+    @Override
+    public boolean isViewStream(String key) {
+        if (!mdRepository.isInitialized()) {
+            return false;
+        }
+
+        if (key != null && key.endsWith(VIEW_STREAM_SUFFIX)) {
+            return mdRepository.findById(getIdByKey(key)) != null;
+        }
+        return false;
     }
 
     @Override
@@ -208,4 +219,9 @@ public class ViewServiceImpl implements ViewService, ViewProcessingListener, Vie
             LOGGER.error().append("Failed to delete stream for removed view md").append(t).commit();
         }
     }
+
+    private String getIdByKey(String key) {
+        return key.substring(0,  key.length() - VIEW_STREAM_SUFFIX.length());
+    }
+
 }

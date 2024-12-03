@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,8 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.config;
+package com.epam.deltix.tbwg.webapp.config;
 
+import com.epam.deltix.tbwg.webapp.interceptors.TimebaseLoginInterceptor;
 import com.epam.deltix.tbwg.webapp.interceptors.RestLogInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
@@ -34,11 +35,16 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     private final AsyncTaskExecutor asyncTaskExecutor;
     private final RestLogInterceptor logInterceptor;
+    private final TimebaseLoginInterceptor timebaseLoginInterceptor;
 
     @Autowired
-    public WebMvcConfig(AsyncTaskExecutor asyncTaskExecutor, RestLogInterceptor logInterceptor) {
+    public WebMvcConfig(AsyncTaskExecutor asyncTaskExecutor,
+                        RestLogInterceptor logInterceptor,
+                        TimebaseLoginInterceptor timebaseLoginInterceptor) {
+
         this.asyncTaskExecutor = asyncTaskExecutor;
         this.logInterceptor = logInterceptor;
+        this.timebaseLoginInterceptor = timebaseLoginInterceptor;
     }
 
     // for encode slashes
@@ -57,5 +63,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(logInterceptor);
+        registry.addInterceptor(timebaseLoginInterceptor);
     }
 }

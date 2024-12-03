@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,12 +14,14 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.charting;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
+import com.epam.deltix.tbwg.webapp.model.ModelDataSourceType;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.Subscription;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
@@ -30,6 +32,8 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
 
 import static com.epam.deltix.tbwg.webapp.utils.BordersTimeBarChartsUtils.roundEndTime;
 import static com.epam.deltix.tbwg.webapp.utils.BordersTimeBarChartsUtils.roundStartTime;
@@ -45,9 +49,10 @@ public class LiveChartingController implements SubscriptionController {
     private static final String END_TIME_HEADER = "endTime";
     private static final String POINT_INTERVAL_HEADER = "pointInterval";
     private static final String LEVELS_HEADER = "levels";
-    private static final String QUERY_HEADER = "query";
+    private static final String SOURCE_HEADER = "source";
 
     private final LiveChartingService liveChartingService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     public LiveChartingController(SubscriptionControllerRegistry registry,
@@ -62,9 +67,9 @@ public class LiveChartingController implements SubscriptionController {
     public Subscription onSubscribe(SimpMessageHeaderAccessor headerAccessor, SubscriptionChannel channel) {
         String streamKey = extractStreamKey(headerAccessor.getDestination());
 
-        String instrument = headerAccessor.getFirstNativeHeader(INSTRUMENT_HEADER);
-        if (instrument == null || instrument.isEmpty()) {
-            throw new IllegalArgumentException("Unknown instrument, specify '" + INSTRUMENT_HEADER + "' STOMP header.");
+        String[] instruments = getStringListHeader(headerAccessor, channel, INSTRUMENT_HEADER);
+        if (instruments == null || instruments.length == 0) {
+            throw new IllegalArgumentException("Unknown instruments, specify '" + INSTRUMENT_HEADER + "' STOMP header.");
         }
 
         String chartTypeHeader = headerAccessor.getFirstNativeHeader(CHART_TYPE_HEADER);
@@ -91,10 +96,21 @@ public class LiveChartingController implements SubscriptionController {
         }
         long pointInterval = Long.parseLong(pointIntervalHeader);
 
-        String levelsHeader = headerAccessor.getFirstNativeHeader(LEVELS_HEADER);
+        ModelDataSourceType source;
+        try {
+            source = ModelDataSourceType.valueOf(headerAccessor.getFirstNativeHeader(SOURCE_HEADER));
+        } catch (Exception e){
+            throw new IllegalArgumentException("Unknown datasource, specify '" + SOURCE_HEADER + "' STOMP header.");
+        }
+
         int levels = 10;
-        if (levelsHeader != null && !levelsHeader.isEmpty()) {
-            levels = Integer.parseInt(levelsHeader);
+        if (source == ModelDataSourceType.L1) {
+            levels = 1;
+        } else {
+            String levelsHeader = headerAccessor.getFirstNativeHeader(LEVELS_HEADER);
+            if (levelsHeader != null && !levelsHeader.isEmpty()) {
+                levels = Integer.parseInt(levelsHeader);
+            }
         }
 
         if (chartType.isBars()) {
@@ -104,21 +120,22 @@ public class LiveChartingController implements SubscriptionController {
 
         return subscribe(
             headerAccessor, channel,
-            chartType, streamKey, null, instrument,
-            new TimeInterval(startTime, endTime), pointInterval, levels
+            chartType, streamKey, instruments,
+            new TimeInterval(startTime, endTime), pointInterval, levels, source
         );
     }
 
     private Subscription subscribe(SimpMessageHeaderAccessor headerAccessor, SubscriptionChannel channel,
-                                   ChartType chartType, String stream, String query, String instrument,
-                                   TimeInterval timeInterval, long pointInterval, int levels)
+                                   ChartType chartType, String stream, String[] instruments,
+                                   TimeInterval timeInterval, long pointInterval, int levels,
+                                   ModelDataSourceType source)
     {
         String sessionId = headerAccessor.getSessionId();
         String subscriptionId = headerAccessor.getSubscriptionId();
 
         LOG.info().append("Live chart subscribe: ")
-            .append(stream != null ? stream : query)
-            .append("[").append(instrument != null ? instrument : "")
+            .append(stream)
+            .append("[").append(Arrays.toString(instruments))
             .append("|").append(timeInterval)
             .append("|").append(chartType)
             .append("|").append(pointInterval)
@@ -130,7 +147,7 @@ public class LiveChartingController implements SubscriptionController {
         liveChartingService.subscribe(
             sessionId, subscriptionId,
             new ChartingSettings(
-                stream, query, instrument, chartType, timeInterval, pointInterval, levels
+                stream, null, instruments, chartType, timeInterval, pointInterval, levels, source
             ),
             channel
         );
@@ -151,4 +168,17 @@ public class LiveChartingController implements SubscriptionController {
         return url.substring(id + controlString.length());
     }
 
+    private String[] getStringListHeader(SimpMessageHeaderAccessor headerAccessor, SubscriptionChannel channel, String header) {
+        try {
+            List<String> valuesList = headerAccessor.getNativeHeader(header);
+            if (valuesList == null) {
+                return null;
+            }
+
+            return objectMapper.readValue(valuesList.get(0), String[].class);
+        } catch (JsonProcessingException e) {
+            channel.sendError(e);
+            throw new RuntimeException(e);
+        }
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,12 +14,12 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.timebase;
 
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.pub.md.*;
+import com.epam.deltix.qsrv.hf.pub.md.json.*;
 import com.epam.deltix.qsrv.hf.tickdb.pub.*;
 import com.epam.deltix.qsrv.hf.tickdb.pub.task.SchemaChangeTask;
 import com.epam.deltix.qsrv.hf.tickdb.schema.MetaDataChange;
@@ -34,14 +34,18 @@ import com.epam.deltix.tbwg.webapp.services.timebase.exc.TimebaseExceptions;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.UnknownStreamException;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.WriteOperationsException;
 import com.epam.deltix.tbwg.webapp.utils.ColumnsManager;
+import com.epam.deltix.tbwg.webapp.utils.VersionUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.epam.deltix.tbwg.webapp.model.schema.SchemaBuilder.toTypeDef;
+import static com.epam.deltix.qsrv.hf.pub.md.json.SchemaBuilder.toTypeDef;
+import static com.epam.deltix.tbwg.webapp.model.schema.SchemaUtils.getSchemaDef;
 import static com.epam.deltix.tbwg.webapp.model.schema.SchemaUtils.toSchemaMapping;
 
 @Component
@@ -63,13 +67,20 @@ public class SchemaManipulationServiceImpl implements SchemaManipulationService 
     public DataTypeDef[] allTypes() {
         DataType[] allTypes = SchemaBuilder.ALL_TYPES;
 
-        DataTypeDef[] types = new DataTypeDef[allTypes.length];
+        List<DataTypeDef> types = new ArrayList<>();
 
-        for (int i = 0; i < allTypes.length; i++) {
-            DataType type = allTypes[i];
-            types[i] = new DataTypeDef(type.getBaseName(), type.getEncoding(), true);
+        // is nanoseconds supported on server?
+        boolean nsSupported = VersionUtils.versionHasNsEncoding(service.getServerVersion());
+
+        for (DataType type : allTypes) {
+            if (type.getCode() == DataType.T_DATE_TIME_TYPE) {
+                if (nsSupported || DateTimeDataType.isNotEquals(DateTimeDataType.ENCODING_NANOSECONDS, type.getEncoding()))
+                    types.add(new DataTypeDef(type.getBaseName(), type.getEncoding(), true));
+            } else {
+                types.add(new DataTypeDef(type.getBaseName(), type.getEncoding(), true));
+            }
         }
-        return types;
+        return types.toArray(DataTypeDef[]::new);
     }
 
     @Override
@@ -134,13 +145,13 @@ public class SchemaManipulationServiceImpl implements SchemaManipulationService 
     }
 
     @Override
-    public SchemaDef createStream(@NotNull String key, @NotNull SchemaDef schemaDef, int distributionFactor) throws WriteOperationsException {
+    public SchemaDef createStream(@NotNull String key, @NotNull SchemaDef schemaDef) throws WriteOperationsException {
         if (service.isReadonly()) {
             throw TimebaseExceptions.createStreamForbidden();
         }
 
         RecordClassSet set = SchemaBuilder.toClassSet(schemaDef);
-        StreamOptions options = new StreamOptions(StreamScope.DURABLE, key, null, distributionFactor);
+        StreamOptions options = new StreamOptions(StreamScope.DURABLE, key, null, 0);
         options.setMetaData(true, set);
 
         LOG.info().append("CREATE STREAM (").append(key).append(")").commit();
@@ -208,7 +219,7 @@ public class SchemaManipulationServiceImpl implements SchemaManipulationService 
         }
         String[] classNames = standardMessageTypes.getClassNames();
         try {
-            return SchemaBuilder.getSchemaDef(classNames);
+            return getSchemaDef(classNames);
         } catch (ClassNotFoundException | Introspector.IntrospectionException e) {
             LOG.error().append("Failed to generate schema for ").append(key).append("\nReason: ").append(e).commit();
             throw new RuntimeException("Can't generate schema for " + key);

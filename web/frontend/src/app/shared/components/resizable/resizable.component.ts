@@ -1,5 +1,6 @@
 
-import { AfterContentInit, Component, ElementRef, OnInit, AfterViewInit, Input, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
+import { AfterContentInit, Component, ElementRef, OnInit, AfterViewInit, Input, 
+  OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import { fromEvent, Subject, BehaviorSubject } from 'rxjs';
 import { filter, startWith, map, takeUntil } from 'rxjs/operators';
 import { ResizableService } from '../../services/resizable.servise';
@@ -14,6 +15,8 @@ export enum TypeDrag {
   TopLeft,
   BottomLeft
 };
+
+const topFixedMargin = 30;
 
 @Component({
   selector: 'app-resizable',
@@ -35,6 +38,7 @@ export class ResizableComponent implements OnInit, AfterContentInit, AfterViewIn
     width: window.innerWidth
   }
   defaultSizeButtonIsVisible = new BehaviorSubject(false);
+  resizingDisabled: boolean;
 
   classNames = [
     'cell-top',
@@ -54,6 +58,9 @@ export class ResizableComponent implements OnInit, AfterContentInit, AfterViewIn
   @Input() minWidth: number;
   @Input() minHeight: number;
 
+  @Input() initialHeight: number;
+  @Input() saveSize = true;
+
   @Input() storageKey: string;
   @Input() contentClassName: string;
   @Input() modalClassName: string = '';
@@ -62,18 +69,23 @@ export class ResizableComponent implements OnInit, AfterContentInit, AfterViewIn
   @Input() modalBodyHeightDifference: number = 0;
   @Input() rootModal: boolean = true;
 
+  @Input() withoutCloseBtn = false;
+  @Input() withoutDefaultSizeBtn = false;
+
+  @Input() topFixed = false;
+
   @ViewChild('resizableBorders') resizableBorders: ElementRef;
 
   constructor(private hostElement: ElementRef, private resizableService: ResizableService) {}
 
   ngOnChanges(changes: SimpleChanges) {
-    if (Object.keys(changes).length === 1 && changes.minHeight) {
+    if (Object.keys(changes).length && changes.minHeight && this.modalContent) {
       this.modalContent.style.height = changes.minHeight.currentValue > window.innerHeight - 48 ?
         window.innerHeight - 50 + 'px' : changes.minHeight.currentValue + 'px';
 
       this.style.height = this.modalContent.style.height;
       this.modalContent.children[0].style.height = this.style.height;
-      const marginTop = (window.innerHeight - parseInt(this.style.height)) / 2;
+      const marginTop = this.topFixed ? topFixedMargin : ((window.innerHeight - parseInt(this.style.height)) / 2);
       this.modalContent.style['margin-top'] = marginTop + 'px';
 
       (document.querySelector('app-modal') as HTMLElement).style.height = this.style.height;
@@ -91,11 +103,14 @@ export class ResizableComponent implements OnInit, AfterContentInit, AfterViewIn
         if (this.rootModal) {
           this.resizableBorders.nativeElement.style.visibility = isDisabled ? 'hidden' : 'visible';
         }
-      })
+      });
+
+    this.checkResizePossibility();
     
     this.resizableService.windowResized
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
+        this.checkResizePossibility();
         if (window.innerWidth > 850) {
           const widthRatio = +(window.innerWidth / this.windowSize.width).toFixed(6);
           const width = Math.round(widthRatio * parseInt(this.style.width));
@@ -119,7 +134,7 @@ export class ResizableComponent implements OnInit, AfterContentInit, AfterViewIn
 
           this.style.height = (height < this.minHeight ? this.minHeight : (height > window.innerHeight - 48) ? window.innerHeight - 50 : height - 1) + 'px';
           this.modalContent.style.height = this.style.height;
-          const marginTop = (window.innerHeight - parseInt(this.style.height)) / 2;
+          const marginTop = this.topFixed ? topFixedMargin : ((window.innerHeight - parseInt(this.style.height)) / 2);
 
           if (this.rootModal) {
             this.modalContent.children[0].style.height = this.style.height;
@@ -132,7 +147,9 @@ export class ResizableComponent implements OnInit, AfterContentInit, AfterViewIn
           this.windowSize.height = window.innerHeight;
           this.resizeContentHeight();
         }
-        localStorage.setItem(this.storageKey, JSON.stringify( { width: this.style.width, height: parseInt(this.style.height) < 650 ? '650px' : this.style.height } ));
+        if (this.saveSize) {
+          localStorage.setItem(this.storageKey, JSON.stringify( { width: this.style.width, height: parseInt(this.style.height) < 650 ? '650px' : this.style.height } ));
+        }
       }
     );
 
@@ -237,11 +254,11 @@ export class ResizableComponent implements OnInit, AfterContentInit, AfterViewIn
           }
 
           if (targetElementClass === 'cell-bottom-right' || targetElementClass === 'cell-border-bottom') {
-            const height = this.rect.height + 2 * this.incr[1] * incrTop;
+            const height = this.rect.height + (this.topFixed ? 1 : 2) * this.incr[1] * incrTop;
 
-            this.style.height = (height < this.minHeight ? this.minHeight : (height > window.innerHeight - 48) ? window.innerHeight - 50 : height - 1) + 'px';
+            this.style.height = (height < this.minHeight ? this.minHeight : (height > window.innerHeight - 58) ? window.innerHeight - 60 : height - 1) + 'px';
             this.modalContent.style.height = this.style.height;
-            const marginTop = (window.innerHeight - parseInt(this.style.height)) / 2;
+            const marginTop = this.topFixed ? topFixedMargin : ((window.innerHeight - parseInt(this.style.height)) / 2);
 
             if (this.rootModal) {
               this.modalContent.children[0].style.height = this.style.height;
@@ -253,22 +270,27 @@ export class ResizableComponent implements OnInit, AfterContentInit, AfterViewIn
             this.resizeContentHeight();
           }
           this.toggleDefaultSizeButtonVisible(this.style);
-          localStorage.setItem(this.storageKey, JSON.stringify( { width: this.style.width, height: parseInt(this.style.height) < 650 ? '650px' : this.style.height } ));
+          if (this.saveSize) {
+            localStorage.setItem(this.storageKey, JSON.stringify( { width: this.style.width, height: parseInt(this.style.height) < 650 ? '650px' : this.style.height } ));
+          }
         });
       }
     });
   }
+
   ngAfterViewInit() {
     setTimeout(() => this.toggleDefaultSizeButtonVisible(), 0);
   }
+
   toggleDefaultSizeButtonVisible(sizes = null) {
     if (!sizes) {
       const modalStyle = this.hostElement.nativeElement.getBoundingClientRect();
-      this.defaultSizeButtonIsVisible.next(modalStyle.width > 800 || modalStyle.height > 665);
+      this.defaultSizeButtonIsVisible.next(modalStyle.width > this.minWidth || modalStyle.height > this.minHeight);
     } else {
-      this.defaultSizeButtonIsVisible.next(parseInt(sizes.width) > 800 || parseInt(sizes.height) > 665);
+      this.defaultSizeButtonIsVisible.next(parseInt(sizes.width) > this.minWidth || parseInt(sizes.height) > this.minHeight);
     }
   }
+
   resizeContentHeight() {
     const contentHeight = parseInt(this.style.height);
     const content = this.hostElement.nativeElement.querySelector(`.${this.contentClassName}`);
@@ -297,7 +319,7 @@ export class ResizableComponent implements OnInit, AfterContentInit, AfterViewIn
     this.hostElement.nativeElement.querySelector('.resizable').style.height = height;
     this.hostElement.nativeElement.querySelector('app-modal').style.height = height;
 
-    const marginTop = (window.innerHeight - parseInt(height)) / 2;
+    const marginTop = this.topFixed ? topFixedMargin : ((window.innerHeight - parseInt(height)) / 2);
     modalContent.style['margin-top'] = marginTop + 'px';
 
     this.style.height = height;
@@ -319,16 +341,16 @@ export class ResizableComponent implements OnInit, AfterContentInit, AfterViewIn
     this.modalContent.style.height = this.style.height;
     this.modalContent.children[0].style.height = this.style.height;
 
-    const marginTop = (window.innerHeight - parseInt(this.style.height)) / 2;
+    const marginTop = this.topFixed ? topFixedMargin : ((window.innerHeight - parseInt(this.style.height)) / 2);
     this.modalContent.style['margin-top'] = marginTop + 'px';
   }
 
   ngAfterContentInit() {
     if (this.rootModal) {
       this.style = this.style ?? {};
-      const modalInitialSize = JSON.parse(localStorage.getItem(this.storageKey));
+      const modalInitialSize = this.saveSize ? JSON.parse(localStorage.getItem(this.storageKey)) : null;
  
-      const initialHeight = parseInt(modalInitialSize?.height) || this.minHeight;
+      const initialHeight = this.initialHeight || parseInt(modalInitialSize?.height) || this.minHeight;
  
       this.modalContent.style.height = initialHeight > window.innerHeight - 48 ?
         window.innerHeight - 50 + 'px' : initialHeight + 'px';
@@ -336,7 +358,7 @@ export class ResizableComponent implements OnInit, AfterContentInit, AfterViewIn
       this.style.height = this.modalContent.style.height;
       this.resizeContentHeight();
    
-      const marginTop = (window.innerHeight - this.minHeight) / 2;
+      const marginTop = this.topFixed ? topFixedMargin : ((window.innerHeight - this.minHeight) / 2);
       this.modalContent.style['margin-top'] = marginTop + 'px';
  
       const initialWidth = parseInt(modalInitialSize?.width) || this.minWidth;
@@ -354,9 +376,11 @@ export class ResizableComponent implements OnInit, AfterContentInit, AfterViewIn
  
       this.setModalContentHeight();
      
-      localStorage.setItem(this.storageKey, JSON.stringify(
-        { width: this.modalContent.style.width, height: this.modalContent.style.height }
-      ));
+      if (this.saveSize) {
+        localStorage.setItem(this.storageKey, JSON.stringify(
+          { width: this.modalContent.style.width, height: this.modalContent.style.height }
+        ));
+      }
     } else {
       this.style = this.style ?? {};
       this.style.height = this.minHeight;
@@ -366,5 +390,9 @@ export class ResizableComponent implements OnInit, AfterContentInit, AfterViewIn
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  checkResizePossibility() {
+    this.resizingDisabled = window.innerHeight < 650;
   }
 }

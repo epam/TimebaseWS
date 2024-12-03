@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.timebase;
 
 import com.epam.deltix.gflog.api.Log;
@@ -22,6 +21,10 @@ import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DBStateListener;
 import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
 import com.epam.deltix.tbwg.webapp.model.tree.events.*;
+import com.epam.deltix.tbwg.webapp.services.timebase.playback.PlaybackListener;
+import com.epam.deltix.tbwg.webapp.services.timebase.playback.PlaybackService;
+import com.epam.deltix.tbwg.webapp.services.topic.TopicListener;
+import com.epam.deltix.tbwg.webapp.services.topic.TopicService;
 import com.epam.deltix.tbwg.webapp.services.view.ViewListener;
 import com.epam.deltix.tbwg.webapp.services.view.ViewService;
 import com.epam.deltix.tbwg.webapp.services.view.md.ViewMd;
@@ -33,126 +36,219 @@ import javax.annotation.PreDestroy;
 import java.util.*;
 
 @Service
-public class TreeEventsService implements DBStateListener, ViewListener {
+public class TreeEventsService implements SystemMessagesService.SubscribeUserListener {
 
     private static final Log LOG = LogFactory.getLog(TreeEventsService.class);
 
     private final SimpMessagingTemplate template;
     private final SystemMessagesService systemMessagesService;
     private final ViewService viewService;
-    private final List<TreeEvent> events = new ArrayList<>();
+    private final TopicService topicService;
+    private final PlaybackService playbackService;
+    private final TreeEventsListener masterEventsListener;
+
+    private final Map<String, TreeEventsListener> userToListener = new HashMap<>();
 
     public TreeEventsService(SimpMessagingTemplate template,
                              SystemMessagesService systemMessagesService,
-                             ViewService viewService) {
+                             ViewService viewService,
+                             TopicService topicService,
+                             PlaybackService playbackService) {
         this.template = template;
         this.systemMessagesService = systemMessagesService;
         this.viewService = viewService;
+        this.topicService = topicService;
+        this.playbackService = playbackService;
 
-        systemMessagesService.subscribe(this);
-        viewService.subscribe(this);
+        this.masterEventsListener = new TreeEventsListener(template, viewService);
+
+        systemMessagesService.setSubscribeUserListener(this);
+        systemMessagesService.masterNotifier().subscribe(masterEventsListener);
+        this.viewService.subscribe(masterEventsListener);
+        this.topicService.subscribe(masterEventsListener);
+        this.playbackService.subscribe(masterEventsListener);
     }
 
-    @Scheduled(fixedDelay = 1000) // try to broadcast every 1 second
+    @Scheduled(fixedDelay = 1000)
     public void broadcastStreamsState() {
-        List<TreeEvent> currentEvents = flushEvents();
-        if (!currentEvents.isEmpty()) {
-            template.convertAndSend(WebSocketConfig.STRUCTURE_EVENTS_TOPIC, currentEvents);
+        masterEventsListener.broadcastEvents();
+        synchronized (userToListener) {
+            userToListener.forEach((k, v) -> v.broadcastEvents());
         }
     }
 
     @PreDestroy
     public void preDestroy() {
-        systemMessagesService.unsubscribe(this);
-        viewService.unsubscribe(this);
+        systemMessagesService.masterNotifier().unsubscribe(masterEventsListener);
+        viewService.unsubscribe(masterEventsListener);
+        topicService.unsubscribe(masterEventsListener);
+        playbackService.unsubscribeListener(masterEventsListener);
     }
 
     @Override
-    public void changed(String key) {
-        LOG.trace().append("STREAMS STATE: changed ").append(key).commit();
-        if (ViewService.isViewStream(key)) {
-            return;
-        }
-
-        addEvent(new TreeEvent(TreeEventType.STREAM, TreeEventAction.UPDATE, key));
-    }
-
-    @Override
-    public void added(String key) {
-        LOG.trace().append("STREAMS STATE: added ").append(key).commit();
-        if (ViewService.isViewStream(key)) {
-            return;
-        }
-
-        addEvent(new TreeEvent(TreeEventType.STREAM, TreeEventAction.ADD, key));
-    }
-
-    @Override
-    public void deleted(String key) {
-        LOG.trace().append("STREAMS STATE: deleted ").append(key).commit();
-        if (ViewService.isViewStream(key)) {
-            return;
-        }
-
-        addEvent(new TreeEvent(TreeEventType.STREAM, TreeEventAction.REMOVE, key));
-    }
-
-    @Override
-    public void renamed(String fromKey, String toKey) {
-        LOG.trace().append("STREAMS STATE: renamed ").append(fromKey).append(" -> ").append(toKey).commit();
-        if (ViewService.isViewStream(fromKey)) {
-            return;
-        }
-
-        addEvent(new RenameStreamTreeEvent(TreeEventType.STREAM, TreeEventAction.RENAME, fromKey, toKey));
-    }
-
-    @Override
-    public void created(ViewMd viewMd) {
-        LOG.trace().append("VIEWS STATE: created ").append(viewMd).commit();
-
-        addEvent(new ViewTreeEvent(TreeEventType.VIEW, TreeEventAction.ADD, viewMd.getId(), viewMd));
-    }
-
-    @Override
-    public void deleted(ViewMd viewMd) {
-        LOG.trace().append("VIEWS STATE: deleted ").append(viewMd).commit();
-
-        addEvent(new ViewTreeEvent(TreeEventType.VIEW, TreeEventAction.REMOVE, viewMd.getId(), viewMd));
-    }
-
-    @Override
-    public void updated(ViewMd viewMd) {
-        LOG.trace().append("VIEWS STATE: updated ").append(viewMd).commit();
-
-        addEvent(new ViewTreeEvent(TreeEventType.VIEW, TreeEventAction.UPDATE, viewMd.getId(), viewMd));
-    }
-
-    private void addEvent(TreeEvent event) {
-        synchronized (events) {
-            events.add(event);
+    public void subscribed(String user, SystemMessagesNotifier notifier) {
+        synchronized (userToListener) {
+            TreeEventsListener listener = userToListener.get(user);
+            if (listener == null) {
+                userToListener.put(user, listener = new TreeEventsListener(template, user, viewService));
+                notifier.subscribe(listener);
+                viewService.subscribe(listener);
+                topicService.subscribe(listener);
+                playbackService.subscribe(listener);
+            }
         }
     }
 
-    private List<TreeEvent> flushEvents() {
-        synchronized (events) {
-            Set<String> updates = new HashSet<>();
-            List<TreeEvent> resultEvents = new ArrayList<>();
-            for (int i = events.size() - 1; i >= 0; --i) {
-                TreeEvent event = events.get(i);
-                if (event.getAction() == TreeEventAction.UPDATE) {
-                    if (!updates.contains(event.getId())) {
+    public static class TreeEventsListener implements DBStateListener, ViewListener, TopicListener, PlaybackListener {
+
+        private final SimpMessagingTemplate template;
+        private final String endpoint;
+
+        private final ViewService viewService;
+
+        private final List<TreeEvent> events = new ArrayList<>();
+
+        public TreeEventsListener(SimpMessagingTemplate template, ViewService viewService) {
+            this.template = template;
+            this.endpoint = WebSocketConfig.STRUCTURE_EVENTS_TOPIC;
+            this.viewService = viewService;
+        }
+
+        public TreeEventsListener(SimpMessagingTemplate template, String user, ViewService viewService) {
+            this.template = template;
+            this.endpoint = WebSocketConfig.STRUCTURE_EVENTS_TOPIC + "/" + user;
+            this.viewService = viewService;
+        }
+
+        public void broadcastEvents() {
+            List<TreeEvent> currentEvents = flushEvents();
+            if (!currentEvents.isEmpty()) {
+                template.convertAndSend(endpoint, currentEvents);
+                LOG.trace().append("Send message to topic ")
+                    .append(endpoint)
+                    .append(": ")
+                    .append(currentEvents.size())
+                    .append(" events")
+                    .commit();
+            }
+        }
+
+        private List<TreeEvent> flushEvents() {
+            synchronized (events) {
+                Set<String> updates = new HashSet<>();
+                List<TreeEvent> resultEvents = new ArrayList<>();
+                for (int i = events.size() - 1; i >= 0; --i) {
+                    TreeEvent event = events.get(i);
+                    if (event.getAction() == TreeEventAction.UPDATE) {
+                        if (!updates.contains(event.getId())) {
+                            resultEvents.add(0, event);
+                            updates.add(event.getId());
+                        }
+                    } else {
                         resultEvents.add(0, event);
-                        updates.add(event.getId());
                     }
-                } else {
-                    resultEvents.add(0, event);
                 }
+
+                events.clear();
+
+                return resultEvents;
+            }
+        }
+
+        @Override
+        public void changed(String key) {
+            LOG.info().append("STREAMS STATE: changed ").append(key).commit();
+            if (viewService.isViewStream(key)) {
+                return;
             }
 
-            events.clear();
+            addEvent(new TreeEvent(TreeEventType.STREAM, TreeEventAction.UPDATE, key));
+        }
 
-            return resultEvents;
+        @Override
+        public void added(String key) {
+            LOG.info().append("STREAMS STATE: added ").append(key).commit();
+            if (viewService.isViewStream(key)) {
+                return;
+            }
+
+            addEvent(new TreeEvent(TreeEventType.STREAM, TreeEventAction.ADD, key));
+        }
+
+        @Override
+        public void deleted(String key) {
+            LOG.info().append("STREAMS STATE: deleted ").append(key).commit();
+            if (viewService.isViewStream(key)) {
+                return;
+            }
+
+            addEvent(new TreeEvent(TreeEventType.STREAM, TreeEventAction.REMOVE, key));
+        }
+
+        @Override
+        public void renamed(String fromKey, String toKey) {
+            LOG.info().append("STREAMS STATE: renamed ").append(fromKey).append(" -> ").append(toKey).commit();
+            if (viewService.isViewStream(fromKey)) {
+                return;
+            }
+
+            addEvent(new RenameStreamTreeEvent(TreeEventType.STREAM, TreeEventAction.RENAME, fromKey, toKey));
+        }
+
+        @Override
+        public void created(ViewMd viewMd) {
+            LOG.info().append("VIEWS STATE: created ").append(viewMd).commit();
+
+            addEvent(new ViewTreeEvent(TreeEventType.VIEW, TreeEventAction.ADD, viewMd.getId(), viewMd));
+        }
+
+        @Override
+        public void deleted(ViewMd viewMd) {
+            LOG.info().append("VIEWS STATE: deleted ").append(viewMd).commit();
+
+            addEvent(new ViewTreeEvent(TreeEventType.VIEW, TreeEventAction.REMOVE, viewMd.getId(), viewMd));
+        }
+
+        @Override
+        public void updated(ViewMd viewMd) {
+            LOG.info().append("VIEWS STATE: updated ").append(viewMd).commit();
+
+            addEvent(new ViewTreeEvent(TreeEventType.VIEW, TreeEventAction.UPDATE, viewMd.getId(), viewMd));
+        }
+
+        @Override
+        public void topicCreated(String topicKey) {
+            LOG.trace().append("TOPIC STATE: added ").append(topicKey).commit();
+            addEvent(new TreeEvent(TreeEventType.TOPIC, TreeEventAction.ADD, topicKey));
+        }
+
+        @Override
+        public void topicDeleted(String topicKey) {
+            LOG.trace().append("TOPIC STATE: deleted ").append(topicKey).commit();
+            addEvent(new TreeEvent(TreeEventType.TOPIC, TreeEventAction.REMOVE, topicKey));
+        }
+
+        @Override
+        public void topicRename(String topicKey, String newKey) {
+            LOG.trace().append("TOPIC STATE: renamed ").append(topicKey).append(" -> ").append(newKey).commit();
+            addEvent(new RenameStreamTreeEvent(TreeEventType.TOPIC, TreeEventAction.RENAME, topicKey, newKey));
+        }
+
+        private void addEvent(TreeEvent event) {
+            synchronized (events) {
+                events.add(event);
+            }
+        }
+
+        @Override
+        public void playbackFinish(long id) {
+
+        }
+
+        @Override
+        public void playbackCreated(long id) {
+            LOG.info().append("PLAYBACK STATE: created ").append(id).commit();
+            addEvent(new TreeEvent(TreeEventType.PLAYBACK, TreeEventAction.ADD, String.valueOf(id)));
         }
     }
 

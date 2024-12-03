@@ -7,15 +7,21 @@
     <app-date-range-picker
         [maxDate]="maxDate"
         [minDate]="minDate"
-        formControlName="range"></app-date-range-picker>
+        formControlName="range"
+        [timeRangeOptional]="timeRangeOptional"
+        [timezone]="timezoneName"
+        [timeInvalid]="timeInvalid"
+        (setTimeRangeState)="setTimeRangeState($event)"></app-date-range-picker>
     <label>{{ 'exportToFile.headers.datetimeFormat' | translate }}:</label>
-    <deltix-ng-autocomplete
-      cssClass="in-modal"
-      [values]="dateTimeFormats"
-      [free]="true"
-      formControlName="datetimeFormat">
-    </deltix-ng-autocomplete>
-    <div class="form-group">
+    <div>
+      <deltix-ng-autocomplete
+        cssClass="in-modal"
+        [values]="dateTimeFormats"
+        [free]="true"
+        formControlName="datetimeFormat">
+      </deltix-ng-autocomplete>
+    </div>
+    <div *ngIf="importToTextFile" class="form-group">
       <div class="form-control-cb-wr">
         <label class="container-ch">
           <input type="checkbox" formControlName="exportStaticFields"/>
@@ -55,7 +61,14 @@
     </accordion>
   </div>
   <ng-container footer>
-    <button (click)="export()" class="btn btn-primary">
+    <div class="validation-error">
+      <ng-container *ngFor="let message of validationErrorMessages | keyvalue: originalOrder">
+        <div *ngIf="!!message.value" class="error-message" [class.error-message-not-empty]="!!message.value">
+          {{ message.value }}</div>
+      </ng-container>
+    </div>
+    <button (click)="export()" class="btn btn-primary" [disabled]="submitButtonDisabled$ | async"
+      [tooltip]="'exportToFile.exportToFile' | translate: {filetype: exportFormat}" container="body">
       {{ 'exportToFile.export' | translate }}
     </button>
   </ng-container>

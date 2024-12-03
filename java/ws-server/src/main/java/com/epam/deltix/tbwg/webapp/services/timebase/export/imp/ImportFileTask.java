@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.timebase.export.imp;
 
 import com.epam.deltix.gflog.api.Log;
@@ -160,20 +159,17 @@ public class ImportFileTask implements ImportTask {
             return;
         }
 
-        if (!isSchemaValid(stream, reader.getTypes())) {
-            String message = "Schema of " + fileName + " is incompatible with stream schema.";
-            LOGGER.error().append(message).commit();
+        if (!Utils.isSchemaValid(stream, reader.getTypes())) {
+            String message = "Importing from the \"" + fileName + "\" file to the \"" + stream.getKey() + "\" stream may result in errors or loss of imported data";
             report.sendWarning(message);
             updateStatus(Collections.emptyList(), Collections.singletonList(message), Collections.emptyList(), ImportState.STARTED);
-            return;
         }
 
         RecordClassDescriptor[] inTypes = reader.getTypes();
         RecordClassDescriptor[] outTypes = stream.isFixedType() ?
                 new RecordClassDescriptor[]{stream.getFixedType()} :
                 stream.getPolymorphicDescriptors();
-
-        SchemaAnalyzer analyzer = Utils.createSchemaAnalyzer(inTypes, outTypes);
+        SchemaAnalyzer analyzer = new SchemaAnalyzer(Utils.getSchemaMapping(inTypes, outTypes));
         HashMap<RecordClassDescriptor, Function<RawMessage, RawMessage>> converters = new HashMap<>();
 
         LoadingOptions.WriteMode writeMode = settings.getWriteMode() != null ? settings.getWriteMode() : LoadingOptions.WriteMode.REWRITE;
@@ -184,15 +180,12 @@ public class ImportFileTask implements ImportTask {
         updateStatus(Collections.singletonList(importMessage), Collections.emptyList(), Collections.emptyList(), ImportState.STARTED);
 
         int importedMessages = 0;
-        LoadingOptions options = new LoadingOptions();
-        options.raw = true;
+        LoadingOptions options = new LoadingOptions(true, writeMode);
         options.channelQOS = ChannelQualityOfService.MAX_THROUGHPUT;
         options.space = space;
-        options.writeMode = writeMode;
 
         long lastSendProgressMs = 0;
 
-        importProcess.update();
         try (TickLoader loader = stream.createLoader(options)) {
             loader.addEventListener(report::newWarning);
 
@@ -212,6 +205,7 @@ public class ImportFileTask implements ImportTask {
                 if (msg instanceof RawMessage) {
                     RawMessage message = (RawMessage) msg;
                     Function<RawMessage, RawMessage> converter = converters.get(message.type);
+
                     if (converter == null) {
                         RecordClassDescriptor descriptor = Utils.findType(stream.getTypes(), message.type);
                         if (descriptor == null) {
@@ -225,11 +219,13 @@ public class ImportFileTask implements ImportTask {
                             MetaDataChange.ContentType.Fixed
                         );
 
-                        SchemaConverter finalConverter = new SchemaConverter(change);
-                        converters.put(message.type, converter = finalConverter::convert);
+                        if (change.hasChanges()) {
+                            SchemaConverter finalConverter = new SchemaConverter(change);
+                            converters.put(message.type, converter = finalConverter::convert);
+                        }
                     }
 
-                    RawMessage converted = converter.apply(message);
+                    RawMessage converted = converter != null ? converter.apply(message) : message;
                     if (converted != null) {
                         loader.send(converted);
                         importedMessages++;
@@ -240,10 +236,6 @@ public class ImportFileTask implements ImportTask {
                             lastSendProgressMs = System.currentTimeMillis();
                         }
                     }
-                }
-
-                if (importedMessages % 10000 == 0) {
-                    importProcess.update();
                 }
             }
         }
@@ -269,19 +261,6 @@ public class ImportFileTask implements ImportTask {
         return SimpleStringCodec.DEFAULT_INSTANCE.decode(name);
     }
 
-    private static boolean isSchemaValid(DXTickStream stream, RecordClassDescriptor[] types) {
-        SchemaAnalyzer schemaAnalyzer = new SchemaAnalyzer(Utils.getSchemaMapping(types, stream.getTypes()));
-        RecordClassSet fileSchema = new RecordClassSet(types);
-        RecordClassSet streamSchema = new RecordClassSet(stream.getTypes());
-        StreamMetaDataChange change = schemaAnalyzer.getChanges(
-                fileSchema, MetaDataChange.ContentType.Polymorphic,
-                streamSchema, MetaDataChange.ContentType.Polymorphic
-        );
-
-        SchemaChange.Impact changeImpact = change.getChangeImpact();
-        return changeImpact == SchemaChange.Impact.None || changeImpact == SchemaChange.Impact.DataConvert ;
-    }
-
     private static DXTickStream getOrCreateStream(TimebaseService timebaseService, ImportSettings settings, RecordClassDescriptor[] types) {
         DXTickDB db = timebaseService.getConnection();
         DXTickStream stream = db.getStream(settings.getStreamKey());
@@ -291,6 +270,8 @@ public class ImportFileTask implements ImportTask {
             options.setPolymorphic(types);
             options.name = settings.getStreamKey();
             options.periodicity = settings.getPeriodicity();
+//            options.version = settings.getVersion();
+//            options.distributionFactor = settings.getDistributionFactor();
             stream = db.createStream(settings.getStreamKey(), options);
         }
 

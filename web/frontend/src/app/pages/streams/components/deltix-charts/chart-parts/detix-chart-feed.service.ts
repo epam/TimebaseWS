@@ -23,12 +23,12 @@ import {
   auditTime,
   catchError,
   concatMap,
-  debounceTime, delay,
+  debounceTime,
   distinctUntilChanged,
   filter,
   finalize,
   map,
-  mapTo, publishReplay, refCount, shareReplay,
+  mapTo, publishReplay, refCount,
   switchMap,
   take,
   takeUntil,
@@ -53,6 +53,9 @@ import { getActiveTab }      from '../../../store/streams-tabs/streams-tabs.sele
 import { month }  from '../charts/units-in-ms';
 import { ChartsHttpService } from './charts.http.service';
 import { DeltixChartStorage } from './deltix-chart-storage';
+import { SymbolsService } from 'src/app/shared/services/symbols.service';
+import { ChartService } from 'src/app/shared/services/chart-service';
+import { ChartPointModel } from '../../../models/chart.model';
 
 @Injectable()
 export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
@@ -66,27 +69,39 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
   private actualInterval$ = new BehaviorSubject<number>(null);
   private barsAggregation: number;
   private levels: number;
+  private ranges: [number, number][];
   private chartType: ChartTypes;
-  private initEndOfStream: number;
   private initEndOfStreamNotRounded: number;
-  private endOfStream$ = new BehaviorSubject<number>(0);
   private loading$ = new BehaviorSubject<number>(0);
   private socketsFreshing$ = new BehaviorSubject(false);
   private requestFreshing$ = new BehaviorSubject(false);
   private socketSubscription?: Subscription;
   private httpError$ = new BehaviorSubject(null);
   private exchanges$ = new BehaviorSubject<Set<string>>(new Set());
-  private noPoints$ = new BehaviorSubject(false);
+  private noPoints$ = new BehaviorSubject<string[]>([]);
   private destroy$ = new Subject();
   private updates$ = new BehaviorSubject<{id: number, payload: any}>(null);
   private updated$ = new BehaviorSubject(0);
-  private linearTimestamps: Set<number>;
+  private linearTimestamps: Set<number> = new Set();
+  private source: string;
+  private symbolList = {};
+  private symbolsWithData: Set<string>;
+  symbolExchanges: { [key: string]: Set<string> };
+  symbolExchangesSubject = new Subject();
+  private lastRequestedPoints: { [source: string]: DeltixChartFormattedData } = {};
+  private range: { start: number, end: number } = { start: 0, end: 0 };
+  private tabId: string;
+  private endOfStream$ = new BehaviorSubject<number>(0);
+  currentScrollEnd$ = new BehaviorSubject<{ value: number, liveData: boolean}>({ value: 0, liveData: false });
+  private savedData = {};
   
   constructor(
     private appStore: Store<AppState>,
     private wsService: WSService,
     private chartsHttpService: ChartsHttpService,
     private linearChartService: LinearChartService,
+    private symbolService: SymbolsService,
+    private chartService: ChartService
   ) {
     this.updates$.pipe(
       filter(Boolean),
@@ -94,12 +109,22 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
       tap(id => this.updated$.next(id as number)),
       takeUntil(this.destroy$),
     ).subscribe();
+
+    this.appStore.pipe(
+      select(getActiveTab),
+      filter(tab => !!tab),
+      distinctUntilChanged((t1, t2) => t1 && t2 && t1.id === t2.id),
+      takeUntil(this.destroy$))
+    .subscribe(tab => this.tabId = tab.id);
+
+    this.symbolList = this.chartService.getAllSavedSymbols() ?? {};
   }
 
   request(options: IEverChartFeedHistoryOptions): Observable<DeltixChartFormattedData[]> {
     this.zoomIntervalChange(options.interval);
     return this.getActiveTab().pipe(
       take(1),
+      filter(tab => tab && !!tab.filter),
       map(tab => {
         return this.closePoints(
           new Date(tab.filter.from).getTime() - 60 * 1000,
@@ -115,33 +140,68 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
     }
     
     const exchanges = new Set<string>();
-    this.linearTimestamps = new Set();
+
     return combineLatest([
       this.storage$,
       this.borders$,
-      this.storageService.flow<DeltixChartStorage>('exchange').getData(['exchange']).pipe(take(1)),
+      this.storageService.flow<DeltixChartStorage>('exchange').getData(['exchange'])
+        .pipe(distinctUntilChanged((state1, state2) => state1?.exchange.id === state2?.exchange.id)),
       this.linearChartService.showLines().pipe(distinctUntilChanged(equal)),
     ]).pipe(
       filter(([state]) => !!state),
       map(([state, borders, exchangeState, lines]) => {
-        state.data?.forEach((p) => {
-          Object.values(p.points).forEach((p) => {
-            if (p['exchange'] && p['exchange'] !== 'null') {
-              exchanges.add(p['exchange']);
-            }
-          });
+        const stateData = state.data ? state.data.filter(dataItem => !!dataItem) : [];
+
+        const symbolExchanges = {};
+
+        this.symbolsWithData = new Set();
+
+        this.symbolList[this.tabId].forEach(symbol => {
+          symbolExchanges[symbol] = new Set();
+
+          stateData.forEach(item => {
+            Object.entries(item.points).forEach(([symbolKey, points]) => {
+              const emptyValues = Object.entries(points)
+                .some(([key, value]) => !value || (barChartTypes.includes(this.chartType) && key === 'close' && value === 'NaN'));
+
+              const keyAsArray = symbolKey.split('_');
+              const symbolName = keyAsArray.slice(0, keyAsArray.length - 1).join('_');
+
+              if (!!Object.keys(points).length && symbolName === symbol && !emptyValues) {
+                this.symbolsWithData.add(symbol);
+              }
+              if (points['exchange'] && points['exchange'] !== 'null') {
+                exchanges.add(points['exchange']);
+                if (symbolKey.includes(symbol)) {
+                  symbolExchanges[symbol].add(points['exchange']);
+                }
+              }
+            });
+          })
         });
         
         this.exchanges$.next(exchanges);
+        this.symbolExchanges = symbolExchanges;
+        this.symbolExchangesSubject.next(symbolExchanges);
+
         const definedExchange =
           exchangeState?.exchange?.id || (exchanges ? [...exchanges]?.[0] : null);
         return {storage: state, borders, exchange: definedExchange, lines: state.chartType === ChartTypes.LINEAR ? lines : null};
       }),
       map(({storage, borders, exchange, lines}) => {
-        const showLineIds = lines?.map(l => this.linearChartService.linearId(l));
-        const points = (storage?.data || []);
-        if (points.length && this.chartType === ChartTypes.PRICES_L2) {
-          this.finishL2Points(points, storage as DeltixChartStorage);
+        const storageData = storage?.data ? storage?.data.filter(dataItem => !!dataItem) : [];
+        const showIds = lines?.map(l => this.linearChartService.linearId(l));
+        const showLineIds = [];
+
+        if (showIds) {
+          this.symbolList[this.tabId].forEach(symbol => {
+            showIds.forEach(lineId => showLineIds.push(`${symbol}_${lineId}`))
+          })
+        }
+
+        const points = (storageData || []);
+        if (points.length && this.chartType === ChartTypes.PRICE_LEVELS) {
+          this.symbolList[this.tabId].forEach(symbol => this.finishL2Points(symbol, points, storage as DeltixChartStorage));
         }
   
         let resultPoints = [];
@@ -176,12 +236,71 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
         
         return resultPoints;
       }),
-      tap((points) => {
+      tap(points => {
         const lastPoint = points[points.length - 1];
         if (lastPoint?.time > this.endOfStream$.getValue()) {
           this.endOfStream$.next(lastPoint.time);
+          this.currentScrollEnd$.next( { value: lastPoint.time, liveData: false } );
         }
-        this.noPoints$.next(points.length === 0);
+         
+        const barOffset = this.barsAggregation && barChartTypes.includes(this.chartType) ? 0.98 * this.barsAggregation / 2 : 0;
+
+        if (this.chartType === ChartTypes.LINEAR) {
+          this.symbolsWithData = new Set();
+
+          const symbolPointsTimestamps = {};
+          points.forEach(item => Object.entries(item.points).forEach(([symbolKey, pointValue]: [string, ChartPointModel]) => {
+            const keyAsArray = symbolKey.split('_');
+            const symbolName = keyAsArray.slice(0, keyAsArray.length - 1).join('_');
+            if (pointValue?.time) {
+              if (!symbolPointsTimestamps[symbolName]) {
+                symbolPointsTimestamps[symbolName] = new Set();
+              }
+              symbolPointsTimestamps[symbolName].add(pointValue.time);
+            }
+          }));
+
+          this.symbolList[this.tabId].forEach((symbol: string) => {
+            const allSymbolTimestamps = symbolPointsTimestamps[symbol] ? [ ...symbolPointsTimestamps[symbol] ] : [];
+            const minTime = Math.min(...allSymbolTimestamps);
+            const maxTime = Math.max(...allSymbolTimestamps);
+            const allPointsBeforeRange = maxTime <= this.range?.start;
+            const allPointsAfterRange = minTime >= this.range?.end;
+            if (!allPointsBeforeRange && !allPointsAfterRange) {
+              this.symbolsWithData.add(symbol);
+            }
+          })
+          this.noPoints$.next(this.symbolList[this.tabId].filter((symbol: string) => !this.symbolsWithData.has(symbol)));
+        } else {
+          const pointsInRange = points
+            .filter(point => point.time > this.range.start - barOffset && point.time < this.range.end + barOffset);
+
+          if (!pointsInRange.length) {
+            this.noPoints$.next(this.symbolList[this.tabId]);
+          } else {
+            this.symbolsWithData = new Set();
+      
+            this.symbolList[this.tabId].forEach((symbol: string) => {
+      
+              pointsInRange.forEach(item => {
+                Object.entries(item.points).forEach(([symbolKey, points]) => {
+                  const emptyValues = Object.entries(points ?? {})
+                    .some(([key, value]) => {
+                      return (!value && key !== 'exchange') || (barChartTypes.includes(this.chartType) && key === 'close' && value === 'NaN');
+                  });
+      
+                  const keyAsArray = symbolKey.split('_');
+                  const symbolName = keyAsArray.slice(0, keyAsArray.length - 1).join('_');
+      
+                  if (!!Object.keys(points ?? {}).length && symbolName === symbol && !emptyValues) {
+                    this.symbolsWithData.add(symbol);
+                  }
+                });
+              })
+            });
+            this.noPoints$.next(this.symbolList[this.tabId].filter(symbol => !this.symbolsWithData.has(symbol)));
+          }
+        }
       }),
       takeUntil(this.chartDestroy$),
       // Rerender to prevent get animated value bug
@@ -195,7 +314,7 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
       this.noPoints$,
       this.onLoading(),
     ]).pipe(
-      map(([noPoints, loading]) => noPoints && !loading),
+      map(([noPoints, loading]) => loading ? [] : noPoints),
       debounceTime(300),
     );
   }
@@ -239,15 +358,16 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
     initEndOfStreamNotRounded: number,
     endOfStream: number,
     tabStorageService: TabStorageService<DeltixChartStorage>,
+    source: string
   ) {
     this.storageService = tabStorageService;
     this.barsAggregation = barsAggregation;
     this.levels = levels;
     this.chartType = chartType;
-    this.initEndOfStream = endOfStream;
     this.initEndOfStreamNotRounded = initEndOfStreamNotRounded;
     this.bordersChange(start, end);
     this.endOfStream$.next(endOfStream);
+    this.currentScrollEnd$.next({ value: endOfStream, liveData: false });
     this.requestFreshing$.next(true);
     this.socketSubscription?.unsubscribe();
     this.socketSubscription = null;
@@ -265,10 +385,9 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
         if (!storage?.savedSchema?.length) {
           return of({groups: [[]], storage});
         }
-      
-        return combineLatest(storage.savedSchema.map(entry => {
-          return this.storageService.flow(`data-${entry.key}`).getData().pipe(take(1));
-        })).pipe(map(groups => ({groups: groups, storage})), take(1));
+
+        return combineLatest(storage.savedSchema.map(entry => this.storageService.flow(`data-${entry.key}-${source}`).getData().pipe(take(1))))
+          .pipe(map(groups => ({groups: groups, storage})), take(1));
       }),
       map((groupsAndStorage) => {
         if (!groupsAndStorage) {
@@ -284,7 +403,7 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
     );
   }
   
-  runChart() {
+  runChart(source: string = 'L2') {
     this.borders$
       .pipe(
         distinctUntilChanged(equal),
@@ -294,7 +413,7 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
         auditTime(300),
         switchMap((borders) => {
           this.requestFreshing$.next(true);
-          return this.fillStorage(borders, this.chartType, this.barsAggregation, this.levels).pipe(take(1));
+          return this.fillStorage(borders, this.chartType, this.barsAggregation, this.levels, source).pipe(take(1));
         }),
         takeUntil(this.chartDestroy$),
       )
@@ -312,7 +431,7 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
     this.subscribeMaxDecimals(this.storageService);
   }
   
-  fillStorage(borders, chartType, barsAggregation, levels): Observable<boolean> {
+  fillStorage(borders, chartType, barsAggregation, levels, source: string): Observable<boolean> {
     return this.storageService.getData().pipe(
       take(1),
       switchMap(() => this.actualInterval$),
@@ -362,7 +481,6 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
                 point = subRange[1] + 1;
               }
             }
-            
           } else {
             subRanges = [[needStart, needEnd]];
           }
@@ -370,9 +488,11 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
           const fresh$ = this.storageService.getData().pipe(
             take(1),
             tap(storage => {
+
               const keys = storage?.savedSchema?.map(e => e.key);
               if (keys?.length) {
-                combineLatest(keys.map(k => this.storageService.removeFlow(`data-${k}`))).pipe(take(1)).subscribe();
+                combineLatest(keys.map(k => this.storageService.removeFlow(`data-${k}-L1`))).pipe(take(1)).subscribe();
+                combineLatest(keys.map(k => this.storageService.removeFlow(`data-${k}-L2`))).pipe(take(1)).subscribe();
               }
             }),
             concatMap(() => this.queueUpdate(() => this.storageService.updateData(() => ({})))),
@@ -387,14 +507,58 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
             borders[1],
             this.width,
           );
+          const sourceChanged = this.source && this.source !== source;
+          const symbolListExtended = this.symbolService.symbolList[this.tabId]?.filter(symbol => {
+            return !this.symbolService.lastLoadedSymbolList[this.tabId]?.includes(symbol);
+            }).length;
+          if (sourceChanged || symbolListExtended) {
+            subRanges.push([needStart, needEnd]);
+          }
+
+          const jointRanges: [number, number][] = [];
+
+          subRanges.forEach((range: [number, number], index: number) => {
+
+            const sameValueRangeIndex = subRanges.findIndex((r: [number, number]) => r[0] === range[0] && r[1] === range[1]);
+            const matchedEndIndex = subRanges.findIndex((r: [number, number]) => r[1] === range[0]);
+            const matchedStartIndex = subRanges.findIndex((r: [number, number]) => r[0] === range[1]);
+            const rangeWithSameEndIndex = subRanges.findIndex((r: [number, number]) => r[1] === range[1] && r[0] !== range[0]);
+
+            if (sameValueRangeIndex !== index) {
+              subRanges.splice(sameValueRangeIndex, 1);
+            } else if (matchedEndIndex !== -1) {
+              jointRanges.push([subRanges[matchedEndIndex][0], range[1]]);
+              subRanges.splice(matchedEndIndex, 1);
+            } else if (matchedStartIndex !== -1) {
+              jointRanges.push([range[0], subRanges[matchedStartIndex][1]]);
+              subRanges.splice(matchedStartIndex, 1);
+            } else if (rangeWithSameEndIndex !== -1) {
+              jointRanges.push([
+                range[0] < subRanges[rangeWithSameEndIndex][0] ? range[0] : subRanges[rangeWithSameEndIndex][0], 
+                range[1]]);
+              subRanges.splice(rangeWithSameEndIndex, 1);
+            } else {
+              jointRanges.push(range);
+            }
+          })
+
+          const resultRanges = jointRanges.map(range => {
+            if (range[1] - range[0] < 10000) {
+              return [range[0] - 5000, range[1] + 5000];
+            } else {
+              return range;
+            }
+          })
+
           return clear$.pipe(
             concatMap(() =>
               this.fillRanges(
-                subRanges as [number, number][],
+                resultRanges as [number, number][],
                 needStart,
                 needEnd,
                 actualInterval,
                 pointInterval,
+                source
               ),
             ),
             map(() => freshStorage),
@@ -431,14 +595,18 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
   }
   
   requestParams(tab: TabModel, startTime, endTime, pointInterval): { [index: string]: string } {
+    if (!startTime) {
+      return;
+    }
     const params = {
       startTime: new Date(startTime).toISOString(),
       endTime: new Date(endTime).toISOString(),
-      pointInterval: pointInterval as string,
-      symbols: tab.symbol,
-      levels: tab.filter.levels?.toString(),
+      pointInterval: pointInterval,
+      symbols: tab.symbol.split(',')[0],
+      levels: tab.filter.levels?.toString() ?? '10',
       space: tab.space,
       type: tab.filter.chart_type as string,
+      source: tab.filter?.source?.[0]
     };
     
     Object.keys(params).forEach((key) => {
@@ -456,7 +624,7 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
     return Math.ceil(pointInterval / round) * round;
   }
   
-  requestData(stream: string, params: { [index: string]: string }): Observable<ChartModel[]> {
+  requestData(stream: string, params: { [index: string]: string | string[] }): Observable<ChartModel[]> {
     return new Observable<ChartModel[]>((source) => {
       let success = false;
       let currentCorrelationId = null;
@@ -506,6 +674,7 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
                 case ChartTypes.BARS:
                 case ChartTypes.BARS_ASK:
                 case ChartTypes.BARS_BID:
+                case ChartTypes.BARS_TRADES:
                   const params = point.points.BARS;
                   return this.getMaxDecimals([
                     params.low,
@@ -513,7 +682,7 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
                     params.open,
                     params.close,
                   ] as number[]);
-                case ChartTypes.PRICES_L2:
+                case ChartTypes.PRICE_LEVELS:
                   return this.getMaxDecimals(
                     Object.keys(point.points).map((key) => point.points[key].value) as number[],
                   );
@@ -543,26 +712,31 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
       distinctUntilChanged(equal),
       switchMap(([tab, storage]: [TabModel, DeltixChartStorage]) => {
         const startWatch = this.initEndOfStreamNotRounded;
-        const params = {
-          instrument: tab.symbol,
+        this.source = tab?.filter.source?.[0];
+        const params = { 
+          source: this.source,
+          instrument: JSON.stringify(this.symbolList[tab.id]),
           chartType: storage.chartType,
           startTime: new Date(startWatch)?.toISOString(),
-          pointInterval: barChartTypes.includes(storage.chartType)
-            ? storage.barsAggregation?.toString()
-            : storage.pointInterval?.toString(),
+          pointInterval: (barChartTypes.includes(storage.chartType)
+            ? storage.barsAggregation
+            : storage.pointInterval * this.symbolList[tab.id]?.length) + '',
         };
         
-        if (storage.levels && storage.chartType === ChartTypes.PRICES_L2) {
+        if (storage.levels && storage.chartType === ChartTypes.PRICE_LEVELS) {
           params['levels'] = storage.levels.toString();
         }
+        this.increaseLoading();
+        setTimeout(() => this.decreaseLoading(), 2000);
         
         return this.wsService
           .watchObject<{ lines: ChartRowLines }>(`/user/topic/charting/${tab.stream}`, params)
           .pipe(map((data) => ({data, startWatch, pointInterval: storage.pointInterval, storage})));
       }),
       concatMap(({data, startWatch, pointInterval, storage}) => {
+        this.decreaseLoading();
         const [filterLeft, filterRight] = this.filterRange(this.borders$.getValue(), storage?.chartType, storage?.barsAggregation);
-        const points = this.convertLinesDataToEverChartData(data.lines, this.chartType);
+        const points = this.convertLinesDataToEverChartData(data.lines, this.chartType, true);
         const times = points.map((p) => p.time);
         const toTime = times.length ? Math.max(...times) : startWatch;
         const lineEndTime = barChartTypes.includes(storage.chartType)
@@ -577,11 +751,14 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
           Math.min(filterRight, toTime),
           this.actualInterval$.getValue(),
           pointInterval,
+          this.source,
+          true
         ).pipe(
           map(() => points),
           tap(() => {
             this.socketsFreshing$.next(false);
             this.endOfStream$.next(lineEndTime);
+            this.currentScrollEnd$.next( { value: lineEndTime, liveData: true })
           }),
         );
       }),
@@ -606,37 +783,56 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
     newEnd: number,
     newInterval: number,
     pointInterval: number,
+    source: string
   ): Observable<any> {
-    if (!ranges.length) {
-      return this.updateDataQueue([], newStart, newEnd, newInterval, pointInterval);
+    this.ranges = ranges;
+    if (!this.ranges?.length ) {
+      return this.updateDataQueue([], newStart, newEnd, newInterval, pointInterval, source, false);
+    } else {
+      return combineLatest(
+        this.ranges.map(([start, end]) => this.getDots(start, end, pointInterval, source))
+      ).pipe(
+        tap(() => this.symbolService.lastLoadedSymbolList[this.tabId] = [...this.symbolList[this.tabId]]),
+        map(responses => [].concat.apply([], responses)),
+        concatMap((data: DeltixChartFormattedData[]) => this.updateDataQueue(data, newStart, newEnd, newInterval, pointInterval, source, false)),
+      );
     }
-    
-    return combineLatest(
-      ranges.map(([start, end]) => this.getDots(start, end, pointInterval)),
-    ).pipe(
-      map((responses) => [].concat.apply([], responses)),
-      concatMap((data: DeltixChartFormattedData[]) => this.updateDataQueue(data, newStart, newEnd, newInterval, pointInterval)),
-    );
   }
   
-  private getDots(startTime, endTime, pointInterval): Observable<DeltixChartFormattedData[]> {
+  private getDots(startTime, endTime, pointInterval, source: string ): Observable<DeltixChartFormattedData[]> {
     return this.getActiveTab().pipe(
       take(1),
+      filter(tab => !!tab),
       switchMap((tab) => {
         if (barChartTypes.includes(tab.filter.chart_type)) {
-          pointInterval = tab.filter.period.aggregation;
+          pointInterval = tab.filter.period?.aggregation;
+        } else {
+          pointInterval *= this.symbolList[tab.id].length;
         }
-        
-        const params = this.requestParams(tab, startTime, endTime, pointInterval);
+        const params = {
+          ...this.requestParams(tab, startTime, endTime, pointInterval),
+          symbols: this.symbolList[tab.id],
+        };
         
         this.increaseLoading();
         
         return this.requestData(tab.stream, params).pipe(map((resp) => ({resp, tab, params})));
       }),
       map(({resp, tab, params}): DeltixChartFormattedData[] => {
-        return this.convertLinesDataToEverChartData(resp[0].lines, tab.filter.chart_type).sort(
-          (data1, data2) => data1.time - data2.time,
-        );
+        this.chartType = tab.filter.chart_type;
+        return this.convertLinesDataToEverChartData(resp[0].lines, tab.filter.chart_type, false);
+      }),
+      tap(data => {
+        if (this.chartType === ChartTypes.PRICE_LEVELS) {
+          const lastItems = data.slice(-5);
+          lastItems.forEach(item => {
+            if (this.lastRequestedPoints[source]) {
+              this.lastRequestedPoints[source] = { ...this.lastRequestedPoints[source], ...item };
+            } else {
+              this.lastRequestedPoints[source] = item;
+            }
+          })
+        }
       }),
       tap(() => this.httpError$.next(null)),
       catchError((error) => {
@@ -651,8 +847,10 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
                           newStart: number,
                           newEnd: number,
                           newInterval: number,
-                          pointInterval: number): Observable<void> {
-    return this.queueUpdate(() => this.updateData(data, newStart, newEnd, newInterval, pointInterval));
+                          pointInterval: number,
+                          source: string,
+                          liveData: boolean): Observable<void> {
+    return this.queueUpdate(() => this.updateData(data, newStart, newEnd, newInterval, pointInterval, source, liveData));
   }
   
   private queueUpdate(payload): Observable<void> {
@@ -668,6 +866,8 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
     newEnd: number,
     newInterval: number,
     pointInterval: number,
+    source: string,
+    liveData: boolean
   ): Observable<void> {
     
     return this.storageService.getData().pipe(
@@ -708,22 +908,84 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
               return [start, end];
             });
         }
-  
-        const removeFlows$ = keysToRemove.length ? combineLatest(keysToRemove.map(key => this.storageService.removeFlow(`data-${key}`))) : of(null);
+
+        const removeFlows$ = keysToRemove.length ? 
+          combineLatest([
+            ...keysToRemove.map(key => this.storageService.removeFlow(`data-${key}-L1`)),
+            ...keysToRemove.map(key => this.storageService.removeFlow(`data-${key}-L2`))
+          ]) : of(null);
         
-        const groups = this.groupData(data, newInterval, keysToRemove);
+        const groups = this.groupData(data, newInterval, keysToRemove, liveData);
         const groupKeys = Object.keys(groups);
+
+        if (barChartTypes.includes(this.chartType)) {
+          this.savedData[this.tabId] = { ...groups };
+        }
         
         const dataSaveFlows$ = groupKeys.map(index => {
-          const saveData = groups[index];
-          return this.storageService.flow<DeltixChartFormattedData[]>(`data-${index}`).updateData(storage => {
-            const newData = storage ? storage.concat(saveData) : saveData;
-            const uniqueSet = new Map();
-            newData.forEach((point) => {
-              uniqueSet.set(`${point.time}-${point.exchange}`, point);
-            });
-            return [...uniqueSet.values()];
-          });
+          let saveData: DeltixChartFormattedData[];
+          if (barChartTypes.includes(this.chartType) && (liveData || !data.length) && groups[index].length < 22) {
+            const storageData = groups[index]
+              .reduce((acc, item, index) => {
+                return [
+                  ...acc,
+                  { ...item, points: { ...(acc[index - 1]?.points ?? []), ...item.points } }
+                ]
+              }, []);
+              saveData = storageData.length > data.length + 2 ? storageData.slice(-(data.length + 2)) : storageData;
+          } else {
+            saveData = groups[index];
+          }
+
+            return this.storageService.flow<DeltixChartFormattedData[]>(`data-${index}-${source}`)
+              .updateData(storage => {
+                let dataWithStorage;
+                if (this.chartType === ChartTypes.PRICE_LEVELS && liveData && saveData.length < 30) {
+                  if (this.lastRequestedPoints[source]) {
+                    const tradesKeys = Object.keys(this.lastRequestedPoints[source].points).filter(key => key.includes('TRADES'));
+                    tradesKeys.forEach(key => delete this.lastRequestedPoints[source].points[key]);
+                  }
+
+                  dataWithStorage = [];
+
+                  dataWithStorage[0] = {
+                    ...saveData[0],
+                    points: {...(this.lastRequestedPoints[source]?.points ? 
+                      this.updateL2PointsTime(this.lastRequestedPoints[source], saveData[0].time) : {}), 
+                      ...saveData[0].points }
+                  };
+
+                  for (let i = 1; i < saveData.length; i += 1) {
+                    dataWithStorage[i] = {
+                      ...saveData[i],
+                      points: {...(dataWithStorage[i - 1].points ? 
+                        this.updateL2PointsTime(dataWithStorage[i - 1], saveData[i].time) : {}), 
+                        ...saveData[i].points }
+                    };
+                  };
+
+                  saveData.forEach(item => {
+                    this.lastRequestedPoints[source] = {
+                      ...(this.lastRequestedPoints[source] ?? {}),
+                      time: item.time,
+                      points: {
+                        ...(this.lastRequestedPoints[source]?.points ?? {}),
+                        ...item.points
+                      }
+                    };
+                  })
+                } else {
+                  dataWithStorage = saveData;
+                }
+                 
+                const newData = storage ? storage.concat(dataWithStorage) : dataWithStorage;
+
+                const uniqueSet = new Map();
+                newData.forEach((point) => {
+                  uniqueSet.set(`${point.time}-${point.exchange}`, point);
+                });
+                return [...uniqueSet.values()];
+              });
         });
         
         groupKeys.forEach(key => {
@@ -760,16 +1022,21 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
     );
   }
   
-  private groupData(data: DeltixChartFormattedData[], interval: number, keysToRemove: string[]): { [index: string]: DeltixChartFormattedData[] } {
+  private groupData(
+    data: DeltixChartFormattedData[], 
+    interval: number, 
+    keysToRemove: string[],
+    liveData: boolean): { [index: string]: DeltixChartFormattedData[] } {
     const step = this.getGroupDataStep(interval);
-    const groups = {};
+    const groups = barChartTypes.includes(this.chartType) && (liveData || !data.length) ? (this.savedData?.[this.tabId] ?? {}) : {};
     data.forEach(entry => {
       const index = `${Math.floor(entry.time / step)}-${interval}`;
       if (keysToRemove.includes(index.toString())) {
         return;
       }
+      const itemNumber = data.length > 20 ? data.length : 20;
       
-      groups[index] = groups[index] || [];
+      groups[index] = groups[index]?.slice(-itemNumber) || [];
       groups[index].push(entry);
     });
     
@@ -805,6 +1072,7 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
   private convertLinesDataToEverChartData(
     lines: ChartRowLines,
     chartType: ChartTypes,
+    liveData: boolean
   ): DeltixChartFormattedData[] {
     const POINTS_MAP = new Map<string, DeltixChartFormattedData>();
     Object.keys(lines).forEach((lineKey) => {
@@ -823,7 +1091,8 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
           switch (chartType) {
             case ChartTypes.BARS:
             case ChartTypes.BARS_BID:
-            case ChartTypes.BARS_ASK: {
+            case ChartTypes.BARS_ASK:
+            case ChartTypes.BARS_TRADES: {
               POINTS_DATA.points[lineKey] = {
                 ...point,
                 close: parseFloat(point.close as string),
@@ -858,8 +1127,61 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
         }
       });
     });
-    
-    return Array.from(POINTS_MAP.values()).sort((p1, p2) => p1.time < p2.time ? -1 : 1);
+
+    const resultPoints = Array.from(POINTS_MAP.values()).sort((p1, p2) => p1.time < p2.time ? -1 : 1);
+
+    if (chartType === ChartTypes.LINEAR && resultPoints.length >= 5) {
+
+      let allPoints = [];
+      resultPoints.forEach(item => {
+        allPoints = [
+          ...allPoints,
+          ...Object.entries(item?.points ?? {})
+        ]
+      })
+
+      const pointsBySymbol = allPoints.reduce((acc, [key, value]) => {
+        const symbolName = key.split('_')[0];
+        if (acc[symbolName]) {
+          acc[symbolName].push([key, value]);
+        } else {
+          acc[symbolName] = [[key, value]];
+        }
+        return acc;
+      }, {});
+
+      Object.entries(pointsBySymbol).forEach(([key, values]: [string, [string, { time: number, value: number }]]) => {
+        const keyName = `${this.tabId}_${key}`;
+
+        if (!this.chartService.upperPadLineList[keyName] && !this.chartService.lowerPadLineList[keyName]) {
+          const midValue = values.map(v => v[1].value).reduce((acc, value) => isNaN(value) ? acc : acc + value, 0) / values.length;
+
+          const upperPadLineSet = new Set<string>();
+          const lowerPadLineSet = new Set<string>();
+            
+          const highValues = values.filter(value => value[1].value >= midValue);
+          const lowValues = values.filter(value => value[1].value < midValue);
+  
+          highValues.map(value => value[0].split('_')[1].match(/\[(.*?)\]/)?.[1])
+            .forEach(lineName => upperPadLineSet.add(lineName));
+  
+          lowValues.map(value => value[0].split('_')[1].match(/\[(.*?)\]/)?.[1])
+            .forEach(lineName => lowerPadLineSet.add(lineName));
+
+          this.chartService.upperPadLineList[keyName] = Array.from(upperPadLineSet);
+          this.chartService.lowerPadLineList[keyName] = Array.from(lowerPadLineSet);
+
+          this.chartService.savePadLines();
+        }
+      })
+    }
+
+    const lastPoint = resultPoints[resultPoints.length - 1];
+    if (lastPoint?.time > this.currentScrollEnd$.getValue().value) {
+      this.currentScrollEnd$.next({ value: lastPoint.time, liveData });
+    }
+
+    return chartType === ChartTypes.PRICE_LEVELS ? this.completeL2PointsWitRange(resultPoints) : resultPoints;
   }
   
   private getMaxDecimals(data: number[]): number {
@@ -871,11 +1193,11 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
     return Math.max(...filtered.map((num) => num.toString().split('.')[1]?.length || 0));
   }
   
-  private finishL2Points(points: DeltixChartFormattedData[], storage: DeltixChartStorage) {
+  private finishL2Points(symbol: string, points: DeltixChartFormattedData[], storage: DeltixChartStorage) {
     let firstKeyIndex = 0;
     for (let i = points.length - 1; i >= 0; i--) {
       const keys = Object.keys(points[i].points);
-      if (keys.find(key => key.startsWith('ASK') || key.startsWith('BID'))) {
+      if (keys.find(key => key.includes('ASK') || key.includes('BID'))) {
         firstKeyIndex = i;
         break;
       }
@@ -885,7 +1207,7 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
     const lastPoint = points[points.length - 1];
     for (let level = 0; level <= this.levels; level++) {
       ['ASK', 'BID'].forEach(type => {
-        const key = `${type}[${level}]`;
+        const key = `${symbol}_${type}[${level}]`;
         for (let pointsI = firstKeyIndex; pointsI >= 0; pointsI--) {
           if (points[pointsI].points[key]) {
             lastValues[key] = {time: lastPoint.time, value: Number(points[pointsI].points[key].value)};
@@ -897,12 +1219,90 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
     
     lastPoint.points = {...lastValues, ...lastPoint.points};
   }
+
+  private completeL2PointsWitRange(resultPoints: DeltixChartFormattedData[]) {
+    let itemBeforeRangeStartIndex: number,
+        itemAfterRangeEndIndex: number;
+    for (let i = resultPoints.length - 1; i >= 0; i--) {
+      if (resultPoints[i].time > this.range?.end) {
+        itemAfterRangeEndIndex = i;
+      }
+      if (resultPoints[i].time < this.range?.start) {
+        itemBeforeRangeStartIndex = i;
+        break;
+      }
+    }
+
+    if (typeof itemBeforeRangeStartIndex === 'number') {
+      let previousPoints = {};
+      for (let i = 0; i <= itemBeforeRangeStartIndex; i++) {
+        previousPoints = {
+          ...previousPoints,
+          ...resultPoints[i].points,
+        }
+      }
+
+      const newItem = {
+        ...resultPoints[itemBeforeRangeStartIndex],
+        time: this.range.start,
+        points: Object.fromEntries(
+          Object.entries(previousPoints)
+            .filter(([key]) => !key.includes('TRADES'))
+            .map(([key, value]: [string, { time: number, value: number }]) => {
+              return [ key, { ...value, time: this.range.start } ];
+            })
+        ) 
+      };
+      resultPoints.splice(itemBeforeRangeStartIndex + 1, 0, newItem);
+    }
+
+    if (itemAfterRangeEndIndex) {
+      let afterPoints = {};
+      for (let i = resultPoints.length - 1; i >= itemAfterRangeEndIndex; i--) {
+        afterPoints = {
+          ...afterPoints,
+          ...resultPoints[i].points,
+        }
+      }
+
+      const newItem = {
+        ...resultPoints[itemAfterRangeEndIndex],
+        time: this.range.end,
+        points: Object.fromEntries(
+          Object.entries(afterPoints)
+            .filter(([key]) => !key.includes('TRADES'))
+            .map(([key, value]: [string, { time: number, value: number }]) => {
+              return [ key, { ...value, time: this.range.end } ];
+            })
+        ) 
+      };
+      resultPoints.splice(itemAfterRangeEndIndex, 0, newItem);
+    }
+    return resultPoints;
+  }
   
   private closePoints(from: number, to: number) {
     return [
       {time: from, points: {}},
       {time: to, points: {}},
     ];
+  }
+
+  setSymbolList(symbolList: string[]) {
+    this.symbolList[this.tabId] = symbolList;
+    this.symbolService.symbolList[this.tabId] = symbolList;
+  }
+
+  updateRange(startTime: number, endTime: number) {
+    this.range = {
+      start: startTime,
+      end: endTime
+    }
+  }
+
+  private updateL2PointsTime(savedPoints: DeltixChartFormattedData, newTime: number) {
+    return Object.fromEntries(
+      Object.entries(savedPoints?.points).map(point => [point[0], { ...point[1], time: newTime}]))
   }
   
   ngOnDestroy(): void {

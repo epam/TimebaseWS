@@ -3,10 +3,10 @@
       *ngIf="fields$ | async as fields"
       [fields]="fields"
       [form]="formGroup"></app-pure-form-builder>
-  <div *ngIf="isWriter$ | async" class="field-properties-bottom">
+  <div *ngIf="isWriter$ | async" class="field-properties-bottom" [class.no-padding]="insideModal">
     <button
         (click)="revert()"
-        *ngIf="fields$ | async"
+        *ngIf="(fields$ | async) && !readonly"
         [disabled]="revertDisabled$ | async"
         class="btn btn-default revert-btn">
       {{ 'buttons.revert' | translate }}

@@ -247,3 +247,11 @@
   margin-top: 0.2rem;
   margin-left: 0.4rem;
 }
+
+.disabled {
+  background-color: rgba(128, 128, 128, 0.2);
+}
+
+.alwaysSelected {
+  background-color: $blue;
+}

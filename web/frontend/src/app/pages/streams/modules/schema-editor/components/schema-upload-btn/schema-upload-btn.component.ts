@@ -77,7 +77,7 @@ export class SchemaUploadBtnComponent implements OnInit, OnDestroy {
         ),
         filter(Boolean),
       )
-      .subscribe((json) => this.updateSchema(json));
+      .subscribe(json => this.updateSchema(json));
   }
 
   ngOnDestroy() {
@@ -147,6 +147,21 @@ export class SchemaUploadBtnComponent implements OnInit, OnDestroy {
       return (data) => {
         if (!Array.isArray(data)) {
           return 'not-array';
+        }
+
+        const nameSet = new Set();
+        for (let item of data) {
+          if (!item.name) {
+            return ` Empty name: ${item.name}`;
+          }
+          if (item.name.includes(' ')) {
+            return ` Invalid name: ${item.name}`;
+          }
+          if (nameSet.has(item.name)) {
+            return ` Name comflict: ${item.name}`;
+          } else {
+            nameSet.add(item.name);
+          }
         }
 
         for (const i in data) {

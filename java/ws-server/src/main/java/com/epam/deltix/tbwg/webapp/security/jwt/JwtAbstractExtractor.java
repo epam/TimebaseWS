@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.security.jwt;
 
 import com.epam.deltix.gflog.api.Log;
@@ -48,8 +47,12 @@ abstract class JwtAbstractExtractor implements JwtExtractor {
 
     @Override
     public Collection<GrantedAuthority> extractAuthorities(Jwt jwt) {
-        Collection<GrantedAuthority> authorities = jwtGrantedAuthoritiesConverter.convert(jwt);
-        authorities.addAll(getPermissions(jwt, settings.getPermissionsClaim()));
+        List<GrantedAuthority> authorities = getPermissions(jwt, settings.getPermissionsClaim());
+        Collection<GrantedAuthority> tokenAuthorities = jwtGrantedAuthoritiesConverter.convert(jwt);
+        if (tokenAuthorities != null) {
+            authorities.addAll(tokenAuthorities);
+        }
+
         return authorities;
     }
 

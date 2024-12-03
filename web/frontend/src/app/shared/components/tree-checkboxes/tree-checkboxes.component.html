@@ -28,10 +28,10 @@
         class="tree__header">
       <div (click)="toggleItemShowChildren(item)" class="tree__expand-icon"></div>
       <div class="form-control-cb-wr">
-        <label class="container-ch">
+        <label class="container-ch" [class.static-field]="item.isStaticField">
           <input (change)="toggleItem(item)" [checked]="item.checked" type="checkbox" />
           <span [class.partial-checked]="item.partialChecked" class="checkmark"></span>
-          {{ item.name }}
+          {{ item.name }} <span *ngIf="item.isStaticField">(static)</span>
         </label>
       </div>
     </div>

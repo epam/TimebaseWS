@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,22 +14,21 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.tree;
+package com.epam.deltix.tbwg.webapp.services.tree;
 
-import com.epam.deltix.tbwg.webapp.model.tree.FilterMatchType;
 
 import java.util.Objects;
 
 public class SearchTreeFilter implements TreeFilter {
 
     private final String filter;
-    private final FilterMatchType matchType;
+    private final boolean matchExactly;
 
-    public SearchTreeFilter(String filter, FilterMatchType matchType) {
+    public SearchTreeFilter(String filter, boolean matchExactly) {
         Objects.requireNonNull(filter);
 
         this.filter = filter.toLowerCase();
-        this.matchType = matchType == null ? FilterMatchType.any : matchType;
+        this.matchExactly = matchExactly;
     }
 
     @Override
@@ -38,10 +37,10 @@ public class SearchTreeFilter implements TreeFilter {
             return false;
         }
 
-        if (matchType == FilterMatchType.any) {
-            return value.toLowerCase().contains(filter);
-        } else {
+        if (matchExactly) {
             return value.equalsIgnoreCase(filter);
+        } else {
+            return value.toLowerCase().contains(filter);
         }
     }
 

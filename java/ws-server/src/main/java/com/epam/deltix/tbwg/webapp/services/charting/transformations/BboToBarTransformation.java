@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,16 +14,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 
 import com.epam.deltix.dfp.Decimal64Utils;
-import com.epam.deltix.tbwg.messages.BboPoint;
-import com.epam.deltix.tbwg.messages.FeedStatusMessage;
-import com.epam.deltix.tbwg.messages.SnapshotMessage;
+import com.epam.deltix.tbwg.messages.*;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.model.charting.line.BarElementDef;
-import com.epam.deltix.tbwg.messages.Message;
+import com.epam.deltix.timebase.messages.InstrumentMessage;
 import com.epam.deltix.timebase.messages.service.FeedStatus;
 
 import java.util.Collections;
@@ -33,7 +30,7 @@ import static com.epam.deltix.tbwg.webapp.utils.BordersTimeBarChartsUtils.*;
 /**
  * The transformation aggregates bars from l1 data and converts into dto.
  */
-public class BboToBarTransformation extends AbstractChartTransformation<BarElementDef, BboPoint> {
+public class BboToBarTransformation extends AbstractChartTransformation<BarElementDef, InstrumentMessage> {
 
     private final long periodicity;
     private final long startTime;
@@ -47,6 +44,7 @@ public class BboToBarTransformation extends AbstractChartTransformation<BarEleme
     private long close = Decimal64Utils.NULL;
     private long low = Decimal64Utils.NULL;
     private long high = Decimal64Utils.NULL;
+    private long volume = Decimal64Utils.ZERO;
 
     public BboToBarTransformation(String symbol, long periodicity, long startTime, long endTime, ChartType chartType) {
         super(Collections.singletonList(BboPoint.class), Collections.singletonList(BarElementDef.class));
@@ -76,12 +74,21 @@ public class BboToBarTransformation extends AbstractChartTransformation<BarEleme
     }
 
     @Override
-    protected void onNextPoint(BboPoint point) {
-        flush(point.getTimeStampMs());
+    protected void onNextPoint(InstrumentMessage point) {
+        if (point instanceof BboPoint) {
+            BboPoint bboPoint = (BboPoint) point;
+            flush(point.getTimeStampMs());
 
-        if (point.getAskPrice() != Decimal64Utils.NULL && point.getBidPrice() != Decimal64Utils.NULL) {
-            update(
-                point.getTimeStampMs(), calcValue(point.getAskPrice(), point.getBidPrice())
+            if (bboPoint.getAskPrice() != Decimal64Utils.NULL && bboPoint.getBidPrice() != Decimal64Utils.NULL) {
+                update(
+                    point.getTimeStampMs(), calcValue(bboPoint.getAskPrice(), bboPoint.getBidPrice())
+                );
+            }
+        } else if (point instanceof VolumePoint) {
+            long volume = ((VolumePoint) point).getVolume();
+            this.volume = Decimal64Utils.add(
+                this.volume,
+                (Decimal64Utils.isNull(volume) || Decimal64Utils.isNaN(volume)) ? Decimal64Utils.ZERO : volume
             );
         }
     }
@@ -140,11 +147,11 @@ public class BboToBarTransformation extends AbstractChartTransformation<BarEleme
     private void send() {
         if (timestamp != Long.MIN_VALUE) {
             bar.setTime(timestamp);
-            bar.setOpen(Decimal64Utils.toString(open));
-            bar.setClose(Decimal64Utils.toString(close));
-            bar.setLow(Decimal64Utils.toString(low));
-            bar.setHigh(Decimal64Utils.toString(high));
-            bar.setVolume("0");
+            bar.setOpen(Decimal64Utils.toFloatString(open));
+            bar.setClose(Decimal64Utils.toFloatString(close));
+            bar.setLow(Decimal64Utils.toFloatString(low));
+            bar.setHigh(Decimal64Utils.toFloatString(high));
+            bar.setVolume(Decimal64Utils.toFloatString(volume));
 
             sendMessage(bar);
         }
@@ -162,6 +169,7 @@ public class BboToBarTransformation extends AbstractChartTransformation<BarEleme
     private void clear(long timestamp) {
         this.timestamp = getTransformationTimestamp(timestamp, periodicity);
         open = low = high = close;
+        volume = Decimal64Utils.ZERO;
     }
 
 }

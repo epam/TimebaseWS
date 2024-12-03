@@ -40,11 +40,11 @@
       <span class="font-weight-bold w-100">Date:</span>
     </div>
     <app-btn-date-picker
-        (valueChange)="onValueChange($event)"
         [maxDate]="endDate"
         [minDate]="startDate"
         [timeZone]="datePickerTimeZone"
-        [value]="visibleSelectedDate"></app-btn-date-picker>
+        [inputInvalid]="dateInvalid"
+        [formControl]="selectedDateControl"></app-btn-date-picker>
     <div class="w-100">
       <span class="font-weight-bold w-100">Timezone:</span>
     </div>

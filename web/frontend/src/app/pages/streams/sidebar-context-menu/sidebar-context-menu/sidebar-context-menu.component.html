@@ -4,8 +4,10 @@
       <app-sidebar-context-menu-item>
         <a
             (click)="closeContextMenu()"
-            [queryParams]="newTabQueryParams"
-            [routerLink]="item | streamsNavigationUrl: activeTabType">
+            (auxclick)="onWheelClick($event)"
+            [queryParams]="activeTabType === 'chart' ? 
+              ((item | streamsNavigationParams: activeTabType) | objectMerge: newTabQueryParams) : newTabQueryParams"
+            [routerLink]="item | streamsNavigationUrl: activeTabType: (reverseViewIsDefault$ | async)">
           <svg
               data-name="Layer 1"
               fill="currentColor"
@@ -21,13 +23,14 @@
       </app-sidebar-context-menu-item>
     </ng-template>
     <ng-template contextMenuItem passive="true">
-      <app-sidebar-context-menu-item
+      <app-sidebar-context-menu-item *ngIf="!isTopic"
           [link]="
           item?.meta.symbol
             ? ['symbol', 'view', item.meta.stream.id, item.meta.symbol]
             : ['stream', 'view', item.meta.stream.id]
         "
-          [queryParams]="queryParams">
+          [queryParams]="queryParams"
+          (auxclick)="onWheelClick($event)">
         <svg
             fill="none"
             height="16"
@@ -46,13 +49,14 @@
       </app-sidebar-context-menu-item>
     </ng-template>
     <ng-template contextMenuItem passive="true">
-      <app-sidebar-context-menu-item
+      <app-sidebar-context-menu-item *ngIf="!isTopic"
           [link]="
           item?.meta.symbol
             ? ['symbol', 'reverse', item.meta.stream.id, item.meta.symbol]
             : ['stream', 'reverse', item.meta.stream.id]
         "
-          [queryParams]="queryParams">
+          [queryParams]="queryParams"
+          (auxclick)="onWheelClick($event)">
         <svg
             fill="none"
             height="16"
@@ -74,9 +78,10 @@
           [link]="
           item && item.meta.symbol
             ? ['symbol', 'live', item.meta.stream.id, item.meta.symbol]
-            : ['stream', 'live', item.meta.stream.id]
+            : ['stream', 'live', isTopic ? item.id + '#topic#' : item.meta.stream.id]
         "
-          [queryParams]="queryParams">
+          [queryParams]="queryParams"
+          (auxclick)="onWheelClick($event)">
         <svg
             fill="currentcolor"
             height="16"
@@ -92,13 +97,14 @@
       </app-sidebar-context-menu-item>
     </ng-template>
     <ng-template contextMenuItem passive="true">
-      <app-sidebar-context-menu-item
+      <app-sidebar-context-menu-item *ngIf="!isTopic"
           [link]="
           item.meta?.symbol
             ? ['symbol', 'monitor', item.meta.stream.id, item.meta.symbol]
             : ['stream', 'monitor', item.meta.stream.id]
         "
-          [queryParams]="queryParams">
+          [queryParams]="queryParams"
+          (auxclick)="onWheelClick($event)">
         <svg
             fill="none"
             height="16"
@@ -117,17 +123,20 @@
       </app-sidebar-context-menu-item>
     </ng-template>
     <ng-template contextMenuItem passive="true">
-      <app-sidebar-context-menu-item
+      <app-sidebar-context-menu-item *ngIf="!isTopic"
           class="chart-item"
           [class.disabled]="!item.meta.chartType?.length"
           [class.hidden]="isSpace"
           (click)="openStreamChartModal()"
+          (auxclick)="onWheelClick($event)"
           [link]="item.meta.symbol && item.meta.chartType.length
-            ? ['symbol', 'chart', item.meta.stream.id, item.meta.symbol]
+            ? ['chart']
             : null"
-          [queryParams]="queryParams"
+          [queryParams]="queryParams | objectMerge: { space: item.meta.space?.id ?? null, 
+            stream: item.meta.stream.id, symbol: item.meta.symbol, 
+            name: !item.meta.symbol ? item.name : item.meta.stream.name }"
           [tooltipTranslate]="
-          !item.meta.chartType?.length ? 'notification_messages._no_chart_type' : null
+            !item.meta.chartType?.length ? 'notification_messages._no_chart_type' : null
         ">
         <svg
             fill="none"
@@ -146,13 +155,14 @@
       </app-sidebar-context-menu-item>
     </ng-template>
     <ng-template contextMenuItem passive="true">
-      <app-sidebar-context-menu-item
+      <app-sidebar-context-menu-item *ngIf="!isTopic"
           [class.disabled]="!hasPricesL2Chart"
           [class.hidden]="!(item?.meta.stream?.id && item?.meta.symbol)"
           [link]="hasPricesL2Chart ? ['order-book'] : null"
           [queryParams]="queryParams | objectMerge: { stream: item.meta.stream.type === 'VIEW' ? 
             item.meta.stream.id : item.meta.stream.name, symbol: item.meta.symbol }"
-          [tooltipTranslate]="!hasPricesL2Chart ? 'contextMenu.noOrderBook' : null">
+          [tooltipTranslate]="!hasPricesL2Chart ? 'contextMenu.noOrderBook' : null"
+          (auxclick)="onWheelClick($event)">
         <svg
             fill="none"
             height="16"
@@ -168,9 +178,10 @@
     </ng-template>
     <ng-template contextMenuItem passive="true">
       <app-sidebar-context-menu-item
-          [class.hidden]="!(item && !item.meta.symbol) || item.meta.space"
-          [link]="['stream', 'schema-edit', item.id]"
-          [queryParams]="queryParams">
+          [class.hidden]="(!(item && !item.meta.symbol) || item.meta.space) && !isTopic"
+          [link]="['stream', isTopic ? 'schema' : 'schema-edit', item.id]"
+          [queryParams]="queryParams"
+          (auxclick)="onWheelClick($event)">
         <svg
             fill="none"
             height="16"
@@ -190,20 +201,21 @@
       </app-sidebar-context-menu-item>
     </ng-template>
     <ng-template contextMenuItem passive="true">
-      <app-sidebar-context-menu-item>
-        <app-query-btn [stream]="item.meta.stream.id" [symbol]="item.meta.symbol" (click)="closeContextMenu()"></app-query-btn>
+      <app-sidebar-context-menu-item *ngIf="!isTopic">
+        <app-query-btn [stream]="item.meta.stream.id" [symbol]="item.meta.symbol" 
+          (click)="closeContextMenu()" (auxclick)="onWheelClick($event)"></app-query-btn>
       </app-sidebar-context-menu-item>
     </ng-template>
     <ng-template contextMenuItem passive="true">
       <span
-          [class.hidden]="isRootSpace || (!(isWriter$ | async) && isNotStreamOrSpace || (isView && isNotStreamOrSpace))"
+          [class.hidden]="isRootSpace || (!(isWriter$ | async) && isNotStreamOrSpace || (isView && isNotStreamOrSpace)) || isTopic"
           class="menu-separator"></span>
     </ng-template>
     <ng-template *ngIf="isWriter$ | async" contextMenuItem passive="true">
       <app-sidebar-context-menu-item
-          *ngIf="!isView"
+          *ngIf="!isView && !isTopic"
           [class.hidden]="isNotStreamOrSpace">
-        <button (click)="showTruncateModal()" class="btn btn-link schema-view" type="button">
+        <button (click)="showTruncateModal()" (auxclick)="onWheelClick($event)" class="btn btn-link schema-view" type="button">
           <svg
               fill="none"
               height="16"
@@ -225,8 +237,8 @@
       </app-sidebar-context-menu-item>
     </ng-template>
     <ng-template *ngIf="isWriter$ | async" contextMenuItem passive="true">
-      <app-sidebar-context-menu-item *ngIf="!isView" [class.hidden]="isNotStreamOrSpace">
-        <button (click)="showPurgeModal()" class="btn btn-link schema-view" type="button">
+      <app-sidebar-context-menu-item *ngIf="!isView && !isTopic" [class.hidden]="isNotStreamOrSpace">
+        <button (click)="showPurgeModal()" (auxclick)="onWheelClick($event)" class="btn btn-link schema-view" type="button">
           <svg
               fill="none"
               height="16"
@@ -247,7 +259,7 @@
     </ng-template>
     <ng-template *ngIf="isWriter$ | async" contextMenuItem passive="true">
       <app-sidebar-context-menu-item [class.hidden]="isNotStream || isRootSpace">
-        <button (click)="confirmDeleteStream()" class="btn btn-link schema-view" type="button">
+        <button (click)="confirmDeleteStream()" (auxclick)="onWheelClick($event)" class="btn btn-link schema-view" type="button">
           <svg
               fill="none"
               height="16"
@@ -262,13 +274,36 @@
             <path
                 d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
           </svg>
-          {{ (isView ? 'tooltips.deleteView' : (item.meta.space ? 'tooltips.deleteSpace' : 'tooltips.deleteStream')) | translate }}
+          <span *ngIf="!isTopic">{{ (isView ? 'tooltips.deleteView' : (item.meta.space ? 'tooltips.deleteSpace' : 'tooltips.deleteStream')) | translate }}</span>
+          <span *ngIf="isTopic">{{ 'tooltips.deleteTopic' | translate }}</span>
+        </button>
+      </app-sidebar-context-menu-item>
+    </ng-template>
+     <ng-template *ngIf="isWriter$ | async" contextMenuItem passive="true">
+       <app-sidebar-context-menu-item [class.hidden]="isRootSpace || isTopic">
+        <button [disabled]="!item.childrenCount && !item.meta.symbol"
+          (click)="confirmDeleteSymbol()" (auxclick)="onWheelClick($event)" class="btn btn-link schema-view" type="button">
+          <svg
+              fill="none"
+              height="16"
+              id="i-fullscreen-exit"
+              stroke="currentcolor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 32 32"
+              width="16"
+              xmlns="http://www.w3.org/2000/svg">
+            <path
+                d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+          </svg>
+          <span>{{ 'tooltips.deleteSymbol' | translate }}{{ item.meta.symbol ? '' : 's'}} </span>
         </button>
       </app-sidebar-context-menu-item>
     </ng-template>
     <ng-template *ngIf="isWriter$ | async" contextMenuItem passive="true">
-      <app-sidebar-context-menu-item [class.hidden]="isRootSpace || isView">
-        <button (click)="showEditNameModal()" class="btn btn-link schema-view" type="button">
+      <app-sidebar-context-menu-item [class.hidden]="isRootSpace || isView || isTopic">
+        <button (click)="showEditNameModal()" (auxclick)="onWheelClick($event)" class="btn btn-link schema-view" type="button">
           <svg
               fill="none"
               height="16"
@@ -288,8 +323,8 @@
       </app-sidebar-context-menu-item>
     </ng-template>
     <ng-template contextMenuItem passive="true">
-      <app-sidebar-context-menu-item [class.hidden]="isNotStreamOrSpace">
-        <button (click)="showDescribe()" class="btn btn-link schema-view" type="button">
+      <app-sidebar-context-menu-item [class.hidden]="isNotStreamOrSpace" *ngIf="!isTopic">
+        <button (click)="showDescribe()" (auxclick)="onWheelClick($event)" class="btn btn-link schema-view" type="button">
           <svg
               fill="none"
               height="16"
@@ -309,8 +344,8 @@
       </app-sidebar-context-menu-item>
     </ng-template>
     <ng-template *ngIf="isWriter$ | async" contextMenuItem passive="true">
-      <app-sidebar-context-menu-item *ngIf="!isView" [class.hidden]="isNotStreamOrSpace">
-        <button (click)="showSendMessage()" class="btn btn-link schema-view" type="button">
+      <app-sidebar-context-menu-item *ngIf="!isView && !isTopic" [class.hidden]="isNotStreamOrSpace">
+        <button (click)="showSendMessage()" (auxclick)="onWheelClick($event)" class="btn btn-link schema-view" type="button">
           <svg
               fill="none"
               height="16"
@@ -330,42 +365,55 @@
       </app-sidebar-context-menu-item>
     </ng-template>
     <ng-template contextMenuItem passive="true">
-      <span [ngClass]="{ 'schema-view hidden': isSpace }" class="menu-separator"></span>
+      <span [ngClass]="{ 'schema-view hidden': isSpace || isTopic }" class="menu-separator"></span>
     </ng-template>
     
     <ng-template contextMenuItem passive="true">
-      <app-sidebar-context-menu-item [class.hidden]="isSpace">
-        <button (click)="exportQSMSGFile()" class="btn btn-link schema-view" type="button">
-          <ng-container *ngTemplateOutlet="downloadIcon"></ng-container>
+      <app-sidebar-context-menu-item [class.hidden]="isSpace || isTopic">
+        <button (click)="exportQSMSGFile()" (auxclick)="onWheelClick($event)" class="btn btn-link schema-view" type="button">
+          <ng-container *ngTemplateOutlet="uploadIcon"></ng-container>
           {{ 'contextMenu.export_toQSMSG_file' | translate }}
         </button>
       </app-sidebar-context-menu-item>
     </ng-template>
     <ng-template contextMenuItem passive="true">
-      <app-sidebar-context-menu-item [class.hidden]="isSpace">
-        <button (click)="exportCsv()" class="btn btn-link" type="button">
-          <ng-container *ngTemplateOutlet="downloadIcon"></ng-container>
-          {{ 'contextMenu.export_toCSV' | translate }}
+      <app-sidebar-context-menu-item [class.hidden]="isSpace || isTopic">
+        <button (click)="exportCsv()" (auxclick)="onWheelClick($event)" class="btn btn-link" type="button">
+          <ng-container *ngTemplateOutlet="uploadIcon"></ng-container>
+          {{ 'contextMenu.export_to_text_file' | translate }}
         </button>
       </app-sidebar-context-menu-item>
     </ng-template>
     <ng-container *ngIf="isWriter$ | async">
       <ng-template contextMenuItem passive="true">
-        <span [class.hidden]="isNotStreamOrSpace || isView" class="menu-separator"></span>
+        <span [class.hidden]="isNotStreamOrSpace || isView || isTopic" class="menu-separator"></span>
       </ng-template>
       <ng-template contextMenuItem passive="true">
-        <app-sidebar-context-menu-item *ngIf="!isView" [class.hidden]="isNotStreamOrSpace">
-          <button (click)="importFromQSMSG()" class="btn btn-link schema-view" type="button">
-            <ng-container *ngTemplateOutlet="uploadIcon"></ng-container>
-            {{ 'contextMenu.import_fromQSMSG' | translate }}
+        <app-sidebar-context-menu-item *ngIf="!isView && !isTopic" [class.hidden]="isNotStreamOrSpace">
+          <button (click)="importFromQSMSG()" (auxclick)="onWheelClick($event)" class="btn btn-link schema-view" type="button">
+            <ng-container *ngTemplateOutlet="downloadIcon"></ng-container>
+            {{ 'contextMenu.importFromQSMSG' | translate }}
           </button>
         </app-sidebar-context-menu-item>
       </ng-template>
       <ng-template contextMenuItem passive="true">
-        <app-sidebar-context-menu-item *ngIf="!isView" [class.hidden]="isNotStreamOrSpace">
-          <button (click)="importFromCSV()" class="btn btn-link schema-view" type="button">
-            <ng-container *ngTemplateOutlet="uploadIcon"></ng-container>
+        <app-sidebar-context-menu-item *ngIf="!isView && !isTopic" [class.hidden]="isNotStreamOrSpace">
+          <button (click)="importFromCSV()" (auxclick)="onWheelClick($event)" class="btn btn-link schema-view" type="button">
+            <ng-container *ngTemplateOutlet="downloadIcon"></ng-container>
             {{ 'contextMenu.importFromTextFile' | translate }}
+          </button>
+        </app-sidebar-context-menu-item>
+      </ng-template>
+    </ng-container>
+    <ng-container *ngIf="(isWriter$ | async) && (showPlaybackItem$ | async)">
+      <ng-template contextMenuItem passive="true">
+        <span [class.hidden]="isNotStreamOrSpace || isView || isTopic" class="menu-separator"></span>
+      </ng-template>
+      <ng-template contextMenuItem passive="true">
+        <app-sidebar-context-menu-item *ngIf="!isView && !isTopic" [class.hidden]="isNotStreamOrSpace">
+          <button (click)="openPlaybackModal()" (auxclick)="onWheelClick($event)" class="btn btn-link schema-view" type="button">
+            <div class="play-icon"><ng-container *ngTemplateOutlet="playIcon"></ng-container></div>
+            {{ 'contextMenu.playback' | translate }}
           </button>
         </app-sidebar-context-menu-item>
       </ng-template>
@@ -374,13 +422,22 @@
 </context-menu>
 
 <ng-template #deleteItemMessage>
-  <ng-container *ngIf="!isView">
-    {{ (item.meta.space ? 'text.deleteSpaceRequest' : 'text.deleteStreamRequest') | translate }}
+  <ng-container *ngIf="!item.meta.symbol">
+    <ng-container *ngIf="!isView && !isTopic">
+      {{ (item.meta.space ? 'text.deleteSpaceRequest' : 'text.deleteStreamRequest') | translate }}
+    </ng-container>
+    <ng-container *ngIf="isView">
+      {{ 'text.deleteViewRequest' | translate }}
+    </ng-container>
+    <ng-container *ngIf="isTopic">
+      {{ 'text.deleteTopicRequest' | translate }}
+    </ng-container>
   </ng-container>
-  <ng-container *ngIf="isView">
-    {{ 'text.deleteViewRequest' | translate }}
+  <ng-container *ngIf="item.meta.symbol">
+    {{ 'text.deleteSymbolRequest' | translate }}
   </ng-container>
-  <span class="text-danger">{{ isView ? (item.meta.stream.name) : (item.meta.space ? item.meta.space.id : item.id) }}</span> ?
+  <span class="text-danger">{{ isView ? item.name : 
+    (item.meta.space ? item.meta.space.id : (item.name ?? item.id)) }}</span> ?
 </ng-template>
 <ng-template #downloadIcon>
   <svg
@@ -415,4 +472,16 @@
       </g>
     </g>
   </svg>
+</ng-template>
+<ng-template #playIcon>
+  <svg fill="#ffffff" height="16px" width="16px" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 60 60" xml:space="preserve" stroke="#ffffff">
+
+    <g id="SVGRepo_bgCarrier" stroke-width="0"/>
+    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"/>
+    <g id="SVGRepo_iconCarrier"> 
+      <g> 
+        <path d="M45.563,29.174l-22-15c-0.307-0.208-0.703-0.231-1.031-0.058C22.205,14.289,22,14.629,22,15v30 c0,0.371,0.205,0.711,0.533,0.884C22.679,45.962,22.84,46,23,46c0.197,0,0.394-0.059,0.563-0.174l22-15 C45.836,30.64,46,30.331,46,30S45.836,29.36,45.563,29.174z M24,43.107V16.893L43.225,30L24,43.107z"/> <path d="M30,0C13.458,0,0,13.458,0,30s13.458,30,30,30s30-13.458,30-30S46.542,0,30,0z M30,58C14.561,58,2,45.439,2,30 S14.561,2,30,2s28,12.561,28,28S45.439,58,30,58z"/> 
+      </g> 
+    </g>
+    </svg>
 </ng-template>

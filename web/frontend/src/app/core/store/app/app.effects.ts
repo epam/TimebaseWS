@@ -15,6 +15,7 @@ import * as AuthActions from '../auth/auth.actions';
 import {AppState} from '../index';
 import * as AppActions from './app.actions';
 import {AppActionTypes} from './app.actions';
+import { AppInfoService } from 'src/app/shared/services/app-info.service';
 
 @Injectable()
 export class AppEffects {
@@ -54,6 +55,7 @@ export class AppEffects {
             }
             return throwError(err);
           }),
+          tap(appInfo => this.appInfoService.appInfo = appInfo),
           switchMap((appInfo) => {
             return of(new AppActions.SetAppInfo({info: appInfo}));
           }),
@@ -162,5 +164,6 @@ export class AppEffects {
     private wsService: WSService,
     private router: Router,
     private _ngZone: NgZone,
+    private appInfoService: AppInfoService
   ) {}
 }

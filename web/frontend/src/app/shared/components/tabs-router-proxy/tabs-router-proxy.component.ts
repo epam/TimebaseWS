@@ -31,7 +31,7 @@ export class TabsRouterProxyComponent implements OnInit {
       const queryParams = this.activatedRoute.snapshot.queryParams;
       let newTab = activeIndex === -1 ? true : queryParams.newTab;
       if (!newTab) {
-        newTab = tabs[activeIndex].query || tabs[activeIndex].flow || tabs[activeIndex].orderBook;
+        newTab = tabs[activeIndex].query || tabs[activeIndex].flow || tabs[activeIndex].orderBook || tabs[activeIndex].generateDDL;
       }
 
       const tab = createTab(

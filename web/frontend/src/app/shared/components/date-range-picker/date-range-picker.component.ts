@@ -1,9 +1,7 @@
-import {Component, forwardRef, Input, OnDestroy, OnInit} from '@angular/core';
+import {Component, forwardRef, Input, OnDestroy, OnInit, Output, EventEmitter} from '@angular/core';
 import {ControlValueAccessor, UntypedFormControl, NG_VALUE_ACCESSOR} from '@angular/forms';
-import {Store} from '@ngrx/store';
-import {BehaviorSubject, combineLatest, Observable, ReplaySubject, Subject} from 'rxjs';
+import {BehaviorSubject, combineLatest, Observable, ReplaySubject} from 'rxjs';
 import {map, startWith, takeUntil} from 'rxjs/operators';
-import {AppState} from '../../../core/store';
 import {GlobalFilterTimeZone} from '../../../pages/streams/models/global.filter.model';
 import {GlobalFiltersService} from '../../services/global-filters.service';
 import {getTimeZoneObject} from '../../utils/timezone.utils';
@@ -25,10 +23,17 @@ export class DateRangePickerComponent implements OnInit, ControlValueAccessor, O
   @Input() minDate: Date;
   @Input() maxDate: Date;
   @Input() clearBtn = false;
+  @Input() timeRangeOptional: { startTimeDisabled: boolean, endTimeDisabled: boolean };
+  @Input() showLabels: boolean = false;
+  @Input() rangeDisabled: boolean = false;
+  @Input() timeInvalid: { startTime: boolean, endTime: boolean };
+  @Input() startInvalid = false;
+  @Input() endInvalid = false;
 
   @Input() set timezone(timezone: string) {
     this.timezone$.next(timezone);
   }
+  @Output() setTimeRangeState = new EventEmitter<{ [key: string]: boolean }>();
 
   public startControl = new UntypedFormControl();
   public endControl = new UntypedFormControl();
@@ -36,10 +41,7 @@ export class DateRangePickerComponent implements OnInit, ControlValueAccessor, O
   private destroy$ = new ReplaySubject(1);
   private timezone$ = new BehaviorSubject<string>(null);
 
-  constructor(
-    private appStore: Store<AppState>,
-    private globalFiltersService: GlobalFiltersService,
-  ) {}
+  constructor (private globalFiltersService: GlobalFiltersService) {}
 
   ngOnInit(): void {
     combineLatest([
@@ -85,5 +87,13 @@ export class DateRangePickerComponent implements OnInit, ControlValueAccessor, O
   ngOnDestroy() {
     this.destroy$.next(true);
     this.destroy$.complete();
+  }
+
+  toggleTimeRangeState(startOrEnd: 'start' | 'end') {
+    if (startOrEnd === 'start') {
+      this.setTimeRangeState.emit({ startTimeDisabled: !this.timeRangeOptional.startTimeDisabled });
+    } else {
+      this.setTimeRangeState.emit({ endTimeDisabled: !this.timeRangeOptional.endTimeDisabled });
+    }
   }
 }

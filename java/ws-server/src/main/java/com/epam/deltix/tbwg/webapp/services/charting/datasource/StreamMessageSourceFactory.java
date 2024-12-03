@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,17 +14,15 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.charting.datasource;
 
-import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
-import com.epam.deltix.tbwg.webapp.utils.DefaultTypeLoader;
-import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickDB;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
 import com.epam.deltix.tbwg.webapp.services.charting.TimeInterval;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
+import com.epam.deltix.timebase.messages.IdentityKey;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
@@ -51,7 +49,7 @@ public class StreamMessageSourceFactory implements MessageSourceFactory {
     }
 
     @Override
-    public ReactiveMessageSource buildSource(String streamName, String symbol, Set<String> types, TimeInterval interval,
+    public ReactiveMessageSource buildSource(String streamName, String[] symbols, Set<String> types, TimeInterval interval,
                                              boolean live, boolean unbound) {
         DXTickStream stream = timebase.getStream(streamName);
         if (stream == null) {
@@ -61,14 +59,15 @@ public class StreamMessageSourceFactory implements MessageSourceFactory {
         DXTickDB db = stream.getDB();
         TimeBaseReactiveMessageSource.Builder builder = TimeBaseReactiveMessageSource.builder(db);
 
+        String[] instruments = findInstruments(stream, symbols);
         builder.time(interval.getStartTimeMilli() - PREFETCH_INTERVAL_MS);
         builder.endTime(interval.getEndTimeMilli() + PREFETCH_INTERVAL_MS);
-        builder.typeLoader(new DefaultTypeLoader());
+        builder.typeLoader(MarketDataTypeLoader.getTypeLoader());
         if (useInterpretCodecs) {
             builder.interpreted();
         }
         builder.streams(stream);
-        builder.symbols(symbol);
+        builder.symbols(instruments);
         builder.types(types);
         builder.live(live);
         builder.unbound(unbound);
@@ -82,7 +81,7 @@ public class StreamMessageSourceFactory implements MessageSourceFactory {
     }
 
     @Override
-    public ReactiveMessageSource buildSource(String stream, String symbol, String qql, TimeInterval interval, boolean live, boolean unbound) {
+    public ReactiveMessageSource buildSource(String stream, String[] symbols, String qql, TimeInterval interval, boolean live, boolean unbound) {
         LOGGER.info().append("CHART QQL QUERY: ").append(qql).commit();
 
         DXTickDB db = timebase.getConnection();
@@ -94,32 +93,40 @@ public class StreamMessageSourceFactory implements MessageSourceFactory {
         builder.unbound(unbound);
         builder.live(live);
         builder.realTimeNotifications(true);
-        builder.typeLoader(new DefaultTypeLoader());
+        builder.typeLoader(MarketDataTypeLoader.getTypeLoader());
         if (useInterpretCodecs) {
             builder.interpreted();
         }
-        if (stream != null && symbol != null) {
-            builder.symbols(symbol);
+        if (stream != null && symbols != null) {
+            builder.symbols(findInstruments(stream, symbols));
         }
 
         return builder.build();
     }
 
-    private IdentityKey findInstrument(String streamName, String symbol) {
+    private String[] findInstruments(String streamName, String[] symbols) {
         DXTickStream stream = timebase.getStream(streamName);
         if (stream == null) {
             throw new IllegalArgumentException("Can't find stream " + streamName);
         }
+        return findInstruments(stream, symbols);
+    }
 
+    private String[] findInstruments(DXTickStream stream, String[] symbols) {
         IdentityKey[] instruments = stream.listEntities();
+        Set<String> symbolsSet = Set.of(symbols);
+        List<String> result = new ArrayList<>(symbolsSet.size());
         for (int i = 0; i < instruments.length; ++i) {
-            if (instruments[i].getSymbol().toString().equals(symbol)) {
-                return instruments[i];
+            if (symbolsSet.contains(instruments[i].getSymbol().toString())) {
+                result.add(instruments[i].getSymbol().toString());
             }
         }
+        if (symbols.length != result.size())
+            throw new IllegalArgumentException("Can't find symbol '" + Arrays.toString(symbols) + "' in stream '" + stream.getKey() + "'");
 
-        throw new IllegalArgumentException("Can't find symbol '" + symbol + "' in stream '" + stream.getKey() + "'");
+        return result.toArray(new String[0]);
     }
+
     private IdentityKey findInstrument(DXTickStream stream, String symbol) {
         IdentityKey[] instruments = stream.listEntities();
         for (int i = 0; i < instruments.length; ++i) {

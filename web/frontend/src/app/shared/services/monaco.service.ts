@@ -7,6 +7,7 @@ import IPosition = monaco.IPosition;
 import CompletionList = monaco.languages.CompletionList;
 import IMonarchLanguage = monaco.languages.IMonarchLanguage;
 import LanguageConfiguration = monaco.languages.LanguageConfiguration;
+import { SchemaAllTypeModel, SchemaTypeModel } from '../models/schema.type.model';
 
 type CompletionFunc = (model: ITextModel, position: IPosition) => Observable<CompletionList>;
 
@@ -18,6 +19,9 @@ export class MonacoService {
   
   private completionProviders = new Map<string, CompletionFunc>();
   private registeredProviders = new Set();
+
+  public currentDDLStreamSchema: { [streamKey: string]: { types: SchemaTypeModel[]; all: SchemaAllTypeModel[]; } } = {};
+  public currentDDLStreamDetails: { [streamKey: string]: string } = {};
   
   static onMonacoLoadHandler() {
     MonacoService.monacoLoad$.next(window.monaco);
@@ -32,6 +36,10 @@ export class MonacoService {
   
   defineTheme(themeId: string, config: IStandaloneThemeData) {
     this.getMonaco().subscribe((monaco) => monaco.editor.defineTheme(themeId, config));
+  }
+
+  setTheme(themeId: string, config: IStandaloneThemeData) {
+    this.getMonaco().subscribe((monaco) => monaco.editor.setTheme(themeId, config));
   }
   
   setAutoCompleteProvider(language: string, provider: CompletionFunc) {

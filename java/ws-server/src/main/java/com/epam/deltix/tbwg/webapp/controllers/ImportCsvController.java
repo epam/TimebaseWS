@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,11 +14,11 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.controllers;
 
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
+import com.epam.deltix.qsrv.hf.pub.md.json.SchemaDef;
 import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
 import com.epam.deltix.tbwg.webapp.services.timebase.csvimport.*;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.*;
@@ -27,6 +27,7 @@ import com.epam.deltix.tbwg.webapp.websockets.subscription.Subscription;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionController;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionControllerRegistry;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -39,6 +40,8 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 
 import java.io.*;
 import java.util.*;
+
+import static com.epam.deltix.tbwg.webapp.services.timebase.csvimport.CsvImportServiceImpl.IMPORT_FINISH_DELAY;
 
 /**
  * Default controller for REST API
@@ -54,6 +57,7 @@ public class ImportCsvController implements SubscriptionController {
     @Autowired
     public ImportCsvController(SubscriptionControllerRegistry registry, CsvImportService importService) {
         registry.register(WebSocketConfig.IMPORT_CSV_TOPIC, this);
+        registry.register(WebSocketConfig.INIT_IMPORT_CSV_TOPIC, this);
         this.importService = importService;
     }
 
@@ -62,7 +66,7 @@ public class ImportCsvController implements SubscriptionController {
     public ResponseEntity<?> initImport(@RequestParam String streamKey) throws UnknownStreamException {
         if (TextUtils.isEmpty(streamKey))
             throw new UnknownStreamException(streamKey);
-        String id = importService.initImport();
+        String id = importService.initImport(streamKey);
         LOGGER.info().append("CSV Import initialization for stream ").append(streamKey)
                 .append(". Import Id: ").append(id).commit();
         return new ResponseEntity<>(Collections.singletonList(id), HttpStatus.CREATED);
@@ -89,6 +93,17 @@ public class ImportCsvController implements SubscriptionController {
     public ResponseEntity<CsvImportSettings> getSetting(@PathVariable String id, @RequestParam String streamKey) {
         importService.checkId(id);
         return ResponseEntity.ok(importService.generateDefaultSettings(id, streamKey));
+    }
+
+    @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
+    @GetMapping(value = "/csv/schema/{id}")
+    public ResponseEntity<SchemaDef> getSchema(@PathVariable String id,
+                                               @RequestParam(required = false, defaultValue = "false") boolean enumCheck,
+                                               @RequestParam(required = false, defaultValue = "20") int enumValuesCount,
+                                               @RequestParam(required = false, defaultValue = "10") int enumRepeatRate,
+                                               @RequestParam(required = false, defaultValue = "false") boolean staticCheck) {
+        importService.checkId(id);
+        return ResponseEntity.ok(importService.generateSchema(id, enumCheck, enumValuesCount, enumRepeatRate, staticCheck));
     }
 
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
@@ -137,26 +152,34 @@ public class ImportCsvController implements SubscriptionController {
 
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @RequestMapping(value = "/csv/requestProcess/{id}", method = {RequestMethod.POST})
-    public ResponseEntity<Long> requestProcess(@RequestParam long totalSize, @PathVariable String id,
-                                               @RequestBody CsvImportSettings settings) {
+    public ResponseEntity<Long> requestProcess(@RequestParam long totalSize, @PathVariable String id) {
         importService.checkId(id);
-        ImportValidatorCsv.settingsValidate(settings);
         long processId = importService.reserveUploadProcess(id, totalSize);
-        importService.saveSettings(id, settings);
         LOGGER.info().append("CSV import request created. Reserved ").append(totalSize).append(" bytes.").commit();
         return ResponseEntity.ok(processId);
+    }
+
+    @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
+    @RequestMapping(value = "/csv/setting/{id}", method = {RequestMethod.POST})
+    public ResponseEntity<Long> saveSettings(@PathVariable String id, @RequestBody CsvImportSettings settings) {
+        importService.checkId(id);
+        ImportValidatorCsv.settingsValidate(settings);
+        importService.saveSettings(id, settings);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @PostMapping(value = "/csv/uploadChunk/{id}")
     public ResponseEntity<?> uploadChunk(@PathVariable String id, @RequestParam MultipartFile file,
                                          @RequestParam long fullFileSize) throws IOException {
-        long processId = importService.getProcessId(id);
-        long offset = importService.uploadChunk(processId, file.getInputStream(), file.getOriginalFilename());
-        LOGGER.info().append("Uploaded chunk for import file ").append(file.getOriginalFilename())
-                .append("; chunk size: ").append(file.getSize())
-                .append("; offset: ").append(offset)
-                .append("; file size: ").append(fullFileSize).commit();
+        try (InputStream inputStream = file.getInputStream()) {
+            long processId = importService.getProcessId(id);
+            long offset = importService.uploadChunk(processId, inputStream, file.getOriginalFilename());
+            LOGGER.info().append("Uploaded chunk for import file ").append(file.getOriginalFilename())
+                    .append("; chunk size: ").append(file.getSize())
+                    .append("; offset: ").append(offset)
+                    .append("; file size: ").append(fullFileSize).commit();
+        }
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
@@ -180,16 +203,43 @@ public class ImportCsvController implements SubscriptionController {
                     String.format("Can't find destination on subscribe with sessionId = %s and subscriptionId = %s",
                             header.getSessionId(), header.getSubscriptionId()));
         }
+        if (destination.contains("startImport")) {
+            return startImport(channel, destination);
+        } else {
+            return activateImport(channel, destination);
+        }
+    }
+
+    private Subscription activateImport(SubscriptionChannel channel, String destination) {
+        String id = extractIdFromInit(destination);
+        importService.setActiveImport(id);
+        return () -> {
+            channel.sendMessage("The import process will be canceled after " +
+                    IMPORT_FINISH_DELAY + " seconds due to a broken web socket connection");
+            importService.inactiveImport(id);
+        };
+    }
+
+    @NotNull
+    private Subscription startImport(SubscriptionChannel channel, String destination) {
         String id = extractId(destination);
-        long processId = importService.getProcessId(id);
-        CsvImportSettings settings = importService.getSettings(id);
-        importService.startImport(processId, settings, channel);
+        importService.startImport(id, channel);
         return () -> {
         };
     }
 
     private String extractId(String destination) {
         String controlString = WebSocketConfig.IMPORT_CSV_TOPIC + "/";
+        String url = destination.substring(0, destination.indexOf('?'));
+        int id = url.indexOf(controlString);
+        if (id < 0) {
+            throw new RuntimeException("Can't extract import id from destination: " + url);
+        }
+        return url.substring(id + controlString.length());
+    }
+
+    private String extractIdFromInit(String destination) {
+        String controlString = WebSocketConfig.INIT_IMPORT_CSV_TOPIC + "/";
         String url = destination.substring(0, destination.indexOf('?'));
         int id = url.indexOf(controlString);
         if (id < 0) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,19 +14,22 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.controllers;
 
+import com.epam.deltix.tbwg.webapp.model.orderbook.L2PackageDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
+import com.epam.deltix.tbwg.webapp.model.ModelDataSourceType;
 import com.epam.deltix.tbwg.webapp.services.orderbook.OrderBookService;
+import com.epam.deltix.tbwg.webapp.services.orderbook.OrderBookSubscriptionOptions;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.Subscription;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionController;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionControllerRegistry;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
@@ -34,6 +37,7 @@ import org.springframework.stereotype.Controller;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 
 @Controller
 public class OrderBookController implements SubscriptionController {
@@ -41,6 +45,7 @@ public class OrderBookController implements SubscriptionController {
     private static final Log LOG = LogFactory.getLog(OrderBookController.class);
 
     private static final String INSTRUMENT_HEADER = "instrument";
+    private static final String SOURCE_HEADER = "source";
     private static final String STREAMS_LIST_HEADER = "streams";
     private static final String HIDDEN_EXCHANGES_LIST_HEADER = "hiddenExchanges";
 
@@ -56,9 +61,22 @@ public class OrderBookController implements SubscriptionController {
 
     @Override
     public Subscription onSubscribe(SimpMessageHeaderAccessor headerAccessor, SubscriptionChannel channel) {
+
+        OrderBookSubscriptionOptions subscriptionOptions = getSubscriptionOptions(headerAccessor, channel);
+        return subscribe(headerAccessor, channel, subscriptionOptions);
+    }
+
+    private OrderBookSubscriptionOptions getSubscriptionOptions(SimpMessageHeaderAccessor headerAccessor,
+                                                                SubscriptionChannel channel){
         String instrument = headerAccessor.getFirstNativeHeader(INSTRUMENT_HEADER);
         if (instrument == null || instrument.isEmpty()) {
             throw new IllegalArgumentException("Unknown instrument, specify '" + INSTRUMENT_HEADER + "' STOMP header.");
+        }
+        ModelDataSourceType source;
+        try {
+            source = ModelDataSourceType.valueOf(headerAccessor.getFirstNativeHeader(SOURCE_HEADER));
+        } catch (Exception e){
+            throw new IllegalArgumentException("Unknown datasource, specify '" + SOURCE_HEADER + "' STOMP header.");
         }
 
         String[] streams = getStringListHeader(headerAccessor, channel, STREAMS_LIST_HEADER);
@@ -67,8 +85,7 @@ public class OrderBookController implements SubscriptionController {
         }
 
         String[] hiddenExchanges = getStringListHeader(headerAccessor, channel, HIDDEN_EXCHANGES_LIST_HEADER);
-
-        return subscribe(headerAccessor, channel, instrument, streams, hiddenExchanges);
+        return new OrderBookSubscriptionOptions(instrument, source, streams, hiddenExchanges);
     }
 
     private String[] getStringListHeader(SimpMessageHeaderAccessor headerAccessor, SubscriptionChannel channel, String header) {
@@ -86,23 +103,25 @@ public class OrderBookController implements SubscriptionController {
     }
 
     private Subscription subscribe(SimpMessageHeaderAccessor headerAccessor, SubscriptionChannel channel,
-                                   String instrument, String[] streams, String[] hiddenExchanges)
+                                   OrderBookSubscriptionOptions so)
     {
         String sessionId = headerAccessor.getSessionId();
         String subscriptionId = headerAccessor.getSubscriptionId();
 
         LOG.info().append("Order book subscribe: ")
-            .append(instrument).append(" ").append(Arrays.toString(streams))
-            .append("; SessionId: ").append(sessionId)
-            .append("; SubscriptionId: ").append(subscriptionId).commit();
+                .append(so.getInstrument()).append(" ")
+                .append(Arrays.toString(so.getStreams()))
+                .append("; Source: ").append(so.getSource())
+                .append("; SessionId: ").append(sessionId)
+                .append("; SubscriptionId: ").append(subscriptionId).commit();
 
         orderBookService.subscribe(
-            sessionId, subscriptionId, instrument, streams, hiddenExchanges,
+            sessionId, subscriptionId, so.getInstrument(), so.getStreams(), so.getHiddenExchanges(),
             (l2PackageDto) -> {
                 if (LOG.isTraceEnabled()) {
-                    LOG.trace().append("Sending L2PackageDto for instrument ").append(instrument)
+                    LOG.trace().append("Sending L2PackageDto for instrument ").append(so.getInstrument())
                         .append(": ").append(Instant.ofEpochMilli(l2PackageDto.timestamp))
-                        .append(": Streams: ").append(Arrays.toString(streams))
+                        .append(": Streams: ").append(Arrays.toString(so.getStreams()))
                         .append(": Session Id: ").append(sessionId)
                         .append(": Subscription Id: ").append(subscriptionId).commit();
                 }
@@ -113,11 +132,12 @@ public class OrderBookController implements SubscriptionController {
 
         return () -> {
             LOG.info().append("Order book unsubscribe: ")
-                .append(instrument).append(" ").append(Arrays.toString(streams))
-                .append("; SessionId: ").append(sessionId)
-                .append("; SubscriptionId: ").append(subscriptionId).commit();
+                    .append(so.getInstrument()).append(" ")
+                    .append(Arrays.toString(so.getStreams()))
+                    .append("; Source: ").append(so.getSource())
+                    .append("; SubscriptionId: ").append(subscriptionId).commit();
 
-            orderBookService.unsubscribe(sessionId, subscriptionId, instrument);
+            orderBookService.unsubscribe(sessionId, subscriptionId, so.getInstrument());
         };
     }
 

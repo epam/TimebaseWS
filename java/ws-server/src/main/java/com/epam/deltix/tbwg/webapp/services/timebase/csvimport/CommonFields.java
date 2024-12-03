@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,13 +14,11 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.timebase.csvimport;
 
 import com.epam.deltix.qsrv.hf.pub.md.*;
+import com.epam.deltix.qsrv.hf.pub.md.json.DataTypeDef;
 import com.epam.deltix.tbwg.webapp.model.input.StreamFieldInfo;
-import com.epam.deltix.tbwg.webapp.model.schema.DataTypeDef;
-import com.epam.deltix.tbwg.webapp.model.schema.SchemaBuilder;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -37,7 +35,11 @@ public enum CommonFields {
 
     TIMESTAMP(new StreamFieldInfo("timestamp", null, "Date/Time",
             new DataTypeDef("TIMESTAMP", null, false)),
-            new DateTimeDataType(false));
+            new DateTimeDataType(false, DateTimeDataType.ENCODING_NANOSECONDS));
+
+//    INSTRUMENT_TYPE(new StreamFieldInfo("instrumentType", "deltix.qsrv.hf.pub.InstrumentMessage", "Instrument Type",
+//            SchemaBuilder.getDataTypeDef(new EnumDataType(false, new EnumClassDescriptor(InstrumentType.class)))),
+//            new EnumDataType(false, new EnumClassDescriptor(InstrumentType.class)));
 
     private static final Map<StreamFieldInfo, CommonFields> BY_FIELD_INFO = new HashMap<>();
 

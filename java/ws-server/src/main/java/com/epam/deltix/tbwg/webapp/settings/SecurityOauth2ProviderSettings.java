@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,10 +14,12 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.settings;
+package com.epam.deltix.tbwg.webapp.settings;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 @ConfigurationProperties(prefix = "security.oauth2.provider")
@@ -39,6 +41,8 @@ public class SecurityOauth2ProviderSettings {
     private boolean validateIssuer = true;
 
     private UserInfoSettings userInfo;
+
+    private List<String> scopes;
 
     public String getName() {
         return name;
@@ -159,4 +163,13 @@ public class SecurityOauth2ProviderSettings {
     public void setClientSecret(String clientSecret) {
         this.clientSecret = clientSecret;
     }
+
+    public List<String> getScopes() {
+        return scopes;
+    }
+
+    public void setScopes(List<String> scopes) {
+        this.scopes = scopes;
+    }
+
 }

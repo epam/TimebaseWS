@@ -89,7 +89,18 @@
 ng-multiselect-dropdown,
 deltix-ng-smart-date-time-picker,
 deltix-ng-autocomplete {
-  margin-right: 12px;
+  margin-right: 8px;
+  font-size: 12px;
+}
+
+:host ::ng-deep app-bars-period-filter {
+  .deltix-autocomplete .autocomplete-input {
+    font-size: 13px;
+  }
+}
+
+ng-multiselect-dropdown {
+  width: 3.5rem;
 }
 
 .loader {
@@ -124,8 +135,8 @@ deltix-ng-autocomplete {
   width: 30 * $ss;
   display: inline-block;
   min-width: 75px;
-  .autocomplete-input {
-    font-size: 12px;
+  input.invalid {
+    outline: 1px solid rgb(141, 32, 65);
   }
 }
 
@@ -179,8 +190,7 @@ deltix-ng-smart-date-time-picker {
 }
 
 .btn {
-  padding-top: 0;
-  padding-bottom: 0;
+  padding: 0px 5px;
 }
 
 .stream-details {
@@ -291,6 +301,9 @@ option {
 app-bars-period-filter {
   display: block;
   margin-right: 6px;
+  deltix-ng-autocomplete {
+    min-width: 150px;
+  }
 }
 
 .btn.controlWr.right-navigator-btn {
@@ -298,13 +311,13 @@ app-bars-period-filter {
 }
 
 .exchange-control-wrapper {
+  margin-right: 0.5rem;
   display: flex;
   justify-content: flex-end;
 }
 
 app-multi-select {
-  min-width: 95px;
-  font-size: 12px;
+  min-width: 105px;
 }
 
 ::ng-deep {
@@ -340,11 +353,33 @@ app-multi-select {
   text-align: center;
 }
 
-.btn {
-  font-size: 10px;
-  padding: 0 2px;
-}
-
 .btn-info {
   padding: 0 10px;
+}
+
+.btn-share {
+  height: 2rem;
+  padding: 0 5px 0 8px;
+  svg {
+    margin-top: 0.3rem;
+  }
+}
+
+::ng-deep .symbols app-multi-select {
+  width: 110px;
+  margin-right: 0.5rem;
+  z-index: 100;
+  .selected-item {
+    height: 90%;
+    white-space: nowrap;
+  }
+  .header__content {
+    max-height: 1.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.chart-type-select {
+  width: 9.5rem;
 }

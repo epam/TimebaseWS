@@ -33,7 +33,7 @@ export class ChartSettingsComponent implements OnInit {
 
   this.appStore.pipe(
     select(getActiveTab), 
-    filter(tab => !!tab.stream),
+    filter(tab => tab && !!tab.stream),
     switchMap((tab: TabModel) => {
       this.stream = tab.stream;
       return combineLatest([

@@ -4,51 +4,68 @@
     <app-streams-list-search></app-streams-list-search>
   </form>
 </div>
-<!--  <div [class.no-visible]="true" class="streams-total-count">-->
-<!--    {{ 'streamsList.totalCount' | translate }}: {{ streamsCount }}-->
-<!--  </div>-->
 <div class="tabs-container">
   <div class="tabs-wrapper">
-    <div (click)="switchTreeView(treeView.id)" [class.active]="treeViewId === treeView.id" *ngFor="let treeView of treeViews">
-      {{ treeView.title | translate }}
+    <div [class.active]="treeViewId === treeView.id" *ngFor="let treeView of treeViews">
+      <button (click)="switchTreeView(treeView.id)" [class.active-view]="treeViewId === treeView.id">
+        {{ treeView.title | translate }}
+      </button>
     </div>
   </div>
-  <button
+  <span *ngIf="searchValue" class="typed-in-search-text"
+    [ngClass]=" { 'search-value-not-found': searchValueNotFound }">
+    <ng-container *ngTemplateOutlet="searchIcon"></ng-container>
+    {{ searchValue }}
+  </span>
+  <div>
+    <button class="synchronize-btn" (click)="toggleSynchronization()" [class.active]="synchronizationEnabled"
+      [tooltip]="(synchronizationEnabled ? 'buttons.disable_tab_synchronization' : 'buttons.enable_tab_synchronization') | translate" 
+      container="body" position="top">
+      <svg 
+        class="svg-icon" style="width: 1.3em; height: 1.3em; vertical-align: middle; fill: white; overflow: hidden;" 
+        viewBox="0 0 1024 1024" version="1.1" 
+        xmlns="http://www.w3.org/2000/svg">
+        <path d="M293.376 645.290667A256.085333 256.085333 0 0 0 753.408 597.333333h89.173333a341.461333 341.461333 0 0 1-610.816 109.568L128 810.666667v-256h256l-90.624 90.624z m437.290667-266.624A256.170667 256.170667 0 0 0 270.506667 426.666667H181.333333a341.546667 341.546667 0 0 1 610.986667-109.653334L896 213.333333v256h-256l90.666667-90.666666z" />
+      </svg>
+    </button>
+    <button
       (click)="collapseAll()"
       [adaptivePosition]="false"
       container="body"
       [tooltip]="'buttons.collapse_all' | translate"
+      position="top"
       class="collapse-all-btn">
-    <svg
-        clip-rule="evenodd"
-        fill="currentColor"
-        fill-rule="evenodd"
-        height="17"
-        style="enable-background: new 0 0 512 512"
-        version="1.1"
-        viewBox="0 0 512 512"
-        width="17"
-        x="0px"
-        xml:space="preserve"
-        y="0px">
-          <g>
-            <path
-                class="st0"
-                d="M36.6,256c0-10.1,8.2-18.3,18.3-18.3h402.3c10.1,0,18.3,8.2,18.3,18.3s-8.2,18.3-18.3,18.3H54.9
-		C44.8,274.3,36.6,266.1,36.6,256z M256,0c10.1,0,18.3,8.2,18.3,18.3v164.6c0,10.1-8.2,18.3-18.3,18.3s-18.3-8.2-18.3-18.3V18.3
-		C237.7,8.2,245.9,0,256,0z" />
-            <path
-                class="st0"
-                d="M342.1,96.8c7.1,7.1,7.2,18.7,0,25.9l0,0L269,195.8c-7.1,7.1-18.7,7.2-25.9,0l0,0l-73.1-73.1
-		c-7.1-7.2-7.1-18.7,0-25.9c7.2-7.1,18.7-7.1,25.9,0L256,157l60.2-60.2C323.3,89.6,334.9,89.6,342.1,96.8L342.1,96.8z M256,512
-		c10.1,0,18.3-8.2,18.3-18.3V329.1c0-10.1-8.2-18.3-18.3-18.3s-18.3,8.2-18.3,18.3v164.6C237.7,503.8,245.9,512,256,512z" />
-            <path
-                class="st0"
-                d="M342.1,415.2c7.1-7.1,7.2-18.7,0-25.9l0,0L269,316.2c-7.1-7.1-18.7-7.2-25.9,0l0,0l-73.1,73.1
-		c-7.1,7.2-7.1,18.7,0,25.9c7.2,7.1,18.7,7.1,25.9,0L256,355l60.2,60.2C323.3,422.4,334.9,422.4,342.1,415.2L342.1,415.2z" />
-          </g>
-        </svg>
-  </button>
+      <svg
+          clip-rule="evenodd"
+          fill="currentColor"
+          fill-rule="evenodd"
+          height="16"
+          style="enable-background: new 0 0 512 512"
+          version="1.1"
+          viewBox="0 0 512 512"
+          width="16"
+          x="0px"
+          xml:space="preserve"
+          y="0px">
+            <g>
+              <path
+                  class="st0"
+                  d="M36.6,256c0-10.1,8.2-18.3,18.3-18.3h402.3c10.1,0,18.3,8.2,18.3,18.3s-8.2,18.3-18.3,18.3H54.9
+      C44.8,274.3,36.6,266.1,36.6,256z M256,0c10.1,0,18.3,8.2,18.3,18.3v164.6c0,10.1-8.2,18.3-18.3,18.3s-18.3-8.2-18.3-18.3V18.3
+      C237.7,8.2,245.9,0,256,0z" />
+              <path
+                  class="st0"
+                  d="M342.1,96.8c7.1,7.1,7.2,18.7,0,25.9l0,0L269,195.8c-7.1,7.1-18.7,7.2-25.9,0l0,0l-73.1-73.1
+      c-7.1-7.2-7.1-18.7,0-25.9c7.2-7.1,18.7-7.1,25.9,0L256,157l60.2-60.2C323.3,89.6,334.9,89.6,342.1,96.8L342.1,96.8z M256,512
+      c10.1,0,18.3-8.2,18.3-18.3V329.1c0-10.1-8.2-18.3-18.3-18.3s-18.3,8.2-18.3,18.3v164.6C237.7,503.8,245.9,512,256,512z" />
+              <path
+                  class="st0"
+                  d="M342.1,415.2c7.1-7.1,7.2-18.7,0-25.9l0,0L269,316.2c-7.1-7.1-18.7-7.2-25.9,0l0,0l-73.1,73.1
+      c-7.1,7.2-7.1,18.7,0,25.9c7.2,7.1,18.7,7.1,25.9,0L256,355l60.2,60.2C323.3,422.4,334.9,422.4,342.1,415.2L342.1,415.2z" />
+            </g>
+          </svg>
+    </button>
+  </div>
 </div>
 <div *ngIf="menuLoaded" class="streams-navigation">
   <cdk-virtual-scroll-viewport *ngIf="menu.length" [itemSize]="22" perfectScrollbar>
@@ -60,26 +77,36 @@
           <app-menu-item-context-menu [activeTabType]="activeTabType" [item]="menuItem"
             (contextmenu)="closeOtherDropdowns()">
             <i
-                (click)="toggleMenuItem($event, menuItem, menuItem.path)"
+                (click)="toggleMenuItem(menuItem, menuItem.path, $event)"
                 [class.open]="menuItem.children?.length"
                 [class.visible]="menuItem.childrenCount"
                 class="sidebar-arrow"></i>
             <a
-                (keydown)="toggleMenuItemWithKeys($event, menuItem, menuItem.path)"
+                (keydown)="toggleMenuItemWithKeys(menuItem, menuItem.path, $event)"
                 [appStreamsNavigationActive]="menuItem.id"
                 [queryParams]="menuItem | streamsNavigationParams: activeTabType"
-                [routerLink]="menuItem | streamsNavigationUrl: activeTabType"
+                [routerLink]="menuItem | streamsNavigationUrl: activeTabType: (reverseViewIsDefault$ | async)"
                 class="menu-item-link" 
+                [name]="menuItem.name"
+                [attr.data-type]="menuItem.type"
                 [class.selected-item]="selectedItem === menuItem.name || streamSelectedForImport === menuItem.name"
+                [class.highlighted-item]="highlightedItems?.stream === menuItem.name || highlightedItems?.symbol === menuItem.name"
                 tabindex="0">
                   <span
-                      [adaptivePosition]="false"
-                      [delay]="700"
-                      [tooltip]="menuItem.name"
-                      class="menu-item-title"
-                      container="body"
-                      placement="top">
-                    {{ menuItem.name }}
+                    [adaptivePosition]="false"
+                    [delay]="700"
+                    [tooltip]="menuItem.name"
+                    class="menu-item-title"
+                    container="body"
+                    placement="top">
+                    <ng-container 
+                      *ngIf="searchValue && menuItem.nameForSearch.includes(searchValue); else plainText">
+                      <span>{{ menuItem.displayName.slice(0, menuItem.nameForSearch.indexOf(searchValue)) }}</span
+                      ><span class="search-text">{{ menuItem.displayName
+                        .slice(menuItem.nameForSearch.indexOf(searchValue), menuItem.nameForSearch.indexOf(searchValue) + searchValue.length) }}</span
+                      ><span>{{ menuItem.displayName.slice(menuItem.nameForSearch.indexOf(searchValue) + searchValue.length) }}</span>
+                    </ng-container>
+                    <ng-template #plainText>{{ menuItem.displayName }}</ng-template>
                   </span>
               <span *ngIf="menuItem.childrenCount" class="children-count"
               >({{ menuItem.childrenCount }})</span>
@@ -95,3 +122,15 @@
   </div>
 </div>
 <app-sidebar-context-menu [activeTabType]="activeTabType"></app-sidebar-context-menu>
+
+<ng-template #searchIcon>
+  <svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+    fill="whitesmoke" width="12" height="12"
+    viewBox="0 0 490.4 490.4" xml:space="preserve">
+    <g>
+    <path d="M484.1,454.796l-110.5-110.6c29.8-36.3,47.6-82.8,47.6-133.4c0-116.3-94.3-210.6-210.6-210.6S0,94.496,0,210.796
+      s94.3,210.6,210.6,210.6c50.8,0,97.4-18,133.8-48l110.5,110.5c12.9,11.8,25,4.2,29.2,0C492.5,475.596,492.5,463.096,484.1,454.796z
+      M41.1,210.796c0-93.6,75.9-169.5,169.5-169.5s169.6,75.9,169.6,169.5s-75.9,169.5-169.5,169.5S41.1,304.396,41.1,210.796z" />
+    </g>
+  </svg>
+</ng-template>

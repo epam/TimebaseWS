@@ -1,7 +1,7 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
 import {select, Store} from '@ngrx/store';
 import {BsModalRef} from 'ngx-bootstrap/modal';
-import {Subject} from 'rxjs';
+import {BehaviorSubject, Subject} from 'rxjs';
 import {filter, take, takeUntil} from 'rxjs/operators';
 import {AppState} from '../../../../../core/store';
 import {MenuItem} from '../../../../../shared/models/menu-item';
@@ -20,6 +20,9 @@ export class ModalPurgeComponent implements OnInit, OnDestroy {
   public startDate: Date;
   public endDate: Date;
   public selectedDate: Date;
+  public submitDisabled$ = new BehaviorSubject(true);
+  public validationErrorMessage = '';
+  private dateValue: Date;
   private destroy$ = new Subject();
 
   constructor(
@@ -28,7 +31,7 @@ export class ModalPurgeComponent implements OnInit, OnDestroy {
     private streamsEffects: StreamsEffects,
   ) {}
 
-  ngOnInit() {
+  ngOnInit() {   
     this.appStore.dispatch(
       new StreamDetailsActions.GetStreamRange({
         streamId: this.stream.id,
@@ -57,10 +60,16 @@ export class ModalPurgeComponent implements OnInit, OnDestroy {
       new StreamsActions.PurgeStream({
         streamKey: this.stream.id,
         params: {
-          timestamp: this.selectedDate.getTime(),
+          timestamp: this.dateValue.getTime(),
         },
       }),
     );
+  }
+
+  selectedDateChange(date: Date) {
+    this.dateValue = date;
+    this.submitDisabled$.next(date?.toString() === 'Invalid Date');
+    this.validationErrorMessage = date?.toString() === 'Invalid Date' ? 'Invalid Date' : '';
   }
 
   ngOnDestroy(): void {

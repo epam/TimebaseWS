@@ -3,6 +3,7 @@ import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/f
 import { ReplaySubject }                                        from 'rxjs';
 import { takeUntil }                         from 'rxjs/operators';
 import { WriteMode }                         from './write-mode';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-write-modes-control',
@@ -12,14 +13,19 @@ import { WriteMode }                         from './write-mode';
 export class WriteModesControlComponent implements OnInit, ControlValueAccessor, OnDestroy {
   
   control = new FormControl<WriteMode>(null);
-  writeModes = [WriteMode.append, WriteMode.insert, WriteMode.truncate];
+  writeModes = [WriteMode.append, WriteMode.insert, WriteMode.rewrite];
+  toolTips: { [key: string]: string };
   
   private destroy$ = new ReplaySubject(1);
+
+  constructor(private translateService: TranslateService) {}
 
   ngOnInit(): void {
     this.control.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(value => {
       this.onChange(value);
     });
+
+    this.translateService.get('tooltips.writeModeTooltips').subscribe(toolTips => this.toolTips = toolTips);
   }
   
   registerOnChange(fn: (value: WriteMode) => void): void {

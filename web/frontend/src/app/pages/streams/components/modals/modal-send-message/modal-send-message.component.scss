@@ -26,6 +26,8 @@ ngx-monaco-editor {
 }
 
 .footer {
+  position: relative;
+  padding-top: 1.5rem;
   flex-grow: 1;
   display: flex;
   justify-content: space-between;
@@ -77,4 +79,23 @@ ngx-monaco-editor {
   100% {
     transform: rotate(360deg);
   }
+}
+
+.validation-error-text {
+  position: absolute;
+  top: -0.5rem;
+  min-width: 100%;
+}
+
+.btn-scroll-to-invalid {
+  border: none;
+  width: auto;
+  background-color: transparent;
+  font-weight: bold;
+}
+
+.btn-scroll-to-invalid, .validation-error-text {
+  text-align: center;
+  font-size: 0.9rem;
+  color: rgb(254, 97, 115);
 }

@@ -13,11 +13,11 @@ export function zoomLimits(barWidth: number, adaptToWidth = true): number[] {
     },
     {
       barWidthRange: [hour, day - 1],
-      zoomLimit: [hour, month],
+      zoomLimit: [hour, year],
     },
     {
       barWidthRange: [day, month - 1],
-      zoomLimit: [day, year],
+      zoomLimit: [day, null],
     },
     {
       barWidthRange: [month, null],

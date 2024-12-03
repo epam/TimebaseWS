@@ -7,6 +7,7 @@ import { AgGridModule }                                                         
 import {
   CellClickedEvent,
   CellDoubleClickedEvent,
+  ColDef,
   Column,
   ColumnApi,
   ColumnMovedEvent,
@@ -19,12 +20,13 @@ import {
   NavigateToNextCellParams,
   RowNode,
 }                                                                                           from 'ag-grid-community';
-import { CellContextMenuEvent, CellKeyDownEvent } from 'ag-grid-community/dist/lib/events';
+import { CellContextMenuEvent, CellKeyDownEvent, ModelUpdatedEvent, RowSelectedEvent } from 'ag-grid-community/dist/lib/events';
 import { BsModalRef, BsModalService }                                                       from 'ngx-bootstrap/modal';
 import { BehaviorSubject, combineLatest, Observable, of, ReplaySubject, timer } from 'rxjs';
 import {
   catchError,
   debounceTime,
+  delay,
   distinctUntilChanged,
   filter,
   map,
@@ -52,9 +54,6 @@ import { StreamModelsService }                                                  
 import { TabStorageService }                                                                from '../../../../shared/services/tab-storage.service';
 import {
   autosizeAllColumns,
-  columnIsMoved,
-  columnIsPinned,
-  columnIsVisible,
   columnsVisibleColumn,
   defaultGridOptions,
   gridStateLSInit,
@@ -67,7 +66,6 @@ import { TabModel }                                                             
 import { StreamDataService }                                                                from '../../services/stream-data.service';
 import * as StreamDetailsActions
                                                                                             from '../../store/stream-details/stream-details.actions';
-import { StreamDetailsEffects }                                                             from '../../store/stream-details/stream-details.effects';
 import * as fromStreamDetails
                                                                                             from '../../store/stream-details/stream-details.reducer';
 import * as fromStreams
@@ -78,6 +76,10 @@ import {
   getActiveTab,
   getActiveTabFilters,
 }                                    from '../../store/streams-tabs/streams-tabs.selectors';
+import { UpdateTab } from '../../store/streams-tabs/streams-tabs.actions';
+import { GridStateService } from '../../services/grid-state.service';
+import { SymbolsService } from 'src/app/shared/services/symbols.service';
+import { StorageService } from 'src/app/shared/services/storage.service';
 import { editedMessageProps, ModalSendMessageComponent } from '../modals/modal-send-message/modal-send-message.component';
 
 const now = new HdDate();
@@ -120,13 +122,15 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
   private messageInfo: editedMessageProps;
   private streamFilters = {symbols: [], types: []};
   private tabSymbolFilter: string[];
-  private tabFilter;
   private columnsIdVisible: { [index: string]: boolean } = {};
   private gridStateLS: GridStateModel = {visibleArray: [], pinnedArray: [], resizedArray: [], autoSized: []};
-  private rowData;
   private destroy$ = new ReplaySubject(1);
   private readyApi: GridOptions;
+  private rowData;
+  private selectedRowIndex: number;
+  private messageEdited = false;
   private streamId: string;
+  private visibleDefaultColumns: string[];
   private gridDefaults: GridOptions = {
     ...defaultGridOptions,
     rowBuffer: 10,
@@ -150,29 +154,31 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
     stopEditingWhenGridLosesFocus: true,
     suppressCellSelection: true,
     onCellDoubleClicked: (event: CellDoubleClickedEvent) => {
+      this.selectedRowIndex = event.rowIndex;
       this.messageInfoService.doubleClicked(event.data);
     },
     onCellClicked: (event: CellClickedEvent) => {
+      this.selectedRowIndex = event.rowIndex;
       this.messageInfoService.cellClicked(event);
     },
     onPinnedRowDataChanged: () => {
       this.messageInfoService.onPinnedRowDataChanged();
     },
     onGridReady: (readyEvent: GridReadyEvent) => this.gridIsReady(readyEvent),
-    onColumnResized: (resizedEvent: ColumnResizedEvent) =>
-      this.gridEventsService.columnIsResized(resizedEvent, this.tabName, this.gridStateLS),
-    onColumnVisible: (visibleEvent: ColumnVisibleEvent) =>
-      columnIsVisible(visibleEvent, this.tabName, this.gridStateLS),
-    onColumnMoved: (movedEvent: ColumnMovedEvent) =>
-      columnIsMoved(movedEvent, this.tabName, this.gridStateLS),
-    onColumnPinned: (pinnedEvent: ColumnPinnedEvent) =>
-      columnIsPinned(pinnedEvent, this.tabName, this.gridStateLS),
-    onModelUpdated: (params) => {
+    onColumnResized: (resizedEvent: ColumnResizedEvent) => this.gridEventsService
+      .columnIsResized(resizedEvent, this.tabName, this.gridStateLS),
+    onColumnVisible: (visibleEvent: ColumnVisibleEvent) => this.gridStateService
+      .updateColumnState(this.streamId, visibleEvent.columnApi.getColumnState()),
+    onColumnMoved: (movedEvent: ColumnMovedEvent) => this.gridStateService
+      .updateColumnState(this.streamId, movedEvent.columnApi.getColumnState()),
+    onColumnPinned: (pinnedEvent: ColumnPinnedEvent) => this.gridStateService
+      .updateColumnState(this.streamId, pinnedEvent.columnApi.getColumnState()),
+    onModelUpdated: (event: ModelUpdatedEvent) => {
       this.gridService.onCellFormatting().pipe(take(1)).subscribe(() => {
-        autosizeAllColumns(params.columnApi, true, this.gridStateLS.autoSized || []);
+        autosizeAllColumns(event.columnApi, true, this.gridStateLS.autoSized || []);
         if (this.gridStateLS.resizedArray.length) {
           for (const item of this.gridStateLS.resizedArray) {
-            params.columnApi.setColumnWidth(item.colId, item.actualWidth, true);
+            event.columnApi.setColumnWidth(item.colId, item.actualWidth, true);
           }
         }
       });
@@ -180,14 +186,17 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
     navigateToNextCell: (params: NavigateToNextCellParams) => this.gridService.upDownKeysNavigation(this.gridOptions.api, params),
     onCellKeyDown: (event: CellKeyDownEvent) => this.onKeyDown(event),
     onCellContextMenu: (event: CellContextMenuEvent) => this.onContextMenu(event),
+    onRowSelected: (event: RowSelectedEvent) => {
+      if (!this.selectedRowIndex) {
+        this.selectedRowIndex = event.rowIndex;
+      }
+    },
   };
   
   constructor(
     private appStore: Store<AppState>,
     private route: ActivatedRoute,
     private streamsStore: Store<fromStreams.FeatureState>,
-    private streamDetailsStore: Store<fromStreamDetails.FeatureState>,
-    private streamDetailsEffects: StreamDetailsEffects,
     private dataSource: StreamDataService,
     private modalService: BsModalService,
     private gridEventsService: GridEventsService,
@@ -196,11 +205,13 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
     private gridContextMenuService: GridContextMenuService,
     private permissionsService: PermissionsService,
     private streamModelsService: StreamModelsService,
-    private tabStorageService: TabStorageService<HasRightPanel>,
     private messageInfoService: RightPaneService,
     private schemaService: SchemaService,
     private streamDataService: StreamDataService,
-    private streamsService: StreamsService
+    private streamsService: StreamsService,
+    private symbolsService: SymbolsService,
+    private gridStateService: GridStateService,
+    private storageService: StorageService,
   ) {}
   
   ngOnInit() {
@@ -228,7 +239,11 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
                   id: this.streamId,
                   name: this.streamName,
                 },
-                formData: (event.node.data as StreamDetailsModel)?.original, // (params.node.data as StreamDetailsModel).$type, //
+                formData: {
+                  ...(event.node.data as StreamDetailsModel)?.original,
+                  timestamp: event.node.data.nanoTime ?? event.node.data.timestamp,
+                  instrumentType: event.node.data.instrumentType
+                },
                 editMessageMode: false,
               },
               ignoreBackdropClick: true,
@@ -250,7 +265,11 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
                   id: this.streamId,
                   name: this.streamName,
                 },
-                formData: (event.node.data as StreamDetailsModel)?.original,
+                formData: {
+                  ...(event.node.data as StreamDetailsModel)?.original,
+                  timestamp: event.node.data.nanoTime ?? event.node.data.timestamp,
+                  instrumentType: event.node.data.instrumentType
+                },
                 editMessageMode: true,
                 messageInfo: this.messageInfo,
                 editingMessageNanoTime: this.editingMessageNanoTime,
@@ -279,7 +298,7 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
           items.push(sendMessageMenu) : items.push(sendMessageMenu, editMessageMenu);
       }
       
-      if (tab.chartType?.includes(ChartTypes.PRICES_L2)) {
+      if (tab.chartType?.includes(ChartTypes.PRICE_LEVELS)) {
         items.push(orderBookMenu);
       }
 
@@ -291,14 +310,20 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
       ).pipe(takeUntil(this.destroy$)).subscribe(event => {
         this.columnsIdVisible = {};
         this.columnsVisibleData(event.columnApi, this.rowData);
+        this.applySavedColumnState(event.columnApi);
+        setTimeout(() => event.columnApi.autoSizeAllColumns());
       });
     });
     
     this.modalService.onHide
       .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
+      .subscribe(event => {
+        if (event.initialState?.editMessageMode) {
+          this.messageEdited = true;
+          setTimeout(() => this.messageEdited = false, 2000);
+        }
         this.streamDataService.getRows(this.streamDataService.getRowsParams);
-      })
+      });
 
     this.activeTab = this.appStore.pipe(select(getActiveOrFirstTab));
     
@@ -308,47 +333,100 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
       .subscribe(() => setTimeout(() => this.readyApi?.api.redrawRows(), 0));
     
     this.gridOptions = this.gridDefaults;
+
+    this.route.url
+      .pipe(
+        filter(url => !!url.find(segment => segment.path === 'reverse')),
+        switchMap(() => this.activeTab.pipe(filter(tab => !!tab.stream), take(1))),
+        switchMap(tab => (tab.symbol
+          ? this.symbolsService.getProps(tab.stream, tab.symbol, null, false)
+          : this.streamsService.getProps(tab.stream, false)).pipe(map(result => ({ props: result.props, currentTab: tab})))
+        ),
+        takeUntil(this.destroy$),
+      ).subscribe(( { props, currentTab } ) => {
+        const newFromValue = props.symbolRange ? props.symbolRange.end : props.range.end;
+        if (newFromValue) {
+          const tabPosition = this.storageService.getTabs().findIndex(tab => tab.id === currentTab.id);
+          const newTab = new TabModel({...currentTab, 
+            filter: { ...currentTab.filter,
+              from: props.symbolRange ? props.symbolRange.end : props.range.end
+            } });
+          this.appStore.dispatch(new UpdateTab([{tab: newTab, position: tabPosition}]));
+        }
+      });
+      
+    this.dataSource.onLoadedData()
+      .pipe(takeUntil(this.destroy$), filter(() => this.messageEdited), delay(1000))
+      .subscribe(() => {
+        this.setSelectedRow();
+        this.selectedRowIndex = null;
+      });
+  }
+
+  private setSelectedRow() {
+    let targetRow: RowNode;
+    if (typeof this.selectedRowIndex === 'number') {
+      targetRow = this.readyApi.api.getDisplayedRowAtIndex(this.selectedRowIndex);
+    } else {
+      this.readyApi.api.setPinnedTopRowData([]);
+    }
+    if (targetRow) {
+      this.messageInfoService.cellClicked(targetRow.data);
+      this.messageInfoService.doubleClicked(targetRow.data);
+      targetRow.setSelected(true);
+    }
   }
   
   columnsVisibleData(columnApi: ColumnApi, data: any) {
-    const cols: Column[] = columnApi.getAllColumns();
-    // TODO: sometimes if > 1000 columns don't work getAllColumns() - is NULL , need another method
-    if (cols && cols.length) {
-      for (let i = 0; i < cols.length; i++) {
-        const colIdArr = cols[i]['colId'].split('.');
-        
-        if (colIdArr.length === 2) {
-          if (this.columnsIdVisible[cols[i]['colId']]) {
-            return;
-          }
-          if (
-            data.find((item) => {
-              if (item.hasOwnProperty(colIdArr[0])) {
-                return item[colIdArr[0]][colIdArr[1]];
-              }
-            })
-          ) {
-            columnApi.setColumnVisible(cols[i]['colId'], true);
-            this.columnsIdVisible[cols[i]['colId']] = true;
+    if (!this.gridStateService.getColumnState(this.streamId)) {
+      const cols: Column[] = columnApi.getAllColumns();
+      // TODO: sometimes if > 1000 columns don't work getAllColumns() - is NULL , need another method
+      if (cols && cols.length) {
+        for (let i = 0; i < cols.length; i++) {
+          const colIdArr = cols[i]['colId'].split('.');
+          
+          if (colIdArr.length === 2) {
+            if (this.columnsIdVisible[cols[i]['colId']]) {
+              return;
+            }
+            if (
+              data.find((item) => {
+                if (item.hasOwnProperty(colIdArr[0])) {
+                  const cellValue = item[colIdArr[0]][colIdArr[1]];
+                  return cellValue === false ? '' + cellValue : cellValue;
+                }
+              })
+            ) {
+              columnApi.setColumnVisible(cols[i]['colId'], true);
+              this.columnsIdVisible[cols[i]['colId']] = true;
+            }
           }
         }
+        this.visibleDefaultColumns.forEach(id => columnApi.setColumnVisible(id, true));
       }
     }
     
     this.gridStateLS = gridStateLSInit(columnApi, this.tabName, this.gridStateLS);
 
-  this.appStore
-    .pipe(
-      select(getActiveTabFilters),
-      filter((filter) => !!filter),
-      takeUntil(this.destroy$),
-    )
-    .subscribe((filter: FilterModel) => {
-      this.streamFilters = {
-        symbols: filter.filter_symbols ?? this.tabSymbolFilter,
-        types: filter.filter_types,
-      }
-    });
+    this.appStore
+      .pipe(
+        select(getActiveTabFilters),
+        filter((filter) => !!filter),
+        takeUntil(this.destroy$),
+      )
+      .subscribe((filter: FilterModel) => {
+        this.streamFilters = {
+          symbols: filter.filter_symbols ?? this.tabSymbolFilter,
+          types: filter.filter_types,
+        }
+      });
+  }
+
+  private applySavedColumnState(columnApi: ColumnApi) {
+    const savedColumnState = this.gridStateService.getColumnState(this.streamId);
+    if (savedColumnState) {
+      columnApi.setColumnState(savedColumnState);
+    }
   }
   
   ngOnDestroy(): void {
@@ -377,8 +455,7 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
       offset: sameTimeStampId,
       reverse: this.reverseStreamOrder,
     };
-    this.editingMessageNanoTime = 
-      event.data.original['deltix-securitymaster-messages-EventMessage']?.nanoTime;
+    this.editingMessageNanoTime = event.data.nanoTime;
   }
   
   private gridIsReady(readyEvent: GridReadyEvent) {
@@ -390,8 +467,7 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
       JSON.stringify({id: tab.id, filter: {...tab.filter, silent: null, manuallyChanged: null}});
     
     const getProps = (schema) => {
-      return [
-        columnsVisibleColumn(),
+      const defaultColumns = [
         {
           headerName: 'Symbol',
           field: 'symbol',
@@ -409,8 +485,8 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
           sortable: false,
           headerTooltip: 'Timestamp',
           width: 180,
-          cellRenderer: (params: ICellRendererParams) => this.gridService.dateFormat(params, params.data?.nanoTime, true),
-          tooltipValueGetter: (params: ICellRendererParams) => this.gridService.dateFormat(params, params.data?.nanoTime, true),
+          cellRenderer: (params: ICellRendererParams) => this.gridService.dateFormat(params),
+          tooltipValueGetter: (params: ICellRendererParams) => this.gridService.dateFormat(params),
         },
         {
           headerName: 'Time',
@@ -420,8 +496,8 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
           sortable: false,
           headerTooltip: 'Time',
           hide: !this.periodicity,
-          cellRenderer: (params: ICellRendererParams) => this.gridService.dateFormat(params, params.data?.nanoTime, false, this.periodicity),
-          tooltipValueGetter: (params: ICellRendererParams) => this.gridService.dateFormat(params, params.data?.nanoTime, false, this.periodicity),
+          cellRenderer: (params: ICellRendererParams) => this.gridService.dateFormat(params, this.periodicity),
+          tooltipValueGetter: (params: ICellRendererParams) => this.gridService.dateFormat(params, this.periodicity),
         },
         {
           headerName: 'Type',
@@ -433,6 +509,23 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
           headerTooltip: 'Type',
           hide: true,
         },
+        {
+          headerName: 'Instrument Type',
+          field: 'instrumentType',
+          tooltipField: 'instrumentType',
+          pinned: 'left',
+          filter: false,
+          sortable: false,
+          headerTooltip: 'Instrument Type',
+          hide: true,
+        },
+      ];
+
+      this.visibleDefaultColumns = defaultColumns.filter(col => !col.hide).map(col => col.field);
+
+      return [
+        columnsVisibleColumn(),
+        ...defaultColumns,
         ...this.gridService.columnFromSchema(
           this.streamModelsService.getSchemaForColumns(schema.types, schema.all),
           true,
@@ -469,7 +562,6 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
           ]) => {
             this.schema = schema;
             this.messageInfoService.tabChanged();
-            this.tabFilter = {...activeTab.filter};
             this.columnsIdVisible = {};
             readyEvent.api.setDatasource(this.dataSource.withTab(activeTab, schema.all));
           },
@@ -489,11 +581,16 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$),
       )
       .subscribe(([props, data]) => {
+        const instrumentTypeIsVisible = !!(data[0] as StreamDetailsModel)?.instrumentType;
         this.rowData = data;
+        const allProps = props as ColDef[];
+
         readyEvent.api.setColumnDefs(null);
-        readyEvent.api.setColumnDefs(props);
+        readyEvent.api.setColumnDefs(instrumentTypeIsVisible ? allProps : allProps.filter(prop => prop.field !== 'instrumentType'));
         this.columnsIdVisible = {};
-        this.columnsVisibleData(readyEvent.columnApi, data);
+        this.columnsVisibleData(readyEvent.columnApi, this.rowData);
+        this.applySavedColumnState(readyEvent.columnApi);
+        setTimeout(() => readyEvent.columnApi.autoSizeAllColumns());
         timer().subscribe(() => this.hideGrid$.next(false));
       });
     
@@ -503,7 +600,7 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
 
   private onKeyDown(e) {
     if (e.event.code === 'Enter') {
-      this.messageInfoService.doubleClicked(e.data);
+      this.messageInfoService.doubleClicked(e.data, e.rowIndex);
     }
     else if (e.event.code === 'Tab') {
       this.gridService.tabKeyNavigation(e);

@@ -1,5 +1,6 @@
 <div [formControl]="control" btnRadioGroup class="btn-group radio-group">
-  <button *ngFor="let button of writeModes" [btnRadio]="button" class="btn btn-default">
+  <button *ngFor="let button of writeModes" [btnRadio]="button" class="btn btn-default" 
+    [tooltip]="toolTips[button]" placement="bottom" container="body">
     {{ button }}
   </button>
 </div>

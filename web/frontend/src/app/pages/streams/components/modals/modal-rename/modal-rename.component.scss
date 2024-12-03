@@ -1,5 +1,10 @@
 @import '~src/app/core/styles/variables';
 
+::ng-deep .modal-small {
+  min-width: 500px;
+  max-width: 100%;
+}
+
 .controlWr {
   margin-bottom: 8px;
   display: flex;
@@ -23,11 +28,22 @@
     border-bottom-left-radius: 0;
     border-top-left-radius: 0;
     text-align: left;
-    width: 230px;
+    min-width: 380px;
     font-weight: normal;
     user-select: auto;
     text-transform: none;
     background: $input-bg !important;
     flex-grow: 1;
   }
+}
+
+form {
+  height: 3.8rem;
+}
+
+.validation-error {
+  text-align: center;
+  color: rgb(250, 118, 118);
+  padding: 0rem 0.3rem;
+  font-size: 0.85rem;
 }

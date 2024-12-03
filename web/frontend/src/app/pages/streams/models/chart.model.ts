@@ -42,10 +42,11 @@ export type ChartData = [
 export enum ChartTypes {
   BARS = 'BARS',
   TRADES_BBO = 'TRADES_BBO',
-  PRICES_L2 = 'PRICES_L2',
+  PRICE_LEVELS = 'PRICE_LEVELS',
   BARS_BID = 'BARS_BID',
   BARS_ASK = 'BARS_ASK',
+  BARS_TRADES = 'BARS_TRADES',
   LINEAR = 'LINEAR',
 }
 
-export const barChartTypes = [ChartTypes.BARS_BID, ChartTypes.BARS, ChartTypes.BARS_ASK];
+export const barChartTypes = [ChartTypes.BARS_BID, ChartTypes.BARS, ChartTypes.BARS_ASK, ChartTypes.BARS_TRADES];

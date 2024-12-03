@@ -16,6 +16,7 @@
  */
 package com.epam.deltix.tbwg.webapp.config;
 
+import com.epam.deltix.tbwg.webapp.services.timebase.connections.TbUserConnectionsService;
 import com.epam.deltix.tbwg.webapp.utils.TimebaseInDocker;
 import com.epam.deltix.tbwg.webapp.services.charting.datasource.MessageSourceFactory;
 import com.epam.deltix.tbwg.webapp.services.timebase.SystemMessagesService;
@@ -33,15 +34,17 @@ public class TimebaseInDockerConfig {
 
     @Bean
     @Profile("timebaseInDocker")
-    public TimebaseService timebaseService(TimebaseSettings timebaseSettings, SystemMessagesService systemMessagesService, TimebaseInDocker docker) {
+    public TimebaseService timebaseService(TimebaseSettings timebaseSettings, SystemMessagesService systemMessagesService,
+                                           TbUserConnectionsService userConnectionsService, TimebaseInDocker docker) {
         timebaseSettings.setUrl("dxtick://localhost:" + docker.getTimebasePort());
-        return new TimebaseServiceImpl(timebaseSettings, systemMessagesService);
+        return new TimebaseServiceImpl(timebaseSettings, systemMessagesService, userConnectionsService);
     }
 
     @Bean
     @Profile("timebaseExternal")
-    public TimebaseService timebaseService2(TimebaseSettings timebaseSettings, SystemMessagesService systemMessagesService) {
-        return new TimebaseServiceImpl(timebaseSettings, systemMessagesService);
+    public TimebaseService timebaseService2(TimebaseSettings timebaseSettings, TbUserConnectionsService userConnectionsService,
+                                            SystemMessagesService systemMessagesService) {
+        return new TimebaseServiceImpl(timebaseSettings, systemMessagesService, userConnectionsService);
     }
 
     @Bean

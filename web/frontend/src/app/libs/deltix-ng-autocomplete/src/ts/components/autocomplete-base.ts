@@ -291,7 +291,7 @@ export abstract class AutocompleteBase
   }
 
   protected isShowDropdown(): boolean {
-    return this.showDropdown && this.values.length > 0;
+    return this.showDropdown && this.values?.length > 0;
   }
 
   protected updateDropdownPosition() {

@@ -8,10 +8,10 @@ export enum NotificationsActionTypes {
 
   ADD_WARN = '[Notifications] Add Warn',
   REMOVE_WARN = '[Notifications] Remove Warn',
+  REMOVE_WARN_BY_ALIAS = '[Notifications] Remove Warn By ALias',
 
   ADD_NOTIFICATION = '[Notifications] Add Notification',
   REMOVE_NOTIFICATION = '[Notifications] Remove Notification',
-  REMOVE_WEBSOCKET_NOTIFICATIONS = '[Notifications] Remove WebSocket Notification'
 }
 
 export class AddAlert implements Action {
@@ -44,6 +44,12 @@ export class RemoveWarn implements Action {
   constructor(public payload: number) {}
 }
 
+export class RemoveWarnByAlias implements Action {
+  readonly type = NotificationsActionTypes.REMOVE_WARN_BY_ALIAS;
+
+  constructor(public payload: string) {}
+}
+
 export class AddNotification implements Action {
   readonly type = NotificationsActionTypes.ADD_NOTIFICATION;
 
@@ -56,18 +62,12 @@ export class RemoveNotification implements Action {
   constructor(public payload: number) {}
 }
 
-export class RemoveWebSocketNotifications implements Action {
-  readonly type = NotificationsActionTypes.REMOVE_WEBSOCKET_NOTIFICATIONS;
-
-  constructor() {}
-}
-
 export type NotificationsActions =
   | AddAlert
   | RemoveAlert
   | RemoveAlertByAlias
   | AddWarn
   | RemoveWarn
+  | RemoveWarnByAlias
   | AddNotification
-  | RemoveNotification
-  | RemoveWebSocketNotifications;
+  | RemoveNotification;

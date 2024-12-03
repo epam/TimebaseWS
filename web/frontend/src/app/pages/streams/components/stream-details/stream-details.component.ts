@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import {
   ActivatedRoute,
   Data,
@@ -42,6 +42,7 @@ import {
   getActiveTabSettings,
   getTabs,
 }                                                                         from '../../store/streams-tabs/streams-tabs.selectors';
+import { StreamViewReverseComponent } from '../stream-view-reverse/stream-view-reverse.component';
 
 // Stayed for chart component now, toUtc, fromUtc
 const now = new HdDate();
@@ -91,6 +92,8 @@ export class StreamDetailsComponent implements OnInit, AfterViewInit, OnDestroy 
   private isOpenInNewTab: boolean;
   private currentPosition;
   private currentTab: TabModel;
+
+  @ViewChild(StreamViewReverseComponent) streamViewReverseComponent: StreamViewReverseComponent;
 
   constructor(
     private appStore: Store<AppState>,
@@ -213,12 +216,14 @@ export class StreamDetailsComponent implements OnInit, AfterViewInit, OnDestroy 
         takeUntil(this.destroy$),
       )
       .subscribe(([tabModel, data, tabs, activeTabId]: [TabModel, Data, TabModel[], string]) => {
-        this.streamDetailsStore.dispatch(
-          new StreamDetailsActions.GetSymbols({
-            streamId: tabModel.stream,
-            ...(tabModel.space ? {spaceId: tabModel.space} : {}),
-          }),
-        );
+        if (!tabModel.stream.endsWith('#topic#')) {
+          this.streamDetailsStore.dispatch(
+            new StreamDetailsActions.GetSymbols({
+              streamId: tabModel.stream,
+              ...(tabModel.space ? {spaceId: tabModel.space} : {}),
+            }),
+          );
+        }
         this.live = data.hasOwnProperty('live');
         this.streamName = tabModel.stream;
       });
@@ -230,6 +235,10 @@ export class StreamDetailsComponent implements OnInit, AfterViewInit, OnDestroy 
 
   cleanWebsocketSubscription() {
     this.wsService.close();
+  }
+
+  endLoading() {
+    this.streamViewReverseComponent.hideGrid$.next(false);
   }
 
   ngOnDestroy(): void {

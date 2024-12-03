@@ -62,6 +62,8 @@ export class RequestDefaultErrorInterceptor implements HttpInterceptor {
           } else if (error.status === 403) {
             message = `${messages.access_denied} <b>'${error.url.split(apiPrefix)[1]}</b>'`;
             interval = 15000;
+          } else if (typeof error.error === 'string') {
+            message = error.error;
           } else {
             message = messages.network_error;
           }

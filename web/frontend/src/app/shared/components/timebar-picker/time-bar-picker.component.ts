@@ -16,7 +16,7 @@ import {Store} from '@ngrx/store';
 import {BsDatepickerConfig} from 'ngx-bootstrap/datepicker';
 import {BsModalRef} from 'ngx-bootstrap/modal';
 import {Subject} from 'rxjs';
-import {takeUntil} from 'rxjs/operators';
+import {map, takeUntil} from 'rxjs/operators';
 import {AppState} from '../../../core/store';
 import {formatDate} from '../../../pages/streams/components/stream-details/stream-details.component';
 import {getDateUsingTZ} from '../../locale.timezone';
@@ -37,6 +37,7 @@ export class TimeBarPickerComponent implements OnInit, OnDestroy {
   @Input() startDate: Date;
   @Input() endDate: Date;
   @Input() method: string;
+  @Input() dateInvalid = false;
 
   @Output() selectedDateChange = new EventEmitter<Date>();
 
@@ -69,6 +70,7 @@ export class TimeBarPickerComponent implements OnInit, OnDestroy {
   selectedTimeZone = [];
   datePickerTimeZone: object;
   timeZoneControl = new UntypedFormControl();
+  selectedDateControl = new UntypedFormControl();
 
   private destroy$ = new Subject();
   private hd_format: string;
@@ -130,11 +132,19 @@ export class TimeBarPickerComponent implements OnInit, OnDestroy {
         setTimeout(() => {
           if (this.selectedTimeZone) {
             this.visibleSelectedDate = this.getDateUsingSelectedTZ(this.selectedDate);
+            this.selectedDateControl.setValue(this.visibleSelectedDate);
           }
           this.cdr.detectChanges();
           this.cdr.markForCheck();
         }, 0);
       });
+    
+      this.selectedDateControl.valueChanges
+        .pipe(
+          map(value => value instanceof Date ? value : new Date(value)),
+          takeUntil(this.destroy$)
+        )
+        .subscribe(newDate => this.onValueChange(newDate));
   }
 
   public onValueChange(newDate: Date) {
@@ -151,6 +161,7 @@ export class TimeBarPickerComponent implements OnInit, OnDestroy {
 
     if (this.selectedTimeZone) {
       this.visibleSelectedDate = this.getDateUsingSelectedTZ(this.selectedDate);
+      this.selectedDateControl.setValue(this.visibleSelectedDate);
       this.startDate_title = formatDate(
         this.getDateUsingSelectedTZ(this.startDate).toISOString(),
         this.hd_format,
@@ -169,6 +180,7 @@ export class TimeBarPickerComponent implements OnInit, OnDestroy {
     this.selectedDate = this.getDate(this.cursorLeft);
     this.selectedDateChange.emit(this.selectedDate);
     this.visibleSelectedDate = this.getDateUsingSelectedTZ(this.selectedDate);
+    this.selectedDateControl.setValue(this.visibleSelectedDate);
   }
 
   public onMouseMove(event: MouseEvent, fixedPercent = null) {

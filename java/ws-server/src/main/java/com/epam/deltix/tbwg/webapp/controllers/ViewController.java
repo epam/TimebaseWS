@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.controllers;
+package com.epam.deltix.tbwg.webapp.controllers;
 
 import com.epam.deltix.qsrv.hf.pub.md.ClassDescriptor;
 import com.epam.deltix.qsrv.hf.pub.md.ClassSet;
@@ -48,14 +48,14 @@ public class ViewController {
         this.viewService = viewService;
     }
 
-    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ')")
+    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = {""}, method = RequestMethod.GET)
     @ResponseBody
     public List<ViewMd> views() {
         return viewService.list();
     }
 
-    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ')")
+    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = {"/{viewId}"}, method = RequestMethod.GET)
     @ResponseBody
     public ViewMd view(@PathVariable String viewId) {
@@ -89,7 +89,6 @@ public class ViewController {
         info.setQuery(viewMd.getQuery());
         info.setLive(viewMd.isLive());
         info.setDescription(viewMd.getDescription());
-        info.setType(viewMd.getType());
         info.setState(ViewState.CREATED);
         info.setInfo(null);
 

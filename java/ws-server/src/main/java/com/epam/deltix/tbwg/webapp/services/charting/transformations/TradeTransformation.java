@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.charting.transformations;
+package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 
 import com.epam.deltix.dfp.Decimal64Utils;
 import com.epam.deltix.tbwg.webapp.model.charting.line.ExecutionTagElementDef;
@@ -58,9 +58,9 @@ public class TradeTransformation extends AbstractChartTransformation<ExecutionTa
         if (filter.test(trade)) {
             element.setTime(trade.getTimeStampMs());
             element.setTagType(TagType.EXECUTION);
-            element.setValue(Decimal64Utils.toString(trade.getValue()));
-            element.setPrice(Decimal64Utils.toString(trade.getPrice()));
-            element.setSize(Decimal64Utils.toString(trade.getSize()));
+            element.setValue(Decimal64Utils.toFloatString(trade.getValue()));
+            element.setPrice(Decimal64Utils.toFloatString(trade.getPrice()));
+            element.setSize(Decimal64Utils.toFloatString(trade.getSize()));
             element.setSide(trade.getSide());
             sendMessage(element);
         }

@@ -1,5 +1,6 @@
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   HostListener,
@@ -8,7 +9,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import {UntypedFormBuilder} from '@angular/forms';
-import {ActivatedRoute} from '@angular/router';
+import {ActivatedRoute, Router} from '@angular/router';
 import {HdDate} from '@assets/hd-date/hd-date';
 import {select, Store} from '@ngrx/store';
 
@@ -21,7 +22,9 @@ import {
   switchMap,
   take,
   takeUntil,
-  tap,
+  tap, 
+  pluck, 
+  withLatestFrom
 }                                from 'rxjs/operators';
 import { TabNavigationService } from 'src/app/shared/services/tab-navigation.service';
 import { eventKeyMatchesTarget } from 'src/app/shared/utils/eventKeyMatchesTarget';
@@ -42,11 +45,14 @@ import {streamsDetailsStateSelector} from '../../../store/stream-details/stream-
 import * as StreamsTabsActions       from '../../../store/streams-tabs/streams-tabs.actions';
 import {
   getActiveTab,
+  getActiveOrFirstTab,
   getActiveTabSettings,
 }                                    from '../../../store/streams-tabs/streams-tabs.selectors';
 import {DeltixChartFeedService}      from '../chart-parts/detix-chart-feed.service';
 import { ChartsFilterComponent } from '../charts-filter/charts-filter.component';
 import {DeltixChartsComponent} from '../charts/deltix-charts.component';
+import { ChartService } from 'src/app/shared/services/chart-service';
+import { StreamRenameService } from '../../../services/stream-rename.service';
 
 @Component({
   selector: 'app-charts-layout',
@@ -82,6 +88,11 @@ export class ChartsLayoutComponent implements OnInit, OnDestroy {
   @ViewChild('btn') btn: ElementRef;
   public widthValuesMs = WIDTH_VALUES_MS;
   private destroy$ = new Subject();
+  private streamId: string;
+  public currentTab$: Observable<TabModel>;
+  private symbolName: string;
+  symbolList: string[];
+  noChart: boolean;
 
   @ViewChild(ChartsFilterComponent) chartsFilter: ChartsFilterComponent;
   @HostListener('keydown', ['$event']) onArrowKeyDown(event: KeyboardEvent) {
@@ -93,10 +104,14 @@ export class ChartsLayoutComponent implements OnInit, OnDestroy {
 
   constructor(
     private appStore: Store<AppState>,
-    private route: ActivatedRoute,
+    private activatedRoute: ActivatedRoute,
+    private router: Router,
     private fb: UntypedFormBuilder,
     private storageService: StorageService,
     private streamsService: StreamsService,
+    private chartService: ChartService,
+    private streamRenameService: StreamRenameService,
+    private cdRef: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -104,20 +119,50 @@ export class ChartsLayoutComponent implements OnInit, OnDestroy {
 
     this.tabSettings$
       .pipe(takeUntil(this.destroy$))
-      .subscribe((settings: TabSettingsModel) => (this.tabSettings = settings));
+      .subscribe((settings: TabSettingsModel) => this.tabSettings = settings);
 
     this.streamDetails$ = this.appStore.pipe(select(streamsDetailsStateSelector));
+
+    this.currentTab$ = this.appStore.pipe(select(getActiveOrFirstTab));
+
+    this.currentTab$.pipe(
+      filter(tab => tab && !!tab.id),
+      pluck('id'),
+      withLatestFrom(this.chartService.openSymbols$),
+      takeUntil(this.destroy$)
+    ).subscribe(([tabId, symbols]) => this.symbolList = symbols[tabId]);
 
     this.appStore
       .pipe(
         select(getActiveTab),
-        filter((t) => !!t),
-        distinctUntilChanged((t1, t2) => t1?.id === t2?.id),
+        tap(tab => {
+          this.noChart = !tab?.chartType?.length;
+          if (this.noChart) {
+            this.streamsService.chartLoaded$.next();
+          } else {
+            this.cdRef.markForCheck();
+          }
+        }),
+        filter(tab => tab && !!tab.symbol && !!tab?.chartType?.length),
+        distinctUntilChanged((t1, t2) => {
+          return t1?.id === t2?.id;
+        }),
         tap(() => this.deltixChartsComponent?.destroyChart()),
         debounceTime(0),
         switchMap((tab: TabModel) => {
+
+          if (!this.streamId) {
+            this.streamId = tab.stream;
+          }
+          if (!this.symbolList?.length) {
+            this.symbolList = tab.symbol.split(',');
+          }
+          if (!this.symbolName) {
+            this.symbolName = this.symbolList?.[0];
+          }
+
           return combineLatest([
-            this.streamsService.rangeCached(tab.stream, tab.symbol, tab.space),
+            this.streamsService.rangeCached(tab.stream, tab.symbol.split(',')[0], tab.space),
             this.streamsService.getListWithUpdates().pipe(
               map((streams) => streams.find((s) => tab.stream === s.key)),
               filter(Boolean),
@@ -162,7 +207,23 @@ export class ChartsLayoutComponent implements OnInit, OnDestroy {
         };
         
         this.appStore.dispatch(new StreamsTabsActions.AddTab({tab}));
+
+        const savedSymbols = this.chartService.getSavedSymbolList(tab.id) as string[];
+
+        if (savedSymbols?.length && JSON.stringify(savedSymbols) !== JSON.stringify(this.symbolList)) {
+          this.symbolList = [...savedSymbols];
+        }
       });
+
+    this.streamRenameService
+      .onSymbolRenamed()
+      .pipe(withLatestFrom(this.currentTab$), takeUntil(this.destroy$))
+      .subscribe(([{ streamId, oldName, newName }, currentTab]) => {
+        if (currentTab.stream === streamId && this.symbolList.includes(oldName)) {
+          this.symbolList = [ ...this.symbolList.filter(name => name !== oldName), newName];
+          this.chartService.updateSavedSymbolList(currentTab.id, this.symbolList);
+        }
+      })
   }
 
   ngOnDestroy(): void {
@@ -172,5 +233,11 @@ export class ChartsLayoutComponent implements OnInit, OnDestroy {
 
   public onHideErrorMessage() {
     this.appStore.dispatch(new StreamDetailsActions.RemoveErrorMessage());
+  }
+
+  setSymbolList(list: string[]) {
+    if (JSON.stringify(list) !== JSON.stringify(this.symbolList)) {
+      this.symbolList = list;
+    }
   }
 }

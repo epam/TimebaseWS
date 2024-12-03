@@ -1,18 +1,22 @@
 <div [class.has-value]="hasValue" class="controlWr datepicker-inputWr">
-  <input
+    <input
+      [value]="valueInInput"
+      (input)="onInputValueChange($event)"
+      [name]="field?.name"
+      [disabled]="field?.disabled || inputDisabled"
+      [ngClass]="{ 'invalid': inputInvalid, 'btn bs-datepicker datepicker-input': true }" />
+    <input
       #dp="bsDatepicker"
       (appSafeDatePickerValueChange)="onDateChange($event)"
       [appSafeDatePickerValue]="value"
       [bsConfig]="bsConfig$ | async"
+      [name]="field?.name"
       bsDatepicker
-      [disabled]="field?.disabled || inputDisabled"
-      [ngClass]="{ 'invalid': inputInvalid, 'btn bs-datepicker datepicker-input': true }"
-      id="rangeFromInput"
       triggers="dblclick:click"
-      type="text" />
+      [ngStyle]="{ 'visibility': 'hidden', 'max-width': '0px' }" />
+
   <button
       (click)="openDropDown()"
-      [attr.aria-expanded]="dp.isOpen"
       class="btn btn-navy btn-from"
       [disabled]="field?.disabled || inputDisabled"
       type="button"></button>

@@ -1,0 +1,48 @@
+:host {
+  min-width: 500px;
+}
+
+.symbol-list-container {
+  font-size: 1rem;
+  position: relative;
+}
+
+.symbol-list {
+  margin-top: 0.5rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid rgba(143, 143, 143, 0.5);
+  border-radius: 0.3rem;
+  padding: 0.3rem 0.7rem;
+}
+
+.deleting-symbols-text {
+  text-align: center;
+}
+
+.modal-header, .modal-footer {
+  justify-content: center;
+}
+
+.btn-outline-light:hover {
+  background-color: transparent;
+  color: white;
+}
+
+.confirmation-button-container {
+  width: 100%;
+  text-align: center;
+}
+
+.copy-button {
+  position: absolute;
+  top: 2.3rem;
+  right: 0.5rem;
+  margin-left: 1rem;
+  border: none;
+  background-color: transparent;
+  opacity: 0.7;
+  &:hover {
+    opacity: 1;
+  }
+}

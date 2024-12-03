@@ -81,7 +81,7 @@ export class ActiveTabGuard implements CanActivate {
       stream$,
       this.translateService.get('tabNotFoundWarning'),
     ]).pipe(tap(([stream, message]) => {
-      const url = [appRoute, ...this.getUrl(next)];
+      const url = next.data.chart ? [appRoute] : [appRoute, ...this.getUrl(next)];
       const queryParams = this.streamsNavigationService.params({
         meta: {
           symbol: params.symbol as string,
@@ -98,13 +98,12 @@ export class ActiveTabGuard implements CanActivate {
   
   private getUrl(next: ActivatedRouteSnapshot) {
     const data = next.data;
-    const typeAlias = (data) => ['view', 'reverse', 'live', 'monitor', 'chart'].find(key => data[key]);
+    const typeAlias = (data) => ['view', 'reverse', 'live', 'monitor'].find(key => data[key]);
     switch (true) {
       case data.view:
       case data.reverse:
       case data.live:
       case data.monitor:
-      case data.chart:
         return [
           next.params.symbol ? 'symbol' : 'stream',
           typeAlias(data),
@@ -115,12 +114,22 @@ export class ActiveTabGuard implements CanActivate {
         return ['order-book'];
       case data.query:
         return ['query'];
+      case data.generateDDL:
+        return ['generate-qql-ddl'];
+      case data.chart:
+        return ['chart'];
       case data.flow:
         return ['flow'];
       case data.schemaEdit:
         return ['stream', 'schema-edit', next.params.stream];
+      case data.schemaView:
+        return ['stream', 'schema', next.params.stream];
       case data.streamCreate:
         return ['stream', 'stream-create', next.params.stream];
+      case data.topicCreate:
+        return ['stream', 'topic-create', next.params.stream];
+      default:
+        return [];
     }
   }
 }

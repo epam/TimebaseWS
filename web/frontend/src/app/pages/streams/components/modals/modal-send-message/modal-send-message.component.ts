@@ -1,5 +1,5 @@
-import {AfterViewInit, Component, OnDestroy, OnInit} from '@angular/core';
-import {UntypedFormBuilder, UntypedFormControl, UntypedFormGroup, Validators} from '@angular/forms';
+import {AfterViewInit, Component, ElementRef, HostListener, OnDestroy, OnInit} from '@angular/core';
+import {FormControl, UntypedFormBuilder, UntypedFormControl, UntypedFormGroup, Validators} from '@angular/forms';
 import {Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
 import {BsModalRef} from 'ngx-bootstrap/modal';
@@ -27,6 +27,7 @@ import {StreamMessageService}                  from '../../../../../shared/servi
 import {SymbolsService}                      from '../../../../../shared/services/symbols.service';
 import {FieldModel}                          from '../../../../../shared/utils/dynamic-form-builder/field-builder/field-model';
 import * as NotificationsActions             from '../../../../../core/modules/notifications/store/notifications.actions';
+import { getAppSettings } from 'src/app/core/store/app/app.selectors';
 
 export interface editedMessageProps {
   symbols?: string[],
@@ -35,6 +36,11 @@ export interface editedMessageProps {
   offset: number,
   reverse: boolean,
 }
+
+const instrumentTypes = [
+  'EQUITY', 'OPTION', 'FUTURE', 'BOND', 'FX', 'INDEX', 'ETF', 'CUSTOM', 'SIMPLE_OPTION', 'EXCHANGE', 'TRADING_SESSION',
+  'STREAM', 'DATA_CONNECTOR', 'EXCHANGE_TRADED_SYNTHETIC', 'SYSTEM', 'CFD'
+]
 
 @Component({
   selector: 'app-modal-send-message',
@@ -56,8 +62,8 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
     },
   };
   viewControl = new UntypedFormControl('form');
-  writeModeControl = new UntypedFormControl(WriteMode.append);
-  writeModes = [WriteMode.append, WriteMode.insert, WriteMode.truncate];
+  writeModeControl = new UntypedFormControl(WriteMode.rewrite);
+  writeModes = [WriteMode.append, WriteMode.insert, WriteMode.rewrite];
   views = ['form', 'json'];
   editJsonField$ = new BehaviorSubject<FieldModel>(null);
   jsonFieldControl = new UntypedFormControl();
@@ -66,6 +72,12 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
   formGroup: UntypedFormGroup;
   confirmTime: string;
   requestInProgress = false;
+  public validationErrorMessage: {fieldName: string, fieldLabel: string, message: string};
+  private fieldList: FieldModel[];
+
+  @HostListener('focusin', ['$event']) onFocus(event) {
+    this.setValidationErrorMessage(event.target.name);
+  }
 
   private destroy$ = new Subject();
   private schema$: Observable<{types: SchemaTypeModel[]; all: SchemaAllTypeModel[]}>;
@@ -83,9 +95,12 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
     private streamMessageService: StreamMessageService,
     private translateService: TranslateService,
     private bsModalRef: BsModalRef,
+    private host: ElementRef
   ) {}
 
   ngOnInit(): void {
+    const appSettings$ = this.appStore.select(getAppSettings);
+
     this.formGroup = this.fb.group({
       symbol: this.formData?.symbol,
       $type: this.formData?.$type,
@@ -106,9 +121,9 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
     const typeChange$ = this.formGroup.valueChanges.pipe(
       distinctUntilChanged((v1, v2) => v1.$type === v2.$type),
     );
-    this.fields$ = combineLatest([this.schema$, this.symbols$, typeChange$]).pipe(
+    this.fields$ = combineLatest([this.schema$, this.symbols$, typeChange$, appSettings$]).pipe(
       debounceTime(0),
-      map(([schema, symbols, formData]) => {
+      map(([schema, symbols, formData, appSettings]) => {
         const commonFields: FieldModel[] = [
           {
             type: 'autocomplete',
@@ -129,8 +144,21 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
             name: 'timestamp',
             label: 'Timestamp',
             required: !!this.editMessageMode,
+            nanotimeSupport: true
           },
         ];
+
+        if (appSettings.hasInstrumentType) {
+          commonFields.push({
+            type: 'dropdown',
+            name: 'instrumentType',
+            label: 'Instrument Type',
+            required: true,
+            values: instrumentTypes,
+          });
+
+          this.formGroup.addControl('instrumentType', new FormControl(this.formData?.instrumentType ?? instrumentTypes[0], Validators.required));
+        }
 
         this.formGroup.get('symbol').setValidators(this.fieldValidator(commonFields[0]));
         this.formGroup.get('$type').setValidators(this.fieldValidator(commonFields[1]));
@@ -147,7 +175,7 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
               ARRAY: 'json',
               OBJECT: 'json',
               FLOAT: 'number',
-              INT: 'number',
+              INTEGER: 'number',
               BYTE: 'number',
               SHORT: 'number',
               DOUBLE: 'number',
@@ -167,6 +195,7 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
             if (typeBindField) {
               values = typeBindField.fields.map((f) => f.name);
             }
+            const nanotimeSupport = field.type.name === 'TIMESTAMP' && field.type.encoding === 'NANOSECOND';
             return {
               type: typeBindField ? 'dropdown' : types[field.type.name] || 'text',
               name: field.name,
@@ -174,13 +203,14 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
               required: !field.type.nullable,
               values,
               disabled: field.static && this.editMessageMode,
+              nanotimeSupport
             };
           });
 
         const type = formData.$type.replace(/\./gi, '-');
 
         Object.keys(this.formGroup.controls).forEach((key) => {
-          if (!['symbol', '$type', 'timestamp'].includes(key)) {
+          if (!['symbol', '$type', 'timestamp', 'instrumentType'].includes(key)) {
             const tf = this.typeFields.find((tf) => tf.name === key);
             if (!tf) {
               this.formGroup.removeControl(key);
@@ -263,6 +293,20 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
         this.formGroup.setErrors({jsonViewError: true});
       }
     });
+
+    this.formGroup.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        const focusedFieldName = document.activeElement.getAttribute('name');
+        this.setValidationErrorMessage(focusedFieldName);
+      });
+
+    this.fields$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(fields => {
+        this.fieldList = fields;
+        this.setValidationErrorMessage();
+      });
   }
   
   private getSymbolEnd(symbol: string): Observable<string> {
@@ -282,38 +326,54 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   private patchJsonViewFromForm() {
-    const formData = this.formGroup.getRawValue();
-    const typeValues = {};
-    Object.keys(formData).forEach((key) => {
-      if (!['$type', 'symbol', 'timestamp'].includes(key)) {
-        typeValues[key] = formData[key] || null;
-      }
-    });
+    this.fields$
+      .pipe(take(1))
+      .subscribe(fieldList => {
+        const textFields = fieldList.filter(field => field.type === 'text').map(field => field.name);
 
-    const type = formData.$type.replace(/\./gi, '-');
-    this.jsonViewControl.patchValue(
-      JSON.stringify(
-        {
-          [type]: typeValues,
-          symbol: formData.symbol,
-          $type: formData.$type,
-          timestamp: formData.timestamp,
-        },
-        null,
-        '\t',
-      ),
-      {emitEvent: false},
-    );
+        const formData = this.formGroup.getRawValue();
+        fieldList.forEach(field => {
+          if (!formData[field.name] && !field.required) {
+            delete formData[field.name];
+          }
+        });
+
+        const typeValues = {};
+        Object.keys(formData).forEach((key) => {
+          if (!['$type', 'symbol', 'timestamp'].includes(key)) {
+            if (textFields.includes(key) && !formData[key]) {
+              typeValues[key] = '';
+            } else {
+              typeValues[key] = formData[key] || null;
+            }
+          }
+      });
+    
+      const type = formData.$type.replace(/\./gi, '-');
+      this.jsonViewControl.patchValue(
+        JSON.stringify(
+          {
+            [type]: typeValues,
+            symbol: formData.symbol,
+            $type: formData.$type,
+            timestamp: formData.timestamp,
+          },
+          null,
+          '\t',
+        ),
+        {emitEvent: false},
+      );
+    });
   }
 
   onRevert() {
     this.initialCommonValues()
       .pipe(
-        tap(({symbol, $type, timestamp}) => {
+        tap(({symbol, $type, timestamp, instrumentType}) => {
           let update = {};
           const formType = $type.replace(/\./gi, '-');
           Object.keys(this.formGroup.getRawValue()).forEach((key) => (update[key] = null));
-          update = {...update, symbol, $type, timestamp, ...(this.formData?.[formType] || {})};
+          update = {...update, symbol, $type, timestamp, instrumentType, ...(this.formData?.[formType] || {})};
           this.formGroup.patchValue(update);
           this.patchJsonViewFromForm();
         }),
@@ -336,12 +396,12 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
     if (this.editingMessageNanoTime) {
       form.nanoTime = this.editingMessageNanoTime;
     }
-    const numberValueFields = this.typeFields.filter(field => field.type === 'number').map(field => field.name);
-    numberValueFields.forEach(field => {
-      if (!form[field] || isNaN(form[field])) {
-        form[field] = null;
+    this.typeFields.forEach(field => {
+      const fieldName = field.name;
+      if (!form[fieldName] && !field.required) {
+        delete form[fieldName];
       }
-    })
+    });
 
     this.streamMessageService
       .updateMessage(this.stream.id, JSON.parse(JSON.stringify(form)), this.messageInfo)
@@ -411,6 +471,7 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   cancelSave() {
+    this.requestInProgress = false;
     this.confirmTime = null;
   }
 
@@ -421,12 +482,12 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
     if (!form.timestamp) {
       delete form.timestamp;
     }
-    const numberValueFields = this.typeFields.filter(field => field.type === 'number').map(field => field.name);
-    numberValueFields.forEach(field => {
-      if (!form[field] || isNaN(form[field])) {
-        form[field] = null;
+    this.typeFields.forEach(field => {
+      const fieldName = field.name;
+      if (!form[fieldName] && !field.required) {
+        delete form[fieldName];
       }
-    })
+    });
 
     this.streamMessageService
       .sendMessage(this.stream.id, [JSON.parse(JSON.stringify(form))], writeMode)
@@ -467,13 +528,14 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
     };
   }
 
-  private initialCommonValues(): Observable<{symbol: string; $type: string; timestamp: string}> {
+  private initialCommonValues(): Observable<{symbol: string; $type: string; timestamp: string, instrumentType: string}> {
     return combineLatest([this.schema$, this.symbols$]).pipe(
       take(1),
       map(([schema, symbols]) => ({
         symbol: this.formData?.symbol || symbols[0],
         $type: this.formData?.$type || schema.types[0].name,
         timestamp: this.formData?.timestamp,
+        instrumentType: this.formData?.instrumentType ?? instrumentTypes[0]
       })),
     );
   }
@@ -495,9 +557,8 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
     if (field.type === 'dropdown') {
       return [
         field.required ? Validators.required : null,
-        (control) => {
-          return field.values.includes(control.value) ? null : {wrongValue: true};
-        },
+        (control) => ((!field.required && control.value === null) || field.values.includes(control.value)) ? 
+          null : {wrong_value: true},
       ].filter(Boolean);
     }
 
@@ -514,7 +575,7 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
           let array = isString ? control.value.split(',') : control.value;
           array = array.map((v) => Number(v)).filter((v) => !isNaN(v));
 
-          return array.join(',') === string ? null : {wrongValue: true};
+          return array.join(',') === string || (!field.required && !string) ? null : {wrong_value: true};
         },
       ].filter(Boolean);
     }
@@ -528,11 +589,15 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
           }
 
           if (typeof control.value === 'string') {
-            return /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z)/.test(
-              control.value,
-            )
-              ? null
-              : {notFormat: true};
+            if (field.nanotimeSupport) {
+              const dateFormat = /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d{1,9}Z/;
+              return ((!field.required && !control.value) || dateFormat.test(control.value)) ? null : { wrong_format: true };
+            } else {
+              const dateFormat = /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d{1,3}Z/;
+              const invalidDateFormat = /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d{4}Z/;
+              return ((!field.required && !control.value) || (dateFormat.test(control.value) && !invalidDateFormat.test(control.value))) ? 
+                null : { wrong_format: true };
+            }
           }
 
           if (control.value?.getTime && control.value?.getTime() !== undefined) {
@@ -547,16 +612,45 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   private needTruncateConfirm(): Observable<boolean> {
-    if (this.writeModeControl.value !== WriteMode.truncate) {
+    if (this.writeModeControl.value !== WriteMode.rewrite) {
       return of(false);
     }
 
     const timestampControl = this.formGroup.get('timestamp');
-    if (timestampControl.invalid) {
+    if (timestampControl.invalid || !timestampControl.value) {
       return of(false);
     }
 
     const timestamp = new Date(timestampControl.value);
     return this.symbolEnd$.pipe(map((end) => new Date(end) >= timestamp));
+  }
+
+  private setValidationErrorMessage(fieldName: string = '') {
+    this.validationErrorMessage = null;
+    if (fieldName && this.fieldList) {
+      const fieldError = this.formGroup.get(fieldName)?.errors;
+      if (fieldError) {
+        const fieldLabel = this.fieldList.find(field => field.name === fieldName)?.label;
+        const errorText = Object.keys(fieldError)[0].split('_').join(' ');
+        this.validationErrorMessage = { fieldName, fieldLabel, message: errorText };
+      }
+    }
+    if (!this.validationErrorMessage && this.fieldList) {
+      setTimeout(() => {
+        const invalidControl = Object.entries(this.formGroup.controls).find(([, value]) => !!value.errors);
+        if (invalidControl) {
+          const fieldLabel = this.fieldList?.find(field => field.name === invalidControl[0])?.label;
+          this.validationErrorMessage = { 
+            fieldName: invalidControl[0], 
+            fieldLabel, 
+            message: Object.keys(invalidControl[1].errors)[0].split('_').join(' ') };
+        }
+      });
+    }
+  }
+
+  public scrollToInvalidField(fieldName: string) {
+    const targetField = this.host.nativeElement.querySelector(`[name=${fieldName}]`);
+    targetField.scrollIntoView({block: "center", behavior: "smooth"});
   }
 }

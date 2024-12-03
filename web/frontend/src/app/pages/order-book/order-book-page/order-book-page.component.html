@@ -21,6 +21,17 @@
             class="flat-multiselect"
             formControlName="symbol"></ng-multiselect-dropdown>
       </div>
+      <div *ngIf="this.filters.get('streams').value?.length" class="filter">
+        <label>{{ 'orderBook.filterLabels.source' | translate }}</label>
+        <ng-multiselect-dropdown
+          formControlName="source"
+          [data]="sourceOptions"
+          appMultiselectNormalize
+          [placeholder]="'orderBook.selectSource' | translate"
+          [settings]="{ allowSearchFilter: false, enableCheckAll: false, singleSelection: true }"
+          class="flat-multiselect"
+        ></ng-multiselect-dropdown>
+      </div>
     </div>
     <div *ngIf="exchanges$ | async as exchanges" class="filter exchanges-filter">
       <label>{{ 'orderBook.filterLabels.exchanges' | translate }}</label>
@@ -39,6 +50,7 @@
     <app-order-book
         (destroy)="onBookDestroy()"
         (exchangesChanged)="onExchanges($event)"
+        (bookIsEmpty)="toggleErrorMessage($event)"
         (ready)="onBookReady()"
         [showLastTime]="true"
         [orientation]="orientation$ | async"
@@ -47,8 +59,10 @@
         [class.hidden]="loading || noData"
         [hiddenExchanges]="hiddenExchanges$ | async"
         [streams]="streamKeys | async"
+        [inDepthChart]="true"
+        [source]="filters.get('source').value?.[0]"
         [symbol]="filters.get('symbol').value[0]"></app-order-book>
-    <div [class.show]="loading" class="loader"></div>
+    <div [class.show]="loading && !noData" class="loader"></div>
     <div [class.hidden]="!noData" class="no-data-message">
       {{ 'orderBook.waitingForData' | translate }}
     </div>

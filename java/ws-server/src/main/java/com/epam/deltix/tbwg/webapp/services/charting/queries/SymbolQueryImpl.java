@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,22 +14,29 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.charting.queries;
+package com.epam.deltix.tbwg.webapp.services.charting.queries;
 
+import com.epam.deltix.tbwg.webapp.model.ModelDataSourceType;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.services.charting.TimeInterval;
+
+import java.util.Arrays;
 
 public abstract class SymbolQueryImpl extends LinesQueryImpl implements SymbolQuery {
 
     private final String stream;
-    private final String symbol;
+    private final String[] symbols;
 
-    public SymbolQueryImpl(String stream, String symbol, ChartType type,
-                           TimeInterval interval, long pointInterval, boolean isLive)
+    protected final ModelDataSourceType dataSource;
+
+    public SymbolQueryImpl(String stream, String[] symbols, ChartType type,
+                           TimeInterval interval, long pointInterval, boolean isLive,
+                           ModelDataSourceType dataSource)
     {
         super(type, interval, pointInterval, isLive);
         this.stream = stream;
-        this.symbol = symbol;
+        this.symbols = symbols;
+        this.dataSource = dataSource;
     }
 
     @Override
@@ -38,15 +45,20 @@ public abstract class SymbolQueryImpl extends LinesQueryImpl implements SymbolQu
     }
 
     @Override
-    public String getSymbol() {
-        return symbol;
+    public String[] getSymbols() {
+        return symbols;
+    }
+
+    @Override
+    public ModelDataSourceType getDataSource() {
+        return dataSource;
     }
 
     @Override
     public String toString() {
         final StringBuffer sb = new StringBuffer("SymbolQuery ");
         sb.append(stream).append("[");
-        sb.append(symbol).append('|');
+        sb.append(Arrays.toString(symbols)).append('|');
         sb.append(interval).append('|');
         sb.append(type).append('|');
         sb.append(pointInterval);

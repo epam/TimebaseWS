@@ -7,6 +7,7 @@ import {
   OnDestroy,
   OnInit,
   ViewChild,
+  Output, EventEmitter,
 }                                         from '@angular/core';
 import {
   select,
@@ -16,8 +17,12 @@ import { TranslateService }               from '@ngx-translate/core';
 import equal                              from 'fast-deep-equal/es6';
 import { ContextMenuService }             from '@perfectmemory/ngx-contextmenu';
 import {
+  BehaviorSubject,
   Observable,
   Subject,
+  Subscription,
+  fromEvent,
+  throwError,
   timer,
 }                                         from 'rxjs';
 import {
@@ -25,6 +30,7 @@ import {
   delay,
   distinctUntilChanged,
   filter,
+  first,
   map,
   mapTo,
   switchMap,
@@ -52,10 +58,27 @@ import { getActiveOrFirstTab }            from '../../store/streams-tabs/streams
 import { StreamsNavigationScrollService } from '../../streams-navigation/streams-navigation-scroll.service';
 import { StreamsNavigationService }       from '../../streams-navigation/streams-navigation.service';
 import { GridService } from 'src/app/shared/services/grid.service';
-import { TabNavigationService } from 'src/app/shared/services/tab-navigation.service';
 import { eventKeyMatchesTarget } from 'src/app/shared/utils/eventKeyMatchesTarget';
 import { StreamsService } from 'src/app/shared/services/streams.service';
 import { ImportFromTextFileService } from '../../services/import-from-text-file.service';
+import { PlaybackService } from '../../services/playback.service';
+import { TabModel } from '../../models/tab.model';
+
+const defaultTreeViews = [
+  {
+    title: 'streamList.treeViews.streams',
+    id: 'streams',
+  },
+  {
+    title: 'streamList.treeViews.views',
+    id: 'views',
+  },
+];
+
+const topicTreeView = {
+  title: 'streamList.treeViews.topics',
+  id: 'topics',
+};
 
 @Component({
   selector: 'app-streams-list',
@@ -65,6 +88,7 @@ import { ImportFromTextFileService } from '../../services/import-from-text-file.
 })
 export class StreamsListComponent implements OnInit, OnDestroy {
   @ViewChild(CdkVirtualScrollViewport) virtualScroll: CdkVirtualScrollViewport;
+  @Output() resetSearch = new EventEmitter<void>();
   
   activeTabType: string;
   streams: StreamModel[];
@@ -77,23 +101,27 @@ export class StreamsListComponent implements OnInit, OnDestroy {
   streamsCount: number;
   isWriter$: Observable<boolean>;
   treeViewId = 'streams';
-  treeViews = [
-    {
-      title: 'streamList.treeViews.streams',
-      id: 'streams',
-    },
-    {
-      title: 'streamList.treeViews.views',
-      id: 'views',
-    },
-  ];
+  treeViews = defaultTreeViews;
   streamSelectedForImport: string;
   selectedItem: string;
+  currentStream: string;
+  currentSymbol: string;
+  public showTopics$: Observable<boolean>;
+  public reverseViewIsDefault$ = new BehaviorSubject(false);
+  public emptyListTitle$: Observable<string>;
+  public searchValue = '';
+  public searchValueNotFound: boolean;
+  public highlightedItems: { stream: string, symbol: string };
+  public synchronizationEnabled: boolean;
 
-  emptyListTitle$: Observable<string>;
-  
+  private scrollSubscription: Subscription;
+  private searchScrollSubscription: Subscription;
+  private focusOnFoundEl$ = new Subject<number>();
+  private hideSystemStreams: boolean;
+  private streamMenuItemIndex: number;
+  private activeTab$: Observable<TabModel>;
   private destroy$ = new Subject<any>();
-  
+
   constructor(
     private contextMenuService: ContextMenuService,
     private translate: TranslateService,
@@ -108,20 +136,34 @@ export class StreamsListComponent implements OnInit, OnDestroy {
     private globalFiltersService: GlobalFiltersService,
     private leftSidebarStorageService: LeftSidebarStorageService,
     private gridService: GridService,
-    private tabNavigationService: TabNavigationService,
     private hostElement: ElementRef,
     private streamsService: StreamsService,
-    private importFromTextFileService: ImportFromTextFileService
+    private importFromTextFileService: ImportFromTextFileService,
+    private playbackService: PlaybackService
   ) {}
   
   ngOnInit() {
     this.isWriter$ = this.permissionsService.isWriter();
-    this.appStore
-      .pipe(select(getActiveOrFirstTab), takeUntil(this.destroy$))
-      .subscribe((activeTab) => {
-        this.activeTabType = activeTab?.type || null;
-      });
 
+    this.activeTab$ = this.appStore.pipe(select(getActiveOrFirstTab));
+
+    this.synchronizationEnabled = this.structureUpdatesService.getTabSynchronizationState() === 'true';
+    if (this.synchronizationEnabled) {
+      this.activeTab$
+        .pipe(delay(1000), filter(tab => !!tab?.stream && !!this.flatMenu?.length), take(1), takeUntil(this.destroy$))
+        .subscribe(tab => this.synchronizeWithTabs(tab));
+    }
+
+    this.activeTab$.pipe(
+        takeUntil(this.destroy$), 
+        distinctUntilChanged((t1, t2) => t1?.stream === t2?.stream && t1?.symbol === t2?.symbol))
+      .subscribe(activeTab => {
+        this.activeTabType = activeTab?.type || null;
+        this.highlightedItems = { stream: '', symbol: '' };
+        if (activeTab && this.synchronizationEnabled && this.flatMenu?.length) {
+          this.synchronizeWithTabs(activeTab);
+        }
+    });
 
     this.streamsService.streamRemoved
       .pipe(takeUntil(this.destroy$))
@@ -142,10 +184,46 @@ export class StreamsListComponent implements OnInit, OnDestroy {
       map((f) => f?.showSpaces),
       distinctUntilChanged(),
     );
-    
+
     showSpaces$.pipe(takeUntil(this.destroy$)).subscribe((showSpaces) => {
       this.toggleSpaces(showSpaces);
     });
+
+    const hideSystemStreams$ = this.globalFiltersService.getFilters().pipe(
+      map((f) => f?.hideSystemStreams),
+      distinctUntilChanged(),
+    );
+
+    hideSystemStreams$
+      .pipe(
+        takeUntil(this.destroy$),
+        switchMap(hideSystemStreams => this.freshMenu().pipe(map(() => hideSystemStreams)))
+      )
+      .subscribe(hideSystemStreams => {
+        this.hideSystemStreams = hideSystemStreams;
+        this.makeFlatMenu();
+        this.cdRef.detectChanges();
+      });
+
+    this.globalFiltersService.getFilters().pipe(
+      map((f) => f?.showTopics),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$)
+    ).subscribe(showTopics => {
+      if (!showTopics) {
+        this.treeViews =  [...defaultTreeViews];
+        this.switchTreeView('streams');
+      } else {        
+        this.treeViews =  [...defaultTreeViews, topicTreeView];
+      }
+    })
+
+    this.globalFiltersService.getFilters()
+      .pipe(
+        map((f) => f?.reverseViewIsDefault),
+        distinctUntilChanged(),
+        takeUntil(this.destroy$)
+      ).subscribe(reverseViewIsDefault => this.reverseViewIsDefault$.next(reverseViewIsDefault));
     
     const freshMenu$ = this.leftSidebarStorageService.watchStorage().pipe(
       map(storage => ({
@@ -160,7 +238,7 @@ export class StreamsListComponent implements OnInit, OnDestroy {
     freshMenu$.pipe(
       takeUntil(this.destroy$),
       switchMap(() => this.leftSidebarStorageService.getStorage()),
-      switchMap(({search, treeView}) => {
+      switchMap(({treeView}) => {
         this.menuLoaded = false;
         this.treeViewId = treeView;
         this.cdRef.detectChanges();
@@ -174,6 +252,10 @@ export class StreamsListComponent implements OnInit, OnDestroy {
       this.menuLoaded = true;
       this.cdRef.detectChanges();
       this.streamsNavigationScrollService.scrollToActiveMenu();
+
+      if (!this.scrollSubscription) {
+        this.saveFocusAfterScroll();
+      }
     });
     
     this.streamsNavigationScrollService
@@ -184,25 +266,39 @@ export class StreamsListComponent implements OnInit, OnDestroy {
     this.leftSidebarStorageService.watchStorage().pipe(map(storage => storage.treeView), distinctUntilChanged()).pipe(
       switchMap((treeView) => this.structureUpdatesService.onUpdates().pipe(map(updates => ({treeView, updates})))),
       map(({updates, treeView}) => updates.filter(update =>
-        (update.type === StructureUpdateType.stream && treeView === 'streams') || (update.type === StructureUpdateType.view && treeView === 'views')),
+        update.type === StructureUpdateType.playback || 
+        (update.type === StructureUpdateType.stream && treeView === 'streams') || 
+        (update.type === StructureUpdateType.view && treeView === 'views') || 
+        (update.type === StructureUpdateType.topic && treeView === 'topics')),
       ),
       takeUntil(this.destroy$),
     ).subscribe((events) => {
       const updatedStreams = [];
       events.forEach(event => {
-        switch (event.action) {
-          case StructureUpdateAction.rename:
-            this.onStreamRenamed(event.id, event.target);
-            break;
-          case StructureUpdateAction.update:
-            updatedStreams.push(event.viewMd?.stream || event.id);
-            break;
-          case StructureUpdateAction.add:
-            this.onItemAdded(event.viewMd?.stream || event.id);
-            break;
-          case StructureUpdateAction.remove:
-            this.onItemDeleted([event.viewMd?.stream || event.id]);
-            break;
+        if (event.type !== StructureUpdateType.playback) {
+          switch (event.action) {
+            case StructureUpdateAction.rename:
+              this.onStreamRenamed(event.id, event.target);
+              break;
+            case StructureUpdateAction.update:
+              updatedStreams.push(event.viewMd?.stream || event.id);
+              break;
+            case StructureUpdateAction.add:
+              this.onItemAdded(event.viewMd?.stream || event.id);
+              break;
+            case StructureUpdateAction.remove:
+              this.onItemDeleted([event.viewMd?.stream || event.id]);
+              break;
+          }
+        } else {
+          if (event.action === StructureUpdateAction.add) {
+            this.playbackService.getPlaybackList();
+          } else {
+            const playbackId = +event.id;
+            this.playbackService.setPlaybackState('close', playbackId)
+              .pipe(first(), takeUntil(this.playbackService.endSession$.pipe(filter(value => value === playbackId))))
+              .subscribe(() => this.playbackService.endSession(playbackId));
+          }
         }
       });
       
@@ -252,32 +348,32 @@ export class StreamsListComponent implements OnInit, OnDestroy {
       .subscribe(streamId => {
         this.streamSelectedForImport = streamId;
         this.cdRef.detectChanges();
-      })
+      });
   }
 
   @HostListener('keydown', ['$event']) handleKeyDown(event: KeyboardEvent) {
-    if (!eventKeyMatchesTarget(event.key, ['ArrowUp', 'ArrowDown'])) {
-      return;
-    }
-    event.preventDefault();
-
-    const allStreamLinks = Array.from(this.hostElement.nativeElement.querySelectorAll('.menu-item-link'));
-    const previousIndex = allStreamLinks.findIndex(el => el === event.target);
-    
-    let nextIndex: number | null;
-    if (event.key === 'ArrowUp') {
-      nextIndex = previousIndex === 0 ? null : previousIndex - 1;
-    } else {
-      nextIndex = previousIndex === allStreamLinks.length - 1 ? null : previousIndex + 1;
-    }
-
-    if (typeof nextIndex === 'number') {
-      (allStreamLinks[nextIndex] as HTMLElement).focus();
+    if (eventKeyMatchesTarget(event.key, ['ArrowUp', 'ArrowDown'])) {
+      event.preventDefault();
+      const allStreamLinks = Array.from(this.hostElement.nativeElement.querySelectorAll('.menu-item-link'));
+      const previousIndex = allStreamLinks.findIndex(el => el === event.target);
+      
+      let nextIndex: number | null;
+      if (event.key === 'ArrowUp') {
+        nextIndex = previousIndex === 0 ? null : previousIndex - 1;
+      } else {
+        nextIndex = previousIndex === allStreamLinks.length - 1 ? null : previousIndex + 1;
+      }
+  
+      if (typeof nextIndex === 'number') {
+        this.resetSelectedItem();
+        (allStreamLinks[nextIndex] as HTMLElement)?.focus();
+      }
     }
   }
 
   @HostListener('keydown.tab', ['$event']) handleTabKeyDown(event: KeyboardEvent) {
     if ((event.target as HTMLElement).classList.contains('menu-item-link')) {
+      this.resetSelectedItem();
       this.gridService.tabKeyNavigation(event, true);
       event.preventDefault();
     }
@@ -293,7 +389,7 @@ export class StreamsListComponent implements OnInit, OnDestroy {
       take(1),
       tap((menuItem) => {
         this.streamsCount = menuItem.totalCount || menuItem.childrenCount;
-        this.menu = menuItem.children;
+        this.menu = menuItem.children.map(menuItem => ({ ...menuItem, displayName: menuItem.name ?? menuItem.id, }));
         this.addMeta();
         this.makeFlatMenu();
         this.menuLoaded = true;
@@ -303,14 +399,15 @@ export class StreamsListComponent implements OnInit, OnDestroy {
     );
   }
 
-  toggleMenuItemWithKeys(event: KeyboardEvent, menuItem: MenuItem, path: string[]) {
+  toggleMenuItemWithKeys(menuItem: MenuItem, path: string[], event: KeyboardEvent) {
     if (eventKeyMatchesTarget(event.key, ['ArrowLeft', 'ArrowRight'])) {
-      this.toggleMenuItem(event, menuItem, path, event.key);
+      this.toggleMenuItem(menuItem, path, event);
       event.preventDefault();
     }
   }
   
-  toggleMenuItem(event: MouseEvent | KeyboardEvent, menuItem: MenuItem, path: string[], eventKeyCode: string = '') {
+  toggleMenuItem(menuItem: MenuItem, path: string[], event: MouseEvent | KeyboardEvent) {
+    const eventKeyCode = (event as KeyboardEvent).key ?? '';
     const open = !menuItem.children.length;
     const fullPath = path.concat(menuItem.id).map((path) => encodeURIComponent(path));
     const pathString = `/${fullPath.join('/')}`;
@@ -349,13 +446,81 @@ export class StreamsListComponent implements OnInit, OnDestroy {
   }
 
   private scrollDownIfBottomItem(event: MouseEvent | KeyboardEvent) {
-    const listItemBottomBorder = (event.target as HTMLElement).getBoundingClientRect().bottom;
+    const listItemBottomBorder = (event.target as HTMLElement)?.getBoundingClientRect().bottom;
     const scrollContainerBottomBorder = 
       this.virtualScroll.elementRef.nativeElement.getBoundingClientRect().bottom;
 
     if (scrollContainerBottomBorder - listItemBottomBorder < 80) {
       this.virtualScroll.elementRef.nativeElement.scrollTop += 90;
     }
+  }
+
+  private synchronizeWithTabs(activeTab: TabModel) {
+    const { stream, symbol } = activeTab;
+    const isView = activeTab.isView;
+    const streamName = activeTab.name;
+
+    const symbolList = symbol?.split(',');
+    if (symbol && symbolList.length === 1) {
+      const streamMenuItemIndex = this.flatMenu?.findIndex(menuItem => menuItem[isView ? 'name' : 'id'] === (isView ? streamName : stream));
+      const streamMenuItem = this.flatMenu[streamMenuItemIndex];
+      this.virtualScroll.scrollToIndex(streamMenuItemIndex);
+      this.streamMenuItemIndex = streamMenuItemIndex;
+      this.openStreamChildrenItems(streamMenuItem, symbol);
+      this.highlightedItems = { stream: '', symbol };
+    } else if (!symbol) {
+      const streamMenuItemIndex = this.flatMenu.findIndex(menuItem => menuItem[isView ? 'name' : 'id'] === (isView ? streamName : stream));
+      this.virtualScroll.scrollToIndex(streamMenuItemIndex);
+    } else if (symbol && symbolList.length > 1) {
+      const streamMenuItemIndex = this.flatMenu.findIndex(menuItem => menuItem[isView ? 'name' : 'id'] === (isView ? streamName : stream));
+      const streamMenuItem = this.flatMenu[streamMenuItemIndex];
+      this.virtualScroll.scrollToIndex(streamMenuItemIndex);
+      this.streamMenuItemIndex = streamMenuItemIndex;
+      this.openStreamChildrenItems(streamMenuItem, symbolList[0]);
+      this.highlightedItems = { stream: streamName, symbol: symbolList[0] };
+    }
+  }
+
+  toggleSynchronization() {
+    this.synchronizationEnabled = !this.synchronizationEnabled;
+    this.structureUpdatesService.saveTabSynchronizationState(this.synchronizationEnabled);
+    if (this.synchronizationEnabled) {
+      this.activeTab$
+        .pipe(filter(tab => !!tab?.stream), take(1), takeUntil(this.destroy$))
+        .subscribe(tab => this.synchronizeWithTabs(tab));
+    }
+  }
+
+  private openStreamChildrenItems(streamMenuItem: MenuItem, symbol: string) {
+    return this.leftSidebarStorageService.getStorage()
+      .pipe(
+        switchMap(({treeView, search, searchOptions}) => {
+          return this.menuItemsService.getSymbolPath(
+            streamMenuItem?.id,
+            symbol,
+            this.showSpaces,
+            search,
+            treeView === 'views',
+            search ? searchOptions : null,
+          )
+        }),
+        take(1),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(res => {
+        let tree: MenuItem = res;
+        streamMenuItem.original.children = tree?.children[0]?.children || [];
+        this.addMeta();
+        this.makeFlatMenu();
+
+        setTimeout(() => {
+          const symbolIndex =  this.flatMenu.findIndex(item => item.name === symbol);
+          this.virtualScroll.scrollToIndex(symbolIndex - this.streamMenuItemIndex <= 15 ? this.streamMenuItemIndex : 
+            (symbolIndex - 10 > 0 ? symbolIndex - 10 : symbolIndex));
+            
+          this.cdRef.markForCheck();
+        }, 500);
+      });
   }
   
   collapseAll() {
@@ -373,13 +538,11 @@ export class StreamsListComponent implements OnInit, OnDestroy {
   }
 
   closeOtherDropdowns() {
-    if (this.leftSidebarStorageService.dropdownsOpened.includes('create-stream-dropdown')) {
+    if (document.querySelector('.create-stream-view-dropdown')) {
       (document.querySelector('.create-stream-toggle-btn') as HTMLElement).click();
-      this.leftSidebarStorageService.removeOpenedDropdown('create-stream-dropdown');
     }
-    if (this.leftSidebarStorageService.dropdownsOpened.includes('search-options-dropdown')) {
+    if (document.querySelector('.open:not(.visible)') && document.querySelector('app-streams-list-search .dropdown-menu.show')) {
       (document.querySelector('.search-options-toggle-btn') as HTMLElement).click();
-      this.leftSidebarStorageService.removeOpenedDropdown('search-options-dropdown');
     }
   }
   
@@ -426,7 +589,7 @@ export class StreamsListComponent implements OnInit, OnDestroy {
   
   private scrollToActiveMenu() {
     const activeItemIndex = this.flatMenu.findIndex((item) => {
-      const url = this.streamsNavigationService.url(item, this.activeTabType);
+      const url = this.streamsNavigationService.url(item, this.activeTabType, this.reverseViewIsDefault$.getValue());
       if (!url) {
         return false;
       }
@@ -455,14 +618,25 @@ export class StreamsListComponent implements OnInit, OnDestroy {
   
   private getItems(paths: string[], cache = true): Observable<MenuItem> {
     return this.leftSidebarStorageService.getStorage().pipe(switchMap(({treeView, search, searchOptions}) => {
-      return this.menuItemsService.getItems(
-        paths,
-        this.showSpaces,
-        search,
-        treeView === 'views',
-        search ? searchOptions : null,
-        cache,
-      );
+      if (treeView === 'topics') {
+        return this.menuItemsService.getTopics(search, search ? searchOptions : null)
+          .pipe(
+            catchError(error => {
+              this.switchTreeView('streams');
+              this.ngOnInit();
+              return throwError(error);
+            }),
+          )
+      } else {
+        return this.menuItemsService.getItems(
+          paths,
+          this.showSpaces,
+          search,
+          treeView === 'views',
+          search ? searchOptions : null,
+          cache,
+        );
+      }
     }));
   }
   
@@ -484,24 +658,39 @@ export class StreamsListComponent implements OnInit, OnDestroy {
     this.makeFlatMenu();
   }
   
-  private makeFlatMenu(items: MenuItem[] = null, path: string[] = [], level = 0) {
+  private makeFlatMenu(items: MenuItem[] = null, path: string[] = [], level = 0, parentId: string = '') {
     if (!items) {
       this.flatMenu = [];
     }
     
     if (!items) {
       this.menu = this.menu.sort((i1, i2) => {
-        if (i1.name?.toLowerCase() === i2.name?.toLowerCase()) {
-          return i1.name > i2.name ? 1 : -1;
+        if (i1.displayName && i2.displayName) {
+          if (i1.displayName?.toLowerCase() === i2.displayName?.toLowerCase()) {
+            return i1.displayName?.localeCompare(i2.displayName);
+          }
+          return i1.displayName?.localeCompare(i2.displayName);
+        } else {
+          if (i1.name?.toLowerCase() === i2.name?.toLowerCase()) {
+            return i1.name?.localeCompare(i2.name);
+          }
+          return i1.name?.localeCompare(i2.name);
         }
-        return i1.name?.toLowerCase() > i2.name?.toLowerCase() ? 1 : -1
       });
     }
     
     (items || this.menu).forEach((item) => {
-      this.flatMenu.push({...item, path, level, original: item});
-      if (item.children?.length) {
-        this.makeFlatMenu(item.children, path.concat(item.id), level + 1);
+      if (!this.hideSystemStreams || (item.type !== 'STREAM' || !item.id.endsWith('#'))) {
+        this.flatMenu.push({
+          ...item, 
+          displayName: item.name ?? item.id,
+          path, level, original: item, 
+          parent: parentId, 
+          type: item.type,
+          nameForSearch: (item.name ?? item.id).toLocaleLowerCase() });
+        if (item.children?.length) {
+          this.makeFlatMenu(item.children, path.concat(item.id), level + 1, item.id);
+        }
       }
     });
   }
@@ -510,15 +699,13 @@ export class StreamsListComponent implements OnInit, OnDestroy {
     if (this.menu.find(item => item.id === stream)) {
       return;
     }
-    this.getItems([`/${stream}`], false)
+    this.getItems([`/${encodeURIComponent(stream)}`], false)
       .pipe(take(1))
       .subscribe((rootMenu) => {
+        const newItem = rootMenu.children.find(menuItem => menuItem.id === stream);
         // this.streamsCount = rootMenu.totalCount || rootMenu.childrenCount;
-        if (rootMenu.children[0]) {
-          this.menu.push({...rootMenu.children[0], children: []});
-        }
-        else {
-          this.menu.push({id: stream});
+        if (newItem) {
+          this.menu = [ ...this.menu, {...newItem, children: [], displayName: newItem.name ?? newItem.id } ];
         }
         this.addMeta();
         this.makeFlatMenu();
@@ -528,10 +715,9 @@ export class StreamsListComponent implements OnInit, OnDestroy {
         if (selectedIndex > -1) {
           this.virtualScroll.scrollToIndex(selectedIndex);
           this.selectedItem = stream;
-          setTimeout(() => {
-            this.selectedItem = '';
-            this.cdRef.detectChanges();
-          }, 3000);
+          fromEvent(this.hostElement.nativeElement, 'click')
+            .pipe(take(1), takeUntil(this.destroy$))
+            .subscribe(() => this.resetSelectedItem());
         }
       });
   }
@@ -550,6 +736,11 @@ export class StreamsListComponent implements OnInit, OnDestroy {
     });
     this.addMeta();
     this.makeFlatMenu();
+    this.cdRef.detectChanges();
+  }
+
+  private resetSelectedItem() {
+    this.selectedItem = '';
     this.cdRef.detectChanges();
   }
   
@@ -654,9 +845,43 @@ export class StreamsListComponent implements OnInit, OnDestroy {
   switchTreeView(id: string) {
     this.treeViewId = id;
     this.leftSidebarStorageService.updateStorageItem('treeView', id);
+    this.resetSearch.emit();
+    this.searchMenuItem('');
   }
   
   trackMenuItem(index, menuItem: MenuItem) {
     return JSON.stringify({id: menuItem.id, name: menuItem.name, type: menuItem.type, path: menuItem.path});
+  }
+
+  public searchMenuItem(searchValue: string) {
+    this.searchValue = searchValue;
+    const selectedIndex = this.flatMenu?.findIndex(elem => elem.nameForSearch.includes(searchValue));
+    if (selectedIndex > -1) {
+      if (searchValue) {
+        this.virtualScroll.scrollToIndex(selectedIndex);
+        this.virtualScroll.scrolledIndexChange
+          .pipe(take(1), takeUntil(this.destroy$))
+          .subscribe(index => this.focusOnFoundEl$.next(index));
+      }
+      if (!this.searchScrollSubscription) {
+        this.searchScrollSubscription = this.focusOnFoundEl$
+          .pipe(takeUntil(this.destroy$))
+          .subscribe(index => {
+            const targetLink = this.hostElement.nativeElement.querySelector(`[name="${this.flatMenu[index].name}"]`);
+            targetLink.focus();
+          });
+        }
+      }
+    this.searchValueNotFound = selectedIndex === -1
+  }
+
+  private saveFocusAfterScroll() {
+    this.scrollSubscription = this.virtualScroll?.scrolledIndexChange
+      .pipe(delay(100), takeUntil(this.destroy$))
+      .subscribe(() => {
+        if (!document.activeElement || document.activeElement.tagName === 'BODY') {
+          this.hostElement.nativeElement.querySelector('.active-view')?.focus();
+        }
+      })
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.charting.datasource;
 
 import com.epam.deltix.gflog.api.Log;
@@ -26,7 +25,7 @@ import com.epam.deltix.qsrv.hf.tickdb.pub.query.InstrumentMessageSource;
 import com.epam.deltix.util.lang.Disposable;
 import io.reactivex.subjects.PublishSubject;
 
-public class TimebaseDataSource implements Runnable, Disposable {
+public class TimebaseDataSource implements ChartDataSource {
 
     private static final Log LOGGER = LogFactory.getLog(TimebaseDataSource.class);
 
@@ -65,7 +64,7 @@ public class TimebaseDataSource implements Runnable, Disposable {
                 throw t;
             }
         } finally {
-            LOGGER.debug().append("Read ").append(cnt).append(" from data source").commit();
+            LOGGER.debug().append("Data source is closed, ").append(cnt).append(" messages processed").commit();
             close();
             subject.onComplete();
         }
@@ -100,7 +99,6 @@ public class TimebaseDataSource implements Runnable, Disposable {
     public synchronized void close() {
         try {
             if (source != null && !closed) {
-                LOGGER.info().append("closed").commit();
                 closed = true;
                 source.close();
             }
@@ -109,4 +107,13 @@ public class TimebaseDataSource implements Runnable, Disposable {
         }
     }
 
+    @Override
+    public int getEntityIndex() {
+        return source.getCurrentEntityIndex();
+    }
+
+    @Override
+    public String getSymbol() {
+        return source.getMessage().getSymbol().toString();
+    }
 }

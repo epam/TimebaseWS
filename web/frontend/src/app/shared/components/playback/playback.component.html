@@ -1,0 +1,200 @@
+<div *ngIf="!pinned" class="playback-controls" [formGroup]="form">
+  <div class="header-and-stream-names">
+    <h4>{{ 'playback.title' | translate }}
+    </h4>
+    <div class="tartet-source-streams">
+      <div [tooltip]="sourceStreams">Source: {{ sourceStreams }}</div>
+      <div [tooltip]="targetStream">Target: {{ targetStream }}</div>
+    </div>
+  </div>
+  <button class="pin-btn" type="button" (click)="toggleControl()">
+    <ng-container *ngTemplateOutlet="pinSVG"></ng-container>
+  </button>
+  <button
+    (click)="setPlaybackState('close')"
+    [tooltip]="'buttons.close' | translate"
+    appModalHideBtn
+    aria-label="Close"
+    class="close pull-right close-btn"
+    container="body"
+    type="button">
+    &times;
+  </button>
+
+  <div class="upload-progress-bar">
+    <div [style.width.%]="playbackProgress" class="upload-progress-bar__fill"></div>
+  </div>
+
+  <div class="control-inputs">
+    <div>
+      <button (click)="setPlaybackState('stop')" [disabled]="playbackStopped">
+        <ng-container *ngTemplateOutlet="stopSVG"></ng-container>
+      </button>
+      <button *ngIf="!(showPlayButton$ | async)" class="play-pause-btn" (click)="setPlaybackState('pause')">
+        <ng-container *ngTemplateOutlet="pauseSVG"></ng-container>
+      </button>
+      <button *ngIf="showPlayButton$ | async" class="play-pause-btn" 
+        (click)="setPlaybackState('resume')">
+        <ng-container *ngTemplateOutlet="playSVG"></ng-container>
+      </button>
+      <button (click)="setPlaybackState('skip')" [disabled]="playbackStopped">
+        <ng-container *ngTemplateOutlet="skipSVG"></ng-container>
+      </button>
+    </div>
+
+    <app-multi-select
+      formControlName="speed"
+      [items]="playbackSpeedOptions"
+      [single]="true"
+      [search]="false"
+    ></app-multi-select>
+    <div class="permanence-input">
+      <input type="checkbox" [checked]="ddlIsUsing" id="toggle-button" [class.unchecked]="!permanenceControl.value"
+        class="toggle-button" formControlName="permanent">
+      <div [class.unchecked]="!permanenceControl.value">{{ 'playback.inputLabels.permanent' | translate }}</div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="pinned" [ngClass]="{'active': isActivePlayback | async, 'pinned-playback-controls': true}">
+  <div class="progress-bar-and-controls">
+    <div class="pinned-stream-names-and-progress">
+      <h6>
+        <div class="stream-name" [tooltip]="sourceStreams">{{ sourceStreams }}</div>
+        <div><ng-container *ngTemplateOutlet="rightArrowSVG"></ng-container></div>
+        <div class="stream-name" [tooltip]="targetStream">{{ targetStream }}</div>
+      </h6>
+      <div class="pinned-upload-progress-bar" [ngClass]="{'active': isActivePlayback | async }">
+        <div [style.width.%]="playbackProgress" class="upload-progress-bar__fill"></div>
+      </div>
+    </div>
+    <div class="pinned-button-container">
+      <button (click)="setPlaybackState('stop')" [disabled]="playbackStopped" class="pinned-control-button">
+        <ng-container *ngTemplateOutlet="stopSVG; context: { pinned, disabled: playbackStopped }"></ng-container>
+      </button>
+      <button *ngIf="!(showPlayButton$ | async)" class="pinned-control-button pause" (click)="setPlaybackState('pause')">
+        <ng-container *ngTemplateOutlet="pauseSVG; context: { pinned }"></ng-container>
+      </button>
+      <button *ngIf="showPlayButton$ | async" class="pinned-control-button" 
+        (click)="setPlaybackState('resume')">
+        <ng-container *ngTemplateOutlet="playSVG; context: { pinned }"></ng-container>
+      </button>
+      <button (click)="setPlaybackState('skip')" [disabled]="playbackStopped" class="pinned-control-button skip">
+        <ng-container *ngTemplateOutlet="skipSVG; context: { pinned, disabled: playbackStopped }"></ng-container>
+      </button>
+      <button class="open-playback-btn" type="button" (click)="toggleControl()" [disabled]="(isActivePlayback | async)">
+        <ng-container *ngTemplateOutlet="unpinSVG; context: { disabled: (isActivePlayback | async) }"></ng-container>
+      </button>
+    </div>
+  </div>
+</div>
+
+<ng-template #pauseSVG let-pinned="pinned">
+  <svg 
+    [attr.height]="pinned ? '0.8rem' : '1.6rem'" 
+    id="Layer_1" 
+    style="enable-background:new 0 0 512 512;" 
+    version="1.1" 
+    viewBox="0 0 512 512" 
+    [attr.width]="pinned ? '0.8rem' : '1.6rem'" 
+    fill="white"
+    xml:space="preserve" 
+    xmlns="http://www.w3.org/2000/svg" 
+    xmlns:xlink="http://www.w3.org/1999/xlink">
+    <g>
+      <path d="M224,435.8V76.1c0-6.7-5.4-12.1-12.2-12.1h-71.6c-6.8,0-12.2,5.4-12.2,12.1v359.7c0,6.7,5.4,12.2,12.2,12.2h71.6   C218.6,448,224,442.6,224,435.8z"/>
+      <path d="M371.8,64h-71.6c-6.7,0-12.2,5.4-12.2,12.1v359.7c0,6.7,5.4,12.2,12.2,12.2h71.6c6.7,0,12.2-5.4,12.2-12.2V76.1   C384,69.4,378.6,64,371.8,64z"/>
+    </g>
+  </svg>
+</ng-template>
+
+<ng-template #stopSVG let-pinned="pinned" let-disabled="disabled">
+  <svg class="stop-svg"
+    [attr.height]="pinned ? '0.5rem' : '0.8rem'" 
+    [attr.width]="pinned ? '0.5rem' : '0.8rem'" 
+    id="Layer_1_1_" 
+    style="enable-background:new 0 0 10 10;" 
+    version="1.1" 
+    viewBox="0 0 10 10" 
+    [attr.fill]="disabled ? 'gray' : 'white'"
+    xml:space="preserve" 
+    xmlns="http://www.w3.org/2000/svg" 
+    xmlns:xlink="http://www.w3.org/1999/xlink">
+    <rect height="10" width="10"/>
+  </svg>
+</ng-template>
+
+<ng-template #skipSVG let-pinned="pinned" let-disabled="disabled">
+  <svg 
+    [attr.height]="pinned ? '1rem' : '1.5rem'"
+    viewBox="0 0 48 48" 
+    [attr.width]="pinned ? '1rem' : '1.5rem'"
+    xmlns="http://www.w3.org/2000/svg" 
+    [attr.fill]="disabled ? 'gray' : 'white'">
+    <path d="M12 36l17-12-17-12v24zm20-24v24h4V12h-4z"/><path d="M0 0h48v48H0z" fill="none"/>
+  </svg>
+</ng-template>
+
+<ng-template #playSVG let-pinned="pinned">
+  <svg class="play-svg"
+    [attr.height]="pinned ? '0.8rem' : '1.5rem'" 
+    [attr.width]="pinned ? '0.8rem' : '1.5rem'" 
+    style="enable-background:new 0 0 24 24;" 
+    version="1.1" 
+    viewBox="0 0 24 24" 
+    xml:space="preserve" 
+    fill="white"
+    xmlns="http://www.w3.org/2000/svg" 
+    xmlns:xlink="http://www.w3.org/1999/xlink">
+    <g id="info"/>
+    <g id="icons">
+      <path d="M3.9,18.9V5.1c0-1.6,1.7-2.6,3-1.8l12,6.9c1.4,0.8,1.4,2.9,0,3.7l-12,6.9C5.6,21.5,3.9,20.5,3.9,18.9z" id="play"/>
+    </g>
+  </svg>
+</ng-template>
+
+<ng-template #unpinSVG let-disabled="disabled">
+  <svg 
+    width="1.2rem" 
+    height="1.2rem" 
+    viewBox="0 0 512 512" 
+    version="1.1" 
+    xmlns="http://www.w3.org/2000/svg" 
+    xmlns:xlink="http://www.w3.org/1999/xlink">
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+      <g id="icon" [attr.fill]="disabled ? 'rgba(128, 128, 128, 0.5)' : 'white'" transform="translate(85.333333, 64.000000)">
+        <path d="M128,63.999444 L128,106.666444 L42.6666667,106.666667 L42.6666667,320 L256,320 L256,234.666444 L298.666,234.666444 L298.666667,362.666667 L4.26325641e-14,362.666667 L4.26325641e-14,64 L128,63.999444 Z M362.666667,1.42108547e-14 L362.666667,170.666667 L320,170.666667 L320,72.835 L143.084945,249.751611 L112.915055,219.581722 L289.83,42.666 L192,42.6666667 L192,1.42108547e-14 L362.666667,1.42108547e-14 Z" id="Combined-Shape">
+        </path>
+      </g>
+    </g>
+  </svg>
+</ng-template>
+
+<ng-template #rightArrowSVG>
+  <svg 
+    version="1.0" 
+    id="Layer_1" 
+    xmlns="http://www.w3.org/2000/svg" 
+    xmlns:xlink="http://www.w3.org/1999/xlink" 
+    x="0px" 
+    y="0px"
+    width="1.3rem" 
+    height="1rem" 
+    viewBox="0 0 100 100" 
+    fill="white"
+    xml:space="preserve">
+    <path d="M66.666,65.286l11.953-11.953H10v-6.667h68.619L66.67,34.713L71.383,30l17.644,17.643c1.299,1.302,1.299,3.412-0.003,4.713
+    L71.38,70L66.666,65.286z"/>
+  </svg>
+</ng-template>
+
+<ng-template #pinSVG>
+  <svg 
+    class="svg-icon" 
+    style="width: 1em; height: 1em;vertical-align: middle;fill: white;overflow: hidden;" 
+    viewBox="0 0 1024 1024" 
+    version="1.1" 
+    xmlns="http://www.w3.org/2000/svg">
+    <path d="M974.769231 303.261538L708.923077 37.415385c-27.569231-27.569231-70.892308-27.569231-98.461539 0s-27.569231 70.892308 0 98.461538l13.784616 13.784615-319.015385 210.707693-9.846154-9.846154c-27.569231-27.569231-70.892308-27.569231-98.461538 0s-27.569231 70.892308 0 98.461538l141.784615 141.784616L47.261538 882.215385c-27.569231 27.569231-27.569231 72.861538 0 100.430769 27.569231 27.569231 72.861538 27.569231 100.43077 0L439.138462 689.230769l124.061538 124.061539c27.569231 27.569231 70.892308 27.569231 98.461538 0s27.569231-70.892308 0-98.461539l-9.846153-9.846154 208.738461-320.984615 13.784616 13.784615c27.569231 27.569231 70.892308 27.569231 98.461538 0 27.569231-23.630769 27.569231-66.953846 1.969231-94.523077z"  />
+  </svg>
+</ng-template>

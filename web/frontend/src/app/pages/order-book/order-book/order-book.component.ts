@@ -45,10 +45,10 @@ import {
   switchMap,
   take,
   takeUntil,
-  tap,
+  tap, startWith, delay
 }                                      from 'rxjs/operators';
 import { WSService }                   from '../../../core/services/ws.service';
-import { dateToTimezone, formatHDate } from '../../../shared/locale.timezone';
+import { formatHDate } from '../../../shared/locale.timezone';
 import { GlobalFiltersService }        from '../../../shared/services/global-filters.service';
 import { ResizeObserveService }        from '../../../shared/services/resize-observe.service';
 import { SymbolsService }              from '../../../shared/services/symbols.service';
@@ -108,6 +108,7 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() bookWidth = 500;
   @Input() padding = 30;
   @Input() showLastTime = false;
+  @Input() source: string;
   
   @Output() ready = new EventEmitter<void>();
   @Output() readyWithData = new EventEmitter<void>();
@@ -116,6 +117,7 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Output() precisionError = new EventEmitter<boolean>();
   @Output() orientationChange = new EventEmitter<EOrientations>();
   @Output() reRun = new EventEmitter<void>();
+  @Output() bookIsEmpty = new EventEmitter<boolean>();
   
   height: number;
   width: number;
@@ -126,7 +128,9 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
   orientations = [EOrientations.price, EOrientations.quantity];
   lastMessageTime$: Observable<string>;
   lastTimeHeight = 30;
-  
+  noDataForInDepthChart = false;
+  noChartMessageVisible = false;
+
   private destroy$ = new ReplaySubject(1);
   private facade: MultiAppFacade;
   private bookId: string;
@@ -135,6 +139,7 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
     hiddenExchanges: string[];
     streams: string[];
     symbol: string;
+    source: string;
   }>();
   private reRun$ = new BehaviorSubject(null);
   private exchanges$ = new BehaviorSubject<Set<string>>(new Set<string>());
@@ -145,6 +150,10 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
   private dataReady$ = new BehaviorSubject(false);
   private ready$ = new BehaviorSubject(false);
   private lastSubscriptionParams: string = '';
+  private currentPrecision = {
+    price: 0,
+    quantity: 0
+  };
   
   constructor(
     private elementRef: ElementRef,
@@ -172,13 +181,13 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
       debounceTime(0),
       distinctUntilChanged(equal),
     );
-
+    
     combineLatest([changes$, this.reRun$])
       .pipe(
         map(([changes]) => changes),
-        filter(changes => changes.symbol && changes.streams && changes.hiddenExchanges),
-        filter(changes => this.lastSubscriptionParams !== changes.symbol + changes.streams + changes.hiddenExchanges),
-        tap(changes => this.lastSubscriptionParams = changes.symbol + changes.streams + changes.hiddenExchanges),
+        filter(changes => changes.symbol && changes.streams && changes.hiddenExchanges && changes.source),
+        filter(changes => this.lastSubscriptionParams !== changes.symbol + changes.streams + changes.hiddenExchanges + changes.source),
+        tap(changes => this.lastSubscriptionParams = changes.symbol + changes.streams + changes.hiddenExchanges + changes.source),
         switchMap((data) => this.symbolConfig(data.symbol)),
         takeUntil(this.destroy$),
       )
@@ -187,17 +196,18 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
     combineLatest([
       changes$.pipe(
         distinctUntilChanged(equal),
-        filter(changes => changes.symbol && changes.streams && changes.hiddenExchanges),
-        filter(changes => this.lastSubscriptionParams !== changes.symbol + changes.streams + changes.hiddenExchanges),
+        filter(changes => changes.symbol && changes.streams && changes.hiddenExchanges && changes.source),
+        filter(changes => this.lastSubscriptionParams !== changes.symbol + changes.streams + changes.hiddenExchanges + changes.source),
         switchMap(changes => {
-          this.lastSubscriptionParams = changes.symbol + changes.streams + changes.hiddenExchanges;
-          return this.getFeed(changes.symbol, changes.streams, changes.hiddenExchanges);
-        })
+          this.lastSubscriptionParams = changes.symbol + changes.streams + changes.hiddenExchanges + changes.source;
+          return this.getFeed(changes.symbol, changes.streams, changes.hiddenExchanges, changes.source);
+        }),
       ),
       this.changes$.pipe(map(changes => changes.symbol)),
     ]).pipe(
       distinctUntilChanged(equal),
       map(([feed, symbol]) => {
+        this.bookIsEmpty.emit(!feed.entries.length);
         const maxPrecision = field => Math.max(...feed.entries.map(entry => entry[field].toString().split('.')?.[1]?.length || 0));
         const maxPrice = maxPrecision('price');
         const maxSize = maxPrecision('quantity');
@@ -237,6 +247,7 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
       streams: this.streams,
       hiddenExchanges: this.hiddenExchanges,
       symbol: this.symbol,
+      source: this.source
     });
     
     this.exchanges$
@@ -274,6 +285,7 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
       hiddenExchanges: this.hiddenExchanges,
       symbol: this.symbol,
       streams: this.streams,
+      source: this.source
     });
   }
   
@@ -284,6 +296,7 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
   }
   
   private runBook({quantityPrecision, pricePrecision, baseCurrency, termCurrency}) {
+    this.currentPrecision = { price: pricePrecision, quantity: quantityPrecision };
     this.initialized = true;
     const emitExchanges = !this.hiddenExchanges?.length;
     if (emitExchanges) {
@@ -323,7 +336,7 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
     this.dataReady$.next(false);
     this.ready$.next(false);
     const orderGridKernel = new OrderGridEmbeddableKernel(params);
-    const feed$: Observable<IL2Package> = this.getFeed(this.symbol, this.streams, this.hiddenExchanges)
+    const feed$: Observable<IL2Package> = this.getFeed(this.symbol, this.streams, this.hiddenExchanges, this.source)
       .pipe(
         tap((message) => {
           const data = this.exchanges$.getValue();
@@ -350,11 +363,13 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
         ),
       ),
     );
+
+    feed$.pipe(startWith({ entries: [] }), takeUntil(this.destroy$)).subscribe(feed => this.bookIsEmpty.emit(!feed.entries.length));
     
     const orderBook = new OrderBook(
       {
         subscribe: (symbol: string, appId: string): Observable<IL2Package> =>
-          feed$.pipe(takeUntil(this.destroy)),
+          feed$.pipe(delay(100), takeUntil(this.destroy)),
       } as any,
       () =>
         new Worker(new URL('../../streams/workers/order-book.worker.ts', import.meta.url), {
@@ -384,57 +399,59 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
         resolveResource: (name: string, path: string) => path.replace('Assets', 'assets'),
       },
     );
-    
-    const apps = [
-      this.facade.createApp('orderGrid', this.bookId, this.bookSizes(), {
-        showExchangeId: true,
-        mapExchangeCode: true,
-        parameters: {},
-        formatFunctions: {
-          price: defaultFormatFunction,
-          spread: defaultFormatFunction,
-        },
-        symbol: this.symbol,
-        quantityPrecision,
-        pricePrecision,
-        termCode: termCurrency,
-      }),
-    ];
-    
-    if (this.inDepthChart) {
-      apps.push(
-        this.facade.createApp('depthChart', this.depthChartId, this.chartSizes(), {
-          parameters: {
-            orientation: this.orientation,
-          },
+
+    this.dataReady$.pipe(filter(Boolean), takeUntil(this.destroy$)).subscribe(() => {
+      const apps = [
+        this.facade.createApp('orderGrid', this.bookId, this.bookSizes(), {
+          showExchangeId: true,
+          mapExchangeCode: true,
+          parameters: {},
           formatFunctions: {
             price: defaultFormatFunction,
             spread: defaultFormatFunction,
           },
-          symbol: {
-            symbol: this.symbol,
-            base: {
-              code: baseCurrency,
-              decimalPart: pricePrecision,
-            },
-            term: {
-              code: termCurrency,
-              decimalPart: pricePrecision,
-            },
-          },
+          symbol: this.symbol,
+          quantityPrecision: this.currentPrecision.quantity,
+          pricePrecision: this.currentPrecision.price,
+          termCode: termCurrency,
         }),
-      );
-    }
-    
-    combineLatest(apps.map((app) => app.pipe(filter((e) => e === 'initialized'))))
-      .pipe(take(1), takeUntil(this.destroy))
-      .subscribe(() => {
-        this.initialized = true;
-        this.updateSize();
-        this.cdRef.detectChanges();
-        this.ready.emit();
-        this.ready$.next(true);
+      ];
+      
+      if (this.inDepthChart && !this.noDataForInDepthChart) {
+        apps.push(
+          this.facade.createApp('depthChart', this.depthChartId, this.chartSizes(), {
+            parameters: {
+              orientation: this.orientation,
+            },
+            formatFunctions: {
+              price: defaultFormatFunction,
+              spread: defaultFormatFunction,
+            },
+            symbol: {
+              symbol: this.symbol,
+              base: {
+                code: baseCurrency,
+                decimalPart: this.currentPrecision.price,
+              },
+              term: {
+                code: termCurrency,
+                decimalPart: this.currentPrecision.price,
+              },
+            },
+          }),
+        );
+      }
+
+      combineLatest(apps.map((app) => app.pipe(filter((e) => e === 'initialized'))))
+        .pipe(take(1), takeUntil(this.destroy))
+        .subscribe(() => {
+          this.initialized = true;
+          this.updateSize();
+          this.cdRef.detectChanges();
+          this.ready.emit();
+          this.ready$.next(true);
       });
+    })
   }
   
   private updateSize() {
@@ -456,9 +473,10 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
     });
   }
   
-  private getFeed(symbol: string, streams: string[], hiddenExchanges: string[]): Observable<IL2Package> {
+  private getFeed(symbol: string, streams: string[], hiddenExchanges: string[], source: string): Observable<IL2Package> {
     if (this.feed$) {
       return this.feed$.pipe(
+        tap(feed => this.precisionFromFeedData(feed)),
         map(feed => ({...feed, entries: feed.entries.map(entry => ({...entry, quantity: entry.quantity || 0}))}))
       );
     } else {
@@ -467,7 +485,18 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
           instrument: symbol,
           streams: JSON.stringify(streams),
           hiddenExchanges: JSON.stringify(hiddenExchanges),
+          source
         }).pipe(
+          tap(feed => {
+            this.precisionFromFeedData(feed);
+            this.noDataForInDepthChart = feed.type === 'snapshot_full_refresh' && feed.entries.length < 3 ? true : false;
+            if (this.noDataForInDepthChart) {
+              setTimeout(() => {
+                this.noChartMessageVisible = true;
+                this.cdRef.detectChanges();
+              }, 5000);
+            }
+          }),
           map(feed => ({...feed, entries: feed.entries.map(entry => ({...entry, quantity: entry.quantity || 0}))})),
         );
     }
@@ -549,5 +578,21 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
   
   private precisionsFromFeed(): Observable<{ size: number, price: number }> {
     return this.storageMap.get('symbolPrecisionsFromFeed').pipe(map(storage => storage?.[this.symbol]));
+  }
+
+  private precisionFromFeedData(feed: IL2Package) {
+    if (!this.currentPrecision.price || !this.currentPrecision.quantity) {
+      feed.entries.forEach(entry => {
+        const entryPricePrecision = entry.price?.split('.')[1]?.length;
+        if (this.currentPrecision.price < entryPricePrecision) {
+          this.currentPrecision.price = entryPricePrecision;
+        }
+
+        const entryQuantityPrecision = entry.quantity?.split('.')[1]?.length;
+        if (this.currentPrecision.quantity < entryQuantityPrecision) {
+          this.currentPrecision.quantity = entryQuantityPrecision;
+        }
+      })
+    }
   }
 }

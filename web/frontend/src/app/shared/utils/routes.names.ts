@@ -3,4 +3,5 @@ export const symbolRouteName = 'symbol';
 export const appRoute = 'app';
 export const auth = 'auth';
 export const login = 'login';
+export const silentAuth = 'silent-auth';
 export const dashboard = 'dashboard';

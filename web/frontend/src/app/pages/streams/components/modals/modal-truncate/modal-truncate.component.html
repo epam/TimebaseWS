@@ -7,9 +7,9 @@
     <div class="w-100 symbols-list">
       <span class="font-weight-bold w-100">{{ 'titles.symbolsToTruncate' | translate }}:</span>
       <app-multi-select
-          [flat]="true"
-          [formControl]="symbolsControl"
-          [items]="symbolsList$ | async"
+        [flat]="true"
+        [formControl]="symbolsControl"
+        [items]="symbolsList$ | async"
       ></app-multi-select>
     </div>
     <div *ngIf="endDate && startDate" class="w-100">
@@ -17,18 +17,22 @@
       >{{ 'buttons.truncate' | translate }} {{ 'titles.toTime' | translate }}:</span
       >
       <app-time-bar-picker
-          [(selectedDate)]="selectedDate"
-          [endDate]="endDate"
-          [startDate]="startDate"
-          method="truncate"></app-time-bar-picker>
+        [selectedDate]="selectedDate"
+        (selectedDateChange)="selectedDateChange($event)"
+        [endDate]="endDate"
+        [startDate]="startDate"
+        [dateInvalid]="submitDisabled$ | async"
+        method="truncate"></app-time-bar-picker>
     </div>
   </ng-container>
   <ng-container footer>
+    <div class="error-message">{{ validationErrorMessage }}</div>
     <button
-        (click)="onTruncateSubmit()"
-        [tooltip]="'buttons.truncate' | translate"
-        class="btn btn-info"
-        type="button">
+      [disabled]="submitDisabled$ | async"
+      (click)="onTruncateSubmit()"
+      [tooltip]="'buttons.truncate' | translate"
+      class="btn btn-info"
+      type="button">
       {{ 'buttons.truncate' | translate }}
     </button>
     <button

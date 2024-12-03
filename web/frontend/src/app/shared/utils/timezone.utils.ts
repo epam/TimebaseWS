@@ -9,26 +9,26 @@ let timezoneCashTimeoutId: Timeout;
 
 export function getTimeZones(): TimeZone[] {
   const timeZones: Array<TimeZone> = [];
-  const groups = tzStr.split('|');
 
-  for (const namesGroup of groups) {
-    if (namesGroup === '\r\n') {
-      continue;
-    }
-    const names = namesGroup.split(',');
-    const alias = names[0];
-    const offset = getTimeZoneOffset(alias);
-    if (offset === null || isNaN(offset)) {
-      // not supported tz
-      continue;
-    }
-    for (const name of names) {
-      timeZones.push({
-        name,
-        offset,
-        alias,
-      });
-    }
+  // @ts-ignore
+  const timezoneList = Intl.supportedValuesOf('timeZone');
+
+  for (let timezone of timezoneList) {
+    const offset = getTimeZoneOffset(timezone);
+    timeZones.push({
+      name: timezone,
+      offset,
+      alias: timezone,
+    });
+  }
+
+  const utcInTheList = timezoneList.find((timezone: string) => timezone == 'UTC');
+  if (!utcInTheList) {
+    timeZones.push({
+      alias: "UTC",
+      name: "UTC",
+      offset: 0
+    })
   }
 
   timeZones.sort((tz1, tz2) => {
@@ -53,7 +53,7 @@ export function getTimeZoneObject(tz: string): TimeZone {
   return {
     name: infoTimezone.tz,
     alias: infoTimezone.alias,
-    offset: null,
+    offset: getTimeZoneOffset(tz),
   };
 }
 

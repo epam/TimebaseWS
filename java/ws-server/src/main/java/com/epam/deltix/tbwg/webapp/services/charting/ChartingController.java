@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,8 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.charting;
+package com.epam.deltix.tbwg.webapp.services.charting;
 
+import com.epam.deltix.tbwg.webapp.model.ModelDataSourceType;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartingFrameDef;
 import com.epam.deltix.tbwg.webapp.model.input.QueryRequest;
@@ -77,13 +78,14 @@ public class ChartingController {
 
     @RequestMapping(value = "/dx/{streamKey}", method = RequestMethod.GET)
     public ResponseEntity<StreamingResponseBody> getData(@PathVariable String streamKey,
-                                                         @RequestParam String symbols,
-                                                         @RequestParam(defaultValue = "PRICES_L2") ChartType type,
+                                                         @RequestParam(value = "symbols") String[] symbols,
+                                                         @RequestParam(defaultValue = "PRICE_LEVELS") ChartType type,
                                                          @RequestParam Instant startTime,
                                                          @RequestParam Instant endTime,
                                                          @RequestParam(required = false, defaultValue = "1000") long pointInterval,
                                                          @RequestParam(required = false, defaultValue = "20") int levels,
-                                                         @RequestParam(required = false) Long correlationId)
+                                                         @RequestParam(required = false) Long correlationId,
+                                                         @RequestParam(defaultValue = "L2") ModelDataSourceType source)
     {
         if (pointInterval <= 0) {
             throw new RuntimeException("Illegal pointInterval value: " + pointInterval);
@@ -93,12 +95,13 @@ public class ChartingController {
             startTime = roundStartTime(startTime, pointInterval);
             endTime = roundEndTime(endTime, pointInterval);
         }
+        levels = source == ModelDataSourceType.L1 ? 1 : levels;
 
         ChartingResult chartingResult = chartingService.getDataStream(
             new ChartingSettings(
                 streamKey, null, symbols, type,
                 new TimeInterval(startTime, endTime),
-                pointInterval, levels
+                pointInterval, levels, source
             ), correlationId
         );
 
@@ -113,11 +116,12 @@ public class ChartingController {
 
     @RequestMapping(value = "/dx-query", method = RequestMethod.POST)
     public List<ChartingFrameDef> getData(@RequestBody QueryRequest query,
-                                          @RequestParam(defaultValue = "PRICES_L2") ChartType type,
+                                          @RequestParam(defaultValue = "PRICE_LEVELS") ChartType type,
                                           @RequestParam Instant startTime,
                                           @RequestParam Instant endTime,
                                           @RequestParam(required = false, defaultValue = "1000") long pointInterval,
-                                          @RequestParam(required = false) Long correlationId)
+                                          @RequestParam(required = false) Long correlationId,
+                                          @RequestParam(defaultValue = "L2") ModelDataSourceType source)
     {
         if (pointInterval <= 0) {
             throw new RuntimeException("Illegal pointInterval value: " + pointInterval);
@@ -128,7 +132,7 @@ public class ChartingController {
                 new ChartingSettings(
                     null, query.query, null, type,
                     new TimeInterval(startTime, endTime),
-                    pointInterval, -1
+                    pointInterval, -1, source
                 ), correlationId)
         );
     }

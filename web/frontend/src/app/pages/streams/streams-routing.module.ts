@@ -11,6 +11,7 @@ import {ChartsLayoutComponent} from './components/deltix-charts/charts-layout/ch
 import {StreamDetailsComponent} from './components/stream-details/stream-details.component';
 import {StreamsLayoutComponent} from './components/streams-layout/streams-layout.component';
 import {CheckShowingOnCloseAlertGuard} from './services/guards/check.showing.onclose.alert.guard';
+import { GenerateDDLComponent } from '../generate-ddl/generate-ddl.component';
 
 const routes: Routes = [
   {
@@ -63,6 +64,37 @@ const routes: Routes = [
           flow: true,
         },
         canActivate: [ActiveTabGuard],
+      },
+      {
+        path: 'generate-qql-ddl',
+        component: TabsRouterProxyComponent,
+        data: {
+          generateDDL: true,
+        },
+      },
+      {
+        path: 'generate-qql-ddl/:id',
+        loadChildren: () => import('../generate-ddl/generate-ddl.module').then((m) => m.GenerateDDLModule),
+        component: GenerateDDLComponent,
+        data: {
+          generateDDL: true,
+        },
+        canActivate: [ActiveTabGuard],
+      },
+      {
+        path: 'chart',
+        component: TabsRouterProxyComponent,
+        data: {
+          chart: true,
+        },
+      },
+      {
+        path: 'chart/:id',
+        component: ChartsLayoutComponent,
+        canActivate: [ActiveTabGuard],
+        data: {
+          chart: true,
+        },
       },
       {
         path: streamRouteName,
@@ -123,11 +155,26 @@ const routes: Routes = [
             },
           },
           {
+            path: 'schema/:stream',
+            component: TabsRouterProxyComponent,
+            data: {
+              schemaView: true,
+            },
+          },
+          {
             path: 'stream-create/:stream',
             component: TabsRouterProxyComponent,
             data: {
               schemaEdit: true,
               streamCreate: true,
+            },
+          },
+          {
+            path: 'topic-create/:stream',
+            component: TabsRouterProxyComponent,
+            data: {
+              schemaEdit: true,
+              topicCreate: true,
             },
           },
 
@@ -161,10 +208,32 @@ const routes: Routes = [
               ),
           },
           {
+            path: 'topic-create/:stream/:id',
+            canActivate: [ActiveTabGuard],
+            data: {
+              topicCreate: true,
+            },
+            loadChildren: () =>
+              import('./modules/schema-editor/schema-editor.module').then(
+                (m) => m.SchemaEditorModule,
+              ),
+          },
+          {
             path: 'schema-edit/:stream/:id',
             canActivate: [ActiveTabGuard],
             data: {
               schemaEdit: true,
+            },
+            loadChildren: () =>
+              import('./modules/schema-editor/schema-editor.module').then(
+                (m) => m.SchemaEditorModule,
+              ),
+          },
+          {
+            path: 'schema/:stream/:id',
+            canActivate: [ActiveTabGuard],
+            data: {
+              schemaView: true,
             },
             loadChildren: () =>
               import('./modules/schema-editor/schema-editor.module').then(
@@ -241,13 +310,6 @@ const routes: Routes = [
             },
           },
           {
-            path: 'chart/:stream/:symbol',
-            component: TabsRouterProxyComponent,
-            data: {
-              chart: true,
-            },
-          },
-          {
             path: 'view/:stream/:symbol',
             component: TabsRouterProxyComponent,
             data: {
@@ -287,14 +349,6 @@ const routes: Routes = [
             component: StreamDetailsComponent,
             data: {
               schema: true,
-            },
-          },
-          {
-            path: 'chart/:stream/:symbol/:id',
-            component: ChartsLayoutComponent,
-            canActivate: [ActiveTabGuard],
-            data: {
-              chart: true,
             },
           },
           {

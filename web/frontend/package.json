@@ -55,6 +55,7 @@
     "jszip": "^3.10.1",
     "luxon": "^1.25.0",
     "lz-string": "^1.4.4",
+    "moment": "^2.29.4",
     "ng-multiselect-dropdown": "^0.2.3",
     "ngx-autosize": "^1.8.4",
     "ngx-bootstrap": "^7.0.0",
@@ -82,7 +83,8 @@
     "@deltix/ng-autocomplete": "file:./libs/@deltix/ng-autocomplete",
 	"@deltix/hd-date": "file:./libs/@deltix/hd-date",
     "@deltix/ngx-vizceral": "file:./libs/@deltix/ngx-vizceral",
-    "@deltix/vizceral": "file:./libs/@deltix/vizceral"
+    "@deltix/vizceral": "file:./libs/@deltix/vizceral",
+	"@deltix/sso-auth": "file:./libs/@deltix/sso-auth"
   },
   "peerDependencies": {
     "postcss": "^8.0.0"

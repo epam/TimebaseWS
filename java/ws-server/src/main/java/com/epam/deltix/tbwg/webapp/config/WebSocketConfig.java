@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,8 +14,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.config;
+package com.epam.deltix.tbwg.webapp.config;
 
+import com.epam.deltix.gflog.api.Log;
+import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.interceptors.WebSocketLogInterceptor;
 import com.epam.deltix.tbwg.webapp.websockets.StompErrorHandler;
 import com.epam.deltix.tbwg.webapp.websockets.WebsocketAuthChannelInterceptor;
@@ -24,18 +26,28 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.server.ServerHttpRequest;
+import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
+import org.springframework.web.socket.server.HandshakeInterceptor;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
 
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    private static final Log LOGGER = LogFactory.getLog(WebSocketConfig.class);
 
     public static final String TOPIC = "/topic";
     public static final String SYSTEM_ENDPOINT = "/stomp/v0";
@@ -47,19 +59,25 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public static final String FLOWCHART_TREE_TOPIC = FLOWCHART_TOPIC + "/ltrTree";
 
     public static final String MONITOR_TOPIC = TOPIC + "/monitor";
+    public static final String MONITOR_TOPIC_TOPIC = TOPIC + "/monitor-topic";
     public static final String MONITOR_QQL_TOPIC = TOPIC + "/monitor-qql";
     public static final String ORDER_BOOK_TOPIC = TOPIC + "/order-book";
     public static final String CHARTING_TOPIC = TOPIC + "/charting";
     public static final String CHARTING_QUERY_TOPIC = TOPIC + "/charting-query";
+    public static final String PLAYBACK_TOPIC = TOPIC + "/playback";
 
     public static final String RPC_FEED = TOPIC + "/responses";
     public static final String IMPORT_TOPIC = TOPIC + "/startImport";
+    public static final String INIT_IMPORT_TOPIC = TOPIC + "/initImport";
     public static final String IMPORT_CSV_TOPIC = IMPORT_TOPIC + "/csv";
+    public static final String INIT_IMPORT_CSV_TOPIC = INIT_IMPORT_TOPIC + "/csv";
     public static final String IMPORT_QSMSG_TOPIC = IMPORT_TOPIC + "/qsmsg";
+    public static final String INIT_IMPORT_QSMSG_TOPIC = INIT_IMPORT_TOPIC + "/qsmsg";
 
     public static final String SUBSCRIPTIONS_METRIC = "websocket.subscriptions";
 
     public static final String SEND_MESSAGES_METRIC = "websocket.messages";
+    public static final String REMOTE_ADDRESS_ATTRIBUTE_NAME = "remoteAddress";
 
     private final SubscriptionService subscriptionService;
     private final WebsocketAuthChannelInterceptor authChannelInterceptor;
@@ -85,7 +103,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint(SYSTEM_ENDPOINT).setAllowedOrigins("*");
+        registry.addEndpoint(SYSTEM_ENDPOINT).setAllowedOrigins("*").addInterceptors(new IpInterceptor());
         registry.setErrorHandler(errorHandler);
     }
 
@@ -112,6 +130,21 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Bean
     public TaskScheduler heartBeatScheduler() {
         return new ThreadPoolTaskScheduler();
+    }
+
+    public static class IpInterceptor implements HandshakeInterceptor {
+        @Override
+        public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
+                                       WebSocketHandler wsHandler, Map<String, Object> attributes) {
+            HttpServletRequest origRequest = ((ServletServerHttpRequest) request).getServletRequest();
+            attributes.put(REMOTE_ADDRESS_ATTRIBUTE_NAME, origRequest.getRemoteAddr());
+            return true;
+        }
+
+        @Override
+        public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response,
+                                   WebSocketHandler wsHandler, Exception exception) {
+        }
     }
 
 }

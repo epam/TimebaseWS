@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,9 +14,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.security.jwt;
+package com.epam.deltix.tbwg.webapp.security.jwt;
 
-import com.epam.deltix.tbwg.webapp.services.authorization.AuthoritiesProvider;
+import com.epam.deltix.tbwg.webapp.services.authorization.TbwgUser;
+import com.epam.deltix.tbwg.webapp.services.authorization.UsersProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -25,31 +26,37 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Map;
 
 @Component
 public class JwtAuthenticationConverterImpl implements Converter<Jwt, AbstractAuthenticationToken> {
 
     private final JwtExtractor jwtExtractor;
-    private final AuthoritiesProvider authoritiesProvider;
+    private final UsersProvider usersProvider;
 
     @Autowired
-    public JwtAuthenticationConverterImpl(JwtExtractor jwtExtractor, AuthoritiesProvider authoritiesProvider) {
+    public JwtAuthenticationConverterImpl(JwtExtractor jwtExtractor, UsersProvider usersProvider) {
         this.jwtExtractor = jwtExtractor;
-        this.authoritiesProvider = authoritiesProvider;
+        this.usersProvider = usersProvider;
     }
 
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {
         String name = jwtExtractor.extractUsername(jwt);
-        Map<String, Object> attributes = jwtExtractor.extractAttributes(jwt);
-        Collection<GrantedAuthority> authorities = jwtExtractor.extractAuthorities(jwt);
-        authorities.addAll(authoritiesProvider.getAuthorities(name));
+        Collection<GrantedAuthority> authorities = new ArrayList<>();
+
+        TbwgUser user = usersProvider.getUser(name);
+        if (user != null) {
+            name = user.getUsername();
+            authorities.addAll(user.getAuthorities());
+        }
+
+        authorities.addAll(jwtExtractor.extractAuthorities(jwt));
 
         return new JwtAuthenticationToken(
             Jwt.withTokenValue(jwt.getTokenValue())
-                .claims((c) -> c.putAll(attributes))
+                .claims((c) -> c.putAll(jwtExtractor.extractAttributes(jwt)))
                 .headers((h) -> h.putAll(jwt.getHeaders()))
                 .build(),
             authorities,

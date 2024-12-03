@@ -1,15 +1,18 @@
-import {ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnDestroy, OnInit, Output, ViewChild, EventEmitter } from '@angular/core';
 import {UntypedFormGroup} from '@angular/forms';
 import {ActivatedRoute, Data} from '@angular/router';
 import {select, Store} from '@ngrx/store';
 import {IOutputData} from 'angular-split/lib/interface';
 import {BsModalRef, BsModalService} from 'ngx-bootstrap/modal';
-import {Observable, ReplaySubject, Subject} from 'rxjs';
+import {Observable, ReplaySubject, Subject, combineLatest, of} from 'rxjs';
 import {
+  debounceTime,
+  delay,
   distinctUntilChanged,
   filter,
   map,
   mapTo,
+  pluck,
   shareReplay,
   skip,
   skipWhile,
@@ -20,17 +23,13 @@ import {
   tap,
   withLatestFrom,
 } from 'rxjs/operators';
-import { SchemaService } from 'src/app/shared/services/schema.service';
-import { StreamsService } from 'src/app/shared/services/streams.service';
 import {AppState} from '../../../../../../core/store';
 import {
   DefaultTypeModel,
   SchemaClassTypeModel,
 } from '../../../../../../shared/models/schema.class.type.model';
 import {PermissionsService} from '../../../../../../shared/services/permissions.service';
-import {StorageService} from '../../../../../../shared/services/storage.service';
 import {TabStorageService} from '../../../../../../shared/services/tab-storage.service';
-import {FilterModel} from '../../../../models/filter.model';
 import {TabModel} from '../../../../models/tab.model';
 import {TabSettingsModel} from '../../../../models/tab.settings.model';
 import {OnCloseTabAlertService} from '../../../../services/on-close-tab-alert.service';
@@ -38,18 +37,15 @@ import * as StreamDetailsActions from '../../../../store/stream-details/stream-d
 import * as fromStreamDetails from '../../../../store/stream-details/stream-details.reducer';
 import {streamsDetailsStateSelector} from '../../../../store/stream-details/stream-details.selectors';
 import * as fromStreams from '../../../../store/streams-list/streams.reducer';
-import {getOpenNewTabState} from '../../../../store/streams-list/streams.selectors';
-
 import {SetTabSettings} from '../../../../store/streams-tabs/streams-tabs.actions';
 import {
   getActiveOrFirstTab,
   getActiveTab,
-  getActiveTabFilters,
   getActiveTabSettings,
 } from '../../../../store/streams-tabs/streams-tabs.selectors';
 import {SeSettings} from '../../models/se-settings';
 import {StreamMetaDataChangeModel} from '../../models/stream.meta.data.change.model';
-import { SchemaEditorService } from '../../services/add-class.service';
+import { SchemaEditorService } from '../../services/schema-editor.service';
 import {SeDataService} from '../../services/se-data.service';
 import {SeFieldFormsService} from '../../services/se-field-forms.service';
 import {SeSelectionService} from '../../services/se-selection.service';
@@ -61,16 +57,22 @@ import {
   GetSchemaDiff,
   RemoveSchemaDiff,
   SaveSchemaChanges,
+  SetSchema,
   SetStreamId,
 } from '../../store/schema-editor.actions';
 import {
   getAllSchemaItems,
   getDefaultsTypes,
+  getEditSchemaState,
   getSchemaDiff,
   getSelectedSchemaItem,
 } from '../../store/schema-editor.selectors';
 import { ClControlPanelComponent } from '../cl-control-panel/cl-control-panel.component';
 import { FlControlPanelComponent } from '../fl-control-panel/fl-control-panel.component';
+import { ClassEnumListItem } from '../../models/class-enum-list-item.model';
+import { TopicService } from '../../services/topic.service';
+import { StreamsService } from 'src/app/shared/services/streams.service';
+import { SchemaValidityService } from '../../services/schema-validity.service';
 
 @Component({
   selector: 'app-se-layout',
@@ -80,6 +82,13 @@ import { FlControlPanelComponent } from '../fl-control-panel/fl-control-panel.co
   providers: [SeFieldFormsService, SeDataService, TabStorageService, SeSelectionService],
 })
 export class SeLayoutComponent implements OnInit, OnDestroy {
+  @Input() stream: string;
+  @Input() schema: { types: SchemaClassTypeModel[]; all: SchemaClassTypeModel[] };
+  @Input() extendable = true;
+  @Input() insideModal = false;
+
+  @Output() streamCreated = new EventEmitter<void>();
+  
   @ViewChild('modalTemplate', {static: true}) modalTemplate;
   @ViewChild('saveSchemaChangesModalTemplate', {static: true}) saveSchemaChangesModalTemplate;
   @ViewChild(ClControlPanelComponent) classControlPanel: ClControlPanelComponent;
@@ -102,11 +111,18 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
   saveChangesModalRef: BsModalRef;
   keyForm: UntypedFormGroup;
   isWriter$: Observable<boolean>;
+  classEnumList: ClassEnumListItem[];
+  fieldList: string[];
+  schemaChanged$: Observable<boolean>;
+  showChanges: boolean = false;
+  newStream: boolean;
+  newTopic: boolean;
+  topicStreamKey: string;
+  readonly: boolean;
+  public standaloneEnums: string[] = [];
 
-  private isOpenInNewTab: boolean;
   private destroy$ = new Subject();
 
-  private tabFilter;
   private saveChangesDisabledButtons = false;
   private onSchemaResetState$ = new ReplaySubject<boolean>(1);
   private lastFocusedElement: HTMLElement;
@@ -117,15 +133,15 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
     private streamsStore: Store<fromStreams.FeatureState>,
     private streamDetailsStore: Store<fromStreamDetails.FeatureState>,
     private modalService: BsModalService,
-    private storageService: StorageService,
     private seFieldFormsService: SeFieldFormsService,
     private seDataService: SeDataService,
     private tabStorageDataService: TabStorageService<SeSettings>,
     private onCloseTabAlertService: OnCloseTabAlertService,
     private permissionsService: PermissionsService,
     private schemaEditorService: SchemaEditorService,
+    private topicService: TopicService,
     private streamsService: StreamsService,
-    private schemaService: SchemaService
+    private schemaValidityService: SchemaValidityService
   ) {}
 
   ngOnInit() {
@@ -135,6 +151,20 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
     this.defaultDataTypes$ = this.appStore.pipe(select(getDefaultsTypes));
     this.showClassListGrid$ = this.seDataService.showClassListGrid();
     this.isWriter$ = this.permissionsService.isWriter();
+    this.schemaChanged$ = this.getSchemaDiff$.pipe(
+      pluck('changes'),
+      map(changes => !!changes?.length)
+    )
+    
+    if (this.schema) {
+      this.appStore.dispatch(SetSchema({ schema: this.schema }));
+    }
+
+    this.newStream = this.route.snapshot.data.streamCreate;
+    this.newTopic = this.route.snapshot.data.topicCreate;
+    this.readonly = this.route.snapshot.data.schemaView;
+
+    this.topicStreamKey = this.topicService.dataForCopyToStream?.streamKey;
 
     const schemaItemsChanged$ = this.appStore.pipe(
       select(getAllSchemaItems),
@@ -142,13 +172,6 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
       distinctUntilChanged(),
       skipWhile((schema) => !schema),
     );
-
-    this.appStore
-      .pipe(
-        select(getActiveTab),
-        filter((tab: TabModel) => !this.route.snapshot.data.streamCreate && !!tab?.stream),
-        switchMap((tab: TabModel) => this.schemaService.getSchema(tab?.stream)))
-      .subscribe();
 
     this.isSchemaEdited$ = this.onSchemaResetState$.pipe(
       switchMap((isCreate) => {
@@ -161,15 +184,37 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
       shareReplay(1),
     );
 
+    this.schemaEditorService.streamCreated$
+      .pipe(filter(() => this.insideModal), takeUntil(this.destroy$))
+      .subscribe(() => this.streamCreated.emit());
+
+    combineLatest([ 
+      this.appStore.pipe(select(getActiveTab)),
+      this.isSchemaEdited$.pipe(filter(Boolean))
+    ]).pipe(
+        delay(500),
+        filter(([tab]) => !!tab && !tab?.streamCreate && !tab?.topicCreate && !tab?.isTopic),
+        debounceTime(500),
+        takeUntil(this.destroy$))
+      .subscribe(() => this.appStore.dispatch(GetSchemaDiff()));
+
     const types$ = this.appStore.pipe(select(getAllSchemaItems));
 
     this.hasSchemaError$ = types$.pipe(
       switchMap((types) => {
         return this.seFieldFormsService.hasAnyError().pipe(
           map((hasError) => {
-            const objectTypeFields = types.reduce((acc, type) => [...acc, ...type.fields], []).filter(field => field.type.elementType);
-            return hasError || !types.filter((type) => type._props._isUsed).length || 
-              objectTypeFields.some(field => !field.type.elementType.types.length);
+            const fieldList = types.reduce((acc, type) => [...acc, ...type.fields], []);
+            const isObjectType = (typeName: string) => typeName === 'OBJECT';
+
+            const objectTypeFields = fieldList.filter(field => isObjectType(field.type.name));
+            const arrayOfObjectsTypeFields = fieldList
+              .filter(field => field.type.name === 'ARRAY' && isObjectType(field.type.elementType?.name));
+
+            return hasError || !types.filter((type) => type._props._isUsed).length
+              || objectTypeFields.some(field => !field.type.types?.length) 
+              || arrayOfObjectsTypeFields.some(field => !field.type.elementType.types?.length)
+              || this.schemaValidityService.hasAnyError(this.insideModal)
           }),
         )
       })
@@ -190,28 +235,15 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
       )
       .subscribe(([isSchemaEdited, activeTabSettings]: [boolean, TabSettingsModel]) => {
         const tabSettings = {...activeTabSettings};
-        if (isSchemaEdited) {
-          tabSettings._showOnCloseAlerts = isSchemaEdited;
+        if (isSchemaEdited || this.newStream) {
+          tabSettings._showOnCloseAlerts = isSchemaEdited || this.newStream;
         } else {
           delete tabSettings._showOnCloseAlerts;
         }
         this.appStore.dispatch(new SetTabSettings({tabSettings}));
       });
 
-    this.appStore
-      .pipe(select(getOpenNewTabState))
-      .subscribe((_openNewTab) => (this.isOpenInNewTab = _openNewTab));
     this.appStore.dispatch(GetDefaultTypes());
-
-    this.appStore
-      .pipe(
-        select(getActiveTabFilters),
-        filter((filter) => !!filter),
-        takeUntil(this.destroy$),
-      )
-      .subscribe((filter: FilterModel) => {
-        this.tabFilter = {...filter};
-      });
 
     this.selectedSchemaItem$ = this.appStore.pipe(select(getSelectedSchemaItem));
 
@@ -221,13 +253,13 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
         tap(() => this.appStore.dispatch(EditSchemaResetState())),
         withLatestFrom(this.route.data),
         takeUntil(this.destroy$),
-        switchMap(([params, data]: [{stream: string; id: string; symbol?: string}, Data]) => {
+        switchMap(([, data]: [{stream: string; id: string; symbol?: string}, Data]) => {
           return this.appStore.pipe(
             select(getActiveTab),
             filter((tabModel: TabModel) => !!tabModel),
             take(1),
             map((tabModel: TabModel) => {
-              this.onSchemaResetState$.next(tabModel.streamCreate);
+              this.onSchemaResetState$.next(tabModel.streamCreate || tabModel.topicCreate);
               this.seFieldFormsService.streamChanged();
               return [tabModel, data];
             }),
@@ -236,7 +268,7 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$),
       )
       .subscribe(([tabModel, data]: [TabModel, Data]) => {
-        if (!tabModel.streamCreate)
+        if (!tabModel.streamCreate && !tabModel)
           this.streamDetailsStore.dispatch(
             new StreamDetailsActions.GetSymbols({streamId: tabModel.stream}),
           );
@@ -255,8 +287,10 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
         }
 
         this.appStore.dispatch(SetStreamId({streamId: tab.stream}));
-        if (!tabModel.streamCreate) {
-          this.appStore.dispatch(GetSchema());
+        if (!tabModel.streamCreate && !tabModel.topicCreate) {
+          this.appStore.dispatch(GetSchema({ topic: tabModel.schemaView }));
+        } else if (this.topicService.dataForCopyToStream?.copyToExistingStream) {
+          this.appStore.dispatch(GetSchema({ topic: tabModel.schemaView, streamKey: this.topicStreamKey }));     
         }
       });
 
@@ -269,9 +303,17 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
     this.appStore.dispatch(new StreamDetailsActions.RemoveErrorMessage());
   }
 
-  public onCreateStream() {
-    this.newItemModalRef.hide();
-    this.appStore.dispatch(CreateStream({key: this.streamName}));
+  public onCreateStream(newTopic = false) {
+    this.newItemModalRef?.hide();
+    const streamKey = this.insideModal ? this.stream : this.streamName;
+    this.appStore.dispatch(CreateStream({
+      key: streamKey, 
+      topic: newTopic, 
+      version: newTopic ? this.topicService.dataForCopyToStream?.storageVersion : this.streamsService.streamCreationData.storageVersion,
+      distributionFactor: newTopic ? this.topicService.dataForCopyToStream?.distributionFactor : this.streamsService.streamCreationData.distributionFactor,
+      copyToStream: this.topicStreamKey, 
+      noNotification: this.insideModal }));
+    this.topicService.dataForCopyToStream = null;
   }
 
   ngOnDestroy(): void {
@@ -281,29 +323,44 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
     this.streamsStore.dispatch(new StreamDetailsActions.StopSubscriptions());
     this.onCloseTabAlertService.resetNeedShowAlert();
     this.schemaEditorService.clearEditedItems();
+    this.schemaValidityService.clearAllErrors(this.insideModal);
   }
 
   public onAskToCreateStream() {
-    this.newItemModalRef = this.modalService.show(this.modalTemplate, {
-      class: 'modal-small',
-      ignoreBackdropClick: true,
-    });
+    this.getStandaloneEnums()
+      .pipe(take(1))
+      .subscribe(() => {
+        this.newItemModalRef = this.modalService.show(this.modalTemplate, {
+          class: 'modal-small',
+          ignoreBackdropClick: true,
+        });
+      });
   }
 
   public onAskChanges() {
-    this.appStore.dispatch(GetSchemaDiff());
+    if (this.newStream) {
+      this.appStore.dispatch(GetSchemaDiff());
+    }
+    this.showChanges = true;
   }
 
   public onBackToEditor() {
-    this.appStore.dispatch(RemoveSchemaDiff());
+    if (this.newStream) {
+      this.appStore.dispatch(RemoveSchemaDiff());
+    }
+    this.showChanges = false;
   }
 
   public onAskSaveChanges() {
     this.saveChangesDisabledButtons = false;
-    this.saveChangesModalRef = this.modalService.show(this.saveSchemaChangesModalTemplate, {
-      class: 'modal-small',
-      ignoreBackdropClick: true,
-    });
+    this.getStandaloneEnums()
+      .pipe(take(1))
+      .subscribe(() => {
+        this.saveChangesModalRef = this.modalService.show(this.saveSchemaChangesModalTemplate, {
+          class: 'modal-small',
+          ignoreBackdropClick: true,
+        });
+      });
   }
 
   public onSaveChanges(background = false) {
@@ -353,5 +410,35 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
   public addNewItemToFieldsList([target, isStatic]) {
     this.lastFocusedElement = target;
     this.fieldControlPanel.onAskToAdd(isStatic);
+  }
+
+  setClassEnumList(itemList: ClassEnumListItem[]) {
+    this.classEnumList = itemList;
+  }
+
+  setFieldList(itemList: string[]) {
+    this.fieldList = itemList;
+  }
+
+  private getStandaloneEnums() {
+    return this.appStore.pipe(select(getEditSchemaState))
+      .pipe(
+        take(1), takeUntil(this.destroy$),
+        switchMap(({ classes, enums }) => {
+          const standaloneEnums = new Set(enums.map(e => e.name));
+          classes.forEach(classItem => {
+            classItem.fields.forEach(field => {
+            if (standaloneEnums.has(field.type.name)) {
+              standaloneEnums.delete(field.type.name);
+            }
+            if (standaloneEnums.has(field.type.elementType?.name)) {
+              standaloneEnums.delete(field.type.elementType?.name);
+            }
+          })
+        });
+        this.standaloneEnums = Array.from(standaloneEnums);
+        return of(null);
+      })
+    )
   }
 }

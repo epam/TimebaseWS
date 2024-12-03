@@ -1,0 +1,98 @@
+<div class="page-block">
+  <div class="toggle-button-container">
+    <label for="toggle-button" class="toggle-button-label" [class.active]="!ddlIsUsing">QQL</label>
+    <input type="checkbox" [checked]="ddlIsUsing" id="toggle-button" class="toggle-button" (click)="toggleDDL()">
+    <label for="toggle-button" class="toggle-button-label" [class.active]="ddlIsUsing">DDL</label>
+  </div>
+  <form *ngIf="ddlIsUsing">
+    <label>Describe desired stream content</label>
+    <textarea [formControl]="inputDDL"></textarea>
+    <button (click)="generate()" [disabled]="isLoading || !inputDDL.value"
+      class="btn btn-primary">
+      <span>{{ isLoading ? 'Generating...' : 'Generate DDL' }} </span>
+    </button>
+    <div class="output-and-error">
+      <div class="error-or-warning"
+        [class.visible]="(responceCame && ddlErrorMessage) || resultDDLNotValid">
+        <div *ngIf="responceCame && ddlErrorMessage" class="error-message">
+          Error: {{ ddlErrorMessage }}
+        </div>
+        <div class="warning-message" *ngIf="resultDDLNotValid && !ddlErrorMessage">
+          {{ warningMessage }}
+        </div>
+      </div>
+      <textarea readonly [value]="resultDDL" class="output"></textarea>
+    </div>
+    <div class="preloader" [ngStyle]="{'visibility': isLoading ? 'visible' : 'hidden' }">
+      <div class="lds-dual-ring" [class.loader-visible]="isLoading"></div>
+    </div>
+    <button (click)="openQueryEditor(true)" class="btn btn-primary"
+      [disabled]="!resultDDL || (responceCame && ddlErrorMessage)">
+      <ng-container *ngTemplateOutlet="shareIcon"></ng-container>
+      <span class="open-query-editor-button-text">Open query editor</span>
+    </button>
+  </form>
+
+  <form *ngIf="!ddlIsUsing" [formGroup]="form">
+    <div class="stream-input-container">
+      <label class="select-stream-label">Select stream(s)</label>
+      <ng-multiselect-dropdown
+        [data]="streamNameList"
+        [settings]="{ allowSearchFilter: true, enableCheckAll: false }"
+        appMultiselectNormalize
+        class="flat-multiselect"
+        [placeholder]="'Stream Name(s)'"
+        formControlName="selectedStreams">
+      </ng-multiselect-dropdown>
+    </div>
+    <label class="qql-query-label">Describe desired query or goal</label>
+    <textarea [formControl]="inputQQL" class="qql-input"></textarea>
+    <button (click)="generate()" [disabled]="isLoading || !inputQQL.value || !selectedStreamList.value.length"
+      class="btn btn-primary">
+      <span>{{ isLoading ? 'Generating...' : 'Generate QQL' }} </span>
+    </button>
+    <div class="output-and-error">
+      <div class="error-or-warning"
+        [class.visible]="(responceCame && qqlErrorMessage) || resultQQLNotValid">
+        <div *ngIf="responceCame && qqlErrorMessage" class="error-message">
+          Error: {{ qqlErrorMessage }}
+        </div>
+        <div class="warning-message" *ngIf="resultQQLNotValid && !qqlErrorMessage">
+          {{ warningMessage }}
+        </div>
+      </div>
+      <textarea readonly [value]="resultQQL" class="output"></textarea>
+    </div>
+    <div class="preloader" [ngStyle]="{'visibility': isLoading ? 'visible' : 'hidden' }">
+      <div class="lds-dual-ring" [class.loader-visible]="isLoading"></div>
+    </div>
+    <button (click)="openQueryEditor()" class="btn btn-primary"
+      [disabled]="!resultQQL || (responceCame && qqlErrorMessage)">
+      <ng-container *ngTemplateOutlet="shareIcon"></ng-container>
+      <span class="open-query-editor-button-text">Open query editor</span>
+    </button>
+  </form>
+</div>
+
+<ng-template #shareIcon>
+  <svg height="20" id="svg2" version="1.1" width="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+    xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" 
+    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" 
+    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:svg="http://www.w3.org/2000/svg"><defs 
+    id="defs4"/>
+    <g id="layer1" transform="translate(0,-1036.3622)">
+      <path d="m -22.410713,-3.3303571 a 2.3660715,2.3660715 0 1 1 -4.732143,0 2.3660715,2.3660715 0 1 1 4.732143,0 z" 
+        id="path2985" style="fill:#ffffff;fill-opacity:1;stroke:none" 
+        transform="matrix(0.84528301,0,0,0.84528301,33.943395,1042.1773)"/>
+      <path d="m -22.410713,-3.3303571 a 2.3660715,2.3660715 0 1 1 -4.732143,0 2.3660715,2.3660715 0 1 1 4.732143,0 z" 
+        id="path2985-1" style="fill:#ffffff;fill-opacity:1;stroke:none" 
+        transform="matrix(0.84528301,0,0,0.84528301,33.943395,1052.1773)"/>
+      <path d="m -22.410713,-3.3303571 a 2.3660715,2.3660715 0 1 1 -4.732143,0 2.3660715,2.3660715 0 1 1 4.732143,0 z" 
+        id="path2985-1-7" style="fill:#ffffff;fill-opacity:1;stroke:none" 
+        transform="matrix(0.84528301,0,0,0.84528301,23.943395,1047.1773)"/>
+      <path d="M 13,3 3,8 13,13" id="path3791" 
+        style="fill:none;stroke:#ffffff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" 
+        transform="translate(0,1036.3622)"/>
+    </g>
+  </svg>
+</ng-template>

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,10 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.view.md;
+package com.epam.deltix.tbwg.webapp.services.view.md;
 
 import com.epam.deltix.tbwg.messages.ViewState;
-import com.epam.deltix.tbwg.messages.ViewType;
 import com.epam.deltix.tbwg.webapp.services.view.ViewService;
 
 import java.time.Instant;
@@ -30,7 +29,6 @@ abstract class ViewMdImpl implements MutableViewMd {
     private String id;
     private long timestamp = Long.MIN_VALUE;
     private String stream;
-    private ViewType type = ViewType.PERSISTENT;
     private boolean live;
     private ViewState state = ViewState.CREATED;
     private String description;
@@ -65,16 +63,6 @@ abstract class ViewMdImpl implements MutableViewMd {
     @Override
     public void setStream(String stream) {
         this.stream = stream;
-    }
-
-    @Override
-    public ViewType getType() {
-        return type;
-    }
-
-    @Override
-    public void setType(ViewType type) {
-        this.type = type;
     }
 
     @Override
@@ -162,7 +150,6 @@ abstract class ViewMdImpl implements MutableViewMd {
             Objects.equals(id, viewInfo.id) &&
             Objects.equals(timestamp, viewInfo.timestamp) &&
             Objects.equals(stream, viewInfo.stream) &&
-            type == viewInfo.type &&
             state == viewInfo.state &&
             Objects.equals(description, viewInfo.description) &&
             Objects.equals(info, viewInfo.info);
@@ -170,6 +157,6 @@ abstract class ViewMdImpl implements MutableViewMd {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, timestamp, stream, type, state, description, info, lastTimestamp);
+        return Objects.hash(id, timestamp, stream, state, description, info, lastTimestamp);
     }
 }

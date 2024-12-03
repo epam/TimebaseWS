@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,9 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.authorization;
 
+import com.epam.deltix.util.text.IgnoreCaseComparator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
@@ -34,22 +34,19 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @ConditionalOnProperty(value = "security.authorization.source", havingValue = "FILE")
-public class FileAuthorizationProvider implements AuthoritiesProvider, UsersProvider, ApiKeyInfoProvider {
+public class FileAuthorizationProvider implements UsersProvider, ApiKeyInfoProvider {
     private static final Log LOGGER = LogFactory.getLog(FileAuthorizationProvider.class);
 
     private final File file;
     private final MangleService mangleService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final Map<String, TbwgUser> users = new HashMap<>();
+    private final TreeMap<String, TbwgUser> users = new TreeMap<>(IgnoreCaseComparator.INSTANCE);
     private final Map<String, TbwgApiKey> apiKeys = new HashMap<>();
 
     private static class UsersFileContent {
@@ -136,16 +133,6 @@ public class FileAuthorizationProvider implements AuthoritiesProvider, UsersProv
 
         return authorities.stream().map(SimpleGrantedAuthority::new)
             .collect(Collectors.toList());
-    }
-
-    @Override
-    public synchronized List<GrantedAuthority> getAuthorities(String username) {
-        TbwgUser user = users.get(username);
-        if (user != null) {
-            return new ArrayList<>(user.getAuthorities());
-        }
-
-        return new ArrayList<>();
     }
 
     @Override

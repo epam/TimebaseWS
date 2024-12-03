@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, Input, OnDestroy, OnInit, Output, EventEmitter } from '@angular/core';
 import { ActivatedRoute }                                                      from '@angular/router';
 import { HdDate }                                                              from '@assets/hd-date/hd-date';
 import { select, Store }                                                       from '@ngrx/store';
@@ -25,17 +25,10 @@ import { GlobalFiltersService }                                                f
 import { SchemaService }                                                       from '../../../../shared/services/schema.service';
 import { StreamsService }                                                      from '../../../../shared/services/streams.service';
 import { SymbolsService }                                                      from '../../../../shared/services/symbols.service';
-import {
-  dateToUTC,
-  hdDateTZ,
-}                                                                              from '../../../../shared/utils/timezone.utils';
+import { dateToUTC } from '../../../../shared/utils/timezone.utils';
 import { FilterModel }                                                         from '../../models/filter.model';
 import { StreamUpdatesService }                                                from '../../services/stream-updates.service';
-import { StreamDetailsEffects }                                                from '../../store/stream-details/stream-details.effects';
-import * as fromStreamDetails
-                                                                               from '../../store/stream-details/stream-details.reducer';
-import * as StreamsTabsActions
-                                                                               from '../../store/streams-tabs/streams-tabs.actions';
+import * as StreamsTabsActions from '../../store/streams-tabs/streams-tabs.actions';
 import {
   getActiveOrFirstTab,
   getActiveTab,
@@ -43,7 +36,10 @@ import {
 }                                                                              from '../../store/streams-tabs/streams-tabs.selectors';
 import { ModalExportFileComponent }                                            from '../modals/modal-export-file/modal-export-file.component';
 import { ModalFilterComponent }                                                from '../modals/modal-filter/modal-filter.component';
+import { TopicService } from '../../modules/schema-editor/services/topic.service';
 import { formatHDate } from 'src/app/shared/locale.timezone';
+import { GlobalFilters } from 'src/app/shared/models/global-filters';
+import * as NotificationsActions    from 'src/app/core/modules/notifications/store/notifications.actions';
 
 const now = new HdDate();
 
@@ -66,6 +62,7 @@ export const fromUtc = (date: any) => {
 })
 export class FiltersPanelComponent implements OnInit, OnDestroy {
   @Input() hideTimePicker = false;
+  @Output() streamDataError = new EventEmitter<void>();
   
   hasError = false;
   manuallyChanged$: Observable<boolean>;
@@ -73,6 +70,7 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
   filteredTypesSymbols$: Observable<boolean>;
   bsConfig$: Observable<Partial<BsDatepickerConfig>>;
   showExportBtn$: Observable<boolean>;
+  filterByEndDate: boolean;
   
   private destroy$ = new Subject();
   private now = new Date();
@@ -81,13 +79,13 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
   private initialDate$: Observable<string>;
   private schema: SchemaTypeModel[];
   private stream: string;
+  private globalFiltersValue: GlobalFilters;
+  private range: { end: string, start: string };
   
   constructor(
     private appStore: Store<AppState>,
     private activatedRoute: ActivatedRoute,
     private modalService: BsModalService,
-    private streamDetailsStore: Store<fromStreamDetails.FeatureState>,
-    private streamDetailsEffects: StreamDetailsEffects,
     private cdr: ChangeDetectorRef,
     private globalFiltersService: GlobalFiltersService,
     private streamsService: StreamsService,
@@ -95,13 +93,20 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
     private symbolsService: SymbolsService,
     private messageInfoService: RightPaneService,
     private schemaService: SchemaService,
+    private topicService: TopicService,
+    private hostElement: ElementRef
   ) {}
   
   ngOnInit() {
     this.activatedRoute.params
       .pipe(switchMap((tab) => {
-        this.stream = tab.stream;
-        return this.schemaService.getSchema(tab.stream, null, true);
+        if (tab.stream.endsWith('#topic#')) {
+          this.stream = tab.stream.slice(0, tab.stream.length - 7);
+          return this.topicService.getTopicSchema(this.stream);
+        } else {
+          this.stream = tab.stream;
+          return this.schemaService.getSchema(tab.stream, null, true);
+        }   
       }))
       .pipe(
         map((response) => [...response.types]),
@@ -114,21 +119,28 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
       .subscribe((schema) => (this.schema = schema));
     
     const range$ = this.activatedRoute.params.pipe(
-      switchMap((params) =>
-        params.symbol
-          ? this.symbolsService
-            .getProps(params.stream, params.symbol, 1000)
-            .pipe(map((p) => p?.props.symbolRange))
-          : this.streamsService.getProps(params.stream).pipe(map((p) => p?.props.range)),
+      switchMap((params) => 
+        params.stream.endsWith('#topic#') ? of(null) :
+          params.symbol
+            ? this.symbolsService
+              .getProps(params.stream, params.symbol, 1000)
+              .pipe(map((p) => p?.props.symbolRange))
+            : this.streamsService.getProps(params.stream, false).pipe(map((p) => p?.props.range)),
       ),
       shareReplay(1),
       catchError(e => {
+        this.streamDataError.emit();
+        this.showErrorNotification(e.statusText);
         this.hasError = true;
         this.cdr.detectChanges();
         return of(null);
       }),
       filter(r => !!r),
     );
+
+    this.globalFiltersService.getFilters()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(filters => this.globalFiltersValue = filters);
     
     this.initialDate$ = this.activatedRoute.params.pipe(
       switchMap(() =>
@@ -141,17 +153,19 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
         ]),
       ),
       map(([tab, range]) => {
+        this.range = range;
         if (tab.live) {
           return new Date(new Date(range.end).getTime() + 1).toISOString();
         }
-        return tab.reverse || tab.monitor ? range?.end : range?.start;
+        this.filterByEndDate = tab.reverse || tab.monitor;
+        return this.filterByEndDate ? range?.end : range?.start;
       }),
       map((date) => date || this.now.toISOString()),
     );
     
     const filtersAndInitial$ = combineLatest([
       this.appStore.pipe(
-        select(getActiveTabFilters),
+        select(getActiveTab),
         filter((f) => !!f),
       ),
       this.initialDate$,
@@ -159,7 +173,7 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
     
     this.dateTitle$ = merge(
       filtersAndInitial$.pipe(
-        switchMap(([filters, initial]) => this.utcToDatePicker(filters.from || initial)),
+        switchMap(([tab, initial]) => this.utcToDatePicker(tab?.filter.from || initial)),
       ),
       this.tmpDate$.pipe(map((date) => date.toISOString())),
     );
@@ -187,13 +201,15 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
         ),
         takeUntil(this.destroy$),
       )
-      .subscribe(([filter, initial]) => {
-        if (!filter?.from) {
-          this.updateFilters({from: initial});
+      .subscribe(([tab, initial]) => {
+        const valueOutOfRange = new Date(this.range.end) < new Date(tab.filter?.from) || 
+          new Date(this.range.start) > new Date(tab.filter?.from);
+        if (!tab.filter?.from || valueOutOfRange) {
+          this.updateFilters({ from: initial });
         }
       });
     
-    this.bsConfig$ = this.globalFiltersService.getBsConfig();
+    this.bsConfig$ = this.globalFiltersService.getBsConfig(true);
     const activeTab$ = this.appStore.pipe(select(getActiveOrFirstTab));
     
     this.showExportBtn$ = activeTab$.pipe(
@@ -235,6 +251,7 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
       .getFilters()
       .pipe(take(1))
       .subscribe((filters) => {
+        this.setTimeFilterValue();
         this.updateFilters({
           from: dateToUTC(new Date(this.selectedDate), filters.timezone[0].name).toISOString(),
           manuallyChanged: true,
@@ -249,6 +266,8 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
   onClearFilter() {
     this.messageInfoService.clearSelectedMessage();
     this.initialDate$.pipe(take(1)).subscribe((initialDate) => {
+      this.tmpDate$.next(new Date(initialDate));
+      this.setTimeFilterValue();
       this.updateFilters({from: initialDate, manuallyChanged: false});
     });
   }
@@ -284,7 +303,7 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
       .pipe(take(1))
       .subscribe((tab) => {
         const initialState = {
-          title: 'Symbols & Message Types Filter',
+          title: 'Symbol & Message Type Filter',
           types: this.schema,
           isStream: !tab.symbol,
           closeBtnName: 'Close',
@@ -334,10 +353,31 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
         });
       });
   }
+
+  private showErrorNotification(statusText: string) {
+    this.appStore.dispatch(
+      new NotificationsActions.AddNotification({
+        message: statusText,
+        dismissible: true,
+        closeInterval: 10000,
+        type: 'danger',
+      }),
+    );
+  }
   
   ngOnDestroy(): void {
     this.destroy$.next(true);
     this.destroy$.complete();
+  }
+
+  private setTimeFilterValue() {
+    this.hostElement.nativeElement.querySelector('input').value = formatHDate(
+      this.selectedDate,
+      this.globalFiltersValue.dateFormat,
+      this.globalFiltersValue.timeFormat,
+      this.globalFiltersValue.timezone,
+      false,
+    );
   }
   
   private updateFilterSymbols(filterSymbols: string[]) {

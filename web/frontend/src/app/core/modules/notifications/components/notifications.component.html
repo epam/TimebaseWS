@@ -11,8 +11,8 @@
   <alert
       (onClosed)="onClosed(warn, i)"
       *ngFor="let warn of (notificationsState | async).warns; let i = index"
-      [dismissOnTimeout]="warn.closeInterval"
-      [dismissible]="warn.dismissible"
+      [dismissible]="true"
+      [dismissOnTimeout]="10000"
       type="warning">
     <span [innerHtml]="warn.message"></span>
   </alert>
@@ -26,8 +26,8 @@
     <alert
         #currentAlert
         (onClosed)="onClosed(notification, i)"
-        [dismissOnTimeout]="notification.closeInterval"
-        [dismissible]="notification.dismissible"
+        [dismissible]="true"
+        [dismissOnTimeout]="notification.type === 'success' ? notification.closeInterval : 10000"
         [type]="notification.type">
       <span *ngIf="!notification.requestDialogParams">
         <span *ngIf="notification.type !== 'danger'" [innerHtml]="notification.message" ></span>

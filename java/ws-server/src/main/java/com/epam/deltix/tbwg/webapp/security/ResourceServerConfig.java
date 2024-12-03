@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,13 +14,14 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.security;
+package com.epam.deltix.tbwg.webapp.security;
 
 import com.epam.deltix.spring.apikeys.ApiKeysFilterProvider;
 import com.epam.deltix.tbwg.webapp.security.jwt.AudienceValidator;
 import com.epam.deltix.tbwg.webapp.security.jwt.JwtAuthenticationConverterImpl;
 import com.epam.deltix.tbwg.webapp.settings.SecurityOauth2ProviderSettings;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.OAuth2ResourceServerProperties;
 import org.springframework.context.annotation.Bean;
@@ -46,17 +47,20 @@ public class ResourceServerConfig {
     private final SecurityOauth2ProviderSettings providerConfig;
     private final JwtAuthenticationConverterImpl jwtAuthenticationConverter;
     private final ApiKeysFilterProvider apiKeysFilterProvider;
+    private final String contentSecurityPolicy;
 
     @Autowired
     public ResourceServerConfig(OAuth2ResourceServerProperties config,
                                 SecurityOauth2ProviderSettings providerConfig,
                                 JwtAuthenticationConverterImpl jwtAuthenticationConverter,
-                                ApiKeysFilterProvider apiKeysFilterProvider)
+                                ApiKeysFilterProvider apiKeysFilterProvider,
+                                @Value("${security.oauth2.contentSecurityPolicy:}") String contentSecurityPolicy)
     {
         this.jwtConfig = config.getJwt();
         this.providerConfig = providerConfig;
         this.jwtAuthenticationConverter = jwtAuthenticationConverter;
         this.apiKeysFilterProvider = apiKeysFilterProvider;
+        this.contentSecurityPolicy = contentSecurityPolicy;
 
         if (jwtConfig == null) {
             throw new RuntimeException("Jwt config is missing. Please specify spring.security.oauth2.resourceserver.jwt config.");
@@ -81,6 +85,9 @@ public class ResourceServerConfig {
                     .jwt().jwtAuthenticationConverter(jwtAuthenticationConverter);
 
         http.headers().frameOptions().sameOrigin();
+        if (isContentSecurityPolicyConfigured()) {
+            http.headers().contentSecurityPolicy(contentSecurityPolicy);
+        }
         http.addFilterAfter(apiKeysFilterProvider.getInstance(), BasicAuthenticationFilter.class);
         return http.build();
     }
@@ -120,4 +127,7 @@ public class ResourceServerConfig {
         return web -> web.httpFirewall(allowUrlEncodedSlashHttpFirewall());
     }
 
+    public boolean isContentSecurityPolicyConfigured() {
+        return contentSecurityPolicy != null && !contentSecurityPolicy.isEmpty();
+    }
 }

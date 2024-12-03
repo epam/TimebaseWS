@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,9 +14,16 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.controllers;
 
+import com.epam.deltix.qsrv.hf.pub.md.json.DataTypeDef;
+import com.epam.deltix.qsrv.hf.pub.md.json.SchemaDef;
+import com.epam.deltix.qsrv.hf.tickdb.client.Version;
+import com.epam.deltix.qsrv.hf.tickdb.comm.client.TickDBClient;
+import com.epam.deltix.qsrv.hf.tickdb.lang.pub.CompilerUtil;
+import com.epam.deltix.qsrv.hf.tickdb.lang.pub.Statement;
+import com.epam.deltix.qsrv.hf.tickdb.pub.lock.LockType;
+import com.epam.deltix.qsrv.hf.tickdb.ui.tbshell.TickDBShell;
 import com.epam.deltix.tbwg.webapp.model.smd.CurrencyDef;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.timebase.messages.InstrumentKey;
@@ -32,13 +39,10 @@ import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.gflog.api.LogLevel;
 import com.epam.deltix.qsrv.hf.pub.*;
 import com.epam.deltix.qsrv.hf.pub.md.*;
-import com.epam.deltix.qsrv.hf.tickdb.client.Version;
-import com.epam.deltix.qsrv.hf.tickdb.comm.client.TickDBClient;
 import com.epam.deltix.qsrv.hf.tickdb.lang.pub.Token;
 import com.epam.deltix.qsrv.hf.tickdb.pub.*;
 import com.epam.deltix.qsrv.hf.tickdb.pub.lock.DBLock;
 import com.epam.deltix.qsrv.hf.tickdb.pub.query.InstrumentMessageSource;
-import com.epam.deltix.qsrv.hf.tickdb.ui.tbshell.TickDBShell;
 import com.epam.deltix.qsrv.util.json.JSONRawMessageParser;
 import com.epam.deltix.tbwg.webapp.Application;
 import com.epam.deltix.tbwg.webapp.model.*;
@@ -60,10 +64,8 @@ import com.epam.deltix.tbwg.webapp.services.timebase.base.SchemaManipulationServ
 import com.epam.deltix.tbwg.webapp.services.timebase.base.SelectService;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.*;
 import com.epam.deltix.tbwg.webapp.services.timebase.export.*;
-import com.epam.deltix.tbwg.webapp.utils.MessageSource2ResponseStream;
-import com.epam.deltix.tbwg.webapp.utils.ObjectMappingUtils;
-import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
-import com.epam.deltix.tbwg.webapp.utils.TextUtils;
+import com.epam.deltix.tbwg.webapp.services.view.ViewService;
+import com.epam.deltix.tbwg.webapp.utils.*;
 import com.epam.deltix.tbwg.webapp.utils.qql.SelectBuilder;
 import com.epam.deltix.util.lang.StringUtils;
 import com.epam.deltix.util.parsers.CompilationException;
@@ -75,12 +77,18 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import javax.validation.Valid;
 import java.io.*;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.security.Principal;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -121,6 +129,7 @@ public class TimebaseController {
     private final InstrumentsService instrumentsService;
     private final ExportService exportService;
     private final OptionsService optionsService;
+    private final ViewService viewService;
     private final OrderBookDebugger orderBookDebugger;
 
     private final AtomicLong idGenerator = new AtomicLong(System.currentTimeMillis());
@@ -128,13 +137,14 @@ public class TimebaseController {
     @Autowired
     public TimebaseController(TimebaseService service, SelectService selectService, ExportService exportService,
                               SchemaManipulationService schemaManipulationService, OptionsService optionsService,
-                              InstrumentsService instrumentsService, OrderBookDebugger orderBookDebugger) {
+                              InstrumentsService instrumentsService, ViewService viewService, OrderBookDebugger orderBookDebugger) {
         this.service = service;
         this.schemaManipulationService = schemaManipulationService;
         this.selectService = selectService;
         this.instrumentsService = instrumentsService;
         this.exportService = exportService;
         this.optionsService = optionsService;
+        this.viewService = viewService;
         this.orderBookDebugger = orderBookDebugger;
     }
 
@@ -171,6 +181,7 @@ public class TimebaseController {
             select = new SelectRequest();
         }
         return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(selectService.select(select, MAX_NUMBER_OF_RECORDS_PER_REST_RESULTSET));
     }
 
@@ -615,6 +626,8 @@ public class TimebaseController {
         if (stream == null)
             throw new UnknownStreamException(streamId);
 
+        TBWGUtils.validateStreamKey(newStreamId);
+
         stream.rename(newStreamId);
         stream.setName(newStreamId);
 
@@ -711,6 +724,32 @@ public class TimebaseController {
     }
 
     /**
+     * <p>Delete specified symbols in the stream.</p>
+     *
+     * @param streamId stream key
+     * @param symbols  Specified list instruments(symbols) to be deleted.
+     */
+    @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
+    @RequestMapping(value = "/{streamId}/deleteSymbols", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> deleteSymbols(@PathVariable String streamId, @RequestBody String[] symbols)
+            throws UnknownStreamException {
+
+        ResponseEntity<StreamingResponseBody> entity = checkWritable("Delete stream [" + streamId + "] symbols " + Arrays.toString(symbols) + " failed");
+        if (entity != null)
+            return entity;
+
+        DXTickStream stream = service.getStream(streamId);
+        if (stream == null)
+            throw new UnknownStreamException(streamId);
+
+        IdentityKey[] ids = match(stream, symbols);
+        if (ids != null && ids.length > 0)
+            stream.clear(ids);
+
+        return ResponseEntity.ok().build();
+    }
+
+    /**
      * <p>Change periodicity of a stream.</p>
      *
      * @param streamId stream key
@@ -784,6 +823,7 @@ public class TimebaseController {
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/write", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StreamingResponseBody> write(@PathVariable String streamId,
+                                                       @RequestParam(required = false) String space,
                                                        @RequestParam(required = false, defaultValue = "APPEND") LoadingOptions.WriteMode writeMode,
                                                        @RequestBody String messages) throws UnknownStreamException {
 
@@ -801,8 +841,9 @@ public class TimebaseController {
 
         int count = 0;
         ErrorWriter listener = new ErrorWriter();
-        LoadingOptions options = new LoadingOptions(true);
-        options.writeMode = writeMode;
+        LoadingOptions options = new LoadingOptions(true, writeMode);
+        options.withSpace(space);
+
         try (TickLoader loader = stream.createLoader(options)) {
 
             loader.addEventListener(listener);
@@ -810,7 +851,12 @@ public class TimebaseController {
                 JsonElement msg = array.get(i);
 
                 try {
-                    RawMessage raw = parser.parse((JsonObject) msg);
+                    JsonObject msgAsJsonObject = msg.getAsJsonObject();
+                    JsonElement timestamp = msgAsJsonObject.get("timestamp");
+                    if (timestamp != null && timestamp.isJsonNull()) {
+                        msgAsJsonObject.remove("timestamp");
+                    }
+                    RawMessage raw = parser.parse(msgAsJsonObject);
                     loader.send(raw);
                     count++;
                 } catch (Exception e) {
@@ -822,7 +868,7 @@ public class TimebaseController {
         }
 
         return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON_UTF8)
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(listener);
     }
 
@@ -849,10 +895,10 @@ public class TimebaseController {
         JSONRawMessageParser parser = new JSONRawMessageParser(stream.getTypes(), "$type");
         RawMessage raw = parser.parse((JsonObject) new JsonParser().parse(message));
 
-        long timestampMs = timestamp.toEpochMilli();
+        long timestampNano = timestamp.getEpochSecond() * 1_000_000_000L + timestamp.getNano();
         IdentityKey[] ids = match(stream, symbols);
 
-        List<RawMessage> messages = readAll(stream, timestampMs, ids, reverse);
+        List<RawMessage> messages = readAll(stream, timestampNano, ids, reverse);
 
         int position = findEditPosition(messages, types, offset);
         if (position >= messages.size() || position < 0) {
@@ -862,19 +908,19 @@ public class TimebaseController {
 
         DBLock lock = null;
         if (stream.getKey().equals(TimebaseService.SECURITIES_STREAM)) {
-            lock = stream.tryLock(3_000);
+            lock = stream.tryLock(LockType.WRITE, 5_000);
         }
+
         try {
             if (reverse) {
                 Collections.reverse(messages);
             }
-            if (ids == null)
-                ids = new IdentityKey[0];
-
-            stream.delete(TimeStamp.fromMilliseconds(timestampMs), TimeStamp.fromMilliseconds(timestampMs), ids);
+            if (ids == null) ids = new IdentityKey[0];
+            TimeStamp timeStamp = TimeStamp.fromNanoseconds(timestampNano);
+            stream.delete(timeStamp, timeStamp, ids);
             ErrorWriter listener = insertMessages(stream, messages);
             return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON_UTF8)
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(listener);
         } finally {
             if (lock != null) {
@@ -883,8 +929,9 @@ public class TimebaseController {
         }
     }
 
-    private List<RawMessage> readAll(DXTickStream stream, long timestampMs, IdentityKey[] ids, boolean reverse) {
+    private List<RawMessage> readAll(DXTickStream stream, long timestampNano, IdentityKey[] ids, boolean reverse) {
         List<RawMessage> messages = new ArrayList<>();
+        long timestampMs = timestampNano / 1000000;
         SelectionOptions selectionOptions = new SelectionOptions();
         selectionOptions.raw = true;
         selectionOptions.live = false;
@@ -895,8 +942,9 @@ public class TimebaseController {
                 if (currentMessage.getTimeStampMs() != timestampMs) {
                     break;
                 }
-
-                messages.add((RawMessage) currentMessage.clone());
+                if (currentMessage.getNanoTime() == timestampNano) {
+                    messages.add((RawMessage) currentMessage.clone());
+                }
             }
         }
 
@@ -927,8 +975,7 @@ public class TimebaseController {
     private ErrorWriter insertMessages(DXTickStream stream, List<RawMessage> messages) {
         int count = 0;
         ErrorWriter listener = new ErrorWriter();
-        LoadingOptions options = new LoadingOptions(true);
-        options.writeMode = LoadingOptions.WriteMode.INSERT;
+        LoadingOptions options = new LoadingOptions(true, LoadingOptions.WriteMode.INSERT);
         try (TickLoader loader = stream.createLoader(options)) {
             loader.addEventListener(listener);
             for (int i = 0; i < messages.size(); i++) {
@@ -999,7 +1046,7 @@ public class TimebaseController {
 
         LOGGER.log(LogLevel.INFO, "SELECT * FROM " + streamId + " WHERE MESSAGE_INDEX IN [" + startIndex + ", " + endIndex + "] " +
                 "AND TYPES = [" + Arrays.toString(select.types) + "] AND ENTITIES = [" + Arrays.toString(ids) + "] " +
-                (options.spaces != null ? "AND SPACES = " + Arrays.toString(options.spaces) : "") +
+                (options.spaces != null ? "AND SPACES = [" + Arrays.toString(options.spaces) + "]" : "") +
                 "AND timestamp [" + GMT.formatDateTimeMillis(startTime) + ":" + GMT.formatDateTimeMillis(select.getEndTime()) + "]");
 
 
@@ -1072,31 +1119,6 @@ public class TimebaseController {
         return options;
     }
 
-    private final DataType[] ALL_TYPES = new DataType[]{
-            new BooleanDataType(true),
-            new CharDataType(true),
-            new VarcharDataType(VarcharDataType.ENCODING_INLINE_VARSIZE, true, true),
-            new VarcharDataType(VarcharDataType.ENCODING_ALPHANUMERIC + "(10)", true, true),
-            BinaryDataType.getDefaultInstance(),
-            new TimeOfDayDataType(true),
-            new DateTimeDataType(true),
-
-            new FloatDataType(FloatDataType.ENCODING_FIXED_FLOAT, true),
-            new FloatDataType(FloatDataType.ENCODING_FIXED_DOUBLE, true),
-            new FloatDataType(FloatDataType.ENCODING_SCALE_AUTO, true),
-            new FloatDataType(FloatDataType.ENCODING_DECIMAL64, true),
-
-            new IntegerDataType(IntegerDataType.ENCODING_INT8, true),
-            new IntegerDataType(IntegerDataType.ENCODING_INT16, true),
-            new IntegerDataType(IntegerDataType.ENCODING_INT32, true),
-            new IntegerDataType(IntegerDataType.ENCODING_INT48, true),
-            new IntegerDataType(IntegerDataType.ENCODING_INT64, true),
-
-            new EnumDataType(true, new EnumClassDescriptor("ENUM", "ENUM", "")),
-            new ClassDataType(true),
-            new ArrayDataType(true, null),
-    };
-
     /*
      * List all types
      * @return all types array
@@ -1111,7 +1133,6 @@ public class TimebaseController {
      * Create stream with provided key, schema and distribution factor.
      *
      * @param key                stream key
-     * @param distributionFactor stream distribution factor
      * @param schema             stream schema
      * @return new stream schema
      * @throws WriteOperationsException if timebase is readonly
@@ -1119,9 +1140,21 @@ public class TimebaseController {
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @RequestMapping(value = "/createStream", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<SchemaDef> createStream(@RequestParam String key,
-                                                  @RequestParam(required = false, defaultValue = "0") int distributionFactor,
                                                   @RequestBody SchemaDef schema) throws WriteOperationsException {
-        return ResponseEntity.ok(schemaManipulationService.createStream(key, schema, distributionFactor));
+        TBWGUtils.validateStreamKey(key);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(schemaManipulationService.createStream(key, schema));
+    }
+
+    @ResponseBody
+    @GetMapping(value = "/validate/stream/key", produces = "application/json")
+    public boolean  validateStreamKey(@RequestParam String key) {
+        try {
+            return TBWGUtils.validateStreamKey(key);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     /**
@@ -1137,7 +1170,9 @@ public class TimebaseController {
     public ResponseEntity<StreamMetaDataChangeDef> getSchemaChanges(@PathVariable String streamId,
                                                                     @RequestBody SchemaChangesRequest schemaChangesRequest)
             throws UnknownStreamException {
-        return ResponseEntity.ok(schemaManipulationService.schemaChanges(streamId, schemaChangesRequest));
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(schemaManipulationService.schemaChanges(streamId, schemaChangesRequest));
     }
 
     /**
@@ -1154,7 +1189,9 @@ public class TimebaseController {
     @RequestMapping(value = "/{streamId}/changeSchema", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<SchemaDef> changeSchema(@PathVariable String streamId, @RequestBody ChangeSchemaRequest changeSchemaRequest)
             throws InvalidSchemaChangeException, UnknownStreamException, WriteOperationsException {
-        return ResponseEntity.ok(schemaManipulationService.changeSchema(streamId, changeSchemaRequest));
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(schemaManipulationService.changeSchema(streamId, changeSchemaRequest));
     }
 
 
@@ -1169,7 +1206,9 @@ public class TimebaseController {
     public ResponseEntity<SchemaDef> schema(@PathVariable String streamId,
                                             @RequestParam(required = false, defaultValue = "false") boolean tree)
             throws UnknownStreamException {
-        return ResponseEntity.ok().body(schemaManipulationService.schema(streamId, tree));
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(schemaManipulationService.schema(streamId, tree));
     }
 
     /**
@@ -1181,29 +1220,49 @@ public class TimebaseController {
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @GetMapping(value = "/schema", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<SchemaDef> getSchema(@RequestParam String key) {
-        return ResponseEntity.ok(schemaManipulationService.getSchema(key));
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(schemaManipulationService.getSchema(key));
     }
-
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/currencies", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<CurrencyDef[]> currencies() {
 
-        LOGGER.log(LogLevel.INFO, "GET CURRENCIES() ");
+//        LOGGER.log(LogLevel.INFO, "GET CURRENCIES() ");
+//
+//        DXTickStream stream = service.getCurrenciesStream();
+//
+//        ArrayList<CurrencyDef> currencies = new ArrayList<CurrencyDef>();
+//
+//        if (stream == null) {
+//            currencies.addAll(instrumentsService.getCurrencies());
+//        } else {
+//            try (TickCursor cursor = service.getConnection().select(
+//                    Long.MIN_VALUE, new SelectionOptions(),
+//                    new String[]{deltix.timebase.api.messages.currency.CurrencyMessage.CLASS_NAME},
+//                    stream)) {
+//                while (cursor.next()) {
+//                    CurrencyMessage currencyMessage =
+//                            (deltix.timebase.api.messages.currency.CurrencyMessage) cursor.getMessage();
+//                    currencies.add(new CurrencyDef(currencyMessage.getSign().toString(), currencyMessage.getCode()));
+//                }
+//            }
+//        }
 
-        ArrayList<CurrencyDef> currencies = new ArrayList<CurrencyDef>();
-
-        return ResponseEntity.ok(currencies.toArray(new CurrencyDef[currencies.size()]));
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new CurrencyDef[0]);
     }
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/instruments/{id}/info", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<InstrumentDef> instruments(@PathVariable String id, @RequestParam(required = false) String[] hiddenExchanges) {
-        return ResponseEntity.ok(
-            instrumentsService.getInstrument(
-                id, hiddenExchanges != null ? new HashSet<>(Arrays.asList(hiddenExchanges)) : new HashSet<>()
-            )
-        );
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(instrumentsService.getInstrument(
+                        id, hiddenExchanges != null ? new HashSet<>(Arrays.asList(hiddenExchanges)) : new HashSet<>()
+                ));
     }
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
@@ -1212,7 +1271,10 @@ public class TimebaseController {
 
         LOGGER.log(LogLevel.INFO, "GET App Settings");
 
-        return ResponseEntity.ok(new AppSettingDef());
+        AppSettingDef def = new AppSettingDef();
+        def.hasNanoseconds = VersionUtils.versionHasNsEncoding(service.getServerVersion());
+
+        return ResponseEntity.ok(def);
     }
 
     /**
@@ -1229,7 +1291,9 @@ public class TimebaseController {
         if (select == null || StringUtils.isEmpty(select.query))
             return ResponseEntity.badRequest().build();
 
-        return ResponseEntity.ok().body(schemaManipulationService.describe(select, tree));
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(schemaManipulationService.describe(select, tree));
     }
 
     /**
@@ -1252,13 +1316,13 @@ public class TimebaseController {
             CompileResult result;
 
             try {
-                ((TickDBClient) connection).compileQuery(select.query, tokens);
+                connection.compileQuery(select.query, tokens);
                 result = new CompileResult(tokens);
             } catch (CompilationException ex) {
                 result = new CompileResult(ex.getMessage(), ex.location, tokens);
             }
 
-            return ResponseEntity.ok().body(result);
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
         }
 
         return ResponseEntity.badRequest().build();
@@ -1266,36 +1330,66 @@ public class TimebaseController {
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/options", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StreamOptionsDef> streamOptions(@PathVariable String streamId) {
+    public ResponseEntity<StreamOptionsDef> streamOptions(@PathVariable String streamId) throws UnknownStreamException {
         DXTickStream stream = service.getStream(streamId);
 
         if (stream == null)
-            return ResponseEntity.badRequest().build();
+            throw new UnknownStreamException(streamId);
 
-        return ResponseEntity.ok().body(optionsService.streamOptions(stream));
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(optionsService.streamOptions(stream));
     }
 
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @PutMapping(value = "/{streamId}/options", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StreamOptionsDef> updateOptions(@PathVariable String streamId, @RequestBody StreamOptionsDef options) {
+    public ResponseEntity<StreamOptionsDef> updateOptions(@PathVariable String streamId, @RequestBody StreamOptionsDef options) throws UnknownStreamException {
         DXTickStream stream = service.getStream(streamId);
 
         if (stream == null)
-            return ResponseEntity.badRequest().build();
+            throw new UnknownStreamException(streamId);
 
-        return ResponseEntity.ok().body(optionsService.updateStreamOptions(stream, options));
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(optionsService.updateStreamOptions(stream, options));
     }
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/options/{symbolId}", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<SymbolOptions> symbolOptions(@PathVariable String streamId,
-                                                          @PathVariable String symbolId) {
+    public ResponseEntity<?> symbolOptions(@PathVariable String streamId,
+                                                          @PathVariable String symbolId) throws UnknownStreamException {
         DXTickStream stream = service.getStream(streamId);
 
-        if (stream == null || !optionsService.checkSymbol(stream, symbolId))
-            return ResponseEntity.badRequest().build();
+        if (stream == null) {
+            throw new UnknownStreamException(streamId);
+        }  else if (!optionsService.checkSymbol(stream, symbolId)) {
+            return ResponseEntity.badRequest().body("Symbol " + symbolId + " not found!");
+        }
 
-        return ResponseEntity.ok().body(optionsService.symbolOptions(stream, symbolId));
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(optionsService.symbolOptions(stream, symbolId));
+    }
+
+    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
+    @RequestMapping(value = "/{streamId}/options/backgroundTask", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<BackgroundTaskDef> getBackgroundTaskInfo(@PathVariable String streamId) throws UnknownStreamException {
+        DXTickStream stream = service.getStream(streamId);
+
+        if (stream == null)
+            throw new UnknownStreamException(streamId);
+
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(optionsService.getBackgroundTaskInfo(stream));
+    }
+
+    @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
+    @RequestMapping(value = "/{streamId}/abortBackgroundTask", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> abortBackgroundProcess(@PathVariable String streamId) throws UnknownStreamException {
+
+        ResponseEntity<StreamingResponseBody> entity = checkWritable("Abort background task for stream [" + streamId + "] Failed");
+        if (entity != null)
+            return entity;
+
+        DXTickStream stream = service.getStream(streamId);
+        if (stream == null)
+            throw new UnknownStreamException(streamId);
+
+        stream.abortBackgroundProcess();
+        return ResponseEntity.ok().build();
     }
 
 //    void toSimple(DataFieldInfo[] list, List<FieldDef> fields) {
@@ -1395,7 +1489,7 @@ public class TimebaseController {
         if (filter != null && !filter.isEmpty())
             symbols = symbols.filter(s -> s.toString().toLowerCase().contains(filter.toLowerCase()));
 
-        return new ResponseEntity<>(symbols.collect(Collectors.toList()), HttpStatus.OK);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(symbols.collect(Collectors.toList()));
     }
 
     /**
@@ -1411,7 +1505,8 @@ public class TimebaseController {
                                                @RequestParam(required = false) boolean spaces) {
         LOGGER.log(LogLevel.INFO, "GET streams() using filter = %s").with(filter);
 
-        DXTickStream[] streams = service.listStreams(filter, spaces);
+        DXTickStream[] streams = Arrays.stream(service.listStreams(filter, spaces))
+                .filter(stream -> !viewService.isViewStream(stream.getKey())).toArray(DXTickStream[]::new);
 
 //        List<DXTickStream> list = Arrays.stream(streams)
 //                //.filter((stream)->stream.getScope() == StreamScope.DURABLE) // Hide 'transient' streams
@@ -1429,19 +1524,18 @@ public class TimebaseController {
                 result[i].chartType = chartTypes;
         }
 
-        return ResponseEntity.ok().body(result);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
     }
 
     /**
-     * Returns data from specified QQL getQuery. See timebase QQL documentation for more information. For example:
-     * "SELECT * FROM level1Stream WHERE (this is not deltix.qsrv.hf.pub.BestBidOfferMessage) or (isNational=10)"
+     * Returns data from specified QQL getQuery. See timebase QQL documentation for more information. For example: "SELECT * FROM level1Stream WHERE (this is not deltix.qsrv.hf.pub.BestBidOfferMessage) or (isNational=10)"
      *
      * @param select selection options
      * @return streams list
      */
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/query", method = {RequestMethod.POST})
-    public ResponseEntity<StreamingResponseBody> query(@Valid @RequestBody(required = false) QueryRequest select)
+    public ResponseEntity<StreamingResponseBody> query(Principal principal, @Valid @RequestBody(required = false) QueryRequest select)
             throws InvalidQueryException, WriteOperationsException {
 
         if (select == null || StringUtils.isEmpty(select.query))
@@ -1449,6 +1543,10 @@ public class TimebaseController {
 
         if (service.isReadonly() && (select.query.toLowerCase().contains("drop") || select.query.toLowerCase().contains("create")))
             throw new WriteOperationsException("CREATE or DROP");
+
+        if (isDdlQuery(select.query) && !hasAuthority(principal, "TB_ALLOW_WRITE")) {
+            throw new AccessDeniedException("TB_ALLOW_WRITE permission required.");
+        }
 
         SelectionOptions options = getSelectionOption(select);
 
@@ -1464,85 +1562,95 @@ public class TimebaseController {
                         select.getEndTime(), startIndex, endIndex, MAX_NUMBER_OF_RECORDS_PER_REST_RESULTSET));
     }
 
-    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ')")
+    private boolean isDdlQuery(String query) {
+        try {
+            Object sx = CompilerUtil.parse(query);
+            return sx instanceof Statement;
+        } catch (Throwable t) {
+        }
+
+        return false;
+    }
+
+    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/query-info/functions", method = {RequestMethod.GET})
     public List<FunctionDef> queryFunctions() {
         SelectionOptions options = new SelectionOptions();
         options.raw = true;
         options.live = false;
 
-        InstrumentMessageSource cursor = service.getConnection().executeQuery(
-        "select\n" +
-            "stateful.id as 'name',\n" +
-            "stateful.returnType as 'returnType',\n" +
-            "stateful.arguments as 'arguments',\n" +
-            "stateful.initArguments as 'initArguments',\n" +
-            "(size([1]) == 1) as 'isStateful' \n" +
-            "ARRAY JOIN stateful_functions() as 'stateful'\n" +
-            "UNION\n" +
+        try (InstrumentMessageSource cursor = service.getConnection().executeQuery(
             "select\n" +
-            "stateless.id as 'name',\n" +
-            "stateless.returnType as 'returnType',\n" +
-            "stateless.arguments as 'arguments,'\n" +
-            "(size([1]) == 0) as 'isStateful' \n" +
-            "ARRAY JOIN stateless_functions() as 'stateless'",
-            options
-        );
-
-        RawMessageHelper rawMessageHelper = new RawMessageHelper();
-        List<FunctionDef> result = new ArrayList<>();
-        while (cursor.next()) {
-            InstrumentMessage message = cursor.getMessage();
-            if (message instanceof RawMessage) {
-                RawMessage rawMessage = (RawMessage) message;
-                result.add(ObjectMappingUtils.convertFunctionDef(
-                    rawMessageHelper.getValues(rawMessage)
-                ));
+                "stateful.id as 'name',\n" +
+                "stateful.returnType as 'returnType',\n" +
+                "stateful.arguments as 'arguments',\n" +
+                "stateful.initArguments as 'initArguments',\n" +
+                "(size([1]) == 1) as 'isStateful' \n" +
+                "ARRAY JOIN stateful_functions() as 'stateful'\n" +
+                "UNION\n" +
+                "select\n" +
+                "stateless.id as 'name',\n" +
+                "stateless.returnType as 'returnType',\n" +
+                "stateless.arguments as 'arguments',\n" +
+                "(size([1]) == 0) as 'isStateful' \n" +
+                "ARRAY JOIN stateless_functions() as 'stateless'",
+                options
+        )) {
+            RawMessageHelper rawMessageHelper = new RawMessageHelper();
+            List<FunctionDef> result = new ArrayList<>();
+            while (cursor.next()) {
+                InstrumentMessage message = cursor.getMessage();
+                if (message instanceof RawMessage) {
+                    RawMessage rawMessage = (RawMessage) message;
+                    result.add(ObjectMappingUtils.convertFunctionDef(
+                        rawMessageHelper.getValues(rawMessage)
+                    ));
+                }
             }
-        }
 
-        return result;
+            return result;
+        }
     }
 
-    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ')")
+    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/query-info/functions-short", method = {RequestMethod.GET})
     public Set<ShortFunctionDef> queryFunctionsShort() {
         SelectionOptions options = new SelectionOptions();
         options.raw = true;
         options.live = false;
 
-        InstrumentMessageSource cursor = service.getConnection().executeQuery(
+        try (InstrumentMessageSource cursor = service.getConnection().executeQuery(
         "select stateful.id as 'name', (size([1]) == 1) as 'isStateful' ARRAY JOIN stateful_functions() as 'stateful'\n" +
             "UNION \n" +
             "select stateless.id as 'name', (size([1]) == 0) as 'isStateful' ARRAY JOIN stateless_functions() as 'stateless'",
             options
-        );
+        )) {
+            RawMessageHelper rawMessageHelper = new RawMessageHelper();
+            Set<ShortFunctionDef> result = new LinkedHashSet<>();
+            while (cursor.next()) {
+                InstrumentMessage message = cursor.getMessage();
+                if (message instanceof RawMessage) {
+                    ShortFunctionDef functionDef = new ShortFunctionDef();
 
-        RawMessageHelper rawMessageHelper = new RawMessageHelper();
-        Set<ShortFunctionDef> result = new LinkedHashSet<>();
-        while (cursor.next()) {
-            InstrumentMessage message = cursor.getMessage();
-            if (message instanceof RawMessage) {
-                ShortFunctionDef functionDef = new ShortFunctionDef();
+                    RawMessage rawMessage = (RawMessage) message;
+                    Map<String, Object> values = rawMessageHelper.getValues(rawMessage);
 
-                RawMessage rawMessage = (RawMessage) message;
-                Map<String, Object> values = rawMessageHelper.getValues(rawMessage);
+                    Object nameObj = values.get("name");
+                    if (nameObj instanceof String) {
+                        functionDef.setName(nameObj.toString());
+                    }
 
-                Object nameObj = values.get("name");
-                if (nameObj instanceof String) {
-                    functionDef.setName(nameObj.toString());
+                    Object isStatefulObj = values.get("isStateful");
+                    if (isStatefulObj instanceof Boolean) {
+                        functionDef.setStateful((Boolean) isStatefulObj);
+                    }
+
+                    result.add(functionDef);
                 }
-
-                Object isStatefulObj = values.get("isStateful");
-                if (isStatefulObj instanceof Boolean) {
-                    functionDef.setStateful((Boolean) isStatefulObj);
-                }
-
-                result.add(functionDef);
             }
-        }
 
-        return result;
+            return result;
+        }
     }
 
     /**
@@ -1586,7 +1694,7 @@ public class TimebaseController {
         LOGGER.log(LogLevel.INFO, "QUERY (" + query + ") WHERE MESSAGE_INDEX in [" + startIndex + ", " + endIndex + "]");
 
         return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON_UTF8)
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(new MessageSource2ResponseStream(service.getConnection()
                         .executeQuery(query, options, null, null, startTime), endTime, startIndex, endIndex,
                         MAX_NUMBER_OF_RECORDS_PER_REST_RESULTSET));
@@ -1603,9 +1711,9 @@ public class TimebaseController {
      * @param reverse Result direction of messages according to timestamp
      * @return Order book snapshot.
      */
-    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ')")
+    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/order-book", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public L2PackageDto orderBook(
+    public ResponseEntity<L2PackageDto> orderBook(
         @RequestParam String[] streams,
         @RequestParam String symbol,
         @RequestParam(required = false) String[] types,
@@ -1613,7 +1721,8 @@ public class TimebaseController {
         @RequestParam(required = false) Instant from,
         @RequestParam(required = false) Long offset,
         @RequestParam(required = false) String space,
-        @RequestParam(required = false) boolean reverse) throws NoStreamsException
+        @RequestParam(required = false) boolean reverse,
+        @RequestParam(defaultValue = "L2") ModelDataSourceType source) throws NoStreamsException
     {
         OrderBookSnapshotRequest request = new OrderBookSnapshotRequest();
         request.setStreams(streams);
@@ -1624,13 +1733,16 @@ public class TimebaseController {
         request.setOffset(offset != null ? offset : 0);
         request.setReverse(reverse);
         request.setSpace(space);
+        request.setLevel(source.getModelTypeLevel());
 
-        return orderBookDebugger.snapshot(request);
+        return ResponseEntity.status(HttpStatus.OK)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(orderBookDebugger.snapshot(request));
     }
 
-    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ')")
+    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/order-book", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public L2PackageDto orderBook(@Valid @RequestBody OrderBookRequest request) throws NoStreamsException
+    public ResponseEntity<L2PackageDto> orderBook(@Valid @RequestBody OrderBookRequest request) throws NoStreamsException
     {
         OrderBookSnapshotRequest snapshotRequest = new OrderBookSnapshotRequest();
         snapshotRequest.setStreams(request.streams);
@@ -1641,13 +1753,52 @@ public class TimebaseController {
         snapshotRequest.setOffset(request.offset);
         snapshotRequest.setReverse(request.reverse);
         snapshotRequest.setSpace(request.space);
+        snapshotRequest.setLevel(request.source.getModelTypeLevel());
 
-        return orderBookDebugger.snapshot(snapshotRequest);
+        return ResponseEntity.status(HttpStatus.OK)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(orderBookDebugger.snapshot(snapshotRequest));
+    }
+
+    /**
+     * Returns available level sources for specified streams.
+     *
+     * @param  streams Specified streams.
+     * @return List of available sources.
+     */
+    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
+    @GetMapping(value = "/availableSources", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> availableSources(@RequestParam String[] streams) {
+        String[] decodeStreams = new String[streams.length];
+        for (int i = 0; i < streams.length; i++) {
+            decodeStreams[i] = URLDecoder.decode(streams[i], StandardCharsets.UTF_8);
+        }
+        DXTickStream[] tickStreams = match(service, decodeStreams);
+        return ResponseEntity.ok(getAvailableSources(tickStreams));
     }
 
     @ExceptionHandler({OutOfMemoryError.class})
     public ResponseEntity<?> handleOOMException() {
         return ResponseEntity.badRequest().body("Request is too large, try using paging");
+    }
+
+    private boolean hasAuthority(Principal principal, String requiredAuthority) {
+        for (GrantedAuthority authority : authorities(principal)) {
+            if (requiredAuthority.equals(authority.getAuthority())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private List<GrantedAuthority> authorities(Principal principal) {
+        if (principal instanceof Authentication) {
+            Authentication authentication = (Authentication) principal;
+            return new ArrayList<>(authentication.getAuthorities());
+        }
+
+        return new ArrayList<>();
     }
 
     private static class ErrorWriter implements StreamingResponseBody, LoadingErrorListener {

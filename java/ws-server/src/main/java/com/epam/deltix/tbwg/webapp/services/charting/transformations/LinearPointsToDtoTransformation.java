@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.charting.transformations;
+package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 
 import com.epam.deltix.dfp.Decimal64Utils;
 import com.epam.deltix.qsrv.hf.pub.RawMessage;
@@ -30,12 +30,13 @@ import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
 import com.epam.deltix.tbwg.messages.Message;
 import com.epam.deltix.tbwg.webapp.model.charting.line.LinePointDef;
 import com.epam.deltix.tbwg.webapp.services.charting.ChartingService;
+import com.epam.deltix.tbwg.webapp.services.charting.datasource.ChartDataSource;
 import com.epam.deltix.util.collections.generated.ObjectToObjectHashMap;
 import com.epam.deltix.util.memory.MemoryDataInput;
 
 import java.util.*;
 
-public class LinearPointsToDtoTransformation extends AbstractChartTransformation<LinePointDef, RawMessage> {
+public class LinearPointsToDtoTransformation extends SymbolFilterChartTransformation<LinePointDef, RawMessage> {
 
     private final long startTime;
     private final long endTime;
@@ -69,8 +70,10 @@ public class LinearPointsToDtoTransformation extends AbstractChartTransformation
         }
     }
 
-    public LinearPointsToDtoTransformation(String[] columns, long startTime, long endTime, long periodicity) {
-        super(Collections.singletonList(RawMessage.class), Collections.singletonList(LinePointDef.class));
+    public LinearPointsToDtoTransformation(String[] columns, long startTime, long endTime, long periodicity,
+                                           String symbol, ChartDataSource source, boolean isSingleSymbolSource) {
+        super(Collections.singletonList(RawMessage.class), Collections.singletonList(LinePointDef.class),
+                source, symbol, isSingleSymbolSource);
 
         this.startTime = startTime;
         this.endTime = endTime;
@@ -94,7 +97,7 @@ public class LinearPointsToDtoTransformation extends AbstractChartTransformation
     @Override
     protected void onNextPoint(RawMessage message) {
         long timestamp = message.getTimeStampMs();
-        if (timestamp > endTime) {
+        if (timestamp > endTime || !isProcessSymbol()) {
             return;
         }
 
@@ -128,7 +131,7 @@ public class LinearPointsToDtoTransformation extends AbstractChartTransformation
     private void sendPoint(int id, long timestamp, long value) {
         linePoint.lineId(id);
         linePoint.setTime(timestamp);
-        linePoint.setValue(Decimal64Utils.toString(value));
+        linePoint.setValue(Decimal64Utils.toFloatString(value));
         sendMessage(linePoint);
 
         lastTimestamp = timestamp;

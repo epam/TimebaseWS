@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.charting;
 
 import com.epam.deltix.gflog.api.Log;
@@ -52,24 +51,16 @@ public class ChartingServiceImpl implements ChartingService {
     }
 
     @Scheduled(fixedDelay = 5 * 60 * 1000)
-    public void clearStoppedTasks() {
-        synchronized (stoppedTasks) {
-            long currentTime = System.currentTimeMillis();
-            long[] keys = stoppedTasks.keysToArray(null);
-            for (int i = 0; i < keys.length; ++i) {
-                long time = stoppedTasks.get(keys[i], 0);
-                if (currentTime - time > 2 * 60 * 1000) {
-                    stoppedTasks.remove(keys[i]);
-                }
-            }
-        }
+    public void clearTasks() {
+        clearStaledStoppedTasks();
+        clearClosedTasks();
     }
 
     @Override
     public ChartingFrameDef getData(ChartingSettings settings, Long correlationId) {
         ChartingResult result = buildChartingResult(settings);
 
-        newTask(result, correlationId);
+        addRunningTask(result, correlationId);
         try {
             if (isTaskStopped(correlationId)) {
                 return null;
@@ -77,7 +68,7 @@ public class ChartingServiceImpl implements ChartingService {
 
             return buildChartingFrames(result);
         } finally {
-            endTask(correlationId);
+            closeRunningTask(correlationId);
         }
     }
 
@@ -85,8 +76,9 @@ public class ChartingServiceImpl implements ChartingService {
     public ChartingResult getDataStream(ChartingSettings settings, Long correlationId) {
         ChartingResult result = buildChartingResult(settings);
 
-        newTask(result, correlationId);
+        addRunningTask(result, correlationId);
         if (isTaskStopped(correlationId)) {
+            closeRunningTask(correlationId);
             return null;
         }
 
@@ -98,12 +90,13 @@ public class ChartingServiceImpl implements ChartingService {
             settings.getQql() == null ?
                 new BookSymbolQueryImpl(
                     settings.getStream(),
-                    settings.getSymbol(),
+                    settings.getSymbols(),
                     settings.getType(),
                     settings.getInterval(),
                     settings.getPointInterval(),
                     settings.getLevels(),
-                    false
+                    false,
+                    settings.getDataSource()
                 ) :
                 new QqlQueryImpl(
                     settings.getQql(),
@@ -116,9 +109,9 @@ public class ChartingServiceImpl implements ChartingService {
     }
 
     @Override
-    public void stopCharting(long id) {
-        addStoppedTask(id);
-        closeTask(id);
+    public void stopCharting(Long correlationId) {
+        addStoppedTask(correlationId);
+        closeRunningTask(correlationId);
     }
 
     private boolean isTaskStopped(Long id) {
@@ -127,33 +120,29 @@ public class ChartingServiceImpl implements ChartingService {
         }
     }
 
-    private void addStoppedTask(long id) {
-        synchronized (stoppedTasks) {
-            stoppedTasks.put(id, System.currentTimeMillis());
-        }
-    }
-
-    private void newTask(ChartingResult result, Long correlationId) {
-        if (correlationId != null) {
-            synchronized (runningTasks) {
-                runningTasks.put(correlationId, result);
+    private void addStoppedTask(Long id) {
+        if (id != null) {
+            synchronized (stoppedTasks) {
+                stoppedTasks.put(id, System.currentTimeMillis());
             }
         }
     }
 
-    private void endTask(Long correlationId) {
-        if (correlationId != null) {
+    private void addRunningTask(ChartingResult result, Long id) {
+        if (id != null) {
             synchronized (runningTasks) {
-                runningTasks.remove(correlationId);
+                runningTasks.put(id, result);
             }
         }
     }
 
-    private void closeTask(long correlationId) {
-        synchronized (runningTasks) {
-            ChartingResult task = runningTasks.get(correlationId, null);
-            if (task != null) {
-                task.close();
+    private void closeRunningTask(Long id) {
+        if (id != null) {
+            synchronized (runningTasks) {
+                ChartingResult task = runningTasks.remove(id, null);
+                if (task != null) {
+                    task.close();
+                }
             }
         }
     }
@@ -189,4 +178,30 @@ public class ChartingServiceImpl implements ChartingService {
 
         return new ChartingFrameDef(linesResult.getName(), lines, linesResult.getInterval());
     }
+
+    private void clearStaledStoppedTasks() {
+        synchronized (stoppedTasks) {
+            long currentTime = System.currentTimeMillis();
+            long[] keys = stoppedTasks.keysToArray(null);
+            for (int i = 0; i < keys.length; ++i) {
+                long time = stoppedTasks.get(keys[i], 0);
+                if (currentTime - time > 2 * 60 * 1000) {
+                    stoppedTasks.remove(keys[i]);
+                }
+            }
+        }
+    }
+
+    private void clearClosedTasks() {
+        synchronized (runningTasks) {
+            long[] keys = runningTasks.keysToArray(null);
+            for (int i = 0; i < keys.length; ++i) {
+                ChartingResult task = runningTasks.get(keys[i], null);
+                if (task != null && task.isClosed()) {
+                    runningTasks.remove(keys[i]);
+                }
+            }
+        }
+    }
+
 }

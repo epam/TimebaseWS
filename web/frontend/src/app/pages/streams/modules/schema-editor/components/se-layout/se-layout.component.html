@@ -1,6 +1,6 @@
 <div
-    [ngClass]="{ newStream: currentTab && currentTab.streamCreate }"
-    class="details-stream-wrap full-height-page">
+    [ngClass]="{ newStream: currentTab && (currentTab.streamCreate || currentTab.topicCreate) }"
+    class="details-stream-wrap" [ngClass]="insideModal ? 'modal-height-page' : 'full-height-page'">
   <ng-template *ngIf="(streamDetails | async).errorMessage">
     <p class="error-message">
       <span [title]="(streamDetails | async).errorMessage" class="error-message-text">
@@ -16,33 +16,38 @@
   </ng-template>
   <as-split
       (dragEnd)="onAreaSizeChange($event)"
-      *ngIf="showClassListGrid$ | async"
+      *ngIf="(showClassListGrid$ | async) && !showChanges"
       [appSplitterSizes]="[50, 50]"
-      [minSizes]="[480, 470]"
+      [minSizes]="insideModal ? [350, 350] : [550, 540]"
       [storageKey]="'schemaEditor' + (activeTab | async)?.id"
       direction="horizontal">
     <as-split-area [order]="1">
-      <div class="col-md-12 class-list-section">
+      <div class="col-md-12 class-list-section" [class.no-padding]="insideModal">
         <div class="class-list-wr">
-          <app-cl-control-panel *ngIf="isWriter$ | async"></app-cl-control-panel>
-          <app-class-list-grid class="types-list-grid" (addNewItemEvent)="addNewItemToClassList($event)"></app-class-list-grid>
-          <app-cl-bottom-panel *ngIf="isWriter$ | async"></app-cl-bottom-panel>
+          <app-cl-control-panel *ngIf="(isWriter$ | async) && !readonly" [extendable]="extendable" [insideModal]="insideModal"
+            [classEnumList]="classEnumList">
+          </app-cl-control-panel>
+          <app-class-list-grid class="types-list-grid" [readonly]="readonly" [insideModal]="insideModal"
+           (setItemList)="setClassEnumList($event)" (addNewItemEvent)="addNewItemToClassList($event)"></app-class-list-grid>
+          <app-cl-bottom-panel *ngIf="(isWriter$ | async) && extendable" [readonly]="readonly"></app-cl-bottom-panel>
         </div>
       </div>
     </as-split-area>
     <as-split-area [order]="2">
-      <div class="col-md-12 class-detailsWr">
+      <div class="col-md-12 class-detailsWr" [class.no-padding]="insideModal">
         <as-split [direction]="'vertical'">
           <ng-template [ngIf]="selectedSchemaItem$ | async">
             <as-split-area [order]="3" [size]="50">
               <div class="class-details top-right-corner">
-                <app-fl-control-panel *ngIf="isWriter$ | async"></app-fl-control-panel>
-                <app-fields-list (addNewFieldEvent)="addNewItemToFieldsList($event)"></app-fields-list>
+                <app-fl-control-panel *ngIf="(isWriter$ | async) && !readonly" [fieldList]="fieldList" 
+                  [extendable]="extendable"></app-fl-control-panel>
+                <app-fields-list (addNewFieldEvent)="addNewItemToFieldsList($event)" [readonly]="readonly"
+                  [insideModal]="insideModal" (setItemList)="setFieldList($event)"></app-fields-list>
               </div>
             </as-split-area>
             <as-split-area [order]="4" [size]="50">
               <div class="class-details bottom-right-corner">
-                <app-field-properties></app-field-properties>
+                <app-field-properties [readonly]="readonly" [insideModal]="insideModal"></app-field-properties>
               </div>
             </as-split-area>
           </ng-template>
@@ -52,19 +57,21 @@
             </as-split-area>
           </ng-template>
         </as-split>
-        <div *ngIf="!(getSchemaDiff$ | async)" class="save-btn-container" save-btn>
+        <div *ngIf="((schemaChanged$ | async) && !newStream) || (!(getSchemaDiff$ | async) && (newStream || newTopic)) 
+          && !readonly && !insideModal" 
+          class="save-btn-container" save-btn>
           <button
               (click)="onAskToCreateStream()"
-              *ngIf="(isSchemaEdited$ | async) && currentTab?.streamCreate"
+              *ngIf="(isSchemaEdited$ | async) && (currentTab?.streamCreate || currentTab?.topicCreate)"
               [disabled]="hasSchemaError$ | async"
               [ngClass]="createStreamBtnClass$ | async"
-              class="btn save-btn"
+              class="btn save-btn btn-success"
               type="button">
             {{ 'buttons.create' | translate }} >
           </button>
           <button
               (click)="onAskChanges()"
-              *ngIf="(isSchemaEdited$ | async) && currentTab && !currentTab.streamCreate"
+              *ngIf="(isSchemaEdited$ | async) && currentTab && !currentTab.streamCreate && !currentTab?.topicCreate"
               [disabled]="hasSchemaError$ | async"
               class="btn save-btn btn-success"
               type="button">
@@ -74,7 +81,7 @@
       </div>
     </as-split-area>
   </as-split>
-  <div *ngIf="getSchemaDiff$ | async" class="col-md-12 diff-view">
+  <div *ngIf="showChanges" class="col-md-12 diff-view">
     <div class="class-details">
       <app-diff-layout></app-diff-layout>
     </div>
@@ -92,14 +99,15 @@
 
 <ng-template #modalTemplate>
   <div class="modal-header">
-    <h4 class="modal-title pull-left">{{ 'text.onCreateStream' | translate }}</h4>
+    <h4 class="modal-title pull-left">{{ (newTopic ? 'text.onCreateTopic' : 'text.onCreateStream') | translate }}</h4>
   </div>
-  <div class="modal-body">
-    {{ 'text.askToCreateStream' | translate: {streamName: streamName} }}
+  <div class="modal-body centered-text">
+    <ng-container *ngTemplateOutlet="unusedEnumWarning"></ng-container>
+    {{ (newTopic ? 'text.askToCreateTopic' : 'text.askToCreateStream') | translate: {name: insideModal ? stream : streamName} }}
   </div>
   <div class="modal-footer d-flex justify-content-end">
     <button
-        (click)="onCreateStream()"
+        (click)="onCreateStream(newTopic)"
         aria-label="Close"
         class="btn btn-success pull-right"
         type="button">
@@ -119,7 +127,8 @@
   <div class="modal-header">
     <h4 class="modal-title pull-left">{{ 'text.onChangeSchema' | translate }}</h4>
   </div>
-  <div class="modal-body">
+  <div class="modal-body centered-text">
+    <ng-container *ngTemplateOutlet="unusedEnumWarning"></ng-container>
     {{ 'text.askToSaveStreamSchema' | translate: {streamName: streamName} }}
   </div>
   <div class="modal-footer d-flex justify-content-end">
@@ -146,5 +155,12 @@
         type="button">
       <span aria-hidden="true">{{ 'buttons.cancel' | translate }}</span>
     </button>
+  </div>
+</ng-template>
+
+<ng-template #unusedEnumWarning>
+  <div *ngIf="standaloneEnums.length" class="unused-enums-warning">
+    {{ 'text.unusedEnumWarning' | translate: 
+      { plural: standaloneEnums.length > 1 ? 's' : '' , enums: standaloneEnums.join(', ') } }}
   </div>
 </ng-template>

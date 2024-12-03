@@ -11,8 +11,9 @@
         <div *ngIf="activeTab$ | async as activeTab" class="col-md-12 page-block">
           <div *ngIf="!(error$ | async)" [class.hide]="activeTab.schema" class="d-flex">
             <app-filters-panel
-                [hideTimePicker]="activeTab.live"
-                class="d-flex w-100"></app-filters-panel>
+              (streamDataError)="endLoading()"
+              [hideTimePicker]="activeTab.live"
+              class="d-flex w-100"></app-filters-panel>
           </div>
           <div [class.hide-filters]="activeTab.schema || (error$ | async)" class="grid-wr">
             <div *ngIf="error$ | async as errorMessage" class="error-message">

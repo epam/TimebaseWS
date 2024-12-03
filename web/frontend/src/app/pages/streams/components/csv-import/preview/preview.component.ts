@@ -76,13 +76,10 @@ export class PreviewComponent implements OnInit {
         this.invalidMappings = this.importFromTextFileService.mappingErrors.map(item => item.validateResponse.message);
       });
 
-    this.importFromTextFileService.previewFileName = this.fileList[0].name;
-
     this.formGroup.get('files').valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(value => {
         this.setGridData(value);
-        this.importFromTextFileService.previewFileName = value;
       })
 
     this.importFromTextFileService.getFullValidation()

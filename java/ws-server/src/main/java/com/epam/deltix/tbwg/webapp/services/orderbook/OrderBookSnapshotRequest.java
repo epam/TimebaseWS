@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,8 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.orderbook;
+package com.epam.deltix.tbwg.webapp.services.orderbook;
 
+import com.epam.deltix.timebase.messages.universal.DataModelType;
 import lombok.Data;
 
 @Data
@@ -25,6 +26,7 @@ public class OrderBookSnapshotRequest {
     private long offset;
     private String space;
     private boolean reverse;
+    private DataModelType level;
     // filter
     private String[] streams;
     private String[] types;

@@ -3,7 +3,8 @@ import {RouterModule, Routes} from '@angular/router';
 import {AppInitGuard} from './core/services/guards/app-init.guard';
 import {AuthGuard} from './core/services/guards/auth.guard';
 import {AppViewGuard} from './shared/components/top-global-menu/app-view.guard';
-import {appRoute, auth, dashboard, login} from './shared/utils/routes.names';
+import {appRoute, auth, dashboard, login, silentAuth} from './shared/utils/routes.names';
+import { SilentSigninComponent } from './pages/auth-pages/components/silent-signin.component';
 
 const routes: Routes = [
   {
@@ -36,6 +37,10 @@ const routes: Routes = [
   {
     path: login,
     redirectTo: auth,
+  },
+  {
+    path: silentAuth,
+    component: SilentSigninComponent,
   },
 ];
 

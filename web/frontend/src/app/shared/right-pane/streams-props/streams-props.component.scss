@@ -17,6 +17,11 @@
   }
 }
 
+.props-table {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
 h4 {
   font-size: 16px;
   word-wrap: break-word;
@@ -89,4 +94,41 @@ input.invalid {
 
 h6 {
   text-transform: uppercase;
+}
+
+.upload-progress-bar {
+  min-height: 10px;
+  width: 100%;
+  background-color: $bg-blue;
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+  margin-top: 4px;
+
+  &, &__fill {
+    height: 10px;
+  }
+
+  &__fill {
+    background-color: $blue;
+  }
+
+  &__label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%) translateY(-50%);
+  }
+}
+
+.stop-task-btn {
+  display: block;
+  margin-right: 0;
+  margin-left: auto;
+  font-size: 10px;
+  margin-top: 0.1rem;
+  &:hover {
+    background-color: transparent;
+    color: #007bff;
+  }
 }

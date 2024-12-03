@@ -49,6 +49,10 @@
   padding-bottom: 10 * $ss;
 }
 
+.no-padding {
+  padding-bottom: 0;
+}
+
 .save-btn-container {
   position: absolute;
   bottom: 15 * $ss;
@@ -214,4 +218,13 @@
       }
     }
   }
+}
+
+.centered-text {
+  white-space: initial;
+  text-align: center;
+}
+
+.unused-enums-warning {
+  color: #ffc107;
 }

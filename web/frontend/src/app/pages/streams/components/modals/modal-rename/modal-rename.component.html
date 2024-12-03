@@ -3,28 +3,64 @@
   <form (ngSubmit)="onRenameSubmit()" [formGroup]="renameForm" content id="renameForm">
     <div class="controlWr">
       <label class="btn control-label" for="newName">
-        {{ 'forms.newName' | translate }}
+        {{ 'forms.streamKey' | translate }}
       </label>
-      <textarea
-          autosize
-          class="btn input-control"
-          formControlName="newName"
-          id="newName"
-          name="newName"
-          rows="1"
-          type="text"></textarea>
+      <input
+        class="btn input-control"
+        formControlName="newName"
+        id="newName"
+        name="newName"
+        />
     </div>
+    <ng-container *ngIf="!data.isTopic">
+      <div *ngIf="newName?.invalid && !newName.pristine; else pendingOrWarninig" class="validation-error">
+        <ng-container *ngTemplateOutlet="validatorMessage; context: { error: newName.errors, nameType: 'Stream key' }"></ng-container>
+      </div>
+      <ng-template #pendingOrWarninig>
+        <div *ngIf="newName?.status === 'PENDING' && lastValidationError; else warning" class="validation-error">
+          <ng-container *ngTemplateOutlet="validatorMessage; context: { error: lastValidationError, nameType: 'Stream key' }"></ng-container>
+        </div>
+        <ng-template #warning>
+          <div class="name-warning">{{ 'forms.nameWarninig' | translate }}</div>
+        </ng-template>
+      </ng-template>
+      <ng-template #nameWarninig>
+        <div class="name-warning">{{ 'forms.nameWarninig' | translate }}</div>
+      </ng-template>
+    </ng-container>
   </form>
   <ng-container footer>
     <button
-        [disabled]="this.renameForm.invalid || this.renameForm.pristine"
+        [disabled]="renameForm.invalid || !newName.value.trim() || renameForm.pristine || newName?.status === 'PENDING'"
         class="btn btn-info"
         form="renameForm"
-        type="submit">
+        type="submit"
+        [tooltip]="'buttons.rename' | translate"
+        placement="bottom">
       {{ 'buttons.rename' | translate }}
     </button>
-    <button appModalHideBtn class="btn btn-default last" type="button">
+    <button appModalHideBtn class="btn btn-default last" type="button"
+      [tooltip]="'buttons.cancel' | translate" placement="bottom">
       {{ 'buttons.cancel' | translate }}
     </button>
   </ng-container>
 </app-modal>
+
+<ng-template #validatorMessage let-error="error" let-nameType="nameType">
+  <span *ngIf="error.required">
+    {{ 'forms.validators.requiredFieldWithName' | translate : { nameType } }}
+  </span>
+  <span *ngIf="error.noAlphaNumeric">
+    {{ 'forms.validators.noAlphaNumeric' | translate : { nameType } }}
+  </span>
+  <span *ngIf="error.maxlength">
+    {{ 'forms.validators.maxFieldLength' | translate : { nameType } }}
+  </span>
+  <span *ngIf="error.nameIsForbidden">
+    {{ 'forms.validators.streamKeyExists' | translate : { nameType: 'Stream' } }}
+  </span>
+  <ng-container *ngIf="error.forbiddenSymbols">
+    <span>{{ 'forms.validators.streamKeyIncludesForbiddenSymbols' | translate : { nameType } }} </span><br/>
+    <span>({{ forbiddenCharsForMessage.join(' ') }})</span>
+  </ng-container>
+</ng-template>

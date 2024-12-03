@@ -10,6 +10,7 @@ import {FieldModel} from '../field-builder/field-model';
 export class PureFormBuilderComponent {
   @Input() form: UntypedFormGroup;
   @Input() fields: any[];
+  @Input() nullableFields = false;
   @Input() alignLabels = true;
 
   @Output() editJson = new EventEmitter<FieldModel>();

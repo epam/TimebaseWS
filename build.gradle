@@ -116,6 +116,7 @@ configure(javaProjects) {
 
         imports {
             mavenBom 'com.fasterxml.jackson:jackson-bom:2.13.5'
+            mavenBom 'io.netty:netty-bom:4.1.109.Final'
         }
 
         dependencies {
@@ -128,13 +129,14 @@ configure(javaProjects) {
             dependency "org.finos.timebase-ce:timebase-api:${timebaseVersion}"
             dependency "org.finos.timebase-ce:timebase-pub:${timebaseVersion}"
             dependency "org.finos.timebase-ce:timebase-aerondirect:${timebaseVersion}"
+            dependency "org.finos.timebase-ce:timebase-qql:${timebaseVersion}"
 
             dependency "com.epam.deltix:timebase-lang:${commonsVersion}"
             dependency "com.epam.deltix:timebase-util:${commonsVersion}"
             dependency "com.epam.deltix:timebase-messages:${commonsVersion}"
             dependency "com.epam.deltix:timebase-collections:${commonsVersion}"
 
-            dependency 'com.epam.deltix:dfp:0.12.5'
+            dependency 'com.epam.deltix:dfp:1.0.3'
             dependency "com.epam.deltix:containers:3.1.2"
             dependency 'com.epam.deltix:hd-date-time:0.2.11'
             dependency 'com.epam.deltix:thread-affinity:1.0.4'
@@ -148,7 +150,7 @@ configure(javaProjects) {
             }
 
             dependency 'org.modelmapper:modelmapper:2.3.2'
-            dependency 'com.epam.deltix:orderbook-core:1.0.18'
+            dependency 'com.epam.deltix:orderbook-core:1.0.20'
             // ----
 
             //dependency 'deltix:deltix-spring-api-keys:0.1.4'
@@ -167,7 +169,7 @@ configure(javaProjects) {
 
             dependency 'commons-logging:commons-logging:1.2'
             dependency 'commons-cli:commons-cli:1.4'
-            dependency 'commons-codec:commons-codec:1.13'
+            dependency 'commons-codec:commons-codec:1.14'
             dependency 'commons-io:commons-io:2.7'
 
             dependency 'com.google.guava:guava:32.0.1-jre'
@@ -189,13 +191,17 @@ configure(javaProjects) {
                 entry 'jackson-module-parameter-names'
             }
 
+            dependency 'com.azure:azure-security-keyvault-secrets:4.8.4'
+            dependency 'net.java.dev.jna:jna-platform:5.6.0' // azure sdk requires jna 5.6.0
+            dependency 'com.microsoft.azure:msal4j:1.15.1'
+
             dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.5'
             dependency 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.13.5'
 
             dependency 'io.micrometer:micrometer-registry-prometheus:1.9.1'
             dependency 'io.micrometer:micrometer-core:1.9.1'
 
-            dependencySet(group: 'org.springframework', version: '5.3.28') {
+            dependencySet(group: 'org.springframework', version: '5.3.33') {
                 entry 'spring-beans'
                 entry 'spring-jcl'
                 entry 'spring-core'
@@ -209,6 +215,8 @@ configure(javaProjects) {
                 entry 'spring-webmvc'
                 entry 'spring-websocket'
             }
+
+            //dependency 'org.springframework.boot:spring-boot-starter-test:2.7.1'
 
             dependencySet(group: 'org.springframework.boot', version: '2.7.18') {
                 entry 'spring-boot'
@@ -247,6 +255,7 @@ configure(javaProjects) {
             dependency 'org.testcontainers:junit-jupiter:1.16.2'
 
             dependency 'javax.annotation:javax.annotation-api:1.3.2'
+            dependency 'org.jetbrains:annotations:20.1.0'
 
             dependency 'org.reflections:reflections:0.9.11'
             dependency 'org.asynchttpclient:async-http-client:2.10.4'
@@ -260,6 +269,8 @@ configure(javaProjects) {
             dependency 'org.yaml:snakeyaml:2.0'
 
             dependency 'org.apache.bcel:bcel:6.6.0'
+
+            dependency 'org.reactivestreams:reactive-streams:1.0.4'
 
             dependencySet(group: 'io.netty', version: '4.1.94.Final') {
                 entry 'netty-codec'

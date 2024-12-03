@@ -7,8 +7,10 @@
     <ng-container *ngIf="!single">
       <ng-container *ngIf="showSelected.length">
       <span *ngFor="let item of showSelected" [title]="item.name" class="selected-item">
-        <span class="selected-item__name" >{{ item.name }}</span>
-        <span (click)="remove(item)" class="remove-icon">x</span>
+        <span class="selected-item__name" >
+          {{ item.name }}<span *ngIf="showSelected.length > 1">...</span>
+        </span>
+        <span *ngIf="!closeButtonsHidden" (click)="remove(item)" class="remove-icon">x</span>
       </span>
       </ng-container>
     </ng-container>
@@ -30,7 +32,7 @@
     [class.single]="single"
     class="dropdown"
 >
-  <div *ngIf="!single" (click)="selectAll()" [class.selected]="allSelected" 
+  <div *ngIf="!single && selectAllIsAvailable" (click)="selectAll(allSelected ? false : true)" [class.selected]="allSelected" 
     [style.height.px]="menuItemHeight ?? itemHeight" class="option select-all">
     <ng-container
         *ngTemplateOutlet="
@@ -45,8 +47,10 @@
     <ng-container *cdkVirtualFor="let item of filteredItems">
       <div
           (click)="onClick(item)"
+          [class.alwaysSelected]="item.id === alwaysSelectedItem"
           [class.selected]="isSelected[item.id]"
           [class.single]="single"
+          [class.disabled]="item.disabled"
           [class.childSelected]="matchedField && matchedField.parentItem === item.id"
           [style.height.px]="menuItemHeight ?? itemHeight"
           class="option">

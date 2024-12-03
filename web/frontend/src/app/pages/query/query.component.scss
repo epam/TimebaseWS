@@ -32,8 +32,12 @@
       }
     }
 
+    .send-selected-btn {
+      border-left: 1px solid #27384d;
+    }
+
     .send-btn {
-      width: 41 * $ss;
+      width: 58 * $ss;
 
       &:focus {
         box-shadow: none;
@@ -103,6 +107,7 @@ form {
   flex-direction: column;
   overflow: hidden;
   padding: 10px;
+  position: relative;
 
   .top-split-area-container {
     display: flex;
@@ -152,4 +157,82 @@ app-message-info ::ng-deep .stream-props {
   border: 1px solid transparent;
   border-radius: 0.25rem;
   text-align: center;
+}
+
+.submitted-query {
+  color: #ffffffa6;
+  font-weight: 300;
+  background-color: rgba(25, 32, 46, 0.7);
+  padding: 0.1rem 2.4rem;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  height: 1.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+  text-align: left;
+  &:hover {
+    .submitted-query-full-text {
+      visibility: visible;
+    }
+  }
+}
+
+.copy-query-text {
+  background-color: transparent;
+  border: none;
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  z-index: 31;
+  svg {
+    width: 0.7rem;
+    height: 0.7rem;
+    color: #ffffffa6;
+  }  
+}
+
+.submitted-query-full-text {
+  @extend .submitted-query;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 30;
+  text-align: left;
+  color: #ffffffa6;
+  padding-bottom: 0.5rem;
+  background-color: rgba(12, 17, 27, 0.98);
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 0.25rem;
+  height: auto;
+  text-wrap: wrap;
+  visibility: hidden;
+}
+
+.btn-share {
+  padding: 0 5px 0 8px;
+  svg {
+    margin-top: 0.3rem;
+  }
+}
+
+.editor-loading {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #ffffff0c;
+  color: gray;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.selected-text-icon {
+  margin-left: 0.3rem;
+  margin-bottom: 0.2rem;
 }

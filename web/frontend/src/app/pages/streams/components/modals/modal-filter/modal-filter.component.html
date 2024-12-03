@@ -6,11 +6,13 @@
           *ngIf="dropdownListSymbols$ | async as dropdownListSymbols"
           [formControl]="symbolsControl"
           [items]="dropdownListSymbols"
+          [tooltip]="'tooltips.symbolFilter' | translate"
           placeholder="Symbols"></app-multi-select>
     </ng-container>
     <app-multi-select
         [formControl]="typesControl"
         [items]="dropdownListTypes"
+        [tooltip]="'tooltips.messageTypeFilter' | translate"
         placeholder="Message Types"></app-multi-select>
   </ng-container>
   <ng-container footer>

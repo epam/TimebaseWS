@@ -4,15 +4,23 @@
       (onInit)="editorInit($event)"
       [options]="editorOptions"
   ></ngx-monaco-editor>
-  <div *ngIf="selfControl" [class.alert-danger]="selfControl.invalid || selfControl.pending" [class.alert-success]="selfControl.valid" class="alert qql-alert">
-    <ng-container *ngIf="selfControl.hasError('queryError') || selfControl.pending">
+  <div *ngIf="control" 
+    [class.alert-danger]="(control.invalid || control.pending || queryRequestError || showQueryError) && !errorInsideSelectedText" 
+    [class.alert-success]="(control.valid && !showQueryError) || errorInsideSelectedText" class="alert qql-alert">
+    <ng-container *ngIf="(control.hasError('queryError') || control.pending || showQueryError) && !errorInsideSelectedText">
       {{ queryError }}
     </ng-container>
-    <ng-container *ngIf="selfControl.hasError('required')">
+    <ng-container *ngIf="queryRequestError">
+      {{ (!selectedText ? 'createViewModal.queryIsInvalid' : 'createViewModal.selectedQueryIsInvalid') | translate }}
+    </ng-container>
+    <ng-container *ngIf="control.hasError('required')">
       {{ 'createViewModal.queryIsEmpty' | translate }}
     </ng-container>
-    <ng-container *ngIf="selfControl.valid">
+    <ng-container *ngIf="control.valid && !queryRequestError && !showQueryError">
       {{ 'createViewModal.queryIsValid' | translate }}
+    </ng-container>
+    <ng-container *ngIf="errorInsideSelectedText">
+      {{ 'createViewModal.selectedQueryTextIsValid' | translate }}
     </ng-container>
   </div>
 </div>

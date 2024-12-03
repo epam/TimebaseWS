@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.security.oauth;
 
 import com.epam.deltix.gflog.api.Log;
@@ -27,14 +26,17 @@ import com.epam.deltix.tbwg.webapp.settings.SecurityOauth2ProviderSettings;
 import com.epam.deltix.tbwg.webapp.settings.SecurityOauth2ServerSettings;
 import com.epam.deltix.tbwg.webapp.utils.SignatureUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.authentication.configurers.provisioning.InMemoryUserDetailsManagerConfigurer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
@@ -73,6 +75,13 @@ import static com.epam.deltix.tbwg.webapp.config.WebMvcConfig.MAIN_API_PREFIX;
 public class OAuth2ServerConfig {
 
     private static final Log LOG = LogFactory.getLog(OAuth2ServerConfig.class);
+
+    @Value("${security.oauth2.allowClientIdUser:false}")
+    private boolean allowClientIdUser;
+
+    @Value("${security.oauth2.clientId:web}")
+    private String clientId;
+
 
     @Configuration
     @EnableAuthorizationServer
@@ -179,6 +188,8 @@ public class OAuth2ServerConfig {
 
         @Autowired
         private SecurityOauth2ProviderSettings settings;
+        @Autowired
+        private SecurityOauth2ServerSettings securityOauth2ServerSettings;
 
         @Override
         public void configure(HttpSecurity http) throws Exception {
@@ -191,6 +202,11 @@ public class OAuth2ServerConfig {
                     .antMatchers("/api/v0/download").permitAll()
                     .antMatchers(MAIN_API_PREFIX + "/**").fullyAuthenticated()
                     .antMatchers(GRAFANA_API_PREFIX + "/**").fullyAuthenticated();
+            if (securityOauth2ServerSettings.isContentSecurityPolicyConfigured()) {
+                http.headers()
+                        .contentSecurityPolicy(securityOauth2ServerSettings.getContentSecurityPolicy());
+            }
+
             http.headers()
                 .frameOptions().sameOrigin();
         }
@@ -242,11 +258,17 @@ public class OAuth2ServerConfig {
 
     @Autowired
     protected void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
+        InMemoryUserDetailsManagerConfigurer<?> configurer = auth.inMemoryAuthentication();
         for (TbwgUser user : usersProvider.getUsers()) {
-            auth.inMemoryAuthentication()
-                    .withUser(user.getUsername())
-                    .password(user.getPassword())
-                    .authorities(user.getAuthorities().toArray(new GrantedAuthority[0]));
+            // prevent login with user that equals to client id of legacy authorization server.
+            // the check needs for security reason: we pass client id/secret during token request as basic auth.
+            if (!allowClientIdUser && isClientIdUser(user.getUsername())) {
+                throw new BadCredentialsException("Illegal user: " + user.getUsername());
+            }
+
+            configurer.withUser(user.getUsername())
+                .password(user.getPassword())
+                .authorities(user.getAuthorities().toArray(new GrantedAuthority[0]));
         }
     }
 
@@ -258,6 +280,12 @@ public class OAuth2ServerConfig {
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return web -> web.httpFirewall(allowUrlEncodedSlashHttpFirewall());
+    }
+
+    private boolean isClientIdUser(String username) {
+        // 'web' is our default client id user
+        return username.equalsIgnoreCase("web") ||
+                username.equalsIgnoreCase(clientId);
     }
 
 }

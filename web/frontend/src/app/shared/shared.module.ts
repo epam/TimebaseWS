@@ -17,9 +17,10 @@ import {TimeBarPickerComponent} from './components/timebar-picker/time-bar-picke
 
 import {SafeDatePickerModule} from './directives/safe-date-picker/safe-date-picker.module';
 import {MultiSelectModule} from './components/multi-select/multi-select.module';
+import { PlaybackComponent } from './components/playback/playback.component';
 
 @NgModule({
-  declarations: [TimeBarPickerComponent, TabsRouterProxyComponent],
+  declarations: [TimeBarPickerComponent, TabsRouterProxyComponent, PlaybackComponent],
   imports: [
     CommonModule,
     TranslateModule,
@@ -49,6 +50,7 @@ import {MultiSelectModule} from './components/multi-select/multi-select.module';
     TooltipModule,
     PerfectScrollbarModule,
     BtnDatePickerModule,
+    PlaybackComponent
   ],
 })
 export class SharedModule {}

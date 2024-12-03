@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.utils;
+package com.epam.deltix.tbwg.webapp.utils;
 
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
 import com.epam.deltix.tbwg.webapp.model.input.FieldToColumnMapping;
@@ -102,12 +102,12 @@ public class CsvImportUtil {
         put("^\\d{1,2}\\s[A-Za-z]{3}\\s\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}\\s[+-]{1}\\d{4}$", "dd MMM yyyy HH:mm:ss Z");
         put("^\\d{1,2}\\s[A-Za-z]{4,}\\s\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}\\s[+-]{1}\\d{4}$", "dd MMMM yyyy HH:mm:ss Z");
 
-        put("^\\d{1,2}-\\d{1,2}-\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{1,3}\\s[+-]{1}\\d{4}$", "dd-MM-yyyy HH:mm:ss Z");
-        put("^\\d{4}-\\d{1,2}-\\d{1,2}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{1,3}\\s[+-]{1}\\d{4}$", "yyyy-MM-dd HH:mm:ss Z");
-        put("^\\d{1,2}/\\d{1,2}/\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{1,3}\\s[+-]{1}\\d{4}$", "MM/dd/yyyy HH:mm:ss Z");
-        put("^\\d{4}/\\d{1,2}/\\d{1,2}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{1,3}\\s[+-]{1}\\d{4}$", "yyyy/MM/dd HH:mm:ss Z");
-        put("^\\d{1,2}\\s[A-Za-z]{3}\\s\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{1,3}\\s[+-]{1}\\d{4}$", "dd MMM yyyy HH:mm:ss Z");
-        put("^\\d{1,2}\\s[A-Za-z]{4,}\\s\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{1,3}\\s[+-]{1}\\d{4}$", "dd MMMM yyyy HH:mm:ss Z");
+        put("^\\d{1,2}-\\d{1,2}-\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{1,3}\\s[+-]{1}\\d{4}$", "dd-MM-yyyy HH:mm:ss.SSS Z");
+        put("^\\d{4}-\\d{1,2}-\\d{1,2}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{1,3}\\s[+-]{1}\\d{4}$", "yyyy-MM-dd HH:mm:ss.SSS Z");
+        put("^\\d{1,2}/\\d{1,2}/\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{1,3}\\s[+-]{1}\\d{4}$", "MM/dd/yyyy HH:mm:ss.SSS Z");
+        put("^\\d{4}/\\d{1,2}/\\d{1,2}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{1,3}\\s[+-]{1}\\d{4}$", "yyyy/MM/dd HH:mm:ss.SSS Z");
+        put("^\\d{1,2}\\s[A-Za-z]{3}\\s\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{1,3}\\s[+-]{1}\\d{4}$", "dd MMM yyyy HH:mm:ss.SSS Z");
+        put("^\\d{1,2}\\s[A-Za-z]{4,}\\s\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{1,3}\\s[+-]{1}\\d{4}$", "dd MMMM yyyy HH:mm:ss.SSS Z");
 
         put("^\\d{1,2}-\\d{1,2}-\\d{4}T\\d{1,2}:\\d{2}:\\d{2}Z[+-]{1}\\d{4}$", "dd-MM-yyyy'T'HH:mm:ss'Z'Z");
         put("^\\d{4}-\\d{1,2}-\\d{1,2}T\\d{1,2}:\\d{2}:\\d{2}Z[+-]{1}\\d{4}$", "yyyy-MM-dd'T'HH:mm:ss'Z'Z");
@@ -144,6 +144,12 @@ public class CsvImportUtil {
         if (maxEntry.isPresent()) {
             return DATE_FORMAT_REGEXPS.get(maxEntry.get().getKey());
         } else return DEFAULT_DATETIME_FORMAT;
+    }
+
+    public static String determineNanoDateFormat(List<String> dateColumn) {
+        List<String> msDateColumn = toMsFormat(dateColumn);
+        String s = determineDateFormat(msDateColumn);
+        return s.replace(".SSS", ".SSSSSSSSS");
     }
 
     public static byte[] readPreviewDataFromInputStream(InputStream inputStream, String charset) throws IOException {
@@ -307,5 +313,50 @@ public class CsvImportUtil {
         if (parent != null) {
             addAllMessageTypeNames(parent, result);
         }
+    }
+
+    public static boolean isNanoTimeValues(List<String> values) {
+        for (String value : values) {
+            int index = value.lastIndexOf('.');
+            if (index > 0 && value.length() - index > 9) {
+                String substring = value.substring(index + 1, index + 10);
+                try {
+                    Integer.parseInt(substring);
+                } catch (Exception e) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static List<String> toMsFormat(List<String> values) {
+        List<String> truncatedTimestamps = new ArrayList<>();
+        for (String value : values) {
+            int endMs = value.lastIndexOf('.') + 4;
+            int endNano = endMs + 6;
+            truncatedTimestamps.add(value.substring(0, endMs) + value.substring(endNano));
+        }
+        return truncatedTimestamps;
+    }
+
+    public static String toMsFormat(String pattern) {
+        if (isNsFormat(pattern)) {
+            return pattern.replace(".SSSSSSSSS", ".SSS");
+        }
+        return pattern;
+    }
+
+    public static String toNsFormat(String pattern) {
+        if (!pattern.contains(".SSS") || isNsFormat(pattern)) {
+            return pattern;
+        }
+        return pattern.replace(".SSS", ".SSSSSSSSS");
+    }
+
+    public static boolean isNsFormat(String pattern) {
+        return pattern.contains(".SSSSSSSSS");
     }
 }

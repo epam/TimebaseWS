@@ -16,16 +16,17 @@ export const dateFormatsSupported = [
 ];
 
 export const timeFormatsSupported = [
-  'HH:mm:ss',
+  'HH:mm:ss.fffffffff',
+  'hh:mm:ss.fffffffff tt',
+/*   'HH:mm:ss',
   'HH:mm:ss tt',
   'HH:mm:ss.fff',
   'HH:mm:ss.ffffff',
-  'HH:mm:ss.fffffffff',
   'hh:mm:ss tt',
   'hh:mm:ss.fff tt',
   'hh:mm:ss.ffffff tt',
   'hh:mm:ss.fffffffff tt',
-  'hh tt',
+  'hh tt', */
 ];
 
 export function getLocaleDateString() {
@@ -297,9 +298,7 @@ export function formatHDate(
   filter_time_format?: string[],
   filter_timezone?: any[],
   gridFormat = false,
-  nanoTime = '',
-  showNanoSeconds = false,
-  periodicity = 0
+  periodicity = 0,
 ) {
   if (!data) {
     return null;
@@ -312,7 +311,7 @@ export function formatHDate(
    }*/
 
   // Locale time
-  let date = new HdDate(nanoTime || data);
+  let date = new HdDate(data);
   const nanoSeconds = date.getNanosFraction();
 
   if (filter_timezone && filter_timezone.length) {
@@ -321,7 +320,7 @@ export function formatHDate(
       // Date object must be displayed according to the selected timezone
       const offset = newDate.getTimezoneOffset() + filter_timezone[0].offset;
       newDate.setMilliseconds(newDate.getMilliseconds() + offset * 60 * 1000);
-      newDate.setNanoseconds(nanoSeconds);
+      newDate.setNanosFraction(nanoSeconds);
       date = newDate;
   }
 
@@ -364,30 +363,54 @@ export function formatHDate(
     } else if (periodicity >= 2592e6) { // months
       return `${months[date.getMonth()]} ${date.getFullYear()}`;
     } else if (periodicity >= 864e5) { // days&weeks
-      return initialDate.toLocaleFormat(date_format);
+      if (gridFormat) {
+        return initialDate.toLocaleFormat(date_format);
+      } else {
+        return date.toLocaleFormat(date_format);
+      }
     } else if (periodicity >= 6e4) { // hours, minutes
-      return `${initialDate.toLocaleFormat(date_format)} 
+      if (gridFormat) {
+        return `${initialDate.toLocaleFormat(date_format)} 
         ${formatOneDigitNumber(initialDate.getHours())}:${formatOneDigitNumber(initialDate.getMinutes())} - 
         ${formatOneDigitNumber(date.getHours())}:${formatOneDigitNumber(date.getMinutes())}`;
+      } else {
+        return `${initialDate.toLocaleFormat(date_format)}  
+        ${formatOneDigitNumber(date.getHours())}:${formatOneDigitNumber(date.getMinutes())}`;
+      }
     } else { // seconds
-      return `${initialDate.toLocaleFormat(date_format)} 
-        ${formatOneDigitNumber(initialDate.getHours())}:${formatOneDigitNumber(initialDate.getMinutes())}:${formatOneDigitNumber(initialDate.getSeconds())}
-        - ${formatOneDigitNumber(date.getHours())}:${formatOneDigitNumber(date.getMinutes())}:${formatOneDigitNumber(date.getSeconds())}`;
+      if (gridFormat) {
+        return `${initialDate.toLocaleFormat(date_format)} 
+          ${formatOneDigitNumber(initialDate.getHours())}:${formatOneDigitNumber(initialDate.getMinutes())}:${formatOneDigitNumber(initialDate.getSeconds())}
+          - ${formatOneDigitNumber(date.getHours())}:${formatOneDigitNumber(date.getMinutes())}:${formatOneDigitNumber(date.getSeconds())}`;
+      } else {
+        return `${initialDate.toLocaleFormat(date_format)} 
+          ${formatOneDigitNumber(date.getHours())}:${formatOneDigitNumber(date.getMinutes())}:${formatOneDigitNumber(date.getSeconds())}`;
+      }
     }
   }
 
-  let dateAsString = date.toLocaleFormat(date_format) + ' ' + date.toLocaleFormat(time_format);
+  let dateAsString = `${date.toLocaleFormat(date_format)} ${date.toLocaleFormat(time_format)}`;
 
-  if (!showNanoSeconds && time_format.includes('ffffff')) {
+  if (time_format.includes('ffffff')) {
     const splitDate = dateAsString.split('.');
-    const milliseconds = splitDate.pop();
-    let filteredSeconds = milliseconds.slice(0, 3);
-    for (let i = 3; i < milliseconds.length; i++) {
-      if (milliseconds[i] !== '0') {
-        filteredSeconds += milliseconds[i];
+    const subSeconds = splitDate.pop();
+    let visibleSecondValue = subSeconds.slice(0, 3);
+    const nanoAndMicroSeconds = subSeconds.slice(3);
+    if (parseInt(nanoAndMicroSeconds) !== 0) {
+      const microseconds = nanoAndMicroSeconds.slice(0, 3);
+      const nanoSeconds = nanoAndMicroSeconds.slice(3);
+      if (parseInt(nanoSeconds) !== 0) {
+        visibleSecondValue += nanoAndMicroSeconds;
+      } else {
+        const afterSeconds = subSeconds.match(/\D+/)?.[0];
+        visibleSecondValue += `${microseconds}${afterSeconds ?? ''}`;
       }
+    } else {
+      const afterSeconds = subSeconds.match(/\D+/)?.[0];
+      visibleSecondValue += (afterSeconds ?? '');
     }
-    dateAsString = `${splitDate.join('')}.${filteredSeconds}`;
+    
+    dateAsString = `${splitDate.length === 1 ? splitDate[0] : splitDate.join('.')}.${visibleSecondValue}`;
   }
   return dateAsString;
 }
@@ -397,13 +420,16 @@ function formatOneDigitNumber(num: number) {
 } 
 
 export function getDateUsingTZ(date: Date, timeZone) {
+  if (date?.toString() === 'Invalid Date') {
+    return new Date('');
+  }
   if (!timeZone || !date) {
     return null;
   }
 
   const localOffset = -new Date().getTimezoneOffset();
   const selectedOffset = timeZone.offset;
-  const newDate = new HdDate(date.toISOString());
+  const newDate = new HdDate(date instanceof Date ? date.toISOString() : date);
 
   newDate.setMilliseconds(newDate.getMilliseconds() - (localOffset - selectedOffset) * 60 * 1000);
 
@@ -415,3 +441,21 @@ export function dateToTimezone(date: Date | string, tzName: string): Date {
     toUtc(hdDateTZ(toUtc(new HdDate(new Date(date).toISOString())), tzName)).getEpochMillis(),
   );
 }
+
+const isBrowserLocaleClockType24h = (languages) => {
+  if (!languages) { 
+    languages = []; 
+  }
+  const hours = new Intl.DateTimeFormat(languages, { hour: "numeric" }).format();
+  return Number.isInteger(Number(hours));
+};
+
+const getDefaultDateFormat = () => {
+  const now =new Date(2013, 11, 31);
+  const nowAsString = now.toLocaleDateString();
+  return nowAsString.replace('31', 'dd').replace('12', 'MM').replace('2013', 'yyyy');
+}
+
+const clockType24 = isBrowserLocaleClockType24h(navigator.language);
+export const defaultTimeFormat = clockType24 ? timeFormatsSupported[0] : timeFormatsSupported[1];
+export const defaultDateFormat = getDefaultDateFormat();

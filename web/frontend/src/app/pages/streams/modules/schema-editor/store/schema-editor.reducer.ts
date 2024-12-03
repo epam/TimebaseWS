@@ -9,6 +9,7 @@ import {SchemaMappingModel} from '../models/schema.mapping.model';
 import {StreamMetaDataChangeModel} from '../models/stream.meta.data.change.model';
 import {SeFormPreferencesService} from '../services/se-form-preferences.service';
 import * as SchemaEditorActions from './schema-editor.actions';
+import { addIdsToSchema } from '../../../store/stream-details/stream-details.reducer';
 
 export const schemaEditorFeatureKey = 'schemaEditor';
 
@@ -144,7 +145,7 @@ const schemaEditorReducer = createReducer(
   on(SchemaEditorActions.SetStreamId, (state, {streamId}) => ({...state, streamId})),
   on(SchemaEditorActions.SetSchema, (state, {schema}) => ({
     ...state,
-    ...getSortedSchema(schema),
+    ...getSortedSchema({ types: addIdsToSchema(schema.types), all: addIdsToSchema(schema.all) }),
   })),
   on(SchemaEditorActions.SetSchemaDiff, (state, {diff}) => ({
     ...state,
@@ -156,7 +157,7 @@ const schemaEditorReducer = createReducer(
     ...state,
     defaultTypes: defaultTypes,
   })),
-  on(SchemaEditorActions.SetSelectedSchemaItem, (state, {itemName}) => {
+  on(SchemaEditorActions.SetSelectedSchemaItem, (state, { itemId }) => {
     const CLASSES = [...state.classes].map((type) => ({
         ...type,
         _props: {
@@ -195,11 +196,11 @@ const schemaEditorReducer = createReducer(
             }))
           : type.fields,
       })),
-      SELECTED_ITEM = [...CLASSES, ...ENUMS].find((type) => type.name === itemName);
+      SELECTED_ITEM = [...CLASSES, ...ENUMS].find((type) => type.id === itemId);
 
     if (SELECTED_ITEM) {
       const TYPES = SELECTED_ITEM.isEnum ? [...ENUMS] : [...CLASSES],
-        SELECTED_ITEM_IDX = TYPES.findIndex((type) => type.name === itemName);
+        SELECTED_ITEM_IDX = TYPES.findIndex((type) => type.id === itemId);
       if (SELECTED_ITEM_IDX >= 0) {
         TYPES[SELECTED_ITEM_IDX] = {
           ...TYPES[SELECTED_ITEM_IDX],
@@ -594,6 +595,47 @@ const schemaEditorReducer = createReducer(
     }
     return state;
   }),
+  on(SchemaEditorActions.RemoveSchemaFields, (state, { deletingItems }) => {
+    const CLASSES = [...state.classes],
+      ENUMS = [...state.enums],
+      SELECTED_ITEM = [...CLASSES, ...ENUMS].find(type => type._props && type._props._isSelected);
+    const TYPES = SELECTED_ITEM.isEnum ? [...ENUMS] : [...CLASSES];
+
+    if (SELECTED_ITEM) {
+      const SELECTED_ITEM_IDX = TYPES.findIndex(type => type._props && type._props._isSelected);
+
+      const NEW_PROPS = {...SELECTED_ITEM._props};
+      const deletedFieldsUuids = SELECTED_ITEM.fields
+        .filter(field => deletingItems.includes(field.name))
+        .map(field => field._props._uuid);
+
+      SELECTED_ITEM.fields = SELECTED_ITEM.fields.filter(field => !deletingItems.includes(field.name));
+  
+      const selectedFieldRemoved = deletedFieldsUuids.includes(SELECTED_ITEM._props._selectedFieldUuid);
+      if (selectedFieldRemoved) {
+        delete NEW_PROPS._selectedFieldUuid;
+      }
+
+      TYPES.splice(SELECTED_ITEM_IDX, 1, {
+        ...SELECTED_ITEM,
+        fields: [...SELECTED_ITEM.fields],
+        _props: NEW_PROPS,
+      });
+
+      return SELECTED_ITEM.isEnum
+        ? {
+            ...state,
+            _isEdited: true,
+            enums: TYPES,
+          }
+        : {
+            ...state,
+            _isEdited: true,
+            classes: TYPES,
+          };
+    }
+    return state;
+  }),
   on(SchemaEditorActions.ChangeSelectedFieldProps, (state, {uuid, newData, isSelected}) => {
     let fieldIndex: number;
     let typeIndex: number;
@@ -615,8 +657,8 @@ const schemaEditorReducer = createReducer(
     );
 
     const stateCopy = JSON.parse(JSON.stringify(state));
-    const type = stateCopy[updateKey][typeIndex];
-    let field = type.fields[fieldIndex];
+    const type = stateCopy[updateKey]?.[typeIndex];
+    let field = type.fields?.[fieldIndex];
     const oldName = field.name;
 
     const enumAttributes = {
@@ -690,6 +732,7 @@ const schemaEditorReducer = createReducer(
         ...[
           {
             ...PARENT_ITEM,
+            id: PARENT_ITEM.name,
             _props: isEnum
               ? PARENT_ITEM._props
               : {
@@ -703,6 +746,7 @@ const schemaEditorReducer = createReducer(
           {
             isEnum: isEnum,
             isAbstract: false,
+            id: name,
             name: name || '',
             fields: [],
             parent: parentName,
@@ -721,6 +765,7 @@ const schemaEditorReducer = createReducer(
         isEnum: isEnum,
         isAbstract: false,
         name: name || '',
+        id: name || '',
         fields: [],
         parent: parentName,
         title: title,
@@ -757,45 +802,44 @@ const schemaEditorReducer = createReducer(
     if (SELECTED_ITEM) {
       let TYPES = SELECTED_ITEM.isEnum ? [...ENUMS] : [...CLASSES];
 
-      if (SELECTED_ITEM.parent) {
-        const PARENT_INDEX = TYPES.findIndex((type) => type.name === SELECTED_ITEM.parent);
-        TYPES[PARENT_INDEX] = {
-          ...TYPES[PARENT_INDEX],
-          _props: {
-            ...TYPES[PARENT_INDEX]._props,
-            _children: TYPES[PARENT_INDEX]._props._children?.filter(
-              (name) => name !== SELECTED_ITEM.name,
-            ),
-          },
-        };
-      }
+      removeItemFromParentChildren([SELECTED_ITEM], TYPES);
 
-      const NAMES_TO_DELETE = [SELECTED_ITEM.name];
-      const COLLECT_NAMES_TO_DELETE = (typeName) => {
-        const TYPE_ITEM = TYPES.find((type) => type.name === typeName);
-        if (TYPE_ITEM && TYPE_ITEM._props && TYPE_ITEM._props._children) {
-          NAMES_TO_DELETE.push(...TYPE_ITEM._props._children);
-          TYPE_ITEM._props._children.forEach((name) => {
-            COLLECT_NAMES_TO_DELETE(name);
+      const IDS_TO_DELETE = [SELECTED_ITEM.id];
+      const COLLECT_IDS_TO_DELETE = (typeId: string) => {
+        const TYPE_ITEM = TYPES.find((type) => type.id === typeId);
+        if (TYPE_ITEM && TYPE_ITEM._props?._children) {
+          IDS_TO_DELETE.push(...TYPE_ITEM._props._children);
+          TYPE_ITEM._props._children.forEach(name => {
+            COLLECT_IDS_TO_DELETE(name);
           });
         }
       };
-      COLLECT_NAMES_TO_DELETE(SELECTED_ITEM.name);
-      TYPES = TYPES.filter((type) => !NAMES_TO_DELETE.includes(type.name));
+      COLLECT_IDS_TO_DELETE(SELECTED_ITEM.id);
+      TYPES = TYPES.filter((type) => !IDS_TO_DELETE.includes(type.id));
 
-      if (SELECTED_ITEM.isEnum) {
-        CLASSES.forEach(type => {
-          type.fields = type.fields.filter(field => field.type.name !== SELECTED_ITEM.name && field.type.elementType?.name !== SELECTED_ITEM.name);
-        })
-      }  
+      CLASSES.forEach(type => {
+        type.fields = type.fields
+          .map(field => {
+            if (field.type.name === SELECTED_ITEM.name) {
+              field.type.name = null;
+            }
+            if (field.type.elementType && field.type.elementType?.name === SELECTED_ITEM.name) {
+              field.type.elementType.name = null;
+            }
+            return field;
+          });
+      });
 
       TYPES.forEach(type => {
         type.fields.forEach(field => {
-          if (field.type.elementType?.types.includes(SELECTED_ITEM.name)) {
+          if (field.type.types?.includes(SELECTED_ITEM.name)) {
+            field.type.types = field.type.types.filter(t => t !== SELECTED_ITEM.name);
+          }
+          if (field.type.elementType?.types?.includes(SELECTED_ITEM.name)) {
             field.type.elementType.types = field.type.elementType?.types.filter(t => t !== SELECTED_ITEM.name);
           }
-        })
-      })
+        });
+      });
 
       return {
         ...state,
@@ -814,6 +858,64 @@ const schemaEditorReducer = createReducer(
       };
     }
     return state;
+  }),
+  on(SchemaEditorActions.RemoveSchemaItems, (state, { deletingItems }) => {
+    let CLASSES = [...state.classes],
+      ENUMS = [...state.enums],
+      deletingClassSet = new Set<string>(),
+      deletingEnumSet = new Set<string>();
+    
+    deletingItems.forEach(item => {
+      if (item.isEnum) {
+        deletingEnumSet.add(item.id);
+      } else {
+        deletingClassSet.add(item.id);
+      }
+    });
+
+    const SELECTED_CLASSES = CLASSES.filter(classItem => deletingClassSet.has(classItem.id)),
+      SELECTED_ENUMS = ENUMS.filter(enumItem => deletingEnumSet.has(enumItem.id));
+
+    if (SELECTED_CLASSES.length) {
+      removeItemFromParentChildren(SELECTED_CLASSES, CLASSES);
+      const IDS_TO_DELETE = Array.from(deletingClassSet) as string[];
+      for (let id of IDS_TO_DELETE) {
+        collectIdsToDelete(id, CLASSES, IDS_TO_DELETE);
+      }
+      CLASSES = CLASSES.filter(type => !IDS_TO_DELETE.includes(type.id));
+    }
+
+    if (SELECTED_ENUMS.length) {
+      removeItemFromParentChildren(SELECTED_ENUMS, ENUMS);
+      const IDS_TO_DELETE = Array.from(deletingEnumSet) as string[];
+      for (let id of IDS_TO_DELETE) {
+        collectIdsToDelete(id, ENUMS, IDS_TO_DELETE);
+      }
+      ENUMS = ENUMS.filter(type => !IDS_TO_DELETE.includes(type.id));
+
+      CLASSES.forEach(type => {
+        type.fields = type.fields
+          .map(field => {
+            if (deletingEnumSet.has(field.type.name)) {
+              field.type.name = null;
+            }
+            if (field.type.elementType && deletingEnumSet.has(field.type.elementType?.name)) {
+              field.type.elementType.name = null;
+            }
+            return field;
+          });
+      });
+    }
+
+    removeTypeFromAssociatedItems(CLASSES, deletingClassSet, deletingEnumSet);
+    removeTypeFromAssociatedItems(ENUMS, deletingClassSet, deletingEnumSet);
+
+    return {
+      ...state,
+      _isEdited: true,
+      enums: ENUMS,
+      classes: CLASSES
+    }
   }),
   on(SchemaEditorActions.AddChangedValues, (state, {groupName, name, value}) => {
     const DEF_VALUES = state.newDefaultValues || {},
@@ -893,4 +995,46 @@ const schemaEditorReducer = createReducer(
 
 export function reducer(state: State | undefined, action: Action) {
   return schemaEditorReducer(state, action);
+}
+
+function removeItemFromParentChildren(SELECTED_ITEMS: SchemaClassTypeModel[], ITEMS: SchemaClassTypeModel[]) {
+  SELECTED_ITEMS.forEach(selectedItem => {
+    if (selectedItem.parent) {
+      const PARENT_INDEX = ITEMS.findIndex((type) => type.name === selectedItem.parent);
+      ITEMS[PARENT_INDEX] = {
+        ...ITEMS[PARENT_INDEX],
+        _props: {
+          ...ITEMS[PARENT_INDEX]._props,
+          _children: ITEMS[PARENT_INDEX]._props._children?.filter(
+            (name: string) => name !== selectedItem.name,
+          ),
+        },
+      };
+    }
+  })
+}
+
+function collectIdsToDelete(typeId: string, ITEMS: SchemaClassTypeModel[], IDS_TO_DELETE: string[]) {
+  const TYPE_ITEM = ITEMS.find(type => type.id === typeId);
+  if (TYPE_ITEM && TYPE_ITEM._props?._children) {
+    IDS_TO_DELETE.push(...TYPE_ITEM._props._children);
+    TYPE_ITEM._props._children.forEach(name => {
+      collectIdsToDelete(name, ITEMS, IDS_TO_DELETE);
+    });
+  }
+};
+
+function removeTypeFromAssociatedItems(ITEMS: SchemaClassTypeModel[], deletingClassSet: Set<string>, deletingEnumSet: Set<string>) {
+  ITEMS.forEach(schemaItem => {
+    schemaItem.fields.forEach(field => {
+      if (field.type.elementType?.types) {
+        field.type.elementType.types = field.type.elementType?.types
+          .filter(type => !deletingEnumSet.has(type) && !deletingClassSet.has(type));
+      }
+      if (field.type.types) {
+        field.type.types = field.type.types
+          .filter(type => !deletingEnumSet.has(type) && !deletingClassSet.has(type));
+      }
+    })
+  })
 }

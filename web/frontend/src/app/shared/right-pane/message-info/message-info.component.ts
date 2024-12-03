@@ -8,7 +8,7 @@ import {
   OnInit,
   ViewChild,
 }                               from '@angular/core';
-import { UntypedFormControl }          from '@angular/forms';
+import { FormBuilder, FormGroup, UntypedFormControl }          from '@angular/forms';
 import { IL2Package }           from '@deltix/hd.components-order-book/lib/l2';
 import {
   select,
@@ -44,6 +44,8 @@ import { ResizeObserveService } from '../../services/resize-observe.service';
 import { TabStorageService }    from '../../services/tab-storage.service';
 import { HasRightPanel }        from '../has-right-panel';
 import { RightPaneService }     from '../right-pane.service';
+import { StreamSourceService } from 'src/app/pages/streams/services/stream-source.service';
+import { JSONisValid, formatArray, formatObject } from '../../utils/digitGrouping';
 
 @Component({
   selector: 'app-message-info',
@@ -76,11 +78,16 @@ export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
   orderBookNoData$: Observable<boolean>;
   orderBookError$: Observable<string>;
   hideOrderBook$ = new BehaviorSubject(true);
+  sourcesDropdownVisible$ = new BehaviorSubject(false);
   showLoader$: Observable<boolean>;
   tabSwitching$ = new BehaviorSubject(true);
   feedSymbol$ = new BehaviorSubject<string>(null);
   feedFiltered$: Observable<IL2Package>;
   message$: Observable<Partial<HasRightPanel>>;
+  formGroup: FormGroup;
+  sourceOptions: string[];
+  private lastSelectedSource: string[];
+  private locale = navigator.languages[0];
 
   private destroy$ = new Subject();
 
@@ -91,6 +98,8 @@ export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
     private messageInfoService: RightPaneService,
     private httpClient: HttpClient,
     private resizeObserveService: ResizeObserveService,
+    private fb: FormBuilder,
+    private streamSourceService: StreamSourceService
   ) {}
 
   ngOnInit() {
@@ -99,8 +108,28 @@ export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
       filter((t) => !!t),
     );
 
+    this.orderBookStreams$ = this.tab$.pipe(map((tab) => [tab.stream]));
+    this.formGroup = this.fb.group({ source: null });
+
+    this.orderBookStreams$
+      .pipe(
+        switchMap(streams => this.streamSourceService.getAvailableSources(streams)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((sources: string[]) => {
+        this.sourceOptions = sources;
+
+        if (this.lastSelectedSource) {
+          this.formGroup.patchValue({ source: this.lastSelectedSource });
+        } else {
+          this.formGroup.patchValue({
+            source: sources.includes('L2') ? ['L2'] : [ sources[0] ]
+          });
+        }
+      })
+
     this.canShowOrderBook$ = this.tab$.pipe(
-      map((tab) => tab.chartType?.includes(ChartTypes.PRICES_L2)),
+      map((tab) => tab.chartType?.includes(ChartTypes.PRICE_LEVELS)),
     );
 
     this.tab$
@@ -108,12 +137,13 @@ export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
         distinctUntilChanged((t1, t2) => t1.id === t2.id),
         takeUntil(this.destroy$),
       )
-      .subscribe(() => {
+      .subscribe(tab => {
         this.tabSwitching$.next(true);
         this.hideOrderBook$.next(true);
+        this.lastSelectedSource = this.messageInfoService.getOrderBookSource(tab?.id);
       });
 
-    this.message$ = this.tabStorageService.flow<HasRightPanel>('rightPanel').getData(['selectedMessage'])
+    this.message$ = this.tabStorageService.flow<HasRightPanel>('rightPanel').getData(['selectedMessage']);
 
     this.props$ = combineLatest([
       this.message$,
@@ -122,8 +152,24 @@ export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
     ]).pipe(
       map(([data, columns]) => {
         return this.getProps(data.selectedMessage, columns)
-          .filter(prop => prop.key !== 'time' && !(prop.key === 'nanoTime' && !prop.value));
-      })
+          .filter(prop => prop.key !== 'time' && !(prop.key === 'nanoTime' && !prop.value))
+          .map(prop => {
+            if (['number', 'string'].includes(typeof prop.value) && Math.abs(prop.value) >= 1000) {
+              return { ...prop, value: parseFloat(prop.value).toLocaleString(this.locale) };
+            } else if (prop.value && JSONisValid(prop.value)) {
+              const parsed = JSON.parse(prop.value);
+              if (Array.isArray(parsed)) {
+                return { ...prop, value: JSON.stringify(formatArray(parsed, this.locale)) };
+              } else if (parsed && typeof parsed === 'object') {
+                return { ...prop, value: JSON.stringify(formatObject(parsed, this.locale)) };
+              } else {
+                return prop;
+              }
+            } else {
+              return prop;
+            }
+          })
+      }),
     );
 
     this.editorValue$ = this.message$.pipe(
@@ -136,6 +182,7 @@ export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
       .pipe(map((data) => data?.messageView || 'view'));
 
     storageMessageView$.pipe(takeUntil(this.destroy$)).subscribe((messageView) => {
+      this.sourcesDropdownVisible$.next(messageView === 'orderBook');
       this.viewControl.patchValue(messageView, {emitEvent: false});
     });
 
@@ -143,21 +190,25 @@ export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
       this.tabSwitching$.next(true);
       this.hideOrderBook$.next(true);
       this.tabStorageService.flow<HasRightPanel>('rightPanel').updateDataSync((data) => ({...data, messageView}));
+      this.sourcesDropdownVisible$.next(messageView === 'orderBook');
     });
 
-    this.orderBookStreams$ = this.tab$.pipe(map((tab) => [tab.stream]));
     this.orderBookSymbol$ = this.message$.pipe(map((message) => message.selectedMessage?.symbol));
     combineLatest([
       this.message$.pipe(filter((data) => !!data.selectedMessage)),
       storageMessageView$,
+      this.formGroup.get('source').valueChanges.pipe(startWith(this.formGroup.get('source').value ?? ['L2']))
     ])
       .pipe(
-        filter(([message, view]) => view === 'orderBook'),
+        filter(([message, view, source]) => view === 'orderBook'),
         withLatestFrom(this.tab$),
       )
       .pipe(
         debounceTime(100),
-        switchMap(([[message], tab]) => {
+        switchMap(([[message, view, source], tab]) => {
+          if (tab?.id) {
+            this.messageInfoService.saveOrderBookSource(tab.id, source);
+          } 
           this.tabSwitching$.next(false);
 
           if (message.selectedMessage.symbol !== this.feedSymbol$.getValue()) {
@@ -172,6 +223,7 @@ export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
             from: message.from,
             offset: message.rowIndex,
             reverse: tab.reverse,
+            source: source[0]
           };
 
           if (tab.space !== undefined) {

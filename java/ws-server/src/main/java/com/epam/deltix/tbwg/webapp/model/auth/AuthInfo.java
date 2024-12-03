@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,10 +14,12 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model.auth;
+package com.epam.deltix.tbwg.webapp.model.auth;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.epam.deltix.tbwg.webapp.settings.ProviderType;
+
+import java.util.List;
 
 /**
  * Provides authentication info.
@@ -66,8 +68,11 @@ public class AuthInfo {
     @JsonProperty("token_endpoint")
     private String tokenEndpoint;
 
+    @JsonProperty("scopes")
+    private List<String> scopes;
+
     public AuthInfo(ProviderType providerType, String name, String jwksUri, String configUrl, String clientId,
-                    String audience, String logoutUrl, String oauthServer, String tokenEndpoint) {
+                    String audience, String logoutUrl, String oauthServer, String tokenEndpoint, List<String> scopes) {
         this.providerType = providerType;
         this.name = name;
         this.jwksUri = jwksUri;
@@ -77,6 +82,7 @@ public class AuthInfo {
         this.logoutUrl = logoutUrl;
         this.oauthServer = oauthServer;
         this.tokenEndpoint = tokenEndpoint;
+        this.scopes = scopes;
     }
 
     public String getName() {
@@ -142,4 +148,13 @@ public class AuthInfo {
     public void setTokenEndpoint(String tokenEndpoint) {
         this.tokenEndpoint = tokenEndpoint;
     }
+
+    public List<String> getScopes() {
+        return scopes;
+    }
+
+    public void setScopes(List<String> scopes) {
+        this.scopes = scopes;
+    }
+
 }

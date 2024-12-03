@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,8 +14,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.timebase.base;
+package com.epam.deltix.tbwg.webapp.services.timebase.base;
 
+import com.epam.deltix.qsrv.hf.pub.md.json.DataTypeDef;
+import com.epam.deltix.qsrv.hf.pub.md.json.SchemaDef;
 import com.epam.deltix.tbwg.webapp.model.input.QueryRequest;
 import com.epam.deltix.tbwg.webapp.model.schema.*;
 import com.epam.deltix.tbwg.webapp.model.schema.changes.StreamMetaDataChangeDef;
@@ -60,11 +62,10 @@ public interface SchemaManipulationService {
      * Create stream with provided key, schema and distribution factor.
      * @param key stream key
      * @param schemaDef stream schema
-     * @param distributionFactor stream distribution factor
      * @return new stream schema
      * @throws WriteOperationsException if user isn't allowed to create streams
      */
-    SchemaDef createStream(@Nonnull String key, @Nonnull SchemaDef schemaDef, int distributionFactor)
+    SchemaDef createStream(@Nonnull String key, @Nonnull SchemaDef schemaDef)
             throws WriteOperationsException;
 
     /**

@@ -3,4 +3,5 @@ export interface MultiSelectItem {
   name: string;
   hasChildren?: boolean;
   parentItem?: string;
+  disabled?: boolean;
 }

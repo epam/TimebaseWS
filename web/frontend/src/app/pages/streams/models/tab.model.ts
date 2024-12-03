@@ -9,6 +9,7 @@ export class TabModel {
   public symbol?: string;
   public space?: string;
   public id?: string;
+  public source?: string;
 
   public name?: string;
 
@@ -18,13 +19,17 @@ export class TabModel {
   public reverse?: boolean;
   public view?: boolean;
   public isView?: boolean;
+  public isTopic?: boolean;
   public schema?: boolean;
   public schemaEdit?: boolean;
+  public schemaView?: boolean;
   public streamCreate?: boolean;
+  public topicCreate?: boolean;
   public chart?: boolean;
   public query?: boolean;
   public flow?: boolean;
   public orderBook?: boolean;
+  public generateDDL?: boolean;
   public chartType?: ChartTypes[];
   public chartTypeTitles?: string[];
   public streamRange?: {
@@ -38,6 +43,11 @@ export class TabModel {
   public querySymbol: string;
   public queryInitialQuery: string;
 
+  public rangeStart?: string;
+  public rangeEnd?: string;
+
+  public exchange?: string;
+
   constructor(obj: {} | TabModel) {
     if (obj['stream']) {
       this.stream = obj['stream'];
@@ -45,6 +55,10 @@ export class TabModel {
   
     if (obj['isView']) {
       this.isView = !!obj['isView'];
+    }
+
+    if (obj['isTopic']) {
+      this.isTopic = !!obj['isTopic'];
     }
   
     if (obj['streamName']) {
@@ -81,6 +95,9 @@ export class TabModel {
     if (obj['live']) {
       this.live = obj['live'];
     }
+    if (obj['generateDDL']) {
+      this.generateDDL = obj['generateDDL'];
+    }
     if (obj['monitor']) {
       this.monitor = obj['monitor'];
     }
@@ -96,8 +113,14 @@ export class TabModel {
     if (obj['schemaEdit']) {
       this.schemaEdit = obj['schemaEdit'];
     }
+    if (obj['schemaView']) {
+      this.schemaView = obj['schemaView'];
+    }
     if (obj['streamCreate']) {
       this.streamCreate = obj['streamCreate'];
+    }
+    if (obj['topicCreate']) {
+      this.topicCreate = obj['topicCreate'];
     }
     if (obj['chart']) {
       this.chart = obj['chart'];
@@ -126,6 +149,15 @@ export class TabModel {
     if (obj['queryInitialQuery']) {
       this.queryInitialQuery = obj['queryInitialQuery'];
     }
+    if (obj['rangeStart']) {
+      this.rangeStart = obj['rangeStart'];
+    }
+    if (obj['rangeEnd']) {
+      this.rangeEnd = obj['rangeEnd'];
+    }
+    if (obj['exchange']) {
+      this.exchange = obj['exchange'];
+    }
   }
 
   public get title(): string {
@@ -147,14 +179,20 @@ export class TabModel {
         return 'schema';
       case this.streamCreate:
         return 'stream-create';
+      case this.topicCreate:
+        return 'topic-create';
       case this.schemaEdit:
         return 'schema-edit';
+      case this.schemaView:
+        return 'schema';
       case this.chart:
         return 'chart';
       case this.query:
         return 'query';
       case this.orderBook:
         return 'orderBook';
+      case this.generateDDL:
+        return 'generateDDL';
       case this.flow:
         return 'flow';
       case this.view:
@@ -171,7 +209,7 @@ export class TabModel {
 
   public get linkArray(): string[] {
     const link_array =
-      this.query || this.flow || this.orderBook
+      this.query || this.flow || this.orderBook || this.generateDDL || this.chart
         ? []
         : [this.symbol ? symbolRouteName : streamRouteName];
 
@@ -194,8 +232,14 @@ export class TabModel {
       case this.streamCreate:
         link_array.push('stream-create');
         break;
+      case this.topicCreate:
+        link_array.push('topic-create');
+        break;
       case this.schemaEdit:
         link_array.push('schema-edit');
+        break;
+      case this.schemaView:
+        link_array.push('schema');
         break;
       case this.chart:
         link_array.push('chart');
@@ -206,13 +250,16 @@ export class TabModel {
       case this.orderBook:
         link_array.push('order-book');
         break;
+      case this.generateDDL:
+        link_array.push('generate-qql-ddl');
+        break;
       case this.flow:
         link_array.push('flow');
         break;
     }
 
-    if (this.stream && !this.orderBook) link_array.push(this.stream);
-    if (this.symbol && !this.orderBook) link_array.push(this.symbol);
+    if (this.stream && !this.orderBook && !this.generateDDL && !this.chart) link_array.push(this.stream);
+    if (this.symbol && !this.orderBook && !this.generateDDL && !this.chart) link_array.push(this.symbol);
     if (this.id + '') link_array.push(this.id + '');
 
     return link_array;

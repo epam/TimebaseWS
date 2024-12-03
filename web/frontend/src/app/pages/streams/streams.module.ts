@@ -108,6 +108,13 @@ import { PreviewComponent } from './components/csv-import/preview/preview.compon
 import { WriteModeAndTimeRangeComponent } from './components/csv-import/write-mode-and-time-range/write-mode-and-time-range.component';
 import { ResizableModule } from 'src/app/shared/components/resizable/resizable.module';
 import { ConfirmationModalComponent } from './components/modals/confirmation-modal/confirmation-modal.component';
+import { ModalPlayBackComponent } from './components/modals/modal-play-back/modal-play-back.component';
+import { ChartScrollComponent } from './components/deltix-charts/chart-scroll/chart-scroll.component';
+import { GenerateDDLModule } from '../generate-ddl/generate-ddl.module';
+import { ModalStreamSymbolsComponent } from './components/modals/modal-stream-symbols/modal-stream-symbols.component';
+import { NewStreamSchemaComponent } from './components/csv-import/new-stream-schema/new-stream-schema.component';
+import { IsUsedCbComponent } from './modules/schema-editor/components/class-list-grid/grid-components/is-used-cb/is-used-cb.component';
+import { SchemaEditorModule } from './modules/schema-editor/schema-editor.module';
 
 const DEFAULT_PERFECT_SCROLLBAR_CONFIG: PerfectScrollbarConfigInterface = {
   suppressScrollX: false,
@@ -152,6 +159,11 @@ const DEFAULT_PERFECT_SCROLLBAR_CONFIG: PerfectScrollbarConfigInterface = {
         PreviewComponent,
         WriteModeAndTimeRangeComponent,
         ConfirmationModalComponent,
+        ModalPlayBackComponent,
+        ChartScrollComponent,
+        ModalStreamSymbolsComponent,
+        NewStreamSchemaComponent,
+        IsUsedCbComponent 
     ],
     imports: [
         AutocompleteModule,
@@ -184,6 +196,7 @@ const DEFAULT_PERFECT_SCROLLBAR_CONFIG: PerfectScrollbarConfigInterface = {
         StreamsNavigationModule,
         SimpleModalModule,
         QueryModule,
+        GenerateDDLModule,
         OrderBookModule,
         SafeDatePickerModule,
         AccordionModule,
@@ -218,7 +231,8 @@ const DEFAULT_PERFECT_SCROLLBAR_CONFIG: PerfectScrollbarConfigInterface = {
         WriteModesModule,
         StreamDescribeContentModule,
         GridTotalComponent,
-        ResizableModule
+        ResizableModule,
+        SchemaEditorModule
     ],
     providers: [
         SchemaDataService,

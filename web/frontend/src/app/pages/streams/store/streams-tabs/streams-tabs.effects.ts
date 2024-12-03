@@ -73,7 +73,7 @@ export class StreamsTabsEffects {
   ), {dispatch: false});
    removeGridData = createEffect(() => this.actions$.pipe(
     ofType<StreamsTabsActions.RemoveTab>(StreamsTabsActionTypes.REMOVE_TAB),
-    concatMap((data) => this.gridDataStorageService.removeData(data.payload.tab.id)),
+    concatMap((data) => this.gridDataStorageService.removeData(data.payload.tab?.id)),
   ), {dispatch: false});
    removeGridDataOfTabs = createEffect(() => this.actions$.pipe(
     ofType<StreamsTabsActions.RemoveTabs>(StreamsTabsActionTypes.REMOVE_TABS),

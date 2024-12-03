@@ -6,6 +6,7 @@ export enum MenuItemType {
   space = 'SPACE',
   group = 'GROUP',
   view = 'VIEW',
+  topic = 'TOPIC',
 }
 
 export interface MenuItemMeta extends SidebarContextMenuItem {
@@ -15,6 +16,8 @@ export interface MenuItemMeta extends SidebarContextMenuItem {
 export interface MenuItem {
   id?: string;
   name?: string;
+  displayName?: string;
+  nameForSearch?: string;
   childrenCount?: number;
   totalCount?: number;
   type?: MenuItemType;
@@ -27,4 +30,6 @@ export interface MenuItem {
   viewMd?: {
     state: string;
   };
+  active?: boolean;
+  parent?: string
 }

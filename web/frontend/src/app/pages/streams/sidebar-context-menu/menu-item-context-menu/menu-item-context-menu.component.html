@@ -1,13 +1,16 @@
 <div
-    [class.disabled]="(item | streamsNavigationUrl: activeTabType) === null"
+    [class.disabled]="(item | streamsNavigationUrl: activeTabType: (reverseViewIsDefault$ | async)) === null"
     [class.show-menu]="showMenu"
     class="wrapper">
   <ng-content></ng-content>
-  <i (click)="onRightClick($event)" class="three-dots-icon"></i>
+  <i class="three-dots-icon"
+    [adaptivePosition]="false"
+    (click)="onRightClick($event)"
+    [tooltip]="'buttons.open_context_menu' | translate" container="body"></i>
   <a
       [adaptivePosition]="false"
       [queryParams]="item | streamsNavigationParams: activeTabType:true"
-      [routerLink]="item | streamsNavigationUrl: activeTabType"
+      [routerLink]="item | streamsNavigationUrl: activeTabType: (reverseViewIsDefault$ | async)"
       [tooltip]="'buttons.open_in_new_tab' | translate"
       class="open-in-new-tab"
       container="body">

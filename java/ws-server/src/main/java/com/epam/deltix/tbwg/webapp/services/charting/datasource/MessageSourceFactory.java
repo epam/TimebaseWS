@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.charting.datasource;
+package com.epam.deltix.tbwg.webapp.services.charting.datasource;
 
 import com.epam.deltix.tbwg.webapp.services.charting.TimeInterval;
 
@@ -22,11 +22,11 @@ import java.util.Set;
 
 public interface MessageSourceFactory {
 
-    ReactiveMessageSource   buildSource(String streamName, String symbol, Set<String> types,
+    ReactiveMessageSource   buildSource(String streamName, String[] symbols, Set<String> types,
                                         TimeInterval interval, boolean live, boolean unbound);
 
     ReactiveMessageSource   buildSource(String qql, TimeInterval interval, boolean live, boolean unbound);
 
-    ReactiveMessageSource   buildSource(String streamName, String symbol, String qql, TimeInterval interval, boolean live, boolean unbound);
+    ReactiveMessageSource   buildSource(String streamName, String[] symbols, String qql, TimeInterval interval, boolean live, boolean unbound);
 
 }

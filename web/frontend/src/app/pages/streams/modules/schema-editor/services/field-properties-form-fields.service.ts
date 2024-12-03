@@ -3,7 +3,7 @@ import {UntypedFormControl} from '@angular/forms';
 import {select, Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
 import {combineLatest, merge, Observable, ReplaySubject} from 'rxjs';
-import {distinctUntilChanged, filter, map} from 'rxjs/operators';
+import {distinctUntilChanged, filter, map, pluck} from 'rxjs/operators';
 import {AppState} from '../../../../../core/store';
 import {
   DefaultTypeModel,
@@ -20,6 +20,8 @@ import {
   getSelectedSchemaItemAllFields,
 } from '../store/schema-editor.selectors';
 import {SeFieldFormsService} from './se-field-forms.service';
+import { getAppSettings } from 'src/app/core/store/app/app.selectors';
+import { AppInfoService } from 'src/app/shared/services/app-info.service';
 
 @Injectable()
 export class FieldPropertiesFormFieldsService {
@@ -29,6 +31,7 @@ export class FieldPropertiesFormFieldsService {
     private appStore: Store<AppState>,
     private translateService: TranslateService,
     private seFieldFormsService: SeFieldFormsService,
+    private appInfoService: AppInfoService
   ) {}
 
   fields(): Observable<FieldModel[]> {
@@ -42,15 +45,17 @@ export class FieldPropertiesFormFieldsService {
       this.appStore.pipe(select(getAllSchemaItems), filter(Boolean)),
       this.appStore.pipe(select(getDefaultsTypes), filter(Boolean)),
       this.appStore.pipe(select(getSelectedSchemaItemAllFields), filter(Boolean)),
+      this.appStore.select(getAppSettings).pipe(pluck('hasNanoseconds'))
     ]).pipe(
       map(
-        ([messages, type, field, allSchemaItems, defaultTypes, allFields]: [
+        ([messages, type, field, allSchemaItems, defaultTypes, allFields, hasNanoseconds]: [
           any,
           SchemaClassTypeModel,
           SchemaClassFieldModel,
           SchemaClassTypeModel[],
           DefaultTypeModel[],
           SchemaClassFieldModel[],
+          boolean
         ]) => {
           const enums = allSchemaItems.filter((_type) => _type.isEnum);
           const enumNames = enums.map((_type) => _type.name);
@@ -64,7 +69,7 @@ export class FieldPropertiesFormFieldsService {
             {
               type: 'text',
               name: 'name',
-              label: messages.value,
+              label: messages.name,
               required: true,
               validators: {getErrorsText: this.getErrorsText(true)},
             },
@@ -139,7 +144,7 @@ export class FieldPropertiesFormFieldsService {
           }
 
           fields.push(
-            this.getTypeField('type', messages, defaultTypes, nameValues, field.type, classNames),
+            this.getTypeField('type', messages, defaultTypes, nameValues, field.type, classNames, hasNanoseconds),
           );
 
           return fields;
@@ -172,6 +177,7 @@ export class FieldPropertiesFormFieldsService {
     nameValues: string[],
     type: FieldTypeModel,
     classNames: string[],
+    hasNanoseconds: boolean
   ): FieldModel {
     const childFields: FieldModel[] = [
       {
@@ -187,12 +193,12 @@ export class FieldPropertiesFormFieldsService {
       .filter((t) => t.name === type.name && t.encoding)
       .map((_type) => _type.encoding);
 
-    if (encodings.length) {
+    if (encodings.length && (type.name !== 'TIMESTAMP' || hasNanoseconds)) {
       childFields.push({
         type: 'dropdown',
         name: 'encoding',
         label: messages.encoding,
-        values: encodings,
+        values: (type.name === 'TIMESTAMP' && hasNanoseconds) ? ['', ...encodings] : encodings,
         required: false,
       });
     }
@@ -227,6 +233,7 @@ export class FieldPropertiesFormFieldsService {
           nameValues.filter((n) => n !== 'ARRAY'),
           type.elementType,
           classNames,
+          hasNanoseconds
         ),
       );
     }

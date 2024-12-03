@@ -1,10 +1,10 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, OnDestroy, OnInit} from '@angular/core';
 import {UntypedFormBuilder, UntypedFormGroup} from '@angular/forms';
 import {TranslateService} from '@ngx-translate/core';
 import {BsModalRef} from 'ngx-bootstrap/modal';
-import {combineLatest, Observable, of} from 'rxjs';
-import {map, publishReplay, refCount, startWith, switchMap, take} from 'rxjs/operators';
-import { dateTimeFormats } from 'src/app/shared/utils/dateTimeFormats';
+import {BehaviorSubject, combineLatest, Observable, of, Subject} from 'rxjs';
+import {map, publishReplay, refCount, startWith, switchMap, take, takeUntil} from 'rxjs/operators';
+import { dateTimeFormats, dateTimeFormatsWithNano } from 'src/app/shared/utils/dateTimeFormats';
 import {TreeItem} from '../../../../../shared/components/tree-checkboxes/tree-item';
 import {
   ExportFilter,
@@ -15,6 +15,8 @@ import {ExportService} from '../../../../../shared/services/export.service';
 import {SchemaService} from '../../../../../shared/services/schema.service';
 import {StreamsService} from '../../../../../shared/services/streams.service';
 import {SymbolsService} from '../../../../../shared/services/symbols.service';
+import { KeyValue } from '@angular/common';
+import { GlobalFiltersService } from 'src/app/shared/services/global-filters.service';
 
 enum Delimiters {
   tab = 'tab',
@@ -35,7 +37,7 @@ const delimiterValues = {
   templateUrl: './modal-export-file.component.html',
   styleUrls: ['./modal-export-file.component.scss'],
 })
-export class ModalExportFileComponent implements OnInit {
+export class ModalExportFileComponent implements OnInit, OnDestroy {
   stream: {id: string; name: string};
   symbols: string[];
   types: string[];
@@ -55,6 +57,14 @@ export class ModalExportFileComponent implements OnInit {
   autoCompleteProvider = this.getSymbols.bind(this);
 
   dateTimeFormats = dateTimeFormats;
+  timeRangeOptional = { startTimeDisabled: true, endTimeDisabled: true };
+  validationErrorMessages = { startTime: '', endTime: '', range: '' };
+  timeInvalid = { startTime: false, endTime: false };
+  submitButtonDisabled$ = new BehaviorSubject(false);
+  importToTextFile: boolean;
+  timezoneName: string;
+
+  private destroy$ = new Subject();
 
   constructor(
     private symbolsService: SymbolsService,
@@ -64,6 +74,7 @@ export class ModalExportFileComponent implements OnInit {
     private streamsService: StreamsService,
     private exportService: ExportService,
     private bsRef: BsModalRef,
+    private globalFiltersService: GlobalFiltersService
   ) {}
 
   ngOnInit(): void {
@@ -74,6 +85,8 @@ export class ModalExportFileComponent implements OnInit {
     if (this.exportFormat === ExportFilterFormat.CSV) {
       this.configData.delimiters = Object.keys(Delimiters);
     }
+
+    this.importToTextFile = this.exportFormat === ExportFilterFormat.CSV;
 
     this.tree$ = this.schemaService.getSchema(this.stream.id).pipe(
       map(({types}) => {
@@ -93,15 +106,20 @@ export class ModalExportFileComponent implements OnInit {
       refCount(),
     );
 
+    this.dateTimeFormats = [...dateTimeFormats, ...dateTimeFormatsWithNano].sort();
+
     this.form = this.fb.group({
       symbols: this.symbols ? [this.symbols] : null,
       fields: null,
       exportTo: ExportTo.oneFile,
       delimiters: Delimiters.comma,
       range: {start: null, end: null},
-      datetimeFormat: dateTimeFormats[0],
-      exportStaticFields: true
+      datetimeFormat: this.dateTimeFormats[0],
+      exportStaticFields: true,
     });
+
+    this.form.get('range').valueChanges.pipe(takeUntil(this.destroy$))
+      .subscribe(range => this.validateRange(range))
 
     const fields$ = this.tree$.pipe(
       map((tree) => {
@@ -115,6 +133,11 @@ export class ModalExportFileComponent implements OnInit {
         return fields;
       }),
     );
+
+    this.globalFiltersService
+      .getFilters()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(globalFilters => this.timezoneName = globalFilters.timezone[0].name);
 
     combineLatest([fields$, this.streamsService.range(this.stream.id)])
       .pipe(take(1))
@@ -178,8 +201,8 @@ export class ModalExportFileComponent implements OnInit {
     });
 
     const filter: ExportFilter = {
-      from: range.start.toISOString(),
-      to: range.end.toISOString(),
+      from: this.timeRangeOptional.startTimeDisabled ? null : range.start,
+      to: this.timeRangeOptional.endTimeDisabled ? null : range.end,
       types: Object.values(types),
       format: this.exportFormat,
       valueSeparator: delimiterValues[delimiters],
@@ -209,5 +232,39 @@ export class ModalExportFileComponent implements OnInit {
     return this.form
       .get(controlName)
       .valueChanges.pipe(startWith(this.form.get(controlName).value));
+  }
+
+  public setTimeRangeState(event: { [key: string]: boolean }) {
+    this.timeRangeOptional = {
+      ...this.timeRangeOptional,
+      ...event
+    };
+    this.validateRange(this.form.get('range').value);
+  }
+
+  private validateRange(range: { start: Date, end: Date }) {
+    this.validationErrorMessages.startTime = (!range.start || range.start?.toString() === 'Invalid Date') && !this.timeRangeOptional.startTimeDisabled ? 
+      'Start Time is invalid' : '';
+
+    this.validationErrorMessages.endTime = (!range.end || range.end?.toString() === 'Invalid Date') && !this.timeRangeOptional.endTimeDisabled ?
+      'End Time is invalid' : '';
+
+    const rangeError = range.end?.toString() !== 'Invalid Date' && range.start?.toString() !== 'Invalid Date'
+      && !this.timeRangeOptional.startTimeDisabled && !this.timeRangeOptional.endTimeDisabled && range.end < range.start;
+    this.validationErrorMessages.range = rangeError ? 'End Time should be greater than Start Time' : '';
+    this.timeInvalid = {
+      startTime: !!this.validationErrorMessages.startTime || !!this.validationErrorMessages.range,
+      endTime: !!this.validationErrorMessages.endTime || !!this.validationErrorMessages.range,
+    };
+    this.submitButtonDisabled$.next(Object.values(this.validationErrorMessages).some(v => !!v));
+  };
+
+  originalOrder = (a: KeyValue<number,string>, b: KeyValue<number,string>) => {
+    return 0;
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next(true);
+    this.destroy$.complete();
   }
 }

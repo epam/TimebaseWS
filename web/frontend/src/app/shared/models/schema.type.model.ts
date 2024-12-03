@@ -27,3 +27,14 @@ export type SchemaTypesMap = Map<
     parent: string;
   }
 >;
+
+export interface UISchemaTypeModel extends SchemaTypeModel {
+  checked: boolean;
+}
+
+export interface UISchemaAllTypeModel extends SchemaAllTypeModel {
+  hierarchy: string[], 
+  fieldsOpen: boolean, 
+  checked: boolean;
+  fieldList: UISchemaTypeModel[];
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,14 +14,14 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.utils.qql;
 
-import com.epam.deltix.streaming.MessageSource;
-import com.epam.deltix.timebase.messages.InstrumentMessage;
+
 import com.epam.deltix.qsrv.hf.pub.RawMessage;
 import com.epam.deltix.qsrv.hf.tickdb.pub.RawMessageHelper;
 import com.epam.deltix.qsrv.hf.tickdb.pub.query.InstrumentMessageSource;
+import com.epam.deltix.streaming.MessageSource;
+import com.epam.deltix.timebase.messages.InstrumentMessage;
 import com.epam.deltix.util.lang.Util;
 
 import java.util.Map;

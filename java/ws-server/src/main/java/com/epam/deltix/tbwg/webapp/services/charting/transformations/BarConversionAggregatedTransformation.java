@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 
 import com.epam.deltix.dfp.Decimal64Utils;
@@ -118,11 +117,11 @@ public class BarConversionAggregatedTransformation extends AbstractChartTransfor
 
     private void send() {
         bar.setTime(aggregated ? timestamp : (timestamp - periodicity));
-        bar.setOpen(Decimal64Utils.toString(Decimal64Utils.fromDouble(open)));
-        bar.setClose(Decimal64Utils.toString(Decimal64Utils.fromDouble(close)));
-        bar.setLow(Decimal64Utils.toString(Decimal64Utils.fromDouble(low)));
-        bar.setHigh(Decimal64Utils.toString(Decimal64Utils.fromDouble(high)));
-        bar.setVolume(Decimal64Utils.toString(Decimal64Utils.fromDouble(volume)));
+        bar.setOpen(Decimal64Utils.toFloatString(Decimal64Utils.fromDouble(open)));
+        bar.setClose(Decimal64Utils.toFloatString(Decimal64Utils.fromDouble(close)));
+        bar.setLow(Decimal64Utils.toFloatString(Decimal64Utils.fromDouble(low)));
+        bar.setHigh(Decimal64Utils.toFloatString(Decimal64Utils.fromDouble(high)));
+        bar.setVolume(Decimal64Utils.toFloatString(Decimal64Utils.fromDouble(volume)));
 
         sendMessage(bar);
     }

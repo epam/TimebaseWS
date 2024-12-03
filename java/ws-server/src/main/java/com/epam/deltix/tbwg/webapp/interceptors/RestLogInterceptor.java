@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.interceptors;
 
 import com.epam.deltix.gflog.api.Log;
@@ -24,6 +23,7 @@ import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.security.Principal;
 
 @Component
 public class RestLogInterceptor extends HandlerInterceptorAdapter {
@@ -35,7 +35,7 @@ public class RestLogInterceptor extends HandlerInterceptorAdapter {
         try {
             LOGGER.info()
                 .append("Request: ").append(request.getMethod()).append(" ").append(request.getRequestURI())
-                .append(", User: ").append(request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : "Unknown")
+                .append(appendUserName(request))
                 .append(" (").append(request.getRemoteAddr()).append(")")
                 .commit();
         } catch (Throwable t) {
@@ -50,11 +50,20 @@ public class RestLogInterceptor extends HandlerInterceptorAdapter {
         try {
             LOGGER.info()
                 .append("Complete: ").append(request.getMethod()).append(" ").append(request.getRequestURI())
-                .append(", User: ").append(request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : "Unknown")
+                .append(appendUserName(request))
                 .append(" (").append(request.getRemoteAddr()).append(")")
                 .commit();
         } catch (Throwable t) {
             LOGGER.error().append("Error after completion rest query").append(t).commit();
+        }
+    }
+
+    private String appendUserName(HttpServletRequest request) {
+        Principal user = request.getUserPrincipal();
+        if (user == null) {
+            return "";
+        } else {
+            return ", User: " + user.getName();
         }
     }
 }

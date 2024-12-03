@@ -8,7 +8,7 @@ export function uniqueName(
   return (control: UntypedFormControl) => {
     return existing$.pipe(
       map((names) => {
-        if (names.some((name) => control.value === name)) {
+        if (names.includes(control.value)) {
           return {nameIsForbidden: true};
         }
 

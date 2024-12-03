@@ -82,8 +82,12 @@ export class ModalStreamChartComponent implements OnInit, OnDestroy {
     queryParams['isView'] = this.item.meta.isView ? '1' : '';
     queryParams = this.showSpaces ? { ...queryParams, space: this.spaceName } : queryParams;
 
+    queryParams['stream'] = this.item.meta.stream.id;
+    queryParams['symbol'] = this.form.get('symbol').value.map(item => item.id).join(',');
+    queryParams['name'] = this.item.meta.stream.name;
+
     this.router.navigate(
-      ['/', appRoute, 'symbol', 'chart', this.item.meta.stream.id, this.form.get('symbol').value],
+      ['/', appRoute, 'chart'],
       {queryParams},
     );
     timer().subscribe(() => this.streamsNavigationScrollService.scrollToActiveMenu());

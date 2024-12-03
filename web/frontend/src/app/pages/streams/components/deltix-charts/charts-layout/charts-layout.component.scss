@@ -182,3 +182,13 @@ option {
 .no-display {
   display: none;
 }
+
+.page-block {
+  display: flex;
+  justify-content: center;
+  p {
+    margin-top: 2rem;
+    font-size: 1rem;
+    color: #ffffffa6;
+  }
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.utils;
+package com.epam.deltix.tbwg.webapp.utils;
 
 import com.epam.deltix.qsrv.hf.pub.md.*;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
@@ -44,10 +44,22 @@ public class TimeBaseUtils {
     public static long getEndTime(DXTickStream[] streams) {
         long time = Long.MIN_VALUE;
 
-        for (int i = 0; i < streams.length; i++) {
-            long[] range = streams[i].getTimeRange();
+        for (DXTickStream stream : streams) {
+            long[] range = stream.getTimeRange();
             if (range != null)
                 time = Math.max(time, range[1]);
+        }
+
+        return time;
+    }
+
+    public static long getStartTime(DXTickStream[] streams) {
+        long time = Long.MAX_VALUE;
+
+        for (DXTickStream stream : streams) {
+            long[] range = stream.getTimeRange();
+            if (range != null)
+                time = Math.min(time, range[0]);
         }
 
         return time;
@@ -56,8 +68,8 @@ public class TimeBaseUtils {
     public static long getEndTime(List<DXTickStream> streams) {
         long time = Long.MIN_VALUE;
 
-        for (int i = 0; i < streams.size(); i++) {
-            long[] range = streams.get(i).getTimeRange();
+        for (DXTickStream stream : streams) {
+            long[] range = stream.getTimeRange();
             if (range != null)
                 time = Math.max(time, range[1]);
         }

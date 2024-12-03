@@ -13,12 +13,12 @@ import {BsModalService}                           from 'ngx-bootstrap/modal';
 import {BsModalRef}                               from 'ngx-bootstrap/modal/bs-modal-ref.service';
 import {ModalOptions}                             from 'ngx-bootstrap/modal/modal-options.class';
 import {ContextMenuComponent, ContextMenuService} from '@perfectmemory/ngx-contextmenu';
-import {merge, Observable, ReplaySubject}         from 'rxjs';
-import {take, takeUntil}                          from 'rxjs/operators';
+import {BehaviorSubject, merge, Observable, ReplaySubject}         from 'rxjs';
+import {distinctUntilChanged, map, take, takeUntil}                          from 'rxjs/operators';
 import {AppState}                                 from '../../../../core/store';
 import {ConfirmModalComponent}                    from '../../../../shared/components/modals/modal-on-close-alert/confirm-modal.component';
 import {ExportFilterFormat}                       from '../../../../shared/models/export-filter';
-import {MenuItem}                                 from '../../../../shared/models/menu-item';
+import {MenuItem, MenuItemType}                                 from '../../../../shared/models/menu-item';
 import {PermissionsService}                       from '../../../../shared/services/permissions.service';
 import { ViewsService }                           from '../../../../shared/services/views.service';
 import {ModalDescribeComponent}                   from '../../components/modals/modal-describe/modal-describe.component';
@@ -35,6 +35,11 @@ import {SidebarContextMenuService} from '../sidebar-context-menu.service';
 import { ModalImportCSVFileComponent } from '../../components/modals/modal-import-csv-file/modal-import-csv-file.component';
 import { ImportFromTextFileService } from '../../services/import-from-text-file.service';
 import { StreamsService } from 'src/app/shared/services/streams.service';
+import { ModalPlayBackComponent } from '../../components/modals/modal-play-back/modal-play-back.component';
+import { PlaybackService } from '../../services/playback.service';
+import { ModalStreamSymbolsComponent } from '../../components/modals/modal-stream-symbols/modal-stream-symbols.component';
+import { TopicService } from '../../modules/schema-editor/services/topic.service';
+import { GlobalFiltersService } from 'src/app/shared/services/global-filters.service';
 
 @Component({
   selector: 'app-sidebar-context-menu',
@@ -49,11 +54,14 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
   item: MenuItem;
   isRootSpace: boolean;
   isView: boolean;
+  isTopic: boolean;
   isNotStream: boolean;
   isSpace: boolean;
   isNotStreamOrSpace: boolean;
   hasPricesL2Chart: boolean;
   isWriter$: Observable<boolean>;
+  showPlaybackItem$ = new BehaviorSubject(true);
+  reverseViewIsDefault$ = new BehaviorSubject(false);
   @ViewChild('deleteItemMessage') private deleteItemMessage: TemplateRef<HTMLElement>;
   private destroy$ = new ReplaySubject(1);
 
@@ -67,7 +75,10 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
     private cdRef: ChangeDetectorRef,
     private viewsService: ViewsService,
     private importFromTextFileService: ImportFromTextFileService,
-    private streamsService: StreamsService
+    private streamsService: StreamsService,
+    private playbackService: PlaybackService,
+    private topicService: TopicService,
+    private globalFiltersService: GlobalFiltersService
   ) {}
 
   ngOnInit(): void {
@@ -78,11 +89,13 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(({event, item}) => {
         this.item = item;
+        this.isTopic = this.item.type === MenuItemType.topic;
         const queryParams = {
           chartType: this.item.meta.chartType.map(ct => ct.chartType),
           chartTypeTitles: this.item.meta.chartType.map(ct => ct.title),
-          streamName: this.item.meta.stream.name,
+          name: this.isTopic ? this.item.name : this.item.meta.stream.name,
           isView: this.item.meta.isView ? '1' : '',
+          isTopic: this.isTopic ? '1' : '',
         };
         this.queryParams = this.item?.meta.space
           ? {...queryParams, space: this.item.meta.space.id || ''}
@@ -93,7 +106,7 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
         this.isNotStream = !(this.item && !this.item.meta.symbol);
         this.isNotStreamOrSpace = this.isNotStream || !!this.item.meta.space;
         this.isSpace = !!this.item.meta.space && !this.item.meta.symbol;
-        this.hasPricesL2Chart = !!this.item.meta.chartType?.find(ct => ct.chartType === ChartTypes.PRICES_L2);
+        this.hasPricesL2Chart = !!this.item.meta.chartType?.find(ct => ct.chartType === ChartTypes.PRICE_LEVELS);
         this.cdRef.detectChanges();
 
         this.contextMenuService.show.next({
@@ -117,6 +130,18 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
       .onCloseMenu()
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.closeContextMenu());
+
+      this.playbackService.activeSessionsSubject
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(activeSessiodIds => {
+          this.showPlaybackItem$.next(activeSessiodIds.length < 8);
+      })
+
+    this.globalFiltersService.getFilters().pipe(
+      map((f) => f?.reverseViewIsDefault),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$)
+    ).subscribe(reverseViewIsDefault => this.reverseViewIsDefault$.next(reverseViewIsDefault));
   }
 
   showTruncateModal() {
@@ -137,6 +162,36 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
     });
   }
 
+  confirmDeleteSymbol() {
+    if (this.item.meta.symbol) {
+      this.openModal(ConfirmModalComponent, {
+        initialState: {
+          messageTpl: this.deleteItemMessage,
+          withoutHeader: true,
+          btns: {yes: 'buttons.delete', no: 'buttons.cancel'},
+        },
+        class: 'modal-small',
+      })
+      .content.resolve.pipe(take(1))
+      .subscribe((confirm) => {
+        if (!confirm || !this.item?.id) {
+          return;
+        }
+
+        this.appStore.dispatch(
+          new StreamsActions.AskToDeleteSymbols({
+            streamKey: this.item.meta.stream.id,
+            symbols: [this.item.meta.symbol]
+          }),
+        );
+      })
+    } else {
+      this.openModal(ModalStreamSymbolsComponent, {
+        initialState: {item: this.item},
+      });
+    }
+  }
+
   confirmDeleteStream() {
     this.openModal(ConfirmModalComponent, {
       initialState: {
@@ -152,24 +207,25 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
           return;
         }
 
-        if (!this.isView) {
+        if (this.isView) {
+          this.viewsService.delete(this.item.meta.stream.name).subscribe();
+        } else if (this.isTopic) {
+          this.topicService.deleteTopic(this.item.id).subscribe();
+        } else {
           this.appStore.dispatch(
             new StreamsActions.AskToDeleteStream({
               streamKey: this.item.meta.stream.id,
               ...(this.item.meta.space ? {spaceName: this.item.meta.space.id} : {}),
             }),
           );
-          this.streamsService.streamRemoved.next(this.item.meta.stream.id);
-        } else {
-          this.viewsService.delete(this.item.meta.stream.name).subscribe();
         }
-       
+        this.streamsService.streamRemoved.next(this.isTopic ? this.item.id : this.item.meta.stream.id);   
       });
   }
 
   showEditNameModal() {
     this.openModal(ModalRenameComponent, {
-      initialState: {data: this.item.meta},
+      initialState: this.isTopic ? { data: { stream: { name: this.item.id }, isTopic: true } } : {data: this.item.meta},
       ignoreBackdropClick: true,
     });
   }
@@ -200,9 +256,17 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
 
   importFromQSMSG() {
     this.openModal(ModalImportQSMSGFileComponent, {
-      class: 'scroll-content-modal',
+      class: 'modal-xl',
       ignoreBackdropClick: true,
       initialState: {stream: this.item.meta.stream.id},
+    });
+  }
+
+  openPlaybackModal() {
+    this.openModal(ModalPlayBackComponent, {
+      class: 'modal-xl',
+      ignoreBackdropClick: true,
+      initialState: {stream: {id: this.item.meta.stream.id, name: this.item.meta.stream.name } },
     });
   }
 
@@ -211,7 +275,7 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
     this.openModal(ModalImportCSVFileComponent, {
       class: 'modal-xl',
       ignoreBackdropClick: true,
-      initialState: {stream: this.item.meta.stream.name},
+      initialState: {streamInput: this.item.meta.stream.name},
     });
   }
 
@@ -246,9 +310,13 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
   }
 
   private openModal(content: string | TemplateRef<any> | any, options: ModalOptions): BsModalRef {
-    if (!this.item?.meta.stream?.id) return;
+    if (!this.item?.meta.stream?.id && !this.isTopic) return;
 
     this.closeContextMenu();
     return this.modalService.show(content, options);
+  }
+
+  onWheelClick(event: MouseEvent) {
+    event.preventDefault();
   }
 }

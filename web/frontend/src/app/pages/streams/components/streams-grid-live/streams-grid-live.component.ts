@@ -16,6 +16,7 @@ import { StreamDetailsEffects }                                                 
 import * as fromStreams
                                                                                       from '../../store/streams-list/streams.reducer';
 import { getActiveOrFirstTab }                                                        from '../../store/streams-tabs/streams-tabs.selectors';
+import { TopicService } from '../../modules/schema-editor/services/topic.service';
 
 @Component({
   selector: 'app-streams-grid-live',
@@ -37,6 +38,7 @@ export class StreamsGridLiveComponent implements OnInit {
     private streamsService: StreamsService,
     private activatedRoute: ActivatedRoute,
     private schemaService: SchemaService,
+    private topicService: TopicService
   ) {}
   
   ngOnInit() {
@@ -56,14 +58,25 @@ export class StreamsGridLiveComponent implements OnInit {
     const getSchema = (tab) => {
       this.error$.next(null);
       this.loaded$.next(false);
-      return this.schemaService.getSchema(tab.stream, null, true).pipe(
-        catchError(e => {
-          this.error$.next(e);
-          return of(null);
-        }),
-        tap(() => this.loaded$.next(true)),
-        filter(p => !!p),
-      );
+      if (tab.stream.endsWith('#topic#')) {
+        return this.topicService.getTopicSchema(tab.stream.slice(0, tab.stream.length - 7)).pipe(
+          catchError(e => {
+            this.error$.next(e);
+            return of(null);
+          }),
+          tap(() => this.loaded$.next(true)),
+          filter(p => !!p),
+        )
+      } else {
+        return this.schemaService.getSchema(tab.stream, null, true).pipe(
+          catchError(e => {
+            this.error$.next(e);
+            return of(null);
+          }),
+          tap(() => this.loaded$.next(true)),
+          filter(p => !!p),
+        );
+      }
     };
     
     this.schemaData$ = tab$.pipe(
@@ -72,30 +85,45 @@ export class StreamsGridLiveComponent implements OnInit {
     
     const props$ = tab$.pipe(
       switchMap((tab) => {
-        return this.streamsService.getProps(tab.stream).pipe(
-          catchError(e => of(null)),
-          filter(p => !!p),
-        );
+        if (tab.isTopic) {
+          return of(null);
+        } else {
+          return this.streamsService.getProps(tab.stream).pipe(
+            catchError(e => of(null)),
+            filter(p => !!p),
+          );
+        }
       }),
     );
     
     this.filters$ = combineLatest([tab$, props$]).pipe(
       map(([tab, props]) => {
-        const dateEnd = new Date(props.props.range['end']).getTime() + 1;
-        const filters = {
-          symbols: null,
-          fromTimestamp: new Date(dateEnd).toISOString(),
-          destination: `/user/topic/monitor/${encodeURIComponent(tab.stream)}`,
-          space: tab.space,
-          types: tab.filter.filter_types,
-        };
-        
-        if (tab.symbol) {
-          filters.symbols = [tab.symbol];
-        }
-        
-        if (tab.filter.filter_symbols?.length) {
-          filters.symbols = tab.filter.filter_symbols;
+        let filters
+        if (!tab.isTopic) {
+          const dateEnd = new Date(props.props.range['end']).getTime() + 1;
+          filters = {
+            symbols: null,
+            fromTimestamp: new Date(dateEnd).toISOString(),
+            destination: `/user/topic/monitor/${encodeURIComponent(tab.stream)}`,
+            space: tab.space,
+            types: tab.filter.filter_types,
+          };
+          
+          if (tab.symbol) {
+            filters.symbols = [tab.symbol];
+          }
+          
+          if (tab.filter.filter_symbols?.length) {
+            filters.symbols = tab.filter.filter_symbols;
+          }
+        } else {
+          filters = {
+            symbols: null,
+            fromTimestamp: null,
+            destination: `/user/topic/monitor-topic/${encodeURIComponent(tab.stream.slice(0, tab.stream.length - 7))}`,
+            space: null,
+            types: tab.filter.filter_types,
+          }
         }
         
         return filters;

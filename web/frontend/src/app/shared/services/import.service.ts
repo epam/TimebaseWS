@@ -1,9 +1,10 @@
 import {HttpClient, HttpEventType} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {interval, Observable, of, Subject, throwError} from 'rxjs';
-import {catchError, filter, map, mapTo, switchMap, takeUntil} from 'rxjs/operators';
+import {catchError, filter, map, mapTo, switchMap, takeUntil, tap} from 'rxjs/operators';
 import {WSService} from '../../core/services/ws.service';
 import {ImportProgress, ImportProgressType} from '../../pages/streams/models/import-progress';
+import { SchemaClassTypeModel } from '../models/schema.class.type.model';
 
 @Injectable({
   providedIn: 'root',
@@ -12,7 +13,7 @@ export class ImportService {
   constructor(private httpClient: HttpClient, private wsService: WSService) {}
 
   startImport(data: object): Observable<number> {
-    return this.httpClient.post<number>('/initImport', data, {headers: {customError: 'true'}});
+    return this.httpClient.post<number>('/initImport', data);
   }
 
   importChunks(id: number, file: File, start = 0): Observable<number> {
@@ -36,9 +37,23 @@ export class ImportService {
     });
   }
 
+  getNewStreamSchema(uploadId: number) {
+    return this.httpClient.get<{ types: SchemaClassTypeModel[]; all: SchemaClassTypeModel[] }>(`/import/schema/${uploadId}`);
+  }
+
+  checkDataLosses(uploadId: number, streamKey: string) {
+    return this.httpClient.get(`/import/validateSchema/${uploadId}/${streamKey}`);
+  }
+
   onUploadProgress(uploadId: number): Observable<ImportProgress> {
     return this.wsService
       .watch(`/user/topic/startImport/qsmsg/${uploadId}`)
+      .pipe(map(({body}) => JSON.parse(body)));
+  }
+
+  onFileUploadProgress(uploadId: number): Observable<ImportProgress> {
+    return this.wsService
+      .watch(`/user/topic/initImport/qsmsg/${uploadId}`)
       .pipe(map(({body}) => JSON.parse(body)));
   }
 

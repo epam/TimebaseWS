@@ -7,6 +7,19 @@ $tabs-scroll-margin: 10 * $ss;
   padding-left: 0;
   display: flex;
   align-items: center;
+  position: relative;
+}
+
+.tab-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 200px;
+  z-index: 1001;
+  background: linear-gradient(270deg, rgba(254,254,254,0) 0%, rgba(84, 171, 240, 0.08) 3%, 
+    rgba(84, 171, 240, 0.08) 97%, rgba(255,255,255,0) 100%);
+  cursor: default;
 }
 
 .tab-title {
@@ -58,7 +71,7 @@ $tabs-scroll-margin: 10 * $ss;
       top: 0;
       bottom: 13px;
       width: $tabs-scroll-margin;
-      z-index: 1;
+      // z-index: 1;
     }
 
     &:before {

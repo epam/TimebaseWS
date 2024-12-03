@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,8 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.charting.queries;
+package com.epam.deltix.tbwg.webapp.services.charting.queries;
 
+import com.epam.deltix.tbwg.webapp.model.ModelDataSourceType;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.services.charting.TimeInterval;
 
@@ -23,10 +24,10 @@ public class BookSymbolQueryImpl extends SymbolQueryImpl implements BookSymbolQu
 
     private final int levelsCount;
 
-    public BookSymbolQueryImpl(String stream, String symbol, ChartType type, TimeInterval interval,
-                               long pointInterval, int levels, boolean live)
+    public BookSymbolQueryImpl(String stream, String[] symbols, ChartType type, TimeInterval interval,
+                               long pointInterval, int levels, boolean live, ModelDataSourceType dataSource)
     {
-        super(stream, symbol, type, interval, pointInterval, live);
+        super(stream, symbols, type, interval, pointInterval, live, dataSource);
 
         this.levelsCount = levels;
     }

@@ -1,0 +1,72 @@
+@import '~src/app/core/styles/variables';
+
+::ng-deep .modal-small {
+  min-width: 600px;
+  max-width: 100%;
+}
+
+.input-control {
+  min-width: 380px;
+}
+
+form {
+  height: 5.8rem;
+}
+
+.create-topic-form {
+  height: 7.8rem;
+}
+
+.validation-error {
+  text-align: center;
+  color: rgb(250, 118, 118);
+  padding: 0rem 0.3rem;
+  font-size: 0.85rem;
+}
+
+.controlWr {
+  display: flex;
+  deltix-ng-autocomplete, input {
+    flex-grow: 1;
+  }
+  &.invalid {
+    outline: 1px solid rgb(250, 118, 118);
+  }
+}
+
+select.form-control {
+  padding-left: 2 * $ss;
+  padding-right: 2 * $ss;
+  background-color: rgb(31, 82, 111);
+  border: none;
+
+  &:focus {
+    background-color: rgb(31, 82, 111);
+  }
+
+  option {
+    background-color: rgb(31, 82, 111);
+    color: white;
+    border: none;
+    border-radius: 0;
+  }
+}
+
+.controlWr .btn:not(.btn-from) {
+  min-width: 170px;
+}
+
+.storage-inputs {
+  display: flex;
+  justify-content: space-between;
+}
+
+.distribution-factor-input {
+  flex-basis: 49%;
+  label {
+    flex: 1;
+  }
+  deltix-ng-autocomplete, input {
+    flex-basis: 100px;
+  }
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.utils;
 
 import com.epam.deltix.containers.AlphanumericUtils;
@@ -22,8 +21,6 @@ import com.epam.deltix.dfp.Decimal64Utils;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.tickdb.pub.*;
-import com.epam.deltix.timebase.messages.universal.BookUpdateAction;
-import com.epam.deltix.timebase.messages.universal.QuoteSide;
 import com.epam.deltix.timebase.messages.universal.*;
 import com.epam.deltix.util.collections.generated.ObjectArrayList;
 
@@ -40,7 +37,7 @@ public class InvalidPackageHeaderGenerator {
     public static void main(String[] args) {
         try (DXTickDB db = TickDBFactory.openFromUrl("dxtick://localhost:8102", false)) {
             DXTickStream stream = getOrCreateStream(db, "invalid_package_headers", PackageHeader.class);
-            try (TickLoader loader = stream.createLoader()) {
+            try (TickLoader loader = stream.createLoader(LoadingOptions.withRewriteMode(false))) {
                 boolean addUpdates = true;
 
                 double medianPrice = 10000;

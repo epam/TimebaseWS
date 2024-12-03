@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,12 +14,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.charting.transformations;
 
 import com.epam.deltix.dfp.Decimal64Utils;
 import com.epam.deltix.tbwg.messages.BboPoint;
 import com.epam.deltix.tbwg.messages.Message;
+import com.epam.deltix.tbwg.webapp.services.charting.datasource.ChartDataSource;
+import com.epam.deltix.timebase.messages.InstrumentMessage;
 import com.epam.deltix.timebase.messages.MarketMessageInfo;
 import com.epam.deltix.timebase.messages.MessageInfo;
 import com.epam.deltix.timebase.messages.universal.QuoteSide;
@@ -32,7 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * The transformation filters package headers and leaves only l1 entries.
  */
-public class UniversalL1ToBboTransformation extends AbstractChartTransformation<BboPoint, MessageInfo> {
+public class UniversalL1ToBboTransformation extends BboVolumeTransformation {
 
     private final BboPoint bboPoint = new BboPoint();
 
@@ -41,8 +42,9 @@ public class UniversalL1ToBboTransformation extends AbstractChartTransformation<
 
     private final AtomicBoolean hasL1 = new AtomicBoolean();
 
-    public UniversalL1ToBboTransformation() {
-        super(Collections.singletonList(PackageHeader.class), Collections.singletonList(BboPoint.class));
+    public UniversalL1ToBboTransformation(String symbol, ChartDataSource source, boolean isSingleSymbolSource) {
+        super(Collections.singletonList(PackageHeader.class), Collections.singletonList(BboPoint.class),
+                source, symbol, isSingleSymbolSource);
         clean();
     }
 
@@ -52,9 +54,11 @@ public class UniversalL1ToBboTransformation extends AbstractChartTransformation<
     }
 
     @Override
-    protected void onNextPoint(MessageInfo marketMessage) {
+    protected void onNextPoint(InstrumentMessage marketMessage) {
         if (marketMessage instanceof PackageHeader) {
             PackageHeader message = (PackageHeader) marketMessage;
+
+            sendVolumes(message);
 
             hasL1.set(false);
             message.getEntries().forEach(entry -> {

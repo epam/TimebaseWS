@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,13 +14,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model.schema.changes;
+package com.epam.deltix.tbwg.webapp.model.schema.changes;
 
+import com.epam.deltix.qsrv.hf.pub.md.json.FieldDef;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.epam.deltix.qsrv.hf.tickdb.schema.AbstractFieldChange;
 import com.epam.deltix.qsrv.hf.tickdb.schema.SchemaChange;
-import com.epam.deltix.tbwg.webapp.model.schema.FieldDef;
 import com.epam.deltix.tbwg.webapp.model.schema.SchemaUtils;
 
 public class FieldChangeWrapper<T extends AbstractFieldChange> implements SchemaChangeDef {

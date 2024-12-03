@@ -52,9 +52,14 @@ export class HdDate {
       if (date != null) {
         this.date = new Date(date[0] + 'Z');
         const length = values[values.length - 1] === 'Z' ? values.length - 1 : values.length;
-        const nanoStr = values.substring(date[0].length, length);
-        const nano = +nanoStr;
-        this.nanoSeconds = nanoStr.length < 4 ? nano * 1000 : nano;
+        let nanoStr = values.substring(date[0].length, length);
+        const nanoStrLength = nanoStr.length;
+        if (nanoStr.length < 6) {
+          for (let i = 0; i < 6 - nanoStrLength; i += 1) {
+            nanoStr += '0';
+          }
+        }
+        this.nanoSeconds = +nanoStr;
       }
     } else if (values instanceof HdDate) {
       this.date = new Date(values.getEpochMillis());
@@ -345,7 +350,7 @@ export class HdDate {
   }
 
   public toISOString(): string {
-    return this.date.toISOString();
+    return this.date?.toISOString();
   }
 
   public toJSON(): string {

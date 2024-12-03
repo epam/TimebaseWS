@@ -16,8 +16,6 @@
  */
 package com.epam.deltix.tbwg.webapp.services.producers;
 
-import com.epam.deltix.tbwg.webapp.services.ChartingBaseTest;
-import com.epam.deltix.tbwg.webapp.utils.DefaultTypeLoader;
 import com.epam.deltix.timebase.messages.InstrumentMessage;
 import com.epam.deltix.qsrv.hf.pub.MappingTypeLoader;
 import com.epam.deltix.qsrv.hf.stream.MessageReader2;
@@ -27,28 +25,35 @@ import io.reactivex.subjects.PublishSubject;
 import lombok.SneakyThrows;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static com.epam.deltix.tbwg.webapp.services.ChartingBaseTest.RESOURCE_FOLDER_PREFIX;
 
 public class PackageHeaderMessageGzipProducer implements MessageProducer {
 
     private final String filename;
     private final String packageHeaderClass;
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final Map<String, Integer> symbols = new HashMap<>(5);
+    private int symbolIndex = 0;
 
     private final Runnable run;
     private final Observable<InstrumentMessage> observable;
+    private final MessageReader2 reader;
 
     @SneakyThrows
     public PackageHeaderMessageGzipProducer(String filename, String packageHeaderClass) {
         this.filename = filename;
         this.packageHeaderClass = packageHeaderClass;
 
-        File file = new File(Objects.requireNonNull(getClass().getClassLoader().getResource(ChartingBaseTest.RESOURCE_FOLDER_PREFIX + filename)).toURI());
-        MappingTypeLoader typeLoader = new DefaultTypeLoader();
+        File file = new File(Objects.requireNonNull(getClass().getClassLoader().getResource(RESOURCE_FOLDER_PREFIX + filename)).toURI());
+        MappingTypeLoader typeLoader = new MappingTypeLoader();
         typeLoader.bind(packageHeaderClass, PackageHeader.class);
-        MessageReader2 reader = MessageReader2.create(file, typeLoader);
+        reader = MessageReader2.create(file, typeLoader);
 
         PublishSubject<InstrumentMessage> subject = PublishSubject.create();
         observable = subject;
@@ -61,13 +66,28 @@ public class PackageHeaderMessageGzipProducer implements MessageProducer {
         };
     }
 
-    public Runnable run() {
-        return run;
+    @Override
+    public int getEntityIndex() {
+        return symbols.computeIfAbsent(getSymbol(), k -> symbolIndex++);
     }
 
-    @SneakyThrows
+    @Override
+    public String getSymbol() {
+        return reader.getMessage().getSymbol().toString();
+    }
+
+    @Override
+    public void close() {
+        reader.close();
+    }
+
     @Override
     public Observable<InstrumentMessage> getObservable() {
         return observable;
+    }
+
+    @Override
+    public void run() {
+        run.run();
     }
 }

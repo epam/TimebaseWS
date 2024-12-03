@@ -1,9 +1,10 @@
-import { Component, Input, OnInit, ViewChild } from '@angular/core';
+import { Component, Input, OnInit, ViewChild, Output, EventEmitter } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
-import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
-import { FileBtnComponent } from 'src/app/shared/components/file-btn/file-btn.component';
-import { ImportFromTextFileService } from '../../../services/import-from-text-file.service';
 import { takeUntil } from 'rxjs/operators';
+import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
+
+import { ImportFromTextFileService } from '../../../services/import-from-text-file.service';
+import { FileBtnComponent } from 'src/app/shared/components/file-btn/file-btn.component';
 import { FolderFiles } from 'src/app/shared/models/folder-files.model';
 
 @Component({
@@ -33,8 +34,11 @@ export class UploadFileComponent implements OnInit {
 
   private destroy$ = new ReplaySubject(1);
 
-  @Input() stream: string;
+  @Input() stream = '';
   @Input() fileButtonsDisabled = false;
+  @Input() invalid = false;
+
+  @Output() fileListChanged = new EventEmitter<void>();
 
   @ViewChild(FileBtnComponent) private fileInput: FileBtnComponent;
 
@@ -75,9 +79,11 @@ export class UploadFileComponent implements OnInit {
 
   addFiles(files: FileList) {
     this.importFromTextFileService.previewReceived = false;
+    this.importFromTextFileService.createdStreamSchema = null;
     let invalidFileFormat = false;
     let sameNameFiles = false;
     let nonTextFormat = false;
+    this.fileListChanged.emit();
     const allTextFormatsAllowed = Object.values(this.importingFormats).every(item => !item);
     Array.from(files).forEach((file: File) => {
       if (!this.importingFormats[file.type] && !allTextFormatsAllowed) {
@@ -94,7 +100,7 @@ export class UploadFileComponent implements OnInit {
         this.fileAddingError = '';
         this.importFromTextFileService.uploadedFiles.push(file);
         this.uploadedFileNames.push(file.name);
-        this.importFromTextFileService.noUploadedFiles.next(false);
+        this.importFromTextFileService.noUploadedFiles$.next(false);
       }
     })
     if (invalidFileFormat) {
@@ -123,6 +129,7 @@ export class UploadFileComponent implements OnInit {
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
         this.importFromTextFileService.previewReceived = false;
+        this.importFromTextFileService.createdStreamSchema = null;
         this.importFromTextFileService.uploadedFiles = this.importFromTextFileService.uploadedFiles
           .filter(file => file.name !== fileName);
         this.uploadedFileNames = this.uploadedFileNames.filter(name => name !== fileName);
@@ -133,8 +140,9 @@ export class UploadFileComponent implements OnInit {
         }
 
         if (!this.uploadedFileNames.length) {
-          this.importFromTextFileService.noUploadedFiles.next(true);
+          this.importFromTextFileService.noUploadedFiles$.next(true);
         }
+        this.fileListChanged.emit();
       })
   }
 
@@ -143,12 +151,14 @@ export class UploadFileComponent implements OnInit {
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
         this.importFromTextFileService.previewReceived = false;
+        this.importFromTextFileService.createdStreamSchema = null;
         this.importFromTextFileService.uploadedFiles.length = 0;
         this.uploadedFileNames.length = 0;
         this.uploadedFilesDefaultOrder.length = 0;
         this.uploadedFileNamesSorted.length = 0;
-        this.importFromTextFileService.noUploadedFiles.next(true);
+        this.importFromTextFileService.noUploadedFiles$.next(true);
         this.fileAddingError = '';
+        this.fileListChanged.emit();
       })
   }
 

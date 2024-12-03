@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.authorization;
 
 import com.epam.deltix.gflog.api.Log;
@@ -27,44 +26,23 @@ import com.epam.deltix.tbwg.webapp.settings.ApiKeysSettings;
 import com.epam.deltix.tbwg.webapp.settings.AuthoritiesSettings;
 import com.epam.deltix.tbwg.webapp.settings.ProviderType;
 import com.epam.deltix.tbwg.webapp.settings.SecurityOauth2ProviderSettings;
-import io.netty.util.internal.StringUtil;
+import com.epam.deltix.util.text.IgnoreCaseComparator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @ConditionalOnProperty(value = "security.authorization.source", havingValue = "CONFIG", matchIfMissing = true)
-public class SettingsAuthorizationProvider implements AuthoritiesProvider, UsersProvider, ApiKeyInfoProvider {
-
-    private final Random rnd = new Random();
-
-    private char nextCharAlphaNumeric() {
-        return (char) (0x30 + rnd.nextInt(0x5A - 0x30 + 1));
-    }
-
-    private String getRandomAlphaNumeric(int size) {
-        StringBuilder sb = new StringBuilder(size);
-        for (int i = 0; i < size; i++) {
-            sb.append(nextCharAlphaNumeric());
-        }
-
-        return sb.toString();
-    }
-
+public class SettingsAuthorizationProvider implements UsersProvider, ApiKeyInfoProvider {
     private static final Log LOGGER = LogFactory.getLog(SettingsAuthorizationProvider.class);
 
-    private final ConcurrentMap<String, TbwgUser> users = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, TbwgApiKey> apiKeys = new ConcurrentHashMap<>();
+    private final TreeMap<String, TbwgUser> users = new TreeMap<>(IgnoreCaseComparator.INSTANCE);
+    private final Map<String, TbwgApiKey> apiKeys = new HashMap<>();
 
     @Autowired
     public SettingsAuthorizationProvider(SecurityOauth2ProviderSettings providerSettings,
@@ -73,22 +51,14 @@ public class SettingsAuthorizationProvider implements AuthoritiesProvider, Users
                                          MangleService mangleService)
     {
         List<UserDto> usersList = settings.getUsers();
-
         if (usersList != null) {
             ProviderType providerType = providerSettings.getProviderType();
             usersList.forEach(user -> {
-
-                String pass = user.getPassword();
-                if (providerType == ProviderType.BUILT_IN_OAUTH && StringUtil.isNullOrEmpty(user.getPassword())) {
-                    pass = getRandomAlphaNumeric(16);
-                    LOGGER.warn("Generating random password for user (%s): %s").with(user.getUsername()).with(pass);
-                    pass = new BCryptPasswordEncoder().encode(pass);
-                }
                 users.put(
                     user.getUsername(),
                     new TbwgUser(
                         user.getUsername(),
-                        providerType == ProviderType.BUILT_IN_OAUTH ? pass : "",
+                        providerType == ProviderType.BUILT_IN_OAUTH ? user.getPassword() : "",
                         buildAuthorities(user.getAuthorities())
                     )
                 );
@@ -125,27 +95,17 @@ public class SettingsAuthorizationProvider implements AuthoritiesProvider, Users
     }
 
     @Override
-    public List<GrantedAuthority> getAuthorities(String username) {
-        TbwgUser user = users.get(username);
-        if (user != null) {
-            return new ArrayList<>(user.getAuthorities());
-        }
-
-        return new ArrayList<>();
-    }
-
-    @Override
-    public TbwgUser getUser(String username) {
+    public synchronized TbwgUser getUser(String username) {
         return users.get(username);
     }
 
     @Override
-    public List<TbwgUser> getUsers() {
+    public synchronized List<TbwgUser> getUsers() {
         return new ArrayList<>(users.values());
     }
 
     @Override
-    public TbwgApiKey getApiKey(String key) {
+    public synchronized TbwgApiKey getApiKey(String key) {
         return apiKeys.get(key);
     }
 }

@@ -9,7 +9,8 @@
           formControlName="symbol"
           [placeholder]="'streamChartModal.chooseSymbol' | translate"
           [flat]="true"
-          [single]="true"
+          [selectionNumberUpperLimit]="5"
+          [selectAllIsAvailable]="false"
           [items]="symbols$ | async"
       ></app-multi-select>
     </div>

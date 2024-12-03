@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,14 +14,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp;
 
 
 import com.epam.deltix.gflog.core.LogConfigurator;
 import com.epam.deltix.tbwg.webapp.config.LogConfigurer;
 import com.epam.deltix.tbwg.webapp.utils.ShutdownSignal;
-import org.agrona.CloseHelper;
+import com.epam.deltix.util.lang.Util;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -63,7 +62,7 @@ public class Application {
             ex.printStackTrace(System.out);
         }
         finally {
-            CloseHelper.close(context);
+            Util.close(context);
             LogConfigurator.unconfigure();
         }
     }

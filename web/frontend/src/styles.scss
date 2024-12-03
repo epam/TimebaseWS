@@ -803,6 +803,15 @@ body .wrapper {
   }
 }
 
+.modal {
+  .as-horizontal,
+  .as-vertical {
+    & > .as-split-gutter {
+      background-color: $body-bg !important;
+    }
+  }
+} 
+
 /*body .details-stream-wrap .deltix-dt-picker {
     .deltix-dt-picker__all-data, .deltix-dt-picker__value, .deltix-dt-picker__separator {
     font-family: $font-text;
@@ -848,6 +857,7 @@ body .details-stream-wrap .deltix-dt-picker {
 
 .bs-datepicker {
   background: $input-bg;
+  z-index: 0;
 }
 
 .bs-datepicker.theme-default {
@@ -937,7 +947,6 @@ body.modal-open .modal {
 
   .modal-body {
     font-size: $font-size-base;
-    white-space: pre;
   }
 
   &.createEdit-typeItem-modal {
@@ -1005,13 +1014,29 @@ body.modal-open .modal {
   background: $nav-bg;
 }
 
-.sql-error {
-  background-color: red;
+.qql-selected {
+  background-color: #2f366b74;
+}
+
+.qql-error {
+  background: red;
   color: white !important;
+}
+
+.qql-error-underlined {
+  border-bottom: 2px solid red;
+}
+
+.linked-code-decoration-line, .linked-code-decoration-margin {
+  background-color: #294b7823;
 }
 
 .full-height-page {
   height: calc(100vh - 30 * #{$ss});
+}
+
+.modal-height-page {
+  height: 100%;
 }
 
 .monaco-aria-container {
@@ -1119,6 +1144,13 @@ select.btn-control {
   }
 }
 
+@-moz-document url-prefix() {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.87) rgba(0, 0, 0, 0.3);  
+  }
+}
+
 * {
   &::-webkit-scrollbar {
     height: 6px;
@@ -1128,6 +1160,7 @@ select.btn-control {
   &::-webkit-scrollbar-thumb {
     border-radius: 3px;
     background-color: rgba(255, 255, 255, 0.87);
+    min-width: 30px;
   }
 
   &::-webkit-scrollbar-track {
@@ -1137,4 +1170,19 @@ select.btn-control {
   &::-webkit-scrollbar-corner {
     display: none;
   }
+}
+
+.noselect {
+  -webkit-touch-callout: none;
+    -webkit-user-select: none;
+     -khtml-user-select: none;
+       -moz-user-select: none;
+        -ms-user-select: none;
+            user-select: none;
+}
+
+.name-warning {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #60c7d7;
 }

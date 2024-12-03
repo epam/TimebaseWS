@@ -1,4 +1,4 @@
-<app-resizable [minWidth]="600" [minHeight]="500" [storageKey]="'create-view-modal-size'" 
+<app-resizable [minWidth]="600" [minHeight]="400" [storageKey]="'create-view-modal-size'" 
   [contentClassName]="'monaco-wrapper'" [contentHeightDifference]="230" [modalBodyHeightDifference]="120">
   <app-modal [formGroup]="form">
     <ng-container title>{{ 'createViewModal.title' | translate }}</ng-container>
@@ -20,7 +20,13 @@
           {{ beErrorText || ('createViewModal.errors.duplicateName' | translate) }}
         </ng-container>
       </div>
-      <app-qql-editor formControlName="query"></app-qql-editor>
+      <div>
+        <app-qql-editor formControlName="query" (onQueryChange)="queryChanged($event)" (setEditorAsReady)="setEditorAsReady()">
+        </app-qql-editor>
+        <div *ngIf="!(editorIsReady$ | async)" class="editor-loading">
+          <div class="editor-loading-text">Loading</div>
+        </div>
+      </div>
     </ng-container>
     <ng-container footer>
       <div class="form-check live-view-checkbox">
@@ -29,7 +35,9 @@
           {{ 'createViewModal.liveView' | translate }}
         </label>
       </div>
-      <button (click)="createView()" [disabled]="form.invalid || form.pending" class="btn btn-primary">
+      <button (click)="createView()" 
+        [disabled]="titleControl.invalid || isLiveControl.invalid || form.pending || qureryError" 
+        class="btn btn-primary">
         {{ 'createViewModal.createView' | translate }}
       </button>
     </ng-container>

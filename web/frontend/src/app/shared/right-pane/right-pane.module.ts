@@ -18,6 +18,9 @@ import { ChartSettingsComponent }           from './chart-settings/chart-setting
 import { StreamDescriptionComponent } from './stream-description/stream-description.component';
 import { StreamDescribeContentModule } from '../components/stream-describe-content/stream-describe-content.module';
 import { AutocompleteModule } from 'src/app/libs/deltix-ng-autocomplete/src/ts/autocomplete.module';
+import { MultiSelectModule } from '../components/multi-select/multi-select.module';
+import { NgMultiSelectDropDownModule } from 'ng-multiselect-dropdown';
+import { MultiselectNormalizeModule } from '../directives/single-dropdown/multiselect-normalize.module';
 
 @NgModule({
   declarations: [
@@ -30,20 +33,23 @@ import { AutocompleteModule } from 'src/app/libs/deltix-ng-autocomplete/src/ts/a
     ChartSettingsComponent,
     StreamDescriptionComponent,
   ],
-  exports: [RightToolbarComponent, RightAreaComponent, MessageInfoComponent, RightInfoWrapperComponent],
-  imports: [
-      AutocompleteModule ,
-      CommonModule,
-      TooltipModule,
-      TranslateModule,
-      AngularSplitModule,
-      ReactiveFormsModule,
-      ButtonsModule,
-      OrderBookModule,
-      MonacoEditorModule,
-      FormsModule,
-      ColorPickerModule,
-      StreamDescribeContentModule,
-  ],
+    exports: [RightToolbarComponent, RightAreaComponent, MessageInfoComponent, RightInfoWrapperComponent],
+    imports: [
+        AutocompleteModule ,
+        CommonModule,
+        TooltipModule,
+        TranslateModule,
+        AngularSplitModule,
+        ReactiveFormsModule,
+        ButtonsModule,
+        OrderBookModule,
+        MonacoEditorModule,
+        FormsModule,
+        ColorPickerModule,
+        StreamDescribeContentModule,
+        MultiSelectModule,
+        NgMultiSelectDropDownModule,
+        MultiselectNormalizeModule
+    ],
 })
 export class RightPaneModule {}

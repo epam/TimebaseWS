@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.utils;
 
 import com.epam.deltix.gflog.api.Log;
@@ -141,32 +140,37 @@ public class ApiKeyUtils {
     private static String buildParameters(String query) {
         StringBuilder payload = new StringBuilder();
 
-        Map<String, String> parameters = parseParameters(query);
+        Map<String, List<String>> parameters = parseParameters(query);
         List<String> paramKeys = new ArrayList<>(parameters.keySet());
         paramKeys.sort(Comparator.naturalOrder());
+        boolean firstParam = true;
         for (int i = 0; i < paramKeys.size(); i++) {
             String param = paramKeys.get(i);
-            String value = parameters.get(param);
-            payload.append(param.toLowerCase()).append("=").append(value);
-            if (i != paramKeys.size() - 1) {
-                payload.append("&");
+            List<String> values = parameters.get(param);
+            values.sort(Comparator.naturalOrder());
+            for (String value : values) {
+                if (firstParam) {
+                    firstParam = false;
+                } else {
+                    payload.append("&");
+                }
+                payload.append(param.toLowerCase()).append("=").append(value);
             }
         }
-
         return payload.toString();
     }
 
-    private static Map<String, String> parseParameters(String query) {
+    private static Map<String, List<String>> parseParameters(String query) {
         if (query == null) {
             return new HashMap<>();
         }
 
-        Map<String, String> parameters = new HashMap<>();
+        Map<String, List<String>> parameters = new HashMap<>();
         String[] params = query.split("&");
         for (String param : params) {
             String name = param.split("=")[0];
             String value = param.split("=")[1];
-            parameters.put(name, value);
+            parameters.computeIfAbsent(name, s -> new ArrayList<>()).add(value);
         }
 
         return parameters;

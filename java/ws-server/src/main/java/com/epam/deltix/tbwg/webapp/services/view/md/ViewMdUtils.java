@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,35 +14,54 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.view.md;
+package com.epam.deltix.tbwg.webapp.services.view.md;
 
-import com.epam.deltix.tbwg.messages.QueryViewMdMessage;
-import com.epam.deltix.tbwg.messages.ViewMdMessage;
-import org.modelmapper.ModelMapper;
+import com.epam.deltix.tbwg.messages.ViewMetadataMessage;
+import com.epam.deltix.tbwg.messages.ViewOutputType;
+import com.epam.deltix.tbwg.messages.ViewQueryType;
 
 public enum ViewMdUtils {
     INSTANCE;
-
-    private final ModelMapper modelMapper = new ModelMapper();
 
     public MutableQueryViewMd newQueryViewInfo() {
         return new QueryViewMdImpl();
     }
 
-    public ViewMd fromMessage(ViewMdMessage message) {
-        if (message instanceof QueryViewMdMessage) {
-            return modelMapper.map(message, QueryViewMdImpl.class);
-        }
-
-        return null;
+    public ViewMd fromMessage(ViewMetadataMessage message) {
+        QueryViewMdImpl viewMd = new QueryViewMdImpl();
+        viewMd.setQuery(toString(message.getQuery()));
+        viewMd.setId(toString(message.getSymbol()));
+        viewMd.setTimestamp(message.getTimeStampMs());
+        viewMd.setLastTimestamp(message.getLastTimestamp());
+        viewMd.setStream(toString(message.getOutput()));
+        viewMd.setLive(message.isLive());
+        viewMd.setState(message.getState());
+        viewMd.setDescription(toString(message.getDescription()));
+        viewMd.setInfo(toString(message.getStatusMessage()));
+        return viewMd;
     }
 
-    public ViewMdMessage toMessage(ViewMd view) {
-        if (view instanceof QueryViewMdImpl) {
-            return modelMapper.map(view, QueryViewMdMessage.class);
+    public ViewMetadataMessage toMessage(ViewMd view) {
+        ViewMetadataMessage message = new ViewMetadataMessage();
+        message.setSymbol(view.getId());
+        message.setOutput(view.getStream());
+        message.setOutputType(ViewOutputType.STREAM);
+        message.setLive(view.isLive());
+        message.setAutoRestart(false);
+        message.setState(view.getState());
+        message.setDescription(view.getDescription());
+        message.setLastTimestamp(view.getLastTimestamp());
+        message.setStatusMessage(view.getInfo());
+        message.setQueryType(ViewQueryType.QQL);
+        if (view instanceof QueryViewMd) {
+            message.setQuery(((QueryViewMd) view).getQuery());
         }
 
-        return null;
+        return message;
+    }
+
+    private String toString(CharSequence cs) {
+        return cs != null ? cs.toString() : "";
     }
 
 }

@@ -2,7 +2,7 @@ import {Component, OnDestroy, OnInit} from '@angular/core';
 import {UntypedFormControl} from '@angular/forms';
 import {select, Store} from '@ngrx/store';
 import {BsModalRef} from 'ngx-bootstrap/modal';
-import {Observable, Subject} from 'rxjs';
+import {BehaviorSubject, Observable, Subject} from 'rxjs';
 import {filter, map, take, takeUntil} from 'rxjs/operators';
 import {AppState} from '../../../../../core/store';
 import {MenuItem} from '../../../../../shared/models/menu-item';
@@ -32,6 +32,9 @@ export class ModalTruncateComponent implements OnInit, OnDestroy {
   selectedSymbols = [];
   symbolsList$: Observable<{id: string; name: string}[]>;
   symbolsControl = new UntypedFormControl();
+  submitDisabled$ = new BehaviorSubject(true);
+  validationErrorMessage = '';
+  private dateValue: Date;
 
   private destroy$ = new Subject();
 
@@ -72,7 +75,7 @@ export class ModalTruncateComponent implements OnInit, OnDestroy {
   }
 
   public onTruncateSubmit() {
-    const params = {timestamp: this.selectedDate.getTime()};
+    const params = {timestamp: this.dateValue.getTime()};
 
     if (this.symbolsControl.value?.length) {
       params['symbols'] = this.symbolsControl.value.map((symbol) => symbol.id);
@@ -84,6 +87,12 @@ export class ModalTruncateComponent implements OnInit, OnDestroy {
         params: params,
       }),
     );
+  }
+
+  selectedDateChange(date: Date) {
+    this.dateValue = date;
+    this.submitDisabled$.next(date?.toString() === 'Invalid Date');
+    this.validationErrorMessage = date?.toString() === 'Invalid Date' ? 'Invalid Date' : '';
   }
 
   ngOnDestroy(): void {

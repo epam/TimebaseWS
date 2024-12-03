@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,18 +14,19 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.timebase;
+package com.epam.deltix.tbwg.webapp.services.timebase;
 
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassSet;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickDB;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
 import com.epam.deltix.qsrv.hf.tickdb.pub.StreamOptions;
+import com.epam.deltix.qsrv.hf.tickdb.pub.topic.TopicDB;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.UnknownStreamException;
 
 import java.util.function.Consumer;
 
-public interface TimebaseService {
+public interface TimebaseService extends TimebaseLoginService {
 
     String SECURITIES_STREAM = "securities";
 
@@ -42,6 +43,7 @@ public interface TimebaseService {
     DXTickStream        getOrCreateStream(String key, RecordClassDescriptor... descriptors);
 
     DXTickStream        getOrCreateStream(String key, Consumer<StreamOptions> optionsProcessor, Class<?>... classes);
+    DXTickStream        getOrCreateStream(String key, Consumer<StreamOptions> optionsProcessor, RecordClassDescriptor... descriptors);
 
     default RecordClassSet getStreamMetadata(String streamName) {
         DXTickStream stream = getStream(streamName);
@@ -68,4 +70,5 @@ public interface TimebaseService {
 
     String          getId();
 
+    TopicDB         getTopicDB();
 }

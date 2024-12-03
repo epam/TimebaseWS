@@ -1,7 +1,7 @@
 import { Injectable }                                    from '@angular/core';
 import { StorageMap }                                    from '@ngx-pwa/local-storage';
 import { Observable, Subject }                           from 'rxjs';
-import { concatMap, debounceTime, map, switchMap, take } from 'rxjs/operators';
+import { concatMap, debounceTime, map, switchMap, take, tap } from 'rxjs/operators';
 
 export interface LeftMenuStorageData {
   menuSmall?: boolean;

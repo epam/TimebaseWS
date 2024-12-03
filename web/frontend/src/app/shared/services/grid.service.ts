@@ -46,6 +46,8 @@ import { GlobalFiltersService } from './global-filters.service';
 import { GridEventsService }    from './grid-events.service';
 import { TabNavigationService } from './tab-navigation.service';
 import { TabStorageService }    from './tab-storage.service';
+import { formatArray, formatObject } from '../utils/digitGrouping';
+import { getAppSettings } from 'src/app/core/store/app/app.selectors';
 
 @Injectable()
 export class GridService implements OnDestroy {
@@ -66,6 +68,8 @@ export class GridService implements OnDestroy {
   private maxToolTipLength = 100;
   private hasInfinityScroll: boolean;
   private cellFormatting$ = new Subject<void>();
+  private locale: string;
+  private decimalSeperator: string;
   public gridApi: GridApi;
   
   constructor(
@@ -84,6 +88,13 @@ export class GridService implements OnDestroy {
       .subscribe((globalFilters) => {
         this.globalFilters = globalFilters;
       });
+    
+    this.locale = navigator.languages[0];
+    this.decimalSeperator = this.getDecimalSeparator();
+  }
+
+  private getDecimalSeparator() {
+    return (1.1).toLocaleString().substring(1, 2);
   }
   
   options(tabName: string, overrides: GridOptions = {}): GridOptions {
@@ -199,11 +210,11 @@ export class GridService implements OnDestroy {
         gridReady.api.setDatasource({
           getRows: (params) => {
             if (dataSourceSet) {
-              this.gridTotalService?.startLoading();
+              this.gridTotalService?.startLoading(true);
             }
             const finish = (data) => {
               if (dataSourceSet) {
-                this.gridTotalService?.endLoading(data.length);
+                this.gridTotalService?.endLoading(data.length, true);
               }
               dataSourceSet = true;
               params.successCallback(
@@ -228,8 +239,27 @@ export class GridService implements OnDestroy {
   }
   
   setColumnsAndData(columns: object[], data: object[]): Observable<void> {
+    const appSettings$ = this.appStore.select(getAppSettings);
+    const instrumentTypeCol = {
+      headerName: 'Instrument Type',
+      field: 'instrumentType',
+      tooltipField: 'instrumentType',
+      pinned: 'left',
+      filter: false,
+      sortable: false,
+      headerTooltip: 'Instrument Type',
+      hide: true,
+    };
+
     return this.onGridReady$.pipe(take(1)).pipe(
-      switchMap(() => this.setColumns(columns)),
+      switchMap(() => appSettings$),
+      switchMap(settings => {
+        const allColumns = [...columns];
+        if (settings?.hasInstrumentType) {
+          allColumns.splice(4, 0, instrumentTypeCol);
+        }
+        return this.setColumns(allColumns);
+      }),
       switchMap(() => this.setRowData(data)),
       switchMap(() => this.resizeColumnsOnData(data)),
     );
@@ -288,8 +318,8 @@ export class GridService implements OnDestroy {
         sortable: false,
         width: 180,
         headerTooltip: 'Timestamp',
-        cellRenderer: (params: ICellRendererParams) => this.dateFormat(params, params.data?.nanoTime, true),
-        tooltipValueGetter: (params: ICellRendererParams) => this.dateFormat(params, params.data?.nanoTime, true),
+        cellRenderer: (params: ICellRendererParams) => this.dateFormat(params),
+        tooltipValueGetter: (params: ICellRendererParams) => this.dateFormat(params),
       },
       {
         headerName: 'Type',
@@ -308,15 +338,13 @@ export class GridService implements OnDestroy {
     this.columnsHiddenByDefault = state;
   }
   
-  dateFormat(params, nanoTime = '', showNanoSeconds = false, periodicity = 0): string {
+  dateFormat(params: ICellRendererParams, periodicity = 0): string {
     return formatHDate(
       params.value,
       this.globalFilters?.dateFormat,
       this.globalFilters?.timeFormat,
       this.globalFilters?.timezone,
       true,
-      nanoTime,
-      showNanoSeconds,
       periodicity
     );
   }
@@ -336,18 +364,25 @@ export class GridService implements OnDestroy {
             return params.value as string;
           }
         }
-        if (typeof params.value === 'number') {
-          if (String(params.value).indexOf('e') !== -1) {
-            const exponent = parseInt(String(params.value).split('-')[1], 10);
-            return params.value.toFixed(exponent);
-          }
+        if (typeof params.value === 'number' && String(params.value).indexOf('e') !== -1) {
+          const exponent = parseInt(String(params.value).split('-')[1], 10);
+          return params.value.toFixed(exponent);
+        }
+
+        if (['number', 'string'].includes(typeof params.value) && Math.abs(params.value) >= 1000) {
+          return parseFloat(params.value).toLocaleString(this.locale);
         }
   
         if (type?.type?.name === 'TIMESTAMP' && params.value) {
           return this.dateFormat(params);
         }
+
+        if (params.value && Array.isArray(params.value) ) {
+          return JSON.stringify(formatArray(params.value, this.locale));
+        }
+
         if (params.value && typeof params.value === 'object') {
-          return JSON.stringify(params.value);
+          return JSON.stringify(formatObject(params.value, this.locale));
         }
   
         return params.value as string;
@@ -368,17 +403,25 @@ export class GridService implements OnDestroy {
       const field = parentKey + type.name.replace(/\./g, '-');
       const column = {
         headerName: type.title || type.name || '',
+        headerComponentParams: {
+          staticField: type.static
+        },
         field,
         filter: false,
         sortable: false,
         resizable: true,
-        headerTooltip: type.title || type.name,
+        headerTooltip: `${type.title || type.name}${type.static ? ' (static field)' : ''}`,
         tooltipValueGetter: (data) => {
           const value = this.cellFormatter(type)(data);
           return value?.length > this.maxToolTipLength ? null : value;
         },
         hide: hide ? hide : type.hide,
         valueFormatter: this.cellFormatter(type),
+        cellStyle: () => {
+          if (type.static) {
+            return { backgroundColor: 'rgba(3, 182, 252, 0.07)' };
+          }
+        },
       };
       
       if (type.fields) {
@@ -459,7 +502,7 @@ export class GridService implements OnDestroy {
   private onKeyDown(e) {
     if (eventKeyMatchesTarget(e.event.key, ['Enter'])) {
       if (e.data._props && e.data._props._parentName) {
-        this.appStore.dispatch(SetSelectedSchemaItem({itemName: e.data._props._parentName}));
+        this.appStore.dispatch(SetSelectedSchemaItem({itemId: e.data._props._parentName}));
       }
     } else {
       this.tabKeyNavigation(e);

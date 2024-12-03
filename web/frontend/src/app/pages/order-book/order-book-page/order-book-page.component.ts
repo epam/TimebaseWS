@@ -8,6 +8,7 @@ import { BehaviorSubject, combineLatest, Observable, of, ReplaySubject, timer } 
 import {
   catchError,
   debounceTime,
+  delay,
   distinctUntilChanged,
   filter,
   map,
@@ -30,6 +31,9 @@ import { StreamUpdatesService }                                                 
 import { UpdateTab }                                                            from '../../streams/store/streams-tabs/streams-tabs.actions';
 import { getTabsState }                                                         from '../../streams/store/streams-tabs/streams-tabs.selectors';
 import { EOrientations }                                                        from '../order-book/order-book.component';
+import { StreamSourceService } from '../../streams/services/stream-source.service';
+import { StreamModel } from '../../streams/models/stream.model';
+import { ViewsService } from 'src/app/shared/services/views.service';
 
 @Component({
   selector: 'app-order-book-page',
@@ -43,17 +47,20 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
   streams$: Observable<{ key: string, name: string }[]>;
   streamNames$: Observable<string[]>;
   symbols$: Observable<string[]>;
-  loading: boolean;
-  noData: boolean;
+  loading: boolean = true;
+  noData: boolean = false;
   hiddenExchanges$: Observable<string[]>;
   exchanges$: Observable<string[]>;
   orientation$: Observable<EOrientations>;
   orderBookFiltersReady = false;
+  sourceOptions: string[];
   
   private destroy$ = new ReplaySubject<void>(1);
   private bookState$ = new ReplaySubject<boolean>(1);
   private streamsUpdated$ = new BehaviorSubject<void>(null);
-  
+  private selectedStreams: string[];
+  private bookIsEmpty: boolean;
+
   constructor(
     private fb: UntypedFormBuilder,
     private streamsService: StreamsService,
@@ -65,11 +72,14 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
       streams: string[];
       symbol: string[];
       orientation: EOrientations;
+      source: string
     }>,
     private appStore: Store<AppState>,
     private activatedRoute: ActivatedRoute,
     private parentSplitterSizes: SplitterSizesDirective,
     private streamUpdatesService: StreamUpdatesService,
+    private streamSourceService: StreamSourceService,
+    private viewService: ViewsService
   ) {}
   
   ngOnInit() {
@@ -95,7 +105,9 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
         ...data,
         streams: data?.streams || (tab.stream ? [tab.stream] : null),
         symbol: data?.symbol || (tab?.symbol ? [tab.symbol] : null),
-      })),
+        source: data?.source ? [data.source] : null
+        })
+      ),
       distinctUntilChanged(equal),
       shareReplay(1),
     );
@@ -133,6 +145,7 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
         this.filters.patchValue({
           streams: data?.streams || [],
           symbol: data?.symbol || [],
+          source: data?.source,
         }),
       );
     });
@@ -157,22 +170,58 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
           ...data,
           streams: current.streams,
           symbol: current.symbol,
+          source: current.source?.[0],
           hiddenExchanges: freshExchanges ? [] : data?.hiddenExchanges,
           exchanges: freshExchanges ? null : data?.exchanges,
         }));
       });
     
-    this.streams$ = this.streamsUpdated$.pipe(
-      switchMap(() => this.streamsService.getList(true)),
-      map((streams) =>
-        streams
-          .filter((s) => !!s.chartType?.find((ct) => ct.chartType === ChartTypes.PRICES_L2))
-          .map(({key, name}) => ( { key, name } ))
+    this.streams$ = combineLatest(
+      [this.streamsUpdated$.pipe(
+        switchMap(() => this.streamsService.getList(true)),
+        map((streams) =>
+          streams
+            .filter((s) => !!s.chartType?.find((ct) => ct.chartType === ChartTypes.PRICE_LEVELS))
+            .map(({key, name}) => ( { key, name } ))
+        ),
       ),
-    );
+      this.viewService.getViews().pipe(map(views => views.map(view => ({ key: view.stream, name: view.stream }))))
+    ]).pipe(map(([streams, viewStreams]) => [...streams, ...viewStreams]));
+
+    this.filters.get('streams').valueChanges
+      .pipe(
+        startWith(this.filters.get('streams').value),
+        filter(streams => !!streams.length),
+        distinctUntilChanged(equal),
+        switchMap((streams: string[]) => {
+          this.selectedStreams = streams;
+          return this.streams$;
+        }),
+        delay(500),
+        switchMap((streamList: StreamModel[]) => {
+          const selectedStreamKeys = [];
+          streamList.forEach(stream => {
+            if (this.selectedStreams.includes(stream.name)) {
+              selectedStreamKeys.push(stream.key);
+            }
+          })
+          return this.streamSourceService.getAvailableSources(selectedStreamKeys);
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((sources: string[]) => {
+        const sourceSet = new Set<string>();
+        sources.forEach(source => sourceSet.add(source));
+        this.sourceOptions = Array.from(sourceSet);
+        if (!this.filters.get('source').value?.length) {
+          this.filters.patchValue({
+            source: this.sourceOptions.includes('L2') ? ['L2'] : [ this.sourceOptions[0] ]
+          });
+        }
+      })
 
     this.streamNames$ = this.streams$.pipe(map((s) => s.map(str => str.name)));
-    
+
     this.symbols$ = this.streams$.pipe(
       tap(streams => this.streams = streams),
       switchMap(() => storageData$),
@@ -227,23 +276,23 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
         takeUntil(this.destroy$),
         switchMap(() => {
           this.loading = true;
-          this.noData = false;
+          if (!this.bookIsEmpty) {
+            this.noData = false;
+          }
           this.cdRef.detectChanges();
           return timer(5000);
         }),
       )
       .subscribe(() => {
-        if (this.loading) {
-          this.loading = false;
-          this.noData = true;
-        }
+        this.loading = false;
         
         this.cdRef.detectChanges();
       });
     
-    this.bookState$.pipe(debounceTime(300), takeUntil(this.destroy$)).subscribe((state) => {
-      this.loading = !state;
-      this.noData = false;
+    this.bookState$.pipe(debounceTime(300), takeUntil(this.destroy$)).subscribe(() => {
+      if (!this.bookIsEmpty) {
+        this.noData = false;
+      }
       this.cdRef.detectChanges();
     });
     
@@ -326,6 +375,7 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
       streams: [[]],
       symbol: [[]],
       exchanges: [[]],
+      source: [[]]
     });
     
     let streamsSorting = false;
@@ -369,5 +419,10 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
         ),
       ),
     );
+  }
+
+  toggleErrorMessage(bookIsEmpty: boolean) {
+    this.noData = bookIsEmpty;
+    this.bookIsEmpty = bookIsEmpty;
   }
 }

@@ -49,7 +49,7 @@ export class DelimitersAndSortingParametersComponent implements OnInit, OnDestro
       globalSorting: this.importFromTextFileService.settings.globalSorting
     });
 
-    this.importFromTextFileService.settingsUpdated
+    this.importFromTextFileService.settingsUpdated$
       .pipe(
         filter(updateFormData => updateFormData),
         takeUntil(this.destroy$))

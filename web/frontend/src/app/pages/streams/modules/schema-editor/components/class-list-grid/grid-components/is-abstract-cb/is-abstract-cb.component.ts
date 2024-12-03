@@ -18,7 +18,7 @@ import {getAllClasses} from '../../../../store/schema-editor.selectors';
   styleUrls: ['./is-abstract-cb.component.scss'],
 })
 export class IsAbstractCbComponent implements ICellRendererAngularComp, OnInit, OnDestroy {
-  typeItem: SchemaClassTypeModel;
+  typeItem: SchemaClassTypeModel & { readonly?: boolean };
   readOnly$: Observable<boolean>;
 
   private destroy$ = new Subject();

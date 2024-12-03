@@ -1,26 +1,25 @@
-import {Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {Component, ElementRef, Input, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
 import {select, Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
 import {BsModalRef, BsModalService} from 'ngx-bootstrap/modal';
-import {Observable, Subject, of} from 'rxjs';
+import {Observable, Subject} from 'rxjs';
 import {filter, map, switchMap, take, takeUntil, skip, first, tap} from 'rxjs/operators';
 import { ConfirmModalService } from 'src/app/shared/components/modals/modal-on-close-alert/confirm-modal.service';
 import { ClickOutsideService } from 'src/app/shared/directives/click-outside/click-outside.service';
-import { SchemaService } from 'src/app/shared/services/schema.service';
 import { uuid } from 'src/app/shared/utils/uuid';
 import {AppState} from '../../../../../../core/store';
 import {SchemaClassTypeModel} from '../../../../../../shared/models/schema.class.type.model';
 import {uniqueName} from '../../../../../../shared/utils/validators';
-import { SchemaEditorService } from '../../services/add-class.service';
-import { SeDataService } from '../../services/se-data.service';
-import {AddNewSchemaItem, EditSchemaMergeState, RemoveSelectedSchemaItem } from '../../store/schema-editor.actions';
+import { SchemaEditorService } from '../../services/schema-editor.service';
+import {AddNewSchemaItem, EditSchemaMergeState, UpdateSchemaAndRemoveType } from '../../store/schema-editor.actions';
 import {
   getAllClasses,
   getAllSchemaItems,
   getSelectedSchemaItem,
   iSchemaItemsEdited,
 } from '../../store/schema-editor.selectors';
+import { ClassEnumListItem } from '../../models/class-enum-list-item.model';
 
 @Component({
   selector: 'app-cl-control-panel',
@@ -28,6 +27,10 @@ import {
   styleUrls: ['./cl-control-panel.component.scss'],
 })
 export class ClControlPanelComponent implements OnInit, OnDestroy {
+  @Input() classEnumList: ClassEnumListItem[];
+  @Input() readonly = false;
+  @Input() extendable = true;
+  @Input() insideModal = false;
   public iSchemaItemsEdited: Observable<{
     newClassAdding: boolean;
     newEnumAdding: boolean;
@@ -36,18 +39,25 @@ export class ClControlPanelComponent implements OnInit, OnDestroy {
   public selectedItem$: Observable<SchemaClassTypeModel>;
   public requestMessage = '';
   public associatedItems: [string, string][] = [];
-  public removingType: 'class' | 'enum';
+  public childTypes: string[] = [];
+  public removingType: 'class' | 'enum' | 'multi';
   @ViewChild('modalTemplate', {static: true}) modalTemplate;
   @ViewChild('modalNewItemTemplate', {static: true}) modalNewItemTemplate;
+  @ViewChild('modalRemoveItemsTemplate', {static: true}) modalRemoveItemsTemplate;
   public askToAddInitialState: {isEnum: boolean};
   public deleteModalRef: BsModalRef;
   public newItemModalRef: BsModalRef;
+  public removeItemsModalRef: BsModalRef;
   public nameForm: UntypedFormGroup;
   public classNames$: Observable<string[]>;
   private destroy$ = new Subject<any>();
   private closeDropdown$ = new Subject();
   private selectedItemName: string;
-
+  private schema: SchemaClassTypeModel[];
+  private enumsSelectedToBeRemoved = new Set<string>();
+  private classesSelectedToBeRemoved = new Set<string>();
+  
+  deletingTypes: { enums: string[], classes: string[] };
   builtInClassesList: string[];
   availableClasses: string[];
 
@@ -80,10 +90,8 @@ export class ClControlPanelComponent implements OnInit, OnDestroy {
     private modalService: BsModalService,
     private fb: UntypedFormBuilder,
     private clickOutsideService: ClickOutsideService,
-    private seDataService: SeDataService,
     private confirmModalService: ConfirmModalService,
     private schemaEditorService: SchemaEditorService,
-    private schemaService: SchemaService
   ) {}
 
   ngOnInit() {
@@ -100,6 +108,7 @@ export class ClControlPanelComponent implements OnInit, OnDestroy {
       select(getAllSchemaItems),
       takeUntil(this.destroy$)
     ).subscribe(schemaItems => {
+      this.schema = schemaItems;
       this.allShemaItems = schemaItems.map(item => item.name);
       this.availableClasses = Object.keys(this.builtInClasses).filter(key => {
         if (key !== 'Securities') {
@@ -251,6 +260,54 @@ export class ClControlPanelComponent implements OnInit, OnDestroy {
     }
   }
 
+  onAskToRemoveItems() {
+    this.removeItemsModalRef = this.modalService.show(this.modalRemoveItemsTemplate, {
+      class: 'modal-small',
+      ignoreBackdropClick: true,
+    });
+  }
+
+  openRemovingConfirmationModal() {
+    if (this.removeItemsModalRef) this.removeItemsModalRef.hide();
+
+    this.deletingTypes = {
+      enums: Array.from(this.enumsSelectedToBeRemoved),
+      classes: Array.from(this.classesSelectedToBeRemoved)
+    };
+
+    const allAssociatedItems = new Set<string>();
+    const allChildTypes = new Set<string>();
+    
+    this.classesSelectedToBeRemoved.forEach(className => {
+      const childTypes = this.schema.find(schemaItem => schemaItem.name === className)._props._children;
+      childTypes?.forEach(childType => allChildTypes.add(childType));
+
+      const associatedItems = this.getAssociatedSchemaItems(className, false, this.schema);
+      associatedItems.map(item => JSON.stringify(item)).forEach(item => allAssociatedItems.add(item));
+    });
+
+    this.enumsSelectedToBeRemoved.forEach(enumName => {
+      const associatedItems = this.getAssociatedSchemaItems(enumName, true, this.schema);
+      associatedItems.map(item => JSON.stringify(item)).forEach(item => allAssociatedItems.add(item));
+    });
+
+    this.childTypes = Array.from(allChildTypes);
+    this.associatedItems = Array.from(allAssociatedItems).map(item => JSON.parse(item));
+    this.removingType = 'multi';
+
+    this.deleteModalRef = this.modalService.show(this.modalTemplate, {
+      class: 'modal-small createEdit-typeItem-modal',
+      ignoreBackdropClick: true,
+    });
+    this.subscribeOnModalHide();
+  }
+
+  onRemoveItemsModalCheckboxChange(event: Event, classId: string, isEnum: boolean) {
+    const deletingItems = isEnum ? this.enumsSelectedToBeRemoved : this.classesSelectedToBeRemoved;
+    (event.target as HTMLInputElement).checked ? deletingItems.add(classId) : 
+      deletingItems.delete(classId);
+  }
+
   public onAskDeleteSelected() {
     this.associatedItems.length = 0;
     this.selectedItem$
@@ -263,13 +320,8 @@ export class ClControlPanelComponent implements OnInit, OnDestroy {
           let requestMessageType = '';
           if (selectedItem.isEnum) {
             requestMessageType = 'removeENUMRequest';
-            this.schemaService.schema.all.forEach(type => {
-              type.fields.forEach(field => {
-                if (field.type.name === selectedItem.name || field.type.elementType?.name === selectedItem.name) {
-                  this.associatedItems.push([type.name, field.name]);
-                }
-              })
-            })
+            this.associatedItems = this.getAssociatedSchemaItems(selectedItem.name, true, this.schema);
+
             if (this.associatedItems.length) {
               this.removingType = 'enum';
               requestMessageType = 'removeEnumWithFieldTypeRequest';
@@ -282,13 +334,8 @@ export class ClControlPanelComponent implements OnInit, OnDestroy {
             } else {
               requestMessageType = 'removeClassRequest';
             }
-            this.schemaService.schema.all.forEach(type => {
-              type.fields.forEach(field => {
-                if (field.type.elementType?.types.includes(selectedItem.name)) {
-                  this.associatedItems.push([type.name, field.name]);
-                }
-              })
-            })
+
+            this.associatedItems = this.getAssociatedSchemaItems(selectedItem.name, false, this.schema);
             if (this.associatedItems.length) {
               this.removingType = 'class';
               requestMessageType = 'removeClassWithFieldTypeRequest';
@@ -296,7 +343,7 @@ export class ClControlPanelComponent implements OnInit, OnDestroy {
           }
 
           this.selectedItemName = selectedItem.name;
-          return this.translate.get(`text.${requestMessageType}`, {name: selectedItem.name});
+          return this.translate.get(`text.${requestMessageType}`, { name: selectedItem.name });
         }),
       )
       .subscribe((message) => {
@@ -304,14 +351,32 @@ export class ClControlPanelComponent implements OnInit, OnDestroy {
 
         this.deleteModalRef = this.modalService.show(this.modalTemplate, {
           class: 'modal-small',
+          ignoreBackdropClick: true,
         });
+        this.subscribeOnModalHide();
       });
   }
 
+  private subscribeOnModalHide() {
+    this.deleteModalRef.onHide.pipe(take(1), takeUntil(this.destroy$)).subscribe(() => {
+      this.clearDeletingItemsList();
+    });
+  }
+
   public onDeleteSelected() {
+    if (this.enumsSelectedToBeRemoved.size || this.classesSelectedToBeRemoved.size) {
+      const deletingItems = this.classEnumList.filter(item => {
+        return this.enumsSelectedToBeRemoved.has(item.id) || this.classesSelectedToBeRemoved.has(item.id);
+      });
+      deletingItems.forEach(item => this.schemaEditorService.removedClassNames.add(item.name));
+      this.appStore.dispatch(UpdateSchemaAndRemoveType({ deletingItems, insideModal: this.insideModal }));
+      this.clearDeletingItemsList();
+    } else {
+      this.schemaEditorService.removedClassNames.add(this.selectedItemName);
+      this.appStore.dispatch(UpdateSchemaAndRemoveType({ insideModal: this.insideModal }));
+    }
+    this.associatedItems.length = 0;
     this.deleteModalRef.hide();
-    this.schemaEditorService.removedClassNames.add(this.selectedItemName);
-    this.appStore.dispatch(RemoveSelectedSchemaItem());
   }
 
   public onAskToAdd(isEnum?: boolean) {
@@ -360,5 +425,40 @@ export class ClControlPanelComponent implements OnInit, OnDestroy {
         map((items) => items.map((item) => item.name)),
       ),
     );
+  }
+
+  private getAssociatedSchemaItems(itemName: string, isEnum: boolean, schema: SchemaClassTypeModel[]) {
+    const associatedItems: [string, string][] = [];
+    if (isEnum) {
+      schema.forEach(schemaItem => {
+        schemaItem.fields.forEach(field => {
+          if (field.type.name === itemName || field.type.elementType?.name === itemName) {
+            associatedItems.push([schemaItem.name, field.name]);
+          }
+        });
+      });
+      return associatedItems;
+    } else {
+      schema.forEach(schemaItem => {
+        schemaItem.fields.forEach(field => {
+          if (field.type.types?.includes(itemName) || field.type.elementType?.types?.includes(itemName)) {
+            this.associatedItems.push([schemaItem.name, field.name]);
+          }
+        })
+      });
+      return associatedItems;
+    }
+  }
+
+  private clearDeletingItemsList() {
+    this.classesSelectedToBeRemoved.clear();
+    this.enumsSelectedToBeRemoved.clear();
+    this.associatedItems.length = 0;
+    this.childTypes.length = 0;
+  }
+
+  hideRemoveItemsModal() {
+    this.removeItemsModalRef.hide();
+    this.clearDeletingItemsList();
   }
 }

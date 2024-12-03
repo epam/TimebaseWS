@@ -31,6 +31,14 @@ export class GridContextMenuService {
     null,
     {
       data: (event) => ({
+        name: 'Hide This Column',
+        action: () => event.columnApi.setColumnVisible(event.column, false),
+      }),
+      alias: 'hide',
+    },
+    null,
+    {
+      data: (event) => ({
         name: 'Reset Columns',
         action: () => event.columnApi.resetColumnState(),
       }),

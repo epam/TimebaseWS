@@ -17,7 +17,7 @@ import {TranslateService} from '@ngx-translate/core';
 import {ContextMenuComponent} from '@perfectmemory/ngx-contextmenu';
 
 import {PerfectScrollbarComponent, PerfectScrollbarConfigInterface} from 'ngx-perfect-scrollbar';
-import {interval, Observable, Subject} from 'rxjs';
+import {BehaviorSubject, interval, Observable, Subject} from 'rxjs';
 import {
   delay,
   distinctUntilChanged,
@@ -32,12 +32,10 @@ import {
 
 import {AppState}                  from '../../../../core/store';
 import {ContextMenuControlService} from '../../../../shared/services/context-menu-control.service';
-import {GlobalFiltersService}      from '../../../../shared/services/global-filters.service';
 import { ShareLinkService }        from '../../../../shared/services/share-link.service';
 import {StorageService}            from '../../../../shared/services/storage.service';
 import {StreamsService}            from '../../../../shared/services/streams.service';
 import { TabStorageService }       from '../../../../shared/services/tab-storage.service';
-import { copyToClipboard }         from '../../../../shared/utils/copy';
 import {appRoute}                  from '../../../../shared/utils/routes.names';
 
 import {TabModel} from '../../models/tab.model';
@@ -51,8 +49,6 @@ import * as fromStreamDetails from '../../store/stream-details/stream-details.re
 import * as fromStreams from '../../store/streams-list/streams.reducer';
 import * as StreamsTabsActions from '../../store/streams-tabs/streams-tabs.actions';
 import {RemoveTab, RemoveTabs, UpdateTab} from '../../store/streams-tabs/streams-tabs.actions';
-
-import LZString                     from 'lz-string';
 
 import {
   getActiveTabSettings,
@@ -89,6 +85,9 @@ export class StreamsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
     left: {state: false, stop$: new Subject<void>()},
     right: {state: false, stop$: new Subject<void>()},
   };
+  private lastActiveTabIndex: number;
+  chartTabLoading = new BehaviorSubject(false);
+  currentTabId: string;
 
   constructor(
     private appStore: Store<AppState>,
@@ -99,7 +98,6 @@ export class StreamsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
     private translate: TranslateService,
     private storageService: StorageService,
     private onCloseTabAlertService: OnCloseTabAlertService,
-    private globalSettingsService: GlobalFiltersService,
     private streamUpdatesService: StreamUpdatesService,
     private streamRenameService: StreamRenameService,
     private contextMenuControlService: ContextMenuControlService,
@@ -186,6 +184,10 @@ export class StreamsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
         );
       });
 
+    this.streamsService.chartLoaded$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.chartTabLoading.next(false));
+
     this.streamRenameService
       .onSymbolRenamed()
       .pipe(withLatestFrom(this.tabs$), takeUntil(this.destroy$))
@@ -200,8 +202,15 @@ export class StreamsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
     this.streamsService.streamNameUpdated
       .pipe(takeUntil(this.destroy$))
       .subscribe(({ streamId, newStreamName }) => {
-        const targetTabIndex = this.tabs.findIndex(tab => tab.stream === streamId);
-        this.tabs[targetTabIndex].streamName = newStreamName;
+        const targetTabIndexes = this.tabs.reduce((acc, tab, index) => tab.stream === streamId ? [...acc, index] : acc, []);
+        for (let targetTabIndex of targetTabIndexes) {
+          this.tabs[targetTabIndex].streamName = newStreamName;
+          const update = [{
+            tab: this.tabs[targetTabIndex],
+            position: targetTabIndex,
+          }];
+          this.appStore.dispatch(new UpdateTab(update));
+        }
         this.tabs = [...this.tabs];
         this.ref.detectChanges();
       })
@@ -214,7 +223,13 @@ export class StreamsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
         const activeTabIndex = tabs.findIndex((tab) => tab.active);
         if (activeTabIndex === -1) {
           if (tabs?.length) {
-            this.navigateToTab(tabs[0]);
+            if (tabs[this.lastActiveTabIndex]) {
+              tabs[this.lastActiveTabIndex].active = true; 
+              this.appStore.dispatch(
+                new UpdateTab( [{ tab: tabs[this.lastActiveTabIndex], position: this.lastActiveTabIndex}] ));
+            }
+
+            this.navigateToTab(tabs[this.lastActiveTabIndex] ?? tabs[0]);
           } else {
             this.openTabsList = false;
             this.router.navigate([`/${appRoute}`]);
@@ -223,6 +238,7 @@ export class StreamsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
 
           return;
         } else {
+          this.lastActiveTabIndex = activeTabIndex;
           this.navigateToTab(tabs[activeTabIndex]);
         }
 
@@ -271,6 +287,20 @@ export class StreamsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
 
   closeTabList() {
     this.openTabsList = false;
+  }
+
+  onTabClick(tab: TabModel) {
+    if (tab.chart && this.currentTabId !== tab.id) {
+      this.chartTabLoading.next(true);
+    }
+    this.currentTabId = tab.id;
+  }
+
+  onWheelClick(event: MouseEvent, tab: TabModel) {
+    if (event.button === 1) {
+      event.preventDefault();
+      this.closeTab(tab);
+    }
   }
 
   ngOnDestroy(): void {
@@ -454,6 +484,7 @@ export class StreamsTabsComponent implements OnInit, OnDestroy, AfterViewInit {
     this.router.navigate([`/${appRoute}`, ...tab.linkArray], {
       replaceUrl: true,
       queryParams: tab.linkQuery,
+      queryParamsHandling: 'merge',
     });
   }
 

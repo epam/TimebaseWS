@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component,  Output, EventEmitter, HostListener, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {ChangeDetectionStrategy, Component,  Output, EventEmitter, HostListener, OnDestroy, OnInit, ViewChild, Input} from '@angular/core';
 import {UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
 import {ActivatedRoute} from '@angular/router';
 import {select, Store} from '@ngrx/store';
@@ -8,7 +8,7 @@ import {Observable, Subject } from 'rxjs';
 import {filter, map, switchMap, take, takeUntil, tap, withLatestFrom} from 'rxjs/operators';
 import {AppState} from '../../../../../../core/store';
 import {GridContextMenuService} from '../../../../../../shared/grid-components/grid-context-menu.service';
-import {SchemaClassTypeModel} from '../../../../../../shared/models/schema.class.type.model';
+import {SchemaClassFieldModel, SchemaClassTypeModel} from '../../../../../../shared/models/schema.class.type.model';
 import {GridService} from '../../../../../../shared/services/grid.service';
 import {PermissionsService} from '../../../../../../shared/services/permissions.service';
 import {columnsVisibleColumn} from '../../../../../../shared/utils/grid/config.defaults';
@@ -23,6 +23,9 @@ import {
   SetSelectedSchemaItem,
 } from '../../store/schema-editor.actions';
 import {getAllSchemaItems} from '../../store/schema-editor.selectors';
+import { ClassEnumListItem } from '../../models/class-enum-list-item.model';
+import { FIELD_NAME_PATTER_REGEXP } from '../fl-control-panel/fl-control-panel.component';
+import { SchemaValidityService } from '../../services/schema-validity.service';
 
 @Component({
   selector: 'app-class-list-grid',
@@ -32,6 +35,8 @@ import {getAllSchemaItems} from '../../store/schema-editor.selectors';
   providers: [GridService, GridContextMenuService],
 })
 export class ClassListGridComponent implements OnInit, OnDestroy {
+  @Input() readonly = false;
+  @Input() insideModal = false;
   @ViewChild('editItemModalTemplate', {static: true}) modalTemplate;
   schemaAll = [];
   editTypeItemForm: UntypedFormGroup;
@@ -44,8 +49,11 @@ export class ClassListGridComponent implements OnInit, OnDestroy {
   private columnsSet = false;
 
   @Output() addNewItemEvent = new EventEmitter<HTMLElement>();
+  @Output() setItemList = new EventEmitter<ClassEnumListItem[]>();
   @HostListener('keydown.insert', ['$event']) onInsertKeyDown(event: KeyboardEvent) {
-    this.addNewItemEvent.emit(event.target as HTMLElement);
+    if (!this.readonly) {
+      this.addNewItemEvent.emit(event.target as HTMLElement);
+    }
   }
 
   constructor(
@@ -59,6 +67,7 @@ export class ClassListGridComponent implements OnInit, OnDestroy {
     private seSelectionService: SeSelectionService,
     private gridContextMenuService: GridContextMenuService,
     private permissionsService: PermissionsService,
+    private schemaValidityService: SchemaValidityService
   ) {}
 
   ngOnInit() {
@@ -69,7 +78,7 @@ export class ClassListGridComponent implements OnInit, OnDestroy {
         return this.gridService.options(id, {
           enableFilter: false,
           deltaRowDataMode: true,
-          getRowNodeId: ({name}) => name,
+          getRowNodeId: ({id}) => id,
           getRowStyle: (params) => {
             return {display: params?.data?._props?._isVisible ? 'block' : 'none'};
           },
@@ -77,7 +86,8 @@ export class ClassListGridComponent implements OnInit, OnDestroy {
             classItem: ({data}) => data && !data.isEnum,
             enumItem: ({data}) => data?.isEnum,
             'type-edited': ({data}) => this.seFieldFormsService.typeHasChanges(data),
-            hasError: ({data}) => this.seFieldFormsService.showErrorOnType(data),
+            hasError: ({data}) => this.schemaValidityService.showErrorOnType(data, this.insideModal) || this.seFieldFormsService.showErrorOnType(data) || 
+              data.fields.some((field: SchemaClassFieldModel) => !FIELD_NAME_PATTER_REGEXP.test(field.name)),
             'ag-row-selected': ({data}) => data?._props?._isSelected,
           },
         });
@@ -154,7 +164,12 @@ export class ClassListGridComponent implements OnInit, OnDestroy {
           return 0;
         });
 
-        return rowData;
+        this.setItemList.emit(rowData.map(row => ({ 
+            name: row.name, id: row.id, isEnum: row.isEnum, hierarchy: row._props._hierarchy
+          })
+        ));
+          
+        return rowData.map(row => ({ ...row, readonly: this.readonly }));
       }),
       takeUntil(this.seDataService.showClassListGrid().pipe(filter((show) => !show))),
     );
@@ -210,7 +225,7 @@ export class ClassListGridComponent implements OnInit, OnDestroy {
         const item = event.api.getSelectedRows()[0];
         if (item?._props && !item._props._isSelected) {
           this.seSelectionService.onSelectType(item?._props._uuid);
-          this.appStore.dispatch(SetSelectedSchemaItem({itemName: item.name}));
+          this.appStore.dispatch(SetSelectedSchemaItem({ itemId: item.id }));
         }
       });
 
@@ -286,7 +301,7 @@ export class ClassListGridComponent implements OnInit, OnDestroy {
 
     this.seSelectionService.selectedType().subscribe((typeUUid) => {
       const item = data.find((type) => type._props._uuid === typeUUid) || data[0];
-      this.appStore.dispatch(SetSelectedSchemaItem({itemName: item.name}));
+      this.appStore.dispatch(SetSelectedSchemaItem({ itemId: item.id }));
     });
   }
 

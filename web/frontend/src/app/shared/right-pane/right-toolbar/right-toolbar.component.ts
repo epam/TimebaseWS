@@ -6,9 +6,8 @@ import { AppState }                           from '../../../core/store';
 import { ChartTypes }                         from '../../../pages/streams/models/chart.model';
 import { TabSettingsModel }                   from '../../../pages/streams/models/tab.settings.model';
 import { getActiveTab, getActiveTabSettings } from '../../../pages/streams/store/streams-tabs/streams-tabs.selectors';
-import { TabStorageService }                  from '../../services/tab-storage.service';
-import { HasRightPanel }                      from '../has-right-panel';
 import { RightPaneService }                   from '../right-pane.service';
+import { TabModel } from 'src/app/pages/streams/models/tab.model';
 
 @Component({
   selector: 'app-right-toolbar',
@@ -20,6 +19,8 @@ export class RightToolbarComponent implements OnInit {
   @Input() tabHasStream = true;
   @Input() showMessage = true;
 
+  private activeTab$: Observable<TabModel>;
+  isNotTopic$: Observable<boolean>;
   tabSettings$: Observable<TabSettingsModel>;
   showPropsActive$: Observable<boolean>;
   showMessageInfoActive$: Observable<boolean>;
@@ -34,11 +35,12 @@ export class RightToolbarComponent implements OnInit {
 
   constructor(
     private appStore: Store<AppState>,
-    private tabStorageService: TabStorageService<HasRightPanel>,
     private rightPaneService: RightPaneService,
   ) {}
 
   ngOnInit(): void {
+    this.activeTab$ = this.appStore.pipe(select(getActiveTab));
+    this.isNotTopic$ = this.activeTab$.pipe(map(tab => !tab?.isTopic));
     this.tabSettings$ = this.appStore.pipe(select(getActiveTabSettings));
     this.showPropsActive$ = this.rightPaneService.onShowProps();
     this.showMessageInfoActive$ = this.rightPaneService.onShowSelectedMessage();
@@ -46,7 +48,7 @@ export class RightToolbarComponent implements OnInit {
     this.showDescriptionActive$ = this.rightPaneService.onShowDescription();
 
     this.showPropsTooltip$ = combineLatest([
-      this.appStore.pipe(select(getActiveTab)),
+      this.activeTab$,
       this.showPropsActive$,
     ]).pipe(
       map(([tab, active]) => {
@@ -65,8 +67,8 @@ export class RightToolbarComponent implements OnInit {
     this.showMessageTooltip$ = tooltip(this.showMessageInfoActive$, 'rightPanel.messageInfo');
     this.showDescriptionTooltip$ = tooltip(this.showDescriptionActive$, 'rightPanel.description');
     
-    this.showViewProperties$ = this.appStore.pipe(select(getActiveTab)).pipe(map(tab => !!tab?.isView));
-    this.showChartSettings$ = this.appStore.pipe(select(getActiveTab)).pipe(map(tab => tab?.filter?.chart_type === ChartTypes.LINEAR));
+    this.showViewProperties$ = this.activeTab$.pipe(map(tab => !!tab?.isView));
+    this.showChartSettings$ = this.activeTab$.pipe(map(tab => tab?.filter?.chart_type === ChartTypes.LINEAR));
   }
 
   toggleProps() {

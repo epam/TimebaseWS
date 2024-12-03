@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.view.processor;
 
 import com.epam.deltix.data.stream.IAMessageSourceMultiplexer;
@@ -26,6 +25,8 @@ import com.epam.deltix.qsrv.hf.pub.codec.UnboundDecoder;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassSet;
 import com.epam.deltix.qsrv.hf.tickdb.pub.*;
+import com.epam.deltix.qsrv.hf.tickdb.pub.lock.DBLock;
+import com.epam.deltix.qsrv.hf.tickdb.pub.lock.LockType;
 import com.epam.deltix.qsrv.hf.tickdb.pub.query.InstrumentMessageSource;
 import com.epam.deltix.qsrv.hf.tickdb.schema.MetaDataChange;
 import com.epam.deltix.qsrv.hf.tickdb.schema.SchemaAnalyzer;
@@ -156,6 +157,7 @@ public class QueryViewProcessingWorker extends ViewProcessingWorker {
         private final TickLoader loader;
         private final RecordClassDescriptor[] outTypes;
         private final SchemaAnalyzer analyzer;
+        private final DBLock lock;
 
         private final HashMap<RecordClassDescriptor, Function<RawMessage, RawMessage>> converters = new HashMap<>();
 
@@ -173,8 +175,8 @@ public class QueryViewProcessingWorker extends ViewProcessingWorker {
                     .map(s -> timebaseService.getConnection().getStream(s)).filter(Objects::nonNull)
                     .toArray(DXTickStream[]::new)
             );
-
-            loader = stream.createLoader(new LoadingOptions(true));
+            lock = stream.lock(LockType.WRITE);
+            loader = stream.createLoader(new LoadingOptions(true, LoadingOptions.WriteMode.REWRITE));
 
             mux = new IAMessageSourceMultiplexer<>();
             mux.setLive(viewMd.isLive());
@@ -213,6 +215,7 @@ public class QueryViewProcessingWorker extends ViewProcessingWorker {
         }
 
         public void close() {
+            releaseLock();
             closeCursor();
             closeLoader();
         }
@@ -250,6 +253,16 @@ public class QueryViewProcessingWorker extends ViewProcessingWorker {
                 }
             } catch (Throwable t) {
                 LOGGER.warn().append("Failed to close loader of task ").append(this).commit();
+            }
+        }
+
+        private void releaseLock() {
+            try {
+                if (lock != null) {
+                    lock.release();
+                }
+            } catch (Throwable t) {
+                LOGGER.warn().append("Failed to release lock ").append(this).commit();
             }
         }
 

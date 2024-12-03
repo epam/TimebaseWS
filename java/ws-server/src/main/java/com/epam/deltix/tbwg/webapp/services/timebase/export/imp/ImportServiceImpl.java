@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,21 +14,33 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.timebase.export.imp;
 
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
+import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
+import com.epam.deltix.qsrv.hf.pub.md.RecordClassSet;
+import com.epam.deltix.qsrv.hf.pub.md.json.SchemaBuilder;
+import com.epam.deltix.qsrv.hf.pub.md.json.SchemaDef;
+import com.epam.deltix.qsrv.hf.stream.MessageReader2;
+import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.timebase.csvimport.ImportProcessReport;
 import com.epam.deltix.tbwg.webapp.services.timebase.csvimport.ImportStatus;
+import com.epam.deltix.tbwg.webapp.services.view.utils.Utils;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
+import com.epam.deltix.util.time.TimeKeeper;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+import static com.epam.deltix.tbwg.webapp.services.timebase.csvimport.CsvImportServiceImpl.IMPORT_FINISH_DELAY;
 
 @Service
 @Primary
@@ -64,10 +76,7 @@ public class ImportServiceImpl implements ImportService {
             }
             throw new RuntimeException("Unknown upload process id: " + id);
         }
-        if (!(importProcess instanceof FileImportProcess)) {
-            throw new RuntimeException("Unexpected upload process type: id=" + id);
-        }
-        FileImportProcess fileImportProcess = (FileImportProcess) importProcess;
+        FileImportProcess fileImportProcess = getFileImportProcess(importProcess);
         try {
             LOGGER.info().append("Start chunk loading of import file ").append(fileImportProcess.fileName())
                     .append("; chunk size: ").append(size)
@@ -83,6 +92,74 @@ public class ImportServiceImpl implements ImportService {
             throw t;
         }
     }
+
+    private FileImportProcess getFileImportProcess(ImportProcess importProcess) {
+        if (!(importProcess instanceof FileImportProcess)) {
+            throw new RuntimeException("Unexpected upload process type: id=" + importProcess.id());
+        }
+        return (FileImportProcess) importProcess;
+    }
+
+    @Override
+    public SchemaDef getSchema(long id) {
+        RecordClassDescriptor[] types = getTypesByImportProcessId(id);
+        return SchemaBuilder.toSchemaDef(new RecordClassSet(types), false);
+    }
+
+    @Override
+    public boolean isValidImportSchema(long id, String streamKey) {
+        DXTickStream stream = timebaseService.getStream(streamKey);
+        if (stream == null) {
+            return true;
+        }
+        RecordClassDescriptor[] types = getTypesByImportProcessId(id);
+        return Utils.isSchemaValid(stream, types);
+    }
+
+    private RecordClassDescriptor[] getTypesByImportProcessId(long id) {
+        ImportProcess importProcess = uploadFileService.uploadProcess(id);
+        if (importProcess == null) {
+            LOGGER.error().append("Import process with id ").append(id).append(" not found").commit();
+            throw new IllegalArgumentException("Unknown import process");
+        }
+        int i = 0;
+        while (!importProcess.ready()) {
+            if (i == 5) {
+                LOGGER.error().append("Import process with id ").append(id).append(" not ready to use").commit();
+                throw new IllegalArgumentException("Files for process \"" + id + "\" not loaded");
+            }
+            i++;
+            TimeKeeper.parkNanos(1_000_000_000);
+        }
+
+        FileImportProcess fileImportProcess = getFileImportProcess(importProcess);
+        try (InputStream is = fileImportProcess.read()) {
+            String fileName = fileImportProcess.fileName();
+            if (fileName.endsWith(".zip")) {
+                return getTypes(new ZipInputStream(is));
+            } else {
+                return getTypes(is, fileImportProcess.getSize(), fileName.endsWith(".gz"));
+            }
+        } catch (Throwable e) {
+            LOGGER.error().append("Failed to get schema from import file ").append(fileImportProcess.fileName()).append(e).commit();
+            throw new RuntimeException(e);
+        }
+    }
+
+    private RecordClassDescriptor[] getTypes(InputStream is, long fileSize, boolean unzip) throws IOException {
+        MessageReader2 messageReader2 = new MessageReader2(is, fileSize, unzip, 1 << 20, null);
+        return messageReader2.getTypes();
+    }
+
+    private RecordClassDescriptor[] getTypes(ZipInputStream zis) throws IOException {
+        ZipEntry zipEntry = zis.getNextEntry();
+        if (zipEntry == null) {
+            throw new RuntimeException("Zip entry not found");
+        }
+        MessageReader2 messageReader2 = new MessageReader2(zis, zipEntry.getSize(), true, 1 << 20, null);
+        return messageReader2.getTypes();
+    }
+
 
     @Override
     public void startImport(long id, SubscriptionChannel channel) {
@@ -125,6 +202,37 @@ public class ImportServiceImpl implements ImportService {
         });
 
     }
+
+    @Override
+    public void setActiveImport(long id) {
+        ImportProcess importProcess = uploadFileService.uploadProcess(id);
+        if (importProcess != null) {
+            importProcess.setActive(true);
+        }
+    }
+
+    @Override
+    public void inactiveImport(long id) {
+        finishIfNotActiveWithDelay(id);
+    }
+
+    private void finishIfNotActiveWithDelay(long id) {
+        ImportProcess importProcess = uploadFileService.uploadProcess(id);
+        if (importProcess != null) {
+            importProcess.setActive(false);
+            new Thread(() -> {
+                try {
+                    Thread.sleep(IMPORT_FINISH_DELAY);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                if (!importProcess.isActive()) {
+                    cancelImport(id);
+                }
+            }).start();
+        }
+    }
+
 
     @Override
     public void cancelImport(long id) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.timebase.csvimport;
 
 import com.epam.deltix.qsrv.hf.pub.RawMessage;
@@ -110,7 +109,8 @@ public class CsvMessageSource implements FileRawMessageSource {
             Map<String, Object> valuesMap = createValuesMap();
             RawMessage message = new RawMessage();
             message.setSymbol(getSymbol(valuesMap));
-            message.setTimeStampMs(getTimestampMs(valuesMap));
+            message.setNanoTime(getTimestampNs(valuesMap));
+            //message.setInstrumentType(getInstrumentType(valuesMap));
             message.type = getLineMessageType();
             rawMessageHelper.setValues(message, valuesMap);
             currentMessage = message;
@@ -223,7 +223,7 @@ public class CsvMessageSource implements FileRawMessageSource {
         throw new RuntimeException("Message symbol is missing");
     }
 
-    private long getTimestampMs(Map<String, Object> values) throws ParseException {
+    private long getTimestampNs(Map<String, Object> values) throws ParseException {
         Object timestamp = values.get(CommonFields.TIMESTAMP.getFieldInfo().getName());
         if (timestamp instanceof Long) {
             return (Long) timestamp;

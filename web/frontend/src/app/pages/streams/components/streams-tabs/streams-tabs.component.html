@@ -81,7 +81,7 @@
         </div>
       </perfect-scrollbar>
       <ng-template #tabInner let-tab="tab">
-        <a [queryParams]="tab.linkQuery" [routerLink]="tab.linkArray">
+        <a [queryParams]="tab.linkQuery" [routerLink]="tab.linkArray" (click)="onTabClick(tab)" (auxclick)="onWheelClick($event, tab)">
           <ng-container *ngTemplateOutlet="tabIcon; context: { tab: tab }"></ng-container>
         </a>
         <button
@@ -97,9 +97,10 @@
     </div>
   </div>
   <app-top-global-menu class="right-menu"></app-top-global-menu>
+  <div *ngIf="chartTabLoading | async" class="tab-loading"></div>
 </div>
 <ng-template #tabIcon let-tab="tab">
-  <ng-template [ngIf]="!tab.query">
+  <ng-template [ngIf]="!tab.query && !tab.chart">
     <ng-template
         [ngIf]="
         !tab.live &&
@@ -107,10 +108,13 @@
         !tab.reverse &&
         !tab.schema &&
         !tab.schemaEdit &&
+        !tab.schemaView && 
         !tab.streamCreate &&
+        !tab.topicCreate && 
         !tab.chart &&
         !tab.flow &&
-        !tab.orderBook
+        !tab.orderBook &&
+        !tab.generateDDL
       ">
       <svg
           fill="none"
@@ -171,7 +175,7 @@
         <path d="M10 6 L3 14 10 22 M3 14 L18 14 C26 14 30 18 30 26" />
       </svg>
     </ng-template>
-    <ng-template [ngIf]="tab.schema">
+    <ng-template [ngIf]="tab.schema || tab.schemaView">
       <svg
           fill="none"
           height="16"
@@ -186,7 +190,7 @@
         <path d="M4 12 L12 12 12 4 M20 4 L20 12 28 12 M4 20 L12 20 12 28 M28 20 L20 20 20 28" />
       </svg>
     </ng-template>
-    <ng-template [ngIf]="tab.schemaEdit || tab.streamCreate">
+    <ng-template [ngIf]="tab.schemaEdit || tab.streamCreate || tab.topicCreate">
       <svg
           fill="none"
           height="16"
@@ -201,21 +205,6 @@
         <path d="M4 12 L12 12 12 4 M20 4 L20 12 28 12 M4 20 L12 20 12 28 M28 20 L20 20 20 28" />
         <path
             d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-      </svg>
-    </ng-template>
-    <ng-template [ngIf]="tab.chart">
-      <svg
-          fill="none"
-          height="16"
-          id="i-activity"
-          stroke="currentcolor"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          viewBox="0 0 32 32"
-          width="16"
-          xmlns="http://www.w3.org/2000/svg">
-        <path d="M4 16 L11 16 14 29 18 3 21 16 28 16" />
       </svg>
     </ng-template>
     <span class="tab-title">{{ tab.title }}</span>
@@ -255,6 +244,22 @@
     </svg>
     Flow
   </ng-template>
+  <ng-template [ngIf]="tab.generateDDL">
+    <svg
+      fill="none"
+      height="16"
+      id="i-msg"
+      stroke="currentcolor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 32 32"
+      width="16"
+      xmlns="http://www.w3.org/2000/svg">
+      <path d="M2 4 L30 4 30 22 16 22 8 29 8 22 2 22 Z" />
+    </svg>
+    Generate QQL/DDL
+  </ng-template>
   <ng-container *ngIf="tab.orderBook">
     <svg fill="none" height="13" viewBox="0 0 15 15" width="15" xmlns="http://www.w3.org/2000/svg">
       <path
@@ -263,6 +268,22 @@
     </svg>
     {{ 'contextMenu.orderBook' | translate }}
     <ng-container *ngIf="tab.symbol"> - {{ tab.symbol }}</ng-container>
+  </ng-container>
+  <ng-container *ngIf="tab.chart">
+    <svg
+      fill="none"
+      height="16"
+      id="i-activity"
+      stroke="currentcolor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 32 32"
+      width="16"
+      xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 16 L11 16 14 29 18 3 21 16 28 16" />
+  </svg>
+  {{ 'contextMenu.chart' | translate }} - {{ tab.name ?? tab.stream }}
   </ng-container>
 </ng-template>
 <ng-template #closeIcon>

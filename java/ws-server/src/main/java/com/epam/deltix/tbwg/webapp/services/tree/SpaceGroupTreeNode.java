@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.tree;
+package com.epam.deltix.tbwg.webapp.services.tree;
 
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
 import com.epam.deltix.tbwg.webapp.model.tree.TreeNodeType;
@@ -52,18 +52,27 @@ public class SpaceGroupTreeNode extends TreeNode<String> {
         this.treeNode.setTotalCount(spaces.size());
     }
 
-    // todo: the logic is in progress
     public TreeNode<?> findSymbol(String symbol) {
+        String symbolSpace = findSymbolSpace(symbol);
+        if (symbolSpace == null) return null;
         if (groups.size() > 0) {
             for (Map.Entry<String, TreeGroup<String>> group : groups.entrySet()) {
-                if (group.getValue().hasElement(symbol)) {
+                if (group.getValue().hasElement(symbolSpace)) {
                     return addChild(group.getKey());
                 }
             }
         } else {
-            return addChild(symbol);
+            return addChild(symbolSpace);
         }
+        return null;
+    }
 
+    private String findSymbolSpace(String symbol) {
+        for (Map.Entry<String, List<String>> spaseSymbols : spaceToSymbols.entrySet()) {
+            if (spaseSymbols.getValue().contains(symbol)) {
+                return spaseSymbols.getKey();
+            }
+        }
         return null;
     }
 
@@ -92,23 +101,22 @@ public class SpaceGroupTreeNode extends TreeNode<String> {
         }
 
         return () -> {
+            List<String> symbols;
+            // TODO: 9/18/2024 make spaceToSymbols mandatory
             if (spaceToSymbols != null) {
-                List<String> symbols = spaceToSymbols.get(space);
+                symbols = spaceToSymbols.get(space);
                 if (symbols == null) {
                     symbols = new ArrayList<>();
                 }
-                return new SymbolGroupTreeNode(
-                    config, space, space.isEmpty() ? "root" : space, TreeNodeType.SPACE, symbols
-                );
             } else {
-                List<String> symbols = Utils.listSymbols(
-                    config.getSpaceEntitiesCache().getStreamSpaceEntities(stream, space),
-                    config.getFilter()
-                );
-                return new SymbolGroupTreeNode(
-                    config, space, space.isEmpty() ? "root" : space, TreeNodeType.SPACE, symbols
+                symbols = Utils.listSymbols(
+                        config.getSpaceEntitiesCache().getStreamSpaceEntities(stream, space),
+                        config.getFilter()
                 );
             }
+            return new SymbolGroupTreeNode(
+                config, space, space.isEmpty() ? "root" : space, TreeNodeType.SPACE, symbols
+            );
         };
     }
 }

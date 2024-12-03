@@ -5,7 +5,7 @@
       class="search-input autofill-dark-blue"
       id="search"
       name="search"
-      placeholder="Search"
+      placeholder="Filter"
       type="text" />
   <div
       [class.has-changes]="hasChanges$ | async"
@@ -17,7 +17,8 @@
       (isOpenChange)="searchDropDownOpenChange($event)"
       dropdown
   >
-    <div class="search-options-toggle-btn" (click)="closeOtherDropdowns()" dropdownToggle>
+    <div class="search-options-toggle-btn" (click)="closeOtherDropdowns($event)" dropdownToggle 
+      [tooltip]="'streamListSearch.tooltip' | translate" placement="top">
       <svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
           fill="currentColor"
           viewBox="0 0 490.4 490.4" xml:space="preserve">
@@ -29,16 +30,17 @@
       </svg>
     </div>
     <ul *dropdownMenu formGroupName="options" class="dropdown-menu common-dropdown">
-      <ng-container *ngFor="let group of optionGroups; let index = index" >
+      <ng-container *ngFor="let group of currentOptions; let index = index" >
         <li *ngIf="index !== 0" class="dropdown-divider" ></li>
         <li *ngFor="let option of group.options;" class="dropdown-item">
           <label class="container-ch dropdown-checkmark">
             <input (change)="onOptionChange(group, option, $event)" [formControlName]="group.controlName + option" type="checkbox"/>
             <span class="checkmark"></span>
-            <a>{{ 'streamListSearch.options.' + group.controlName + '.' + option | translate }}</a>
+            <a>{{ 'streamListSearch.options.' + group.controlName + '.' + option | translate: { streamType: treeView } }}</a>
           </label>
         </li>
       </ng-container>
+      <li class="dropdown-divider"></li>
       <li [class.disabled]="!(hasChanges$ | async)" class="dropdown-item" >
         <a (click)="clearOptions()" >{{ 'streamListSearch.clearOptions' | translate }}</a>
       </li>

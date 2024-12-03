@@ -156,9 +156,18 @@ export function reducer(state = initialState, action: StreamsTabsActions): State
         });
       }
 
+      const tabIds = new Set();
+      const resultTabs = [];
+      tabs.forEach(tab => {
+        if (!tabIds.has(tab.id)) {
+          resultTabs.push(tab);
+          tabIds.add(tab.id);
+        }
+      })
+
       return {
         ...state,
-        tabs: tabs,
+        tabs: resultTabs,
       };
 
     case StreamsTabsActionTypes.UPDATE_TAB:

@@ -1,0 +1,142 @@
+<app-resizable [minWidth]="750" [minHeight]="580" [contentClassName]="" [initialHeight]="580"
+  [contentClassName]="'playback-settings'" [contentHeightDifference]="210" [modalBodyHeightDifference]="120">
+  <app-modal>
+    <ng-container title>
+      {{ 'playback.title' | translate }} 
+    </ng-container>
+    <div content>
+      <form [formGroup]="formGroup" class="playback-settings">
+        <h3>{{ 'playback.headers.source' | translate }}</h3>
+        <div class="input-with-label">
+          <label class="target-streams-label">{{ 'playback.inputLabels.streams' | translate }}</label>
+          <div [ngClass]="{'invalid': !!validationErrorMessages.sourceStream, 'multiselect-wrapper': true}">
+            <ng-multiselect-dropdown
+              [data]="streamNameList"
+              [settings]="{ allowSearchFilter: true, enableCheckAll: false }"
+              appMultiselectNormalize
+              class="flat-multiselect"
+              [placeholder]="'Stream Name(s)'"
+              formControlName="sourceStreams">
+            </ng-multiselect-dropdown>
+          </div>
+        </div>
+
+        <div class="input-with-label">
+          <label>{{ 'playback.inputLabels.timeRange' | translate }}</label>
+          <div class="time-range-inputs">
+            <div class="row col-6">
+              <div class="time-range-checkbox">
+                <input class="form-check-input" type="checkbox" (change)="toggleInputDisabled('startTime', $event)">
+              </div>
+              <app-btn-date-picker
+                [inputDisabled]="inputsAreDisabled.startTime"
+                [inputInvalid]="inputsInvalid.startTime"
+                [timeZone]="selectedTimezone$ | async"
+                formControlName="startTime">
+              </app-btn-date-picker>
+            </div>
+            <div class="time-range-separator">---</div>
+            <div class="row col-6">
+              <div class="time-range-checkbox">
+                <input class="form-check-input" type="checkbox" (change)="toggleInputDisabled('endTime', $event)">
+              </div>
+              <app-btn-date-picker
+                [minDate]="endTimeMin"
+                [inputDisabled]="inputsAreDisabled.endTime"
+                [inputInvalid]="inputsInvalid.endTime"
+                [timeZone]="selectedTimezone$ | async"
+                formControlName="endTime">
+              </app-btn-date-picker>
+            </div>
+          </div>
+        </div>
+
+        <h3>{{ 'playback.headers.target' | translate }}</h3>
+        <div class="row">
+          <div class="topics-checkbox col-2">
+            <input class="form-check-input" type="radio" value="stream" formControlName="targetType">
+            <label class="target-stream-label" (click)="setTarget('stream')">{{ 'playback.inputLabels.stream' | translate }}</label>
+          </div>
+          <deltix-ng-autocomplete
+            class="col-6"
+            formControlName="targetStream"
+            (changeInput)="onTargetStreamChanged($event)"
+            (selectItem)="onTargetStreamChanged($event)"
+            [values]="streamNameList"
+            cssClass="in-modal"
+            [free]="true"
+            [invalid]="validationErrorMessages.targetStream"
+            [placeholder]="'playback.placeholders.stream' | translate"
+            >
+          </deltix-ng-autocomplete>
+        </div>
+        <div class="row">
+          <div class="topics-checkbox col-2">
+            <input class="form-check-input topic-checkbox" type="radio" value="topic" formControlName="targetType">
+            <label class="target-topic-label" (click)="setTarget('topic')">{{ 'playback.inputLabels.topic' | translate }}</label>
+          </div>
+          <deltix-ng-autocomplete
+            class="col-6"
+            formControlName="targetTopic"
+            (changeInput)="onTargetStreamChanged($event, true)"
+            (selectItem)="onTargetStreamChanged($event, true)"
+            [values]="topicNameList"
+            cssClass="in-modal"
+            [free]="true"
+            [invalid]="validationErrorMessages.targetStream"
+            [placeholder]="'playback.placeholders.topic' | translate"
+            >
+          </deltix-ng-autocomplete>
+        </div>
+
+        <h3>{{ 'playback.headers.options' | translate }}</h3>
+          <div class="speed-input">
+            <div class="speed-checkbox">
+              <input class="form-check-input" type="checkbox" formControlName="speedChange">
+              <span>{{ 'playback.inputLabels.playbackSpeed' | translate }}</span>
+            </div>
+            <div class="playback-speed-input">
+              <div *ngIf="formGroup.get('speed').value !== 'MAX'" [class.disabled]="speedControl?.disabled">x</div>
+              <deltix-ng-autocomplete
+                formControlName="speed"
+                (changeInput)="onSpeedChanged($event)"
+                (selectItem)="onSpeedChanged($event)"
+                [values]="playbackSpeedOptions"
+                cssClass="in-modal"
+                [free]="true"
+                [allOptionsOnClick]="true"
+                [invalid]="validationErrorMessages.speed"
+                >
+              </deltix-ng-autocomplete>
+            </div>
+          </div>
+
+        <div class="row parent-row">
+          <div class="cyclical-checkbox">
+            <input class="form-check-input" type="checkbox" formControlName="cyclic">
+            <span>{{ 'playback.inputLabels.loop' | translate }}</span>
+          </div>
+        </div>
+
+        <div class="row parent-row">
+          <div class="cyclical-checkbox">
+            <input class="form-check-input" type="checkbox" formControlName="permanent">
+            <span>{{ 'playback.inputLabels.permanent' | translate }}</span>
+          </div>
+        </div>
+      </form>
+      <div *ngIf="formInvalid$ | async" class="error-messages">
+        <div *ngFor="let message of validationErrorMessages | keyvalue: originalOrder" class="error-message" 
+          [class.error-message-not-empty]="!!message.value">{{ message.value }}</div>
+      </div>
+    </div>
+
+    <footer footer>
+      <button class="btn btn-primary" 
+        [disabled]="(formInvalid$ | async) || (targetTypeIsTopic ? !topicNameControl?.value : !streamNameControl?.value)" 
+        (click)="createPlayback()">
+        {{ 'playback.buttons.next' | translate }}
+      </button>
+    </footer>
+  </app-modal>
+</app-resizable>

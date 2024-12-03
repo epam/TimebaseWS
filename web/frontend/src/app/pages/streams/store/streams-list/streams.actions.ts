@@ -23,6 +23,7 @@ export enum StreamsActionTypes {
   PURGE_STREAM = '[Streams] Purge Stream',
   TRUNCATE_STREAM = '[Streams] Truncate Stream',
   ASK_TO_DELETE_STREAM = '[Streams] Ask to delete Stream',
+  ASK_TO_DELETE_SYMBOLS = '[Streams] Delete Symbols',
   DELETE_STREAM = '[Streams] Delete Stream',
   CLOSE_MODAL = '[Streams] Close Modal',
 
@@ -209,6 +210,18 @@ export class AskToDeleteStream implements Action {
     public payload: {
       streamKey: string;
       spaceName?: string;
+      noNotification?: boolean
+    },
+  ) {}
+}
+
+export class AskToDeleteSymbols implements Action {
+  readonly type = StreamsActionTypes.ASK_TO_DELETE_SYMBOLS;
+
+  constructor(
+    public payload: {
+      streamKey: string;
+      symbols: string[];
     },
   ) {}
 }
@@ -352,6 +365,7 @@ export type StreamsActions =
   | StopStreamStatesSubscription
   | DownloadQSMSGFile
   | AskToDeleteStream
+  | AskToDeleteSymbols
   | DeleteStream
   | RenameStream
   | RenameSymbol

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.timebase.csvimport;
 
 import com.epam.deltix.qsrv.hf.pub.RawMessage;
@@ -98,7 +97,6 @@ public class MessageSourceSortConvertor implements Callable<FileRawMessageSource
     private void splitAndSort() throws IOException {
         while (source.next() && !importProcess.isCancelled()) {
             if (source.getMessagesProcessed() % 10000 == 0) {
-                importProcess.update();
                 report.sendWarnings(source.getSkipMessagesReport());
                 report.sendProgress(progressCounter.updateAndGet(source.getFileName(), source.getBytesRead()));
             }
@@ -121,11 +119,10 @@ public class MessageSourceSortConvertor implements Callable<FileRawMessageSource
     }
 
     private void writeChunk() throws IOException {
-        importProcess.update();
         report.sendWarnings(source.getSkipMessagesReport());
         report.sendProgress(progressCounter.updateAndGet(source.getFileName(), source.getBytesRead()));
 
-        messages.sort(Comparator.comparingLong(InstrumentMessage::getTimeStampMs));
+        messages.sort(Comparator.comparingLong(InstrumentMessage::getNanoTime));
         File tmpFile = File.createTempFile("sort_", ".tmp", importProcess.getProcessDirectory());
         tmpFile.deleteOnExit();
 
@@ -154,4 +151,3 @@ public class MessageSourceSortConvertor implements Callable<FileRawMessageSource
                 getSkipMessagesCount());
     }
 }
-

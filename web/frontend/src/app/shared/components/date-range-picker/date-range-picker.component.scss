@@ -8,3 +8,39 @@
     margin-right: 10 * $ss;
   }
 }
+
+.row {
+  padding: 0.01rem 1rem;
+  &:last-of-type {
+    margin-bottom: 1rem;
+  }
+}
+
+.col-4 {
+  margin-top: 0.4rem;
+}
+
+.time-range-checkbox {
+  padding-left: 6rem;
+  input[type='checkbox'] {
+    margin-top: 0rem;
+    width: 18px;
+    height: 18px;
+  }
+  span {
+    padding-left: 0.5rem;
+  }
+}
+
+.col-8 {
+  position: relative;
+}
+
+label {
+  margin-right: 0.3rem;
+  margin-top: 0.5rem;
+  &:last-of-type {
+    margin-left: 1.2rem;
+  }
+  white-space: nowrap;
+}

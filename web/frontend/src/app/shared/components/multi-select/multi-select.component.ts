@@ -24,6 +24,9 @@ import {distinctUntilChanged, map, startWith, takeUntil, filter } from 'rxjs/ope
 import {ClickOutsideService} from '../../directives/click-outside/click-outside.service';
 import { EscapeKeyService } from '../../services/escape-key.service';
 import { MultiSelectItem } from './multi-select-item';
+import { Store } from '@ngrx/store';
+import { AppState } from 'src/app/core/store';
+import * as NotificationsActions from '../../../core/modules/notifications/store/notifications.actions';
 
 
 @Component({
@@ -58,6 +61,12 @@ export class MultiSelectComponent
   @Input() selectionDisabled: boolean = false;
   @Input() initiallySelectedItems: MultiSelectItem[] = [];
   @Input() selectedItem: string;
+  @Input() selectAllIsAvailable = true;
+  @Input() selectionNumberUpperLimit: number = 0;
+  @Input() selectionNumberLowerLimit: number = 0;
+  @Input() sort: boolean = false;
+  @Input() closeButtonsHidden: boolean = false;
+  @Input() filterById: boolean = false;
 
   open: boolean;
   searchControl = new UntypedFormControl('');
@@ -80,8 +89,10 @@ export class MultiSelectComponent
   private destroy$ = new Subject();
   private showLimit = 10;
   private bodyHost: DomPortalOutlet;
+  private initialSelectionApplied: boolean = false;
 
   constructor(
+    private appStore: Store<AppState>,
     private clickOutsideService: ClickOutsideService,
     private elementRef: ElementRef<HTMLElement>,
     private cdRef: ChangeDetectorRef,
@@ -93,8 +104,9 @@ export class MultiSelectComponent
 
   ngOnInit(): void {
 
-    this.searchControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((value) => {
+    this.searchControl.valueChanges.pipe(distinctUntilChanged(), takeUntil(this.destroy$)).subscribe((value) => {
       this.filterItems();
+      this.updateAllSelected();
     });
 
     this.bodyHost = new DomPortalOutlet(
@@ -117,6 +129,24 @@ export class MultiSelectComponent
       this.toggleSubmenu(item.id);
       return;
     }
+
+    if (this.selectionNumberUpperLimit || this.selectionNumberLowerLimit) {
+      const selectedItems = Object.entries(this.isSelected).filter(item => item[1]);
+      if (!this.isSelected[item.id] && selectedItems.length >= this.selectionNumberUpperLimit) {
+        this.appStore.dispatch(
+          new NotificationsActions.AddNotification({
+            message: 'Up to 5 charts per screen can be opened',
+            dismissible: true,
+            closeInterval: 5000,
+            type: 'warning',
+          }),
+        );
+        return;
+      } else if (this.isSelected[item.id] && selectedItems.length <= this.selectionNumberLowerLimit) {
+        return;
+      }
+    }
+
     if (!this.single) {
       this.isSelected[item.id] = !this.isSelected[item.id];
     } else {
@@ -163,6 +193,7 @@ export class MultiSelectComponent
       }
     }
     this.selected = initiallySelectedItems;
+    this.initialSelectionApplied = true; 
   }
 
   remove(item: MultiSelectItem) {
@@ -180,8 +211,14 @@ export class MultiSelectComponent
     this.onChange(this.selected);
   }
 
-  selectAll() {
-    this.selected = this.allSelected ? [] : [...this.items];
+  selectAll(select: boolean) {
+    if (!select) {
+      this.selected = [];
+    } else if (this.filteredItems?.length) {
+      this.selected = [...this.filteredItems];
+    } else {
+      this.selected = this.allSelected ? [] : [...this.items];
+    }
     this.updateSelected();
     this.onChange(this.selected);
   }
@@ -245,24 +282,26 @@ export class MultiSelectComponent
     this.destroy$.complete();
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
+  ngOnChanges(): void {
     this.filterItems();
     this.updateSelected();
 
-    if (this.initiallySelectedItems?.length) {
+    if (this.initiallySelectedItems?.length && !this.initialSelectionApplied) {
       this.setInitiallySelectedItems();
     }
       
     this.matchedField = this.items?.find(item => item.id === this.selectedItem);
-    if (this.matchedField?.parentItem) {
-      this.filteredItems = this.items
-        .filter(item => !item.parentItem || 
-          (this.matchedField?.parentItem && item.parentItem === this.matchedField?.parentItem));
-    } else {
-      const firstParentItem = this.items?.find(item => item.parentItem)?.parentItem;
-      this.filteredItems = this.items?.filter(item => !item.parentItem || item.parentItem === firstParentItem);
-    }
 
+    if (this.matchedField) {
+      if (this.matchedField.parentItem) {
+        this.filteredItems = this.items
+          .filter(item => !item.parentItem || 
+            (this.matchedField?.parentItem && item.parentItem === this.matchedField?.parentItem));
+      } else {
+        const firstParentItem = this.items?.find(item => item.parentItem)?.parentItem;
+        this.filteredItems = this.items?.filter(item => !item.parentItem || item.parentItem === firstParentItem);
+      }
+    }
   }
 
   registerOnChange(fn: (value: MultiSelectItem[]) => void): void {
@@ -303,7 +342,13 @@ export class MultiSelectComponent
   private finishSelection() {
     this.hiddenSelected = this.selectedItemArray().length - this.showLimit;
     this.showSelected = [...this.selectedItemArray()].splice(0, this.showLimit);
-    this.allSelected = this.selectedItemArray().length === this.items?.length;
+    this.updateAllSelected();
+  }
+
+  private updateAllSelected() {
+    const filteredItemIds = this.filteredItems.map(item => item.id).sort();
+    const selectedItemIds = this.selectedItemArray().map(item => item.id).sort();
+    this.allSelected = filteredItemIds.every(id => selectedItemIds.includes(id));
   }
 
   private sortSelected() {
@@ -329,17 +374,32 @@ export class MultiSelectComponent
         }
       }
     } else {
-      this.filteredItems =
-        this.items?.filter((item) =>
-          item.name.toLowerCase().includes(this.searchControl.value.toLowerCase()),
-        ) || [];
+      const filteredItems = 
+        this.items?.filter((item) => {
+          const itemText = this.filterById ? item.id : item.name;
+          return itemText.toLowerCase().includes(this.searchControl.value.trim().toLowerCase());
+        }) || [];
+
+
+        if (this.sort) {
+          this.filteredItems = [
+            ...filteredItems.filter(item => this.isSelected[item.id]),
+            ...filteredItems.filter(item => !this.isSelected[item.id])
+          ]
+        } else {
+          this.filteredItems = filteredItems;
+        }
+
       this.countHeight();
     }
   }
 
   private countHeight() {
     this.itemHeight = this.single ? 32 : 42;
-    const extraEls = [this.search, !this.single].filter(Boolean);
+    if (this.single) {
+      this.selectAllIsAvailable = false;
+    }
+    const extraEls = [this.search, this.selectAllIsAvailable].filter(Boolean);
     this.dropDownHeight = Math.min(
       this.maxHeight,
       (this.filteredItems?.length + extraEls.length) * this.itemHeight +

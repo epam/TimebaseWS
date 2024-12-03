@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -78,7 +78,7 @@ public class SpeedTestStream {
         list.add(l2EntryNew);
         list.add(l2EntryUpdate);
 
-        TickLoader loader = stream.createLoader();
+        TickLoader loader = stream.createLoader(LoadingOptions.withRewriteMode(false));
 
         LoadingErrorListener listener = e -> System.out.println("Importing error: " + e.getMessage());
         loader.addEventListener(listener);
@@ -137,4 +137,3 @@ public class SpeedTestStream {
         }
     }
 }
-

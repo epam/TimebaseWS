@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,9 +14,9 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services;
 
+import com.epam.deltix.qsrv.hf.tickdb.pub.BackgroundProcessInfo;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
 import com.epam.deltix.qsrv.hf.tickdb.pub.StreamOptions;
 import com.epam.deltix.qsrv.hf.tickdb.pub.StreamScope;
@@ -26,6 +26,7 @@ import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.util.time.Periodicity;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.Arrays;
 
 @Service
@@ -55,6 +56,7 @@ public class OptionsServiceImpl implements OptionsService {
 
         long[] range = stream.getTimeRange();
         streamOptionsDef.range = new TimeRangeDef(range);
+        streamOptionsDef.backgroundTask = getBackgroundTaskInfo(stream);
 
         return streamOptionsDef;
     }
@@ -100,6 +102,28 @@ public class OptionsServiceImpl implements OptionsService {
     public boolean checkSymbol(DXTickStream stream, String symbolId) {
         return Arrays.stream(stream.listEntities())
                 .anyMatch(it -> it.getSymbol().toString().equals(symbolId));
+    }
+
+
+    @Override
+    public BackgroundTaskDef getBackgroundTaskInfo(DXTickStream stream) {
+        BackgroundProcessInfo process = stream.getBackgroundProcess();
+        BackgroundTaskDef backgroundTask = new BackgroundTaskDef();
+        backgroundTask.referToStream = stream.getKey();
+        if (process != null) {
+            backgroundTask.name = process.getName();
+            process.update();
+            backgroundTask.isFinished = process.isFinished();
+            backgroundTask.status = process.status;
+            backgroundTask.progress = process.progress;
+            Throwable error = process.error;
+            if (error != null) {
+                backgroundTask.error = new ErrorDef(error.getClass().getName(), error.getMessage());
+            }
+            backgroundTask.startTime = Instant.ofEpochMilli(process.startTime);
+            backgroundTask.endTime = Instant.ofEpochMilli(process.endTime);
+        }
+        return backgroundTask;
     }
 
     private StreamOptionsDef createStreamOptionsDef(StreamOptions options) {

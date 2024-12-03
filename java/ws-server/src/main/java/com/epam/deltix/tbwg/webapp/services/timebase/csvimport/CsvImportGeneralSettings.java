@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.timebase.csvimport;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -45,7 +44,6 @@ public class CsvImportGeneralSettings {
     /**
      * Separator to be subscribed. If undefined, then all instruments will be subscribed.
      */
-    @DocumentationExample(value = ",")
     @JsonProperty
     private char separator = ',';
 
@@ -84,13 +82,14 @@ public class CsvImportGeneralSettings {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATETIME_MILLIS_FORMAT_STR, timezone = "UTC")
     private Instant endTime;
 
+//    @DocumentationExample("EQUITY")
+//    @JsonProperty
+//    private InstrumentType[] instrumentType;
     @DocumentationExample("2")
     @JsonProperty
     private int startImportRow = 2;
-
     @JsonProperty
     private String charset = "UTF-8";
-
     @DocumentationExample(value = "", value2 = "empty")
     @JsonProperty
     private Set<String> nullValues = new HashSet<>() {{
@@ -110,6 +109,3 @@ public class CsvImportGeneralSettings {
     @JsonProperty
     private String timeZone;
 }
-
-
-

@@ -3,57 +3,71 @@
     <h4>{{ 'Properties' | translate }}</h4>
   </ng-container>
   <ng-container content >
-    <div *ngIf="propsSubject | async as props" class="table-responsive">
-      <ng-container *ngIf="!(isSymbol$ | async)">
-        <h6 *ngIf="!(notView$ | async)">{{ 'Stream Properties' | translate }}</h6>
-        <table class="table">
-          <tbody>
-            <ng-container *ngTemplateOutlet="propsTpl; context: { props: props }"></ng-container>
-          </tbody>
-        </table>
-        <ng-container *ngIf="!(notView$ | async) && (infoFormatted$ | async) as info">
-          <ng-container *ngTemplateOutlet="viewProperties"></ng-container>
-        </ng-container>
-      </ng-container>
-      
-      <ng-container *ngIf="isSymbol$ | async">
-        <h6>{{ 'Stream Properties' | translate }}</h6>
-        <table class="table">
-          <tbody>
-            <ng-container *ngTemplateOutlet="propsTpl; context: { props: streamProps }"></ng-container>
-          </tbody>
-        </table>
-        <ng-container>
-          <h6>{{ 'Symbol Properties' | translate }}</h6>
+    <div class="props-table">
+      <div *ngIf="propsSubject | async as props" class="table-responsive">
+        <ng-container *ngIf="!(isSymbol$ | async)">
+  <!--         <h6 *ngIf="!(notView$ | async)">{{ 'Stream Properties' | translate }}</h6> -->
           <table class="table">
             <tbody>
-              <ng-container *ngTemplateOutlet="propsTpl; context: { props: symbolProps }"></ng-container>
+              <ng-container *ngTemplateOutlet="propsTpl; context: { props: props }"></ng-container>
             </tbody>
           </table>
+          <ng-container *ngIf="!(notView$ | async) && (infoFormatted$ | async) as info">
+            <ng-container *ngTemplateOutlet="viewProperties"></ng-container>
+          </ng-container>
         </ng-container>
-        <ng-container *ngIf="!(notView$ | async)">
-          <ng-container *ngTemplateOutlet="viewProperties"></ng-container>
+        
+        <ng-container *ngIf="isSymbol$ | async">
+  <!--         <h6>{{ 'Stream Properties' | translate }}</h6> -->
+          <table class="table">
+            <tbody>
+              <ng-container *ngTemplateOutlet="propsTpl; context: { props: streamProps }"></ng-container>
+            </tbody>
+          </table>
+          <ng-container>
+            <h6>{{ 'Symbol Properties' | translate }}</h6>
+            <table class="table">
+              <tbody>
+                <ng-container *ngTemplateOutlet="propsTpl; context: { props: symbolProps }"></ng-container>
+              </tbody>
+            </table>
+          </ng-container>
+          <ng-container *ngIf="!(notView$ | async)">
+            <ng-container *ngTemplateOutlet="viewProperties"></ng-container>
+          </ng-container>
         </ng-container>
-      </ng-container>
+      </div>
     </div>
     <ng-template #propsTpl let-isChild="isChild" let-props="props">
       <ng-container *ngFor="let prop of props">
         <tr [formGroup]="form" *ngIf="prop.key !== 'milliseconds'">
             <td *ngIf="isChild">{{ prop.key }}</td>
-            <th *ngIf="!isChild">{{ prop.key }}</th>
+            <th *ngIf="!isChild">{{ prop.key === 'version' ? 'storage version' : prop.key.split('_')[0] }}</th>
             <td>
-              <ng-container
-                *ngIf="!['key', 'name', 'description', 'interval', 'type'].includes(prop.key); else editableValue">{{ prop.value }}
+              <ng-container *ngIf="(!['key', 'name', 'description', 'interval', 'type'].includes(prop.key) ||
+               (!(notView$ | async) && !['description', 'interval', 'type'].includes(prop.key))); else editableValue">
+                <ng-container *ngIf="prop.key === 'backgroundTask' || prop.key === 'progress'; else textValue">
+                  <button *ngIf="prop.key === 'backgroundTask' && (isWriter$ | async) && cancelButtonVisible && 
+                    currentProgress && currentProgress < 1 && !currentTaskAborted"
+                    type="button" class="btn btn-outline-primary btn-sm stop-task-btn" (click)="stopBackgroudTask()">Cancel</button>
+
+                  <div *ngIf="prop.key === 'progress'" class="upload-progress-bar">
+                    <div [style.width.%]="((prop.value ?? 0) * 100).toFixed()" class="upload-progress-bar__fill"></div>
+                    <div class="upload-progress-bar__label">{{ ((prop.value ?? 0) * 100).toFixed() }}%</div>
+                  </div>
+                </ng-container>
+                <ng-template #textValue>{{ prop.value === false ? '' + prop.value : prop.value }}</ng-template>
               </ng-container>
 
               <ng-template #editableValue>
                 <ng-container 
-                *ngIf="!editingProps.has(prop.key) && (periodisityType === 'REGULAR' || prop.key !== 'interval'); else editPropInput">
+                  *ngIf="!editingProps.has(prop.key) && (periodisityType === 'REGULAR' || prop.key !== 'interval'); else editPropInput">
                   <div class="editable-value">
-                    <div class="prop-value"> {{ prop.value }}<span *ngIf="prop.key === 'interval'">(S)</span> </div>
-                    <button *ngIf="(notView$ | async) && streamId && !(prop.key === 'interval' 
-                      && savedPeriodicityType !== 'REGULAR') && (this.isWriter$ | async)" 
+                    <div class="prop-value"> {{ prop.value }}<span *ngIf="prop.key === 'interval' && !!prop.value && intervalDigitValue > 1">S</span> </div>
+                    <button *ngIf="streamId && !(prop.key === 'interval' 
+                      && savedPeriodicityType !== 'REGULAR') && (isWriter$ | async)" 
                       (click)="togglePropertyEditing(prop.key)" [disabled]="validationErrors"
+                      [tooltip]="'Edit Property' | translate" placement="left"
                       [ngClass]="{ 'pencil-icon': true, 'changed-property': changedProps.has(prop.key) }">&#9998;</button>
                   </div>
                 </ng-container>
@@ -70,14 +84,14 @@
                     <form [formGroup]="periodicityForm">
                       <ng-container *ngIf="prop.key === 'interval' && periodisityType === 'REGULAR'">
                         <input type="number" value="1" min="1" pattern="[1-9]{1}[0-9]{8}"
-                          [ngClass]="{ 'form-control': true, 'invalid': !!errorMessages.interval }"
+                          [ngClass]="{ 'form-control': true, 'invalid': !!errorMessages.periodicity }"
                           formControlName="intervalNumber">
                         <deltix-ng-autocomplete
                           cssClass="in-modal"
                           [values]="timeIntervals"
                           [free]="true"
                           [size]="6"
-                          [invalid]="!!errorMessages.timeUnit"
+                          [invalid]="!!errorMessages.time_unit"
                           formControlName="timeUnit">
                         </deltix-ng-autocomplete>
                       </ng-container>
@@ -88,14 +102,14 @@
                           [values]="periodicityTypes"
                           [free]="true"
                           [size]="8"
-                          [invalid]="!!errorMessages.interval"
+                          [invalid]="!!errorMessages.periodicity"
                           [filterDisabled]="true"
                           formControlName="type">
                         </deltix-ng-autocomplete>
                       </ng-container>
                       <ng-container *ngIf="periodisityType === 'REGULAR' || prop.key !== 'interval'">
                       <button  type="button" class="tick-icon" (click)="saveProperty(prop.key)" 
-                        [disabled]="(prop.key === 'interval' && editingProps.has('type')) || errorMessages.interval || errorMessages.timeUnit">
+                        [disabled]="(prop.key === 'interval' && editingProps.has('type')) || errorMessages.periodicity || errorMessages.time_unit">
                         &#10003;</button>
                         <button class="cross-icon" (click)="togglePropertyEditing(prop.key)">&#10539;</button>
                       </ng-container>
@@ -115,7 +129,9 @@
       </ng-container>
     </ng-template>
     <div class="error-message" *ngFor="let message of errorMessages | keyvalue">
-      {{ message.value | titlecase }}
+      <span *ngIf="message.value">
+        <b>{{ message.key.split('_').join(' ') | titlecase }}</b>: {{ message.value }}
+      </span>
     </div>
   </ng-container>
   <ng-template #viewProperties>

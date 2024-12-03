@@ -6,7 +6,7 @@
       class="ag-icon ag-icon-menu columns-icon"></i>
   </div>
   <div class="ag-header-cell-label">
-    <span>{{ displayName }}</span>
+    <span [class.static-field]="staticField">{{ displayName }}</span>
     <button *ngIf="sortable" class="toggle-sorting-button" (click)="toggleSortingType()">
       <span [ngSwitch]="sorting">
         <span *ngSwitchCase="'none'" class="toggle-sorting-button-arrow">&#8597;</span>

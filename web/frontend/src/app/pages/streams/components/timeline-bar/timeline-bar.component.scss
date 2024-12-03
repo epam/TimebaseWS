@@ -5,10 +5,11 @@ $cursor-height: 3px;
 .timebar {
   position: relative;
   display: block;
-  width: 100%;
-  height: calc(100% - (30px + 30px));
+  width: 12px;
+  height: calc(100% - 30px);
   background-color: $btn-secondary;
   z-index: 0;
+  border-radius: 0.1rem;
 }
 
 .timebar-thumb {
@@ -20,6 +21,7 @@ $cursor-height: 3px;
   border: $ss * 0.5 solid $gray-400;
   z-index: 9;
   pointer-events: none;
+  border-radius: 0.1rem;
 }
 
 .timebar-cursor {
@@ -80,4 +82,8 @@ $cursor-height: 3px;
 
 .is-rotated {
   transform: rotate(180deg);
+}
+
+.arrow-timebar, .timebar {
+  margin: 0px 4.5px;
 }

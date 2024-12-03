@@ -3,8 +3,8 @@
     (click)="toggleProps()"
     [adaptivePosition]="false"
     [class.active]="showPropsActive$ | async"
+    [tooltip]="'tooltips.properties' | translate"
     [placement]="tooltipPlacement"
-    [tooltip]="showPropsTooltip$ | async | translate"
     class="navigation-btn"
     container="body">
   <i>
@@ -17,7 +17,7 @@
     (click)="toggleMessageInfo()"
     class="navigation-btn"
     [adaptivePosition]="false"
-    [tooltip]="showMessageTooltip$ | async | translate"
+    [tooltip]="'tooltips.message_details' | translate"
     [placement]="tooltipPlacement"
     container="body"
 >
@@ -29,7 +29,10 @@
     *ngIf="showChartSettings$ | async"
     (click)="toggleChartSettings()"
     [class.active]="chartSettingsActive$ | async"
-    class="navigation-btn" >
+    class="navigation-btn" 
+    [tooltip]="'rightPanel.chartSettings' | translate"
+    [placement]="tooltipPlacement"
+>
   <svg class="settings-icon" fill="currentColor" viewBox="0 0 512.003 512.003">
 	<g>
 		<path d="M491.584,192.579l-55.918-6.914c-0.919-2.351-1.884-4.682-2.892-6.993l34.648-44.428
@@ -65,12 +68,12 @@
 </svg>
 </button>
 <button
-    *ngIf="tabHasStream"
+    *ngIf="tabHasStream && (isNotTopic$ | async)"
     [class.active]="showDescriptionActive$ | async"
     (click)="toggleDescription()"
     class="navigation-btn"
     [adaptivePosition]="false"
-    [tooltip]="showDescriptionTooltip$ | async | translate"
+    [tooltip]="'tooltips.description' | translate"
     [placement]="tooltipPlacement"
     container="body"
 >

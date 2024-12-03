@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.view.processor;
+package com.epam.deltix.tbwg.webapp.services.view.processor;
 
 import com.epam.deltix.tbwg.messages.ViewState;
 
@@ -39,7 +39,7 @@ public class ViewProcessingEvent {
     }
 
     public static ViewProcessingEvent makeIdling(String viewId, long lastTimestamp) {
-        return new ViewProcessingEvent(viewId, ViewState.IDLING, lastTimestamp, null, null);
+        return new ViewProcessingEvent(viewId, ViewState.IDLE, lastTimestamp, null, null);
     }
 
     public static ViewProcessingEvent makeFinished(String viewId, long lastTimestamp) {

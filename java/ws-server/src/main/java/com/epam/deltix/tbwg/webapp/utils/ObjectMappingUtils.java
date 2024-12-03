@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,11 +14,11 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.utils;
+package com.epam.deltix.tbwg.webapp.utils;
 
+import com.epam.deltix.qsrv.hf.pub.md.json.DataTypeDef;
 import com.epam.deltix.tbwg.webapp.model.qql.FunctionArgumentDef;
 import com.epam.deltix.tbwg.webapp.model.qql.FunctionDef;
-import com.epam.deltix.tbwg.webapp.model.schema.DataTypeDef;
 
 import java.util.ArrayList;
 import java.util.List;

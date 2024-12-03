@@ -25,4 +25,6 @@ export interface PropsModel {
     end: string;
     start: string;
   };
+  streamName?: string;
+  streamKey?: string;
 }

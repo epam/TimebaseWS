@@ -61,6 +61,19 @@ import {SimpleModalModule} from '../../../../shared/modal/simple-modal.module';
     SplitterSizesModule,
     SimpleModalModule,
   ],
-  exports: [],
+  exports: [
+    SeLayoutComponent,
+    ClControlPanelComponent,
+    FlControlPanelComponent,
+    FieldPropertiesComponent,
+    FieldsListComponent,
+    ClassListGridComponent,
+    LayoutComponent,
+    GridComponent,
+    SchemaDownloadBtnComponent,
+    SchemaUploadBtnComponent,
+    ClBottomPanelComponent,
+    RelativeToModalComponent,
+  ],
 })
 export class SchemaEditorModule {}

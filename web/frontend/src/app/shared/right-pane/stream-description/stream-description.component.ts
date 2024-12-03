@@ -36,7 +36,7 @@ export class StreamDescriptionComponent implements OnInit {
     this.title$ = tab$.pipe(map(tab => 'describeModal.title.' + (tab.isView ? 'view' : 'stream')));
     this.streamName$ = tab$.pipe(map(tab => tab.streamName));
     this.stream$ = tab$.pipe(map(tab => ({id: tab.stream, name: tab.streamName})));
-    this.view$ = tab$.pipe(switchMap(tab => tab.isView ? this.viewsService.get(tab.streamName) : of(null)));
+    this.view$ = tab$.pipe(switchMap(tab => tab.isView ? this.viewsService.get(tab.name) : of(null)));
     this.viewLoaded$ = combineLatest([this.view$, tab$]).pipe(
       map(([view, tab]) => !tab.isView || !!view),
       delay(0),

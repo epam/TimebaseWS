@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.utils;
 
 
@@ -69,6 +68,7 @@ public class CsvLineWriter {
     public final CodecMetaFactory codecFactory = InterpretingCodecMetaFactory.INSTANCE;
 
     private final DateFormatter dateFormatter;
+    private final DateFormatter nsDateFormatter;
     private final Gson jsonFormatter =  new GsonBuilder().disableHtmlEscaping().create();
 
     private final boolean enableStaticFields;
@@ -79,8 +79,14 @@ public class CsvLineWriter {
         this.writer = writer;
         this.filePerSymbol = request.mode == ExportMode.FILE_PER_SYMBOL;
         this.polymorphic = descriptors.length > 1;
-        this.dateFormatter = new DateFormatter(request.datetimeFormat);
         this.enableStaticFields = request.enableStaticFields;
+        if (CsvImportUtil.isNsFormat(request.datetimeFormat)) {
+            this.nsDateFormatter = new DateFormatter(request.datetimeFormat);
+            this.dateFormatter = new DateFormatter(CsvImportUtil.toMsFormat(request.datetimeFormat));
+        } else {
+            this.dateFormatter = new DateFormatter(request.datetimeFormat);
+            this.nsDateFormatter = new DateFormatter(CsvImportUtil.toNsFormat(request.datetimeFormat));
+        }
 
         if (request.types != null) {
             for (TypeSelection type : request.types) {
@@ -168,7 +174,8 @@ public class CsvLineWriter {
             writer.writeCell(msg.getSymbol());
             writer.writeSeparator();
         }
-        writer.writeCell(formatTimestamp(msg.getTimeStampMs()));
+        writer.writeCell(formatTimestamp(msg.getNanoTime(), true));
+
         writer.writeSeparator();
 
         Arrays.fill(values, null);
@@ -208,7 +215,7 @@ public class CsvLineWriter {
         private Object formatValueToObject(DataType type, ReadableValue decoder) {
         try {
             if (type instanceof DateTimeDataType) {
-                return formatTimestamp(decoder.getLong());
+                return formatTimestamp(decoder.getLong(), ((DateTimeDataType) type).hasNanosecondPrecision());
             } else if (type instanceof ClassDataType) {
                 return formatObjectValues(decoder);
             } else if (type instanceof ArrayDataType) {
@@ -260,7 +267,10 @@ public class CsvLineWriter {
         return valuesMap;
     }
 
-    private String formatTimestamp(long timestamp) {
+    private String formatTimestamp(long timestamp, boolean nanoTime) {
+        if (nanoTime) {
+            return nsDateFormatter.toNanosDateString(timestamp);
+        }
         return dateFormatter.toDateString(timestamp);
     }
 
@@ -305,4 +315,3 @@ public class CsvLineWriter {
         return staticValues;
     }
 }
-

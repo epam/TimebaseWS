@@ -9,7 +9,9 @@
             [items]="dropdownListDateFormats"
             [single]="true"
             [search]="false"
-            placeholder="Date Format"
+            [placeholder]="'globalSettingsModal.tooltips.dateFormat' | translate"
+            [tooltip]="'globalSettingsModal.tooltips.dateFormat' | translate"
+            placement="top"
         ></app-multi-select>
       </div>
       <div class="col-md-6">
@@ -18,7 +20,9 @@
             [items]="dropdownListTimeFormats"
             [single]="true"
             [search]="false"
-            placeholder="Time Format"
+            [placeholder]="'globalSettingsModal.tooltips.timeFormat' | translate"
+            [tooltip]="'globalSettingsModal.tooltips.timeFormat' | translate"
+            placement="top"
         ></app-multi-select>
       </div>
       <div class="col-md-12">
@@ -26,11 +30,23 @@
             formControlName="timezone"
             [items]="dropdownListTimeZones"
             [single]="true"
-            placeholder="Timezone"
+            [filterById]="true"
+            [placeholder]="'globalSettingsModal.tooltips.timeZone' | translate"
+            [tooltip]="'globalSettingsModal.tooltips.timeZone' | translate"
+            placement="top"
         ></app-multi-select>
       </div>
     </div>
     <div class="section-header">{{ 'globalSettingsModal.headers.tree' | translate }}</div>
+    <div class="row">
+      <div class="col-md-12">
+        <label class="container-ch">
+          <input type="checkbox" formControlName="reverseViewIsDefault" />
+          <span class="checkmark"></span>
+          {{ 'globalSettingsModal.labels.defaultReverseView' | translate }}
+        </label>
+      </div>
+    </div>
     <div class="row">
       <div class="col-md-12">
         <label class="container-ch">
@@ -40,8 +56,34 @@
         </label>
       </div>
     </div>
+    <div class="row">
+      <div class="col-md-12">
+        <label class="container-ch">
+          <input type="checkbox" formControlName="hideSystemStreams" />
+          <span class="checkmark"></span>
+          {{ 'globalSettingsModal.labels.hideSystemStreams' | translate }}
+        </label>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-12">
+        <label class="container-ch">
+          <input type="checkbox" formControlName="showTopics" />
+          <span class="checkmark"></span>
+          {{ 'globalSettingsModal.labels.showTopics' | translate }}
+        </label>
+      </div>
+    </div>
   </ng-container>
   <ng-container footer>
+    <a
+      class="kb-link"
+      href="https://kb.timebase.info/docs/development/tools/Web%20Admin/admin_guide"
+      target="_blank"
+      [tooltip]="'contextMenu.knowledgeBase' | translate"
+      container="body"
+      >Need help?
+    </a>
     <button
         (click)="clear()"
         [tooltip]="'buttons.clear' | translate"

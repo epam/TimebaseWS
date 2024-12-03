@@ -11,13 +11,15 @@ import {Router} from '@angular/router';
 import {select, Store} from '@ngrx/store';
 
 import {Observable, Subject} from 'rxjs';
-import {filter, map, take, takeUntil} from 'rxjs/operators';
+import {filter, map, switchMap, take, takeUntil} from 'rxjs/operators';
 import {AppState} from '../../../../core/store';
 import {GetAppInfo} from '../../../../core/store/app/app.actions';
 import {getAppInfo} from '../../../../core/store/app/app.selectors';
 import * as AuthActions from '../../../../core/store/auth/auth.actions';
 import {getAuthProvider, getIsLoggedIn} from '../../../../core/store/auth/auth.selectors';
 import {AuthProviderModel} from '../../../../models/auth-provider.model';
+import { PlaybackService } from 'src/app/pages/streams/services/playback.service';
+import { AppInfoService } from 'src/app/shared/services/app-info.service';
 
 @Component({
   selector: 'app-login',
@@ -35,7 +37,8 @@ export class LoginComponent implements AfterContentChecked, OnInit, AfterViewIni
 
   private destroy$ = new Subject<any>();
 
-  constructor(private router: Router, private appStore: Store<AppState>) {}
+  constructor(private router: Router, private appStore: Store<AppState>, 
+    private playbackService: PlaybackService, private appInfoService: AppInfoService) {}
 
   ngOnInit(): void {
     this.authState$ = this.appStore.pipe(
@@ -71,11 +74,22 @@ export class LoginComponent implements AfterContentChecked, OnInit, AfterViewIni
         select(getIsLoggedIn),
         filter((isLoggedIn) => isLoggedIn),
         take(1),
+        switchMap(() => this.appInfoService.getAppInfo()),
+        map(appInfo => appInfo?.timebase?.connected),
         takeUntil(this.destroy$),
       )
-      .subscribe(() => {
-        this.router.navigate(['/'], {replaceUrl: true});
+      .subscribe({
+        next: connected => {
+          if (connected) {
+            this.router.navigate(['/'], { replaceUrl: true });
+          } else {
+            this.appStore.dispatch(new AuthActions.LogOut({ noRedirect: true }));
+          }
+        },
+        error: () => this.appStore.dispatch(new AuthActions.LogOut({ noRedirect: true }))
       });
+
+    this.playbackService.unsubscribeFromAllPlaybacks();
   }
 
   ngOnDestroy() {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.timebase.csvimport;
+package com.epam.deltix.tbwg.webapp.services.timebase.csvimport;
 
 import com.epam.deltix.tbwg.webapp.services.timebase.export.imp.ImportState;
 import com.epam.deltix.tbwg.webapp.services.timebase.export.imp.ImportTask;
@@ -34,13 +34,11 @@ public class DirectoryImportProcessImpl implements DirectoryImportProcess {
     private final File processDirectory;
     private volatile ImportTask task;
     private volatile boolean cancelled;
-    private long updateTime;
 
     public DirectoryImportProcessImpl(File directory, String processDirectoryName, long id, long size) {
         this.id = id;
         this.size = size;
         processDirectory = createDirectory(directory, processDirectoryName);
-        update();
     }
 
     @Override
@@ -62,7 +60,6 @@ public class DirectoryImportProcessImpl implements DirectoryImportProcess {
 
     @Override
     public synchronized long write(InputStream is, String fileName) {
-        update();
         File file = new File(processDirectory, fileName);
         try (FileOutputStream outputStream = new FileOutputStream(file, true)) {
             byte[] buffer = new byte[BUFFER_SIZE];
@@ -72,15 +69,12 @@ public class DirectoryImportProcessImpl implements DirectoryImportProcess {
             }
         } catch (Throwable t) {
             throw new RuntimeException(t);
-        } finally {
-            update();
         }
         return file.length();
     }
 
     @Override
     public List<File> filesList() {
-        update();
         List<File> files = new ArrayList<>();
         if (processDirectory != null && processDirectory.isDirectory()) {
             for (File file : Objects.requireNonNull(processDirectory.listFiles())) {
@@ -117,16 +111,6 @@ public class DirectoryImportProcessImpl implements DirectoryImportProcess {
     }
 
     @Override
-    public long changeTime() {
-        return updateTime;
-    }
-
-    @Override
-    public void update() {
-        updateTime = System.currentTimeMillis();
-    }
-
-    @Override
     public void importTask(ImportTask task) {
         this.task = task;
         if (cancelled) {
@@ -159,6 +143,16 @@ public class DirectoryImportProcessImpl implements DirectoryImportProcess {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public boolean isActive() {
+        return false; // impl on high lvl
+    }
+
+    @Override
+    public void setActive(boolean active) {
+        // impl on high lvl
     }
 
     @Override

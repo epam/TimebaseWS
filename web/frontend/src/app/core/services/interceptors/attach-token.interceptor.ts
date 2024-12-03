@@ -22,8 +22,9 @@ export class AttachTokenInterceptor implements HttpInterceptor {
     return this.appStore.pipe(
       select(getAccessRequestData),
       take(1),
-      switchMap(({tokenRefreshTime, token, tokenType}) => {
-        if (tokenRefreshTime && Date.now() - tokenRefreshTime > Math.round(299000 * 0.8)) {
+      switchMap(({tokenRefreshTime, token, tokenType, tokenValidityTime}) => {
+        if (tokenRefreshTime && tokenValidityTime && 
+          Date.now() - tokenRefreshTime > Math.round(tokenValidityTime * 1000 * 0.8)) {
           this.appStore.dispatch(new AuthActions.SilentUpdateToken());
           return this.actions$.pipe(
             ofType<AuthActions.TokenUpdated>(AuthActions.AuthActionTypes.TOKEN_UPDATED),

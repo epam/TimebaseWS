@@ -170,7 +170,7 @@ export class TimelineBarComponent implements OnInit, OnDestroy {
 
   private updateCursorTitle(position: number) {
     const timestampDiff = this.unixTimeLength * position;
-    this.timebarCursorTitle = new HdDate(this.startTime + timestampDiff).toISOString();
+    this.timebarCursorTitle = new HdDate((+this.startTime || 0) + (+timestampDiff || 0)).toISOString();
     this.timebarCursorTitleVisible = formatHDate(
       this.timebarCursorTitle,
       this.filter.dateFormat,

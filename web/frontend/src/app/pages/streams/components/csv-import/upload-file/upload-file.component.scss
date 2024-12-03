@@ -21,7 +21,6 @@ app-file-btn {
   background-color: rgba(78, 108, 149, 0.3);
   border-radius: 0.2rem;
   margin-top: 0rem;
-  min-height: 23rem;
   overflow-y: auto;
 }
 
@@ -117,9 +116,12 @@ li.uploaded-file-title {
 
 .upload-file-container {
   position: relative;
-  height: 100%;
   display: flex;
   flex-direction: column;
+  height: 80%;
+  &.max-height-100 {
+    height: 100%;
+  }
 }
 
 .error-messages {

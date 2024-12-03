@@ -1,4 +1,4 @@
-import {Component, EventEmitter, HostListener, OnDestroy, OnInit, Output} from '@angular/core';
+import {Component, EventEmitter, HostListener, Input, OnDestroy, OnInit, Output} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {select, Store} from '@ngrx/store';
 import {TranslateService} from '@ngx-translate/core';
@@ -12,6 +12,7 @@ import {
   takeUntil,
   withLatestFrom,
   take,
+  pluck,
 } from 'rxjs/operators';
 import { GridEventsService } from 'src/app/shared/services/grid-events.service';
 import {AppState} from '../../../../../../core/store';
@@ -28,10 +29,14 @@ import {
   SetSelectedFieldForSchemaItem,
   SetSelectedSchemaItem,
 } from '../../store/schema-editor.actions';
+import * as NotificationsActions from 'src/app/core/modules/notifications/store/notifications.actions';
 import {
   getSelectedSchemaItem,
   getSelectedSchemaItemAllFields,
 } from '../../store/schema-editor.selectors';
+import { FIELD_NAME_PATTER_REGEXP } from '../fl-control-panel/fl-control-panel.component';
+import { getAppSettings } from 'src/app/core/store/app/app.selectors';
+import { SchemaValidityService } from '../../services/schema-validity.service';
 
 @Component({
   selector: 'app-fields-list',
@@ -40,14 +45,20 @@ import {
   providers: [GridService, GridContextMenuService],
 })
 export class FieldsListComponent implements OnInit, OnDestroy {
+  @Input() readonly = false;
+  @Input() insideModal = false;
   public gridOptions$: Observable<GridOptions>;
   private destroy$ = new Subject();
   private type: SchemaClassTypeModel;
   private selectedFieldName: string;
+  @Output() setItemList = new EventEmitter<string[]>();
   @Output() addNewFieldEvent = new EventEmitter<[HTMLElement, boolean]>();
   @HostListener('keydown.insert', ['$event']) onInsertKeyDown(event: KeyboardEvent) {
-    this.addNewFieldEvent.emit([event.target as HTMLElement, this.gridService.gridApi.getSelectedRows()[0].static]);
+    if (!this.readonly) {
+      this.addNewFieldEvent.emit([event.target as HTMLElement, this.gridService.gridApi.getSelectedRows()[0].static]);
+    }
   }
+  private initialSchema = true;
 
   constructor(
     private appStore: Store<AppState>,
@@ -57,6 +68,7 @@ export class FieldsListComponent implements OnInit, OnDestroy {
     private gridService: GridService,
     private activatedRoute: ActivatedRoute,
     private gridEventsService: GridEventsService,
+    private schemaValidityService: SchemaValidityService
   ) {}
 
   ngOnInit() {
@@ -67,7 +79,8 @@ export class FieldsListComponent implements OnInit, OnDestroy {
           rowClassRules: {
             isEdited: ({data}) =>
               this.seFieldFormsService.fieldHasChanges(data) || data._props._isNew,
-            hasError: ({data}) => this.seFieldFormsService.showErrorOnField(this.type, data),
+            hasError: ({data}) => this.schemaValidityService.showErrorOnField(this.type, data, this.insideModal) ||  
+              this.seFieldFormsService.showErrorOnField(this.type, data) || !FIELD_NAME_PATTER_REGEXP.test(data.name),
             'ag-row-editing': ({data}) => data._props?._isSelected,
           },
           getRowNodeId: ({name}) => name,
@@ -96,7 +109,7 @@ export class FieldsListComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(({data}) => {
         if (data._props && data._props._parentName) {
-          this.appStore.dispatch(SetSelectedSchemaItem({itemName: data._props._parentName}));
+          this.appStore.dispatch(SetSelectedSchemaItem({itemId: data._props._parentName}));
         }
       });
 
@@ -207,10 +220,56 @@ export class FieldsListComponent implements OnInit, OnDestroy {
         select(getSelectedSchemaItemAllFields),
         distinctUntilChanged(),
         filter((fields) => !!fields),
+        map(fields => {
+          const nameSet = new Set();
+          const fieldNamesRepeatingNumber = {};
+          return fields.map(field => {
+            if (!nameSet.has(field.name)) {
+              nameSet.add(field.name);
+              return field;
+            } else {
+              if (!fieldNamesRepeatingNumber[field.name]) {
+                fieldNamesRepeatingNumber[field.name] = 1;
+              } else {
+                fieldNamesRepeatingNumber[field.name] += 1;
+              }
+
+              if (this.initialSchema) {
+                this.appStore.dispatch(
+                  new NotificationsActions.AddWarn({
+                    message: `Field name conflict: display name ${field.name} changed to ${field.name}${fieldNamesRepeatingNumber[field.name]}`,
+                    closeInterval: 6000,
+                    dismissible: true
+                  }),
+                );
+              }
+              return { ...field, name: `${field.name}${fieldNamesRepeatingNumber[field.name]}` };
+            }
+          });
+        }),
         takeUntil(this.destroy$),
-        switchMap((fields) => this.gridService.setRowData(fields).pipe(map(() => fields))),
+        withLatestFrom(this.appStore.select(getAppSettings).pipe(pluck('hasNanoseconds'))),
+        switchMap(([fields, hasNanoseconds]) => {
+          const displayFields = fields.map(field => {
+            if (field.type.name === 'TIMESTAMP' && !field.type.encoding && hasNanoseconds) {
+              return {
+                ...field,
+                type: {
+                  ...field.type,
+                  encoding: 'MILLISECOND'
+                }
+              }
+            } else {
+              return field;
+            }
+          })
+          return this.gridService.setRowData(displayFields).pipe(map(() => fields))
+        }),
       )
+
       .subscribe((fields) => {
+        this.setItemList.emit(fields.filter(field => !field._props._parentField).map(field => field.name));
+        this.initialSchema = false;
         const selected = fields.find((f) => f._props._isSelected);
         if (selected) {
           this.seSelectionService.onSelectField(selected._props._typeName, selected?._props._uuid);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.settings;
+package com.epam.deltix.tbwg.webapp.settings;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -57,6 +57,10 @@ public class SecurityOauth2ServerSettings {
 
     @NotNull
     private Integer refreshTokenValiditySeconds;
+
+    private boolean allowClientIdUser;
+
+    private String contentSecurityPolicy;
 
     public String getClientId() {
         return clientId;
@@ -122,4 +126,23 @@ public class SecurityOauth2ServerSettings {
         this.refreshTokenValiditySeconds = refreshTokenValiditySeconds;
     }
 
+    public boolean isAllowClientIdUser() {
+        return allowClientIdUser;
+    }
+
+    public void setAllowClientIdUser(boolean allowClientIdUser) {
+        this.allowClientIdUser = allowClientIdUser;
+    }
+
+    public String getContentSecurityPolicy() {
+        return contentSecurityPolicy;
+    }
+
+    public void setContentSecurityPolicy(String contentSecurityPolicy) {
+        this.contentSecurityPolicy = contentSecurityPolicy;
+    }
+
+    public boolean isContentSecurityPolicyConfigured() {
+        return contentSecurityPolicy != null && !contentSecurityPolicy.isEmpty();
+    }
 }

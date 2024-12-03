@@ -7,6 +7,7 @@ export class StreamDetailsModel {
   public type?: string;
   public $type: string;
   public nanoTime: string;
+  public instrumentType?: string;
   public original: Partial<StreamDetailsModel> = {};
 
   constructor(obj: {[index: string]: any}, schema: SchemaTypesMap = null) {
@@ -22,6 +23,7 @@ export class StreamDetailsModel {
     this.symbol = obj?.symbol;
     this.timestamp = obj?.timestamp;
     this.nanoTime = obj?.nanoTime;
+    this.instrumentType = obj?.instrumentType;
     this.time = obj?.timestamp;
     this.$type = obj?.$type;
     this.original.symbol = this.symbol;

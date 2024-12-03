@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 EPAM Systems, Inc
+ * Copyright 2024 EPAM Systems, Inc
  *
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership. Licensed under the Apache License,
@@ -14,7 +14,6 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 package com.epam.deltix.tbwg.webapp.services.timebase;
 
 
@@ -29,6 +28,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
@@ -38,14 +39,20 @@ public class SystemMessagesService {
 
     private final SimpMessagingTemplate template;
 
-    private final StreamStates streamStates = new StreamStates();
-    private final StreamsStateListener listener = new StreamsStateListener();
+    private final StreamsStateListener masterListener;
 
-    private final CopyOnWriteArrayList<DBStateListener> subscribers = new CopyOnWriteArrayList<>();
+    private final Map<String, StreamsStateListener> userToListener = new HashMap<>();
+
+    interface SubscribeUserListener {
+        void subscribed(String user, SystemMessagesNotifier notifier);
+    }
+
+    private volatile SubscribeUserListener subscribeUserListener;
 
     @Autowired
     public SystemMessagesService(SimpMessagingTemplate template) {
         this.template = template;
+        this.masterListener = new StreamsStateListener(template);
     }
 
     @PostConstruct
@@ -56,39 +63,90 @@ public class SystemMessagesService {
                 .commit();
     }
 
-    @Scheduled(fixedDelay = 1000) // try to broadcast every 1 second
+    @Scheduled(fixedDelay = 1000)
     public void broadcastStreamsState() {
-        synchronized (streamStates) {
-            if (!streamStates.isEmpty()) {
-                template.convertAndSend(WebSocketConfig.STREAMS_TOPIC, streamStates);
-                if (LOG.isTraceEnabled()) {
-                    LOG.trace().append("Send message to topic ")
-                            .append(WebSocketConfig.STREAMS_TOPIC)
-                            .append(": ")
-                            .append(streamStates)
-                            .commit();
-                }
-                streamStates.clear();
-            } else {
-                if (LOG.isTraceEnabled())
-                    LOG.trace().append("Stream states are empty.").commit();
-            }
+        masterListener.broadcastEvents();
+        synchronized (userToListener) {
+            userToListener.forEach((k, v) -> v.broadcastEvents());
         }
     }
 
-    public DBStateListener getStateListener() {
-        return listener;
+    public StreamsStateListener getStateListener() {
+        return masterListener;
     }
 
-    public void subscribe(DBStateListener subscriber) {
-        subscribers.add(subscriber);
+    public StreamsStateListener getStateListener(String user) {
+        synchronized (userToListener) {
+            StreamsStateListener listener = userToListener.get(user);
+            if (listener == null) {
+                userToListener.put(user, listener = new StreamsStateListener(template, user));
+                subscribeUserListener.subscribed(user, listener);
+            }
+
+            return listener;
+        }
     }
 
-    public void unsubscribe(DBStateListener subscriber) {
-        subscribers.remove(subscriber);
+    public SystemMessagesNotifier masterNotifier() {
+        return masterListener;
     }
 
-    public class StreamsStateListener implements DBStateListener {
+    public void setSubscribeUserListener(SubscribeUserListener listener) {
+        this.subscribeUserListener = listener;
+    }
+
+    public static class StreamsStateListener implements DBStateListener, SystemMessagesNotifier {
+
+        private final SimpMessagingTemplate template;
+        private final String endpoint;
+
+        private final StreamStates streamStates = new StreamStates();
+
+        private final CopyOnWriteArrayList<DBStateListener> subscribers = new CopyOnWriteArrayList<>();
+
+        public StreamsStateListener(SimpMessagingTemplate template) {
+            this.template = template;
+            this.endpoint = WebSocketConfig.STREAMS_TOPIC;
+        }
+
+        public StreamsStateListener(SimpMessagingTemplate template, String user) {
+            this.template = template;
+            this.endpoint = WebSocketConfig.STREAMS_TOPIC + "/" + user;
+        }
+
+        public void broadcastEvents() {
+            try {
+                synchronized (streamStates) {
+                    if (!streamStates.isEmpty()) {
+                        template.convertAndSend(endpoint, streamStates);
+                        if (LOG.isTraceEnabled()) {
+                            LOG.trace().append("Send message to topic ")
+                                .append(endpoint)
+                                .append(": ")
+                                .append(streamStates)
+                                .commit();
+                        }
+                        streamStates.clear();
+                    } else {
+                        if (LOG.isTraceEnabled()) {
+                            LOG.trace().append("Stream states are empty.").commit();
+                        }
+                    }
+                }
+            } catch (Throwable t) {
+                LOG.error().append("Failed to broadcast events").append(t).commit();
+            }
+        }
+
+        @Override
+        public void subscribe(DBStateListener subscriber) {
+            subscribers.add(subscriber);
+        }
+
+        @Override
+        public void unsubscribe(DBStateListener subscriber) {
+            subscribers.remove(subscriber);
+        }
 
         @Override
         public void changed(String key) {

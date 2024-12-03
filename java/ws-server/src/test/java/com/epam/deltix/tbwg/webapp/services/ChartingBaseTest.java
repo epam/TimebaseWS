@@ -44,6 +44,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -52,12 +53,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Scanner;
-import java.util.Set;
 
 import static com.epam.deltix.tbwg.webapp.utils.BordersTimeBarChartsUtils.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doReturn;
 
 @RunWith(SpringRunner.class)
@@ -101,7 +101,7 @@ public abstract class ChartingBaseTest {
 
     @SneakyThrows
     public void setUp(long pointInterval, Instant startTime, Instant endTime, MessageType messageType,
-                      ChartType chartType, MessageProducer messageProducer, String symbol)
+                      ChartType chartType, MessageProducer messageProducer, String[] symbols)
     {
         if (messageType == MessageType.BAR_MESSAGE) {
             doReturn(new RecordClassSet(new RecordClassDescriptor[]{
@@ -130,12 +130,11 @@ public abstract class ChartingBaseTest {
                             endTime.toEpochMilli() - (endTime.toEpochMilli() % pointInterval) + pointInterval));
         }
         Mockito.when(bookSymbolQuery.getStream()).thenReturn(TEST_STREAM);
-        Mockito.when(bookSymbolQuery.getSymbol()).thenReturn(symbol);
+        Mockito.when(bookSymbolQuery.getSymbols()).thenReturn(symbols);
 
-        ReactiveMessageSource reactiveMessageSource = new ReactiveMessageSourceImpl(messageProducer.run(), messageProducer.getObservable());
+        ReactiveMessageSource reactiveMessageSource = new ReactiveMessageSourceImpl(messageProducer, messageProducer.getObservable());
         Mockito.when(messageSourceFactory.buildSource(any(), any(), anyBoolean(), anyBoolean())).thenReturn(reactiveMessageSource);
-        Mockito.when(messageSourceFactory.buildSource(any(), any(), (Set<String>)any(), any(), anyBoolean(), anyBoolean())).thenReturn(reactiveMessageSource);
-        //Mockito.when(messageSourceFactory.buildSource(any(), any(), any(), (TimeInterval) any(), anyBoolean(), anyBoolean())).thenReturn(reactiveMessageSource);
+        Mockito.when(messageSourceFactory.buildSource(any(), any(), anySet(), any(), anyBoolean(), anyBoolean())).thenReturn(reactiveMessageSource);
     }
 
     public long runTestFullResponseCheck(long pointInterval, Instant startTime, Instant endTime, String resultFilename,
@@ -147,19 +146,28 @@ public abstract class ChartingBaseTest {
     public long runTestFullResponseCheck(long pointInterval, Instant startTime, Instant endTime, String resultFilename,
                                          MessageType messageType, ChartType chartType, MessageProducer messageProducer,
                                          String symbol) {
-        setUp(pointInterval, startTime, endTime, messageType, chartType, messageProducer, symbol);
+        return runTestFullResponseCheck(pointInterval, startTime, endTime, resultFilename, messageType, chartType,
+                messageProducer, new String[]{symbol});
+    }
+
+    @SneakyThrows
+    public long runTestFullResponseCheck(long pointInterval, Instant startTime, Instant endTime, String resultFilename,
+                                         MessageType messageType, ChartType chartType, MessageProducer messageProducer,
+                                         String[] symbols) {
+        setUp(pointInterval, startTime, endTime, messageType, chartType, messageProducer, symbols);
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl("http://localhost:" + port + "/api/v0/charting/dx/" + TEST_STREAM)
                 .queryParam("startTime", startTime)
                 .queryParam("endTime", endTime)
                 .queryParam("pointInterval", pointInterval)
-                .queryParam("symbols", symbol)
-                .queryParam("type", "BARS")
+                .queryParam("type", chartType)
+                .queryParam("symbols", Arrays.asList(symbols))
                 .queryParam("correlationId", System.currentTimeMillis());
 
         long startTimestamp = System.currentTimeMillis();
-        String result = ApiKeyUtils.signedRest(restTemplate.getRestTemplate(), HttpMethod.GET,
-                        //because UriComponentsBuilder comfortable to use, but without http://localhost: + port it fails, but with this prefix auth fails
-                        builder.toUriString().replaceFirst("http://localhost:" + port, ""), String.class, TEST_API_KEY, TEST_API_SECRET)
+        ResponseEntity<String> stringResponseEntity = ApiKeyUtils.signedRest(restTemplate.getRestTemplate(), HttpMethod.GET,
+                //because UriComponentsBuilder comfortable to use, but without http://localhost: + port it fails, but with this prefix auth fails
+                builder.toUriString().replaceFirst("http://localhost:" + port, ""), String.class, TEST_API_KEY, TEST_API_SECRET);
+        String result = stringResponseEntity
                 .getBody();
         long endTimestamp = System.currentTimeMillis();
         LOG.info("Request execution time: " + (endTimestamp - startTimestamp) + "ms");
@@ -182,7 +190,7 @@ public abstract class ChartingBaseTest {
 
     public long runTestCheckCountOfPoints(long pointInterval, Instant startTime, Instant endTime, MessageType messageType,
                                           ChartType chartType, long countOfPoints, MessageProducer messageProducer, boolean logTime) {
-        setUp(pointInterval, startTime, endTime, messageType, chartType, messageProducer, TEST_SYMBOL);
+        setUp(pointInterval, startTime, endTime, messageType, chartType, messageProducer, new String[]{TEST_SYMBOL});
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl("http://localhost:" + port + "/api/v0/charting/dx/" + TEST_STREAM)
                 .queryParam("startTime", startTime)
                 .queryParam("endTime", endTime)
@@ -204,13 +212,13 @@ public abstract class ChartingBaseTest {
         Assertions.assertNotNull(result);
         Assertions.assertEquals(1, result.length, "Result should have only one ChartingFrameDef");
         if (chartType == ChartType.BARS) {
-            Assertions.assertEquals(countOfPoints, result[0].getLines().get("BARS").getPoints().size(),
+            Assertions.assertEquals(countOfPoints, result[0].getLines().get(TEST_SYMBOL + "_BARS").getPoints().size(),
                     "Count of points are different startTime = " + startTime + " endTime = " + endTime);
-        } else if (chartType == ChartType.PRICES_L2 ) {
-            Assertions.assertEquals(countOfPoints, result[0].getLines().get("TRADES").getPoints().size(),
+        } else if (chartType == ChartType.PRICE_LEVELS) {
+            Assertions.assertEquals(countOfPoints, result[0].getLines().get(TEST_SYMBOL + "_TRADES").getPoints().size(),
                     "Count of points are different startTime = " + startTime + " endTime = " + endTime);
         } else if (chartType == ChartType.TRADES_BBO) {
-            Assertions.assertEquals(countOfPoints, result[0].getLines().get("BBO").getPoints().size(),
+            Assertions.assertEquals(countOfPoints, result[0].getLines().get(TEST_SYMBOL + "_BBO").getPoints().size(),
                     "Count of points are different startTime = " + startTime + " endTime = " + endTime);
         }
         return endTimestamp - startTimestamp;

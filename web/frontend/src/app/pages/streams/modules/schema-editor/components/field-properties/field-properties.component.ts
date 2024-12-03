@@ -1,8 +1,8 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
+import {Component, Input, OnDestroy, OnInit} from '@angular/core';
 import {UntypedFormBuilder, UntypedFormControl, UntypedFormGroup, Validators} from '@angular/forms';
 import {select, Store} from '@ngrx/store';
 import {BsModalService} from 'ngx-bootstrap/modal';
-import {combineLatest, merge, Observable, of, ReplaySubject, timer} from 'rxjs';
+import {combineLatest, merge, Observable, of, ReplaySubject} from 'rxjs';
 import {
   debounceTime,
   distinctUntilChanged,
@@ -18,11 +18,12 @@ import {AppState} from '../../../../../../core/store';
 import {
   FieldTypeModel,
   SchemaClassFieldModel,
+  SchemaClassTypeModel,
 } from '../../../../../../shared/models/schema.class.type.model';
 import {PermissionsService} from '../../../../../../shared/services/permissions.service';
 import {FieldModel} from '../../../../../../shared/utils/dynamic-form-builder/field-builder/field-model';
 import {uniqueName} from '../../../../../../shared/utils/validators';
-import { SchemaEditorService } from '../../services/add-class.service';
+import { SchemaEditorService } from '../../services/schema-editor.service';
 import {FieldPropertiesFormFieldsService} from '../../services/field-properties-form-fields.service';
 import {SeFieldFormsService} from '../../services/se-field-forms.service';
 import {SeFormPreferencesService} from '../../services/se-form-preferences.service';
@@ -35,6 +36,7 @@ import {
 } from '../../store/schema-editor.selectors';
 import {FIELD_NAME_PATTER_REGEXP} from '../fl-control-panel/fl-control-panel.component';
 import {RelativeToModalComponent} from '../relative-to-modal/relative-to-modal.component';
+import { SchemaValidityService } from '../../services/schema-validity.service';
 
 @Component({
   selector: 'app-field-properties',
@@ -47,7 +49,11 @@ export class FieldPropertiesComponent implements OnInit, OnDestroy {
   fields$: Observable<FieldModel[]>;
   revertDisabled$ = this.seFieldFormsService.hasChanges().pipe(map((hasChanges) => !hasChanges));
   isWriter$: Observable<boolean>;
+  @Input() readonly = false;
+  @Input() insideModal = false;
 
+  private type: SchemaClassTypeModel;
+  private selectedFieldProps: SchemaClassFieldModel;
   private destroy$ = new ReplaySubject(1);
 
   constructor(
@@ -57,7 +63,8 @@ export class FieldPropertiesComponent implements OnInit, OnDestroy {
     private seFieldFormsService: SeFieldFormsService,
     private permissionsService: PermissionsService,
     private modalService: BsModalService,
-    private schemaEditorService: SchemaEditorService
+    private schemaEditorService: SchemaEditorService,
+    private schemaValidityService: SchemaValidityService
   ) {}
 
   ngOnInit() {
@@ -75,6 +82,16 @@ export class FieldPropertiesComponent implements OnInit, OnDestroy {
       ),
     );
 
+    this.appStore
+      .pipe(
+        select(getSelectedFieldProps),
+        withLatestFrom( this.appStore.pipe(select(getSelectedSchemaItem) )),
+        takeUntil(this.destroy$),
+      ).subscribe(([fieldProps, selectedItem]) => {
+        this.type = selectedItem;
+        this.selectedFieldProps = fieldProps;
+    });
+
     this.formGroup = this.fb.group({
       name: [
         null,
@@ -88,7 +105,7 @@ export class FieldPropertiesComponent implements OnInit, OnDestroy {
       title: null,
       type: this.fb.group({
         name: null,
-        encoding: null,
+        encoding: [null, this.encodingValidator()],
         nullable: null,
         types: [null, this.typesFieldValidator()],
         elementType: this.fb.group({
@@ -100,8 +117,18 @@ export class FieldPropertiesComponent implements OnInit, OnDestroy {
       }),
     });
 
+    this.formGroup.get('type').get('name').valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(value => {
+        if (value) {
+          this.schemaValidityService.removeErrorOnField(this.type, this.selectedFieldProps, this.insideModal);
+        } else {
+          this.schemaValidityService.setErrorOnField(this.type, this.selectedFieldProps, this.insideModal);
+        }
+      });
+
     this.isWriter$.pipe(takeUntil(this.destroy$)).subscribe((isWriter) => {
-      if (isWriter) {
+      if (isWriter && !this.readonly) {
         this.formGroup.enable({emitEvent: false});
       } else {
         this.formGroup.disable({emitEvent: false});
@@ -127,7 +154,6 @@ export class FieldPropertiesComponent implements OnInit, OnDestroy {
     this.formGroup.valueChanges
       .pipe(
         takeUntil(this.destroy$),
-        distinctUntilChanged((c, p) => JSON.stringify(c) === JSON.stringify(p)),
         debounceTime(150),
         switchMap(formaData => {
           this.schemaEditorService.editedFieldNames.add(formaData.name);
@@ -298,6 +324,15 @@ export class FieldPropertiesComponent implements OnInit, OnDestroy {
 
       return null;
     };
+  }
+
+  private encodingValidator() {
+    return (control: UntypedFormControl) => {
+      if (!this.formGroup) {
+        return null;
+      }
+      return control.value === '' ? { required: true } : null;
+    }
   }
 
   private checkRelativeTo(): Observable<void> {

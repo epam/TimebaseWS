@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { mapTo }      from 'rxjs/operators';
+import { mapTo, shareReplay }      from 'rxjs/operators';
 import { ViewInfo }   from '../models/view';
 
 @Injectable({
@@ -9,6 +9,10 @@ import { ViewInfo }   from '../models/view';
 })
 export class ViewsService {
   constructor(private httpClient: HttpClient) {
+  }
+
+  getViews() {
+    return this.httpClient.get<ViewInfo[]>('/timebase/views').pipe(shareReplay(1));
   }
   
   save(id: string, query: string, live: boolean): Observable<void> {

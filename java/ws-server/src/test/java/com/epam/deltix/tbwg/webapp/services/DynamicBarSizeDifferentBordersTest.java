@@ -25,6 +25,9 @@ import org.junit.jupiter.api.DisplayName;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
+import static com.epam.deltix.tbwg.webapp.services.ChartingBaseTest.MessageType.BAR_MESSAGE;
+import static com.epam.deltix.tbwg.webapp.services.ChartingBaseTest.MessageType.PACKAGE_HEADER;
+
 public class DynamicBarSizeDifferentBordersTest extends ChartingBaseTest {
 
     @Test
@@ -41,7 +44,7 @@ public class DynamicBarSizeDifferentBordersTest extends ChartingBaseTest {
                 expectedCountOfPoints++;
             }
             runTestCheckCountOfPoints(WEEK_MILLIS, startTime.toInstant(ZoneOffset.UTC), endTime.toInstant(ZoneOffset.UTC),
-                    MessageType.BAR_MESSAGE, ChartType.BARS, expectedCountOfPoints, messageProducer);
+                    BAR_MESSAGE, ChartType.BARS, expectedCountOfPoints, messageProducer);
             startTime = startTime.plusDays(1);
             endTime = endTime.plusDays(1);
         }
@@ -61,7 +64,7 @@ public class DynamicBarSizeDifferentBordersTest extends ChartingBaseTest {
                 expectedCountOfPoints++;
             }
             runTestCheckCountOfPoints(2 * WEEK_MILLIS, startTime.toInstant(ZoneOffset.UTC), endTime.toInstant(ZoneOffset.UTC),
-                    MessageType.BAR_MESSAGE, ChartType.BARS, expectedCountOfPoints, messageProducer);
+                    BAR_MESSAGE, ChartType.BARS, expectedCountOfPoints, messageProducer);
             startTime = startTime.plusDays(1);
             endTime = endTime.plusDays(1);
         }
@@ -76,7 +79,7 @@ public class DynamicBarSizeDifferentBordersTest extends ChartingBaseTest {
         for (int i = 0; i < 12; i++) {
             BarMessageCsvProducer messageProducer = new BarMessageCsvProducer(streamDataFilename);
             runTestCheckCountOfPoints(MONTH_MILLIS, startTime.toInstant(ZoneOffset.UTC), endTime.toInstant(ZoneOffset.UTC),
-                    MessageType.BAR_MESSAGE, ChartType.BARS, 1, messageProducer);
+                    BAR_MESSAGE, ChartType.BARS, 1, messageProducer);
             startTime = startTime.plusMonths(1);
             endTime = endTime.plusMonths(1);
         }
@@ -91,7 +94,7 @@ public class DynamicBarSizeDifferentBordersTest extends ChartingBaseTest {
         for (int i = 0; i < 12; i++) {
             BarMessageCsvProducer messageProducer = new BarMessageCsvProducer(streamDataFilename);
             runTestCheckCountOfPoints(QUARTER_MILLIS, startTime.toInstant(ZoneOffset.UTC), endTime.toInstant(ZoneOffset.UTC),
-                    MessageType.BAR_MESSAGE, ChartType.BARS, 1, messageProducer);
+                    BAR_MESSAGE, ChartType.BARS, 1, messageProducer);
             startTime = startTime.plusMonths(1);
             endTime = endTime.plusMonths(1);
         }
@@ -106,7 +109,7 @@ public class DynamicBarSizeDifferentBordersTest extends ChartingBaseTest {
         for (int i = 0; i < 12; i++) {
             BarMessageCsvProducer messageProducer = new BarMessageCsvProducer(streamDataFilename);
             runTestCheckCountOfPoints(YEAR_MILLIS, startTime.toInstant(ZoneOffset.UTC), endTime.toInstant(ZoneOffset.UTC),
-                    MessageType.BAR_MESSAGE, ChartType.BARS, 1, messageProducer);
+                    BAR_MESSAGE, ChartType.BARS, 1, messageProducer);
             startTime = startTime.plusMonths(1);
             endTime = endTime.plusMonths(1);
         }
@@ -128,7 +131,7 @@ public class DynamicBarSizeDifferentBordersTest extends ChartingBaseTest {
                 expectedCountOfPoints++;
             }
             runTestCheckCountOfPoints(WEEK_MILLIS, startTime.toInstant(ZoneOffset.UTC), endTime.toInstant(ZoneOffset.UTC),
-                    MessageType.PACKAGE_HEADER, ChartType.BARS, expectedCountOfPoints, messageProducer);
+                    PACKAGE_HEADER, ChartType.BARS, expectedCountOfPoints, messageProducer);
             startTime = startTime.plusDays(1);
             endTime = endTime.plusDays(1);
         }
@@ -150,7 +153,7 @@ public class DynamicBarSizeDifferentBordersTest extends ChartingBaseTest {
                 expectedCountOfPoints++;
             }
             runTestCheckCountOfPoints(2 * WEEK_MILLIS, startTime.toInstant(ZoneOffset.UTC), endTime.toInstant(ZoneOffset.UTC),
-                    MessageType.PACKAGE_HEADER, ChartType.BARS, expectedCountOfPoints, messageProducer);
+                    PACKAGE_HEADER, ChartType.BARS, expectedCountOfPoints, messageProducer);
             startTime = startTime.plusDays(1);
             endTime = endTime.plusDays(1);
         }
@@ -166,7 +169,7 @@ public class DynamicBarSizeDifferentBordersTest extends ChartingBaseTest {
                     startTime.toInstant(ZoneOffset.UTC).toEpochMilli() - 2 * MONTH_MILLIS, endTime.toInstant(ZoneOffset.UTC).toEpochMilli() + 2 * MONTH_MILLIS,
                     4 * HOUR_MILLIS, 5, 1000, 10, 10);
             runTestCheckCountOfPoints(MONTH_MILLIS, startTime.toInstant(ZoneOffset.UTC), endTime.toInstant(ZoneOffset.UTC),
-                    MessageType.PACKAGE_HEADER, ChartType.BARS, 1, messageProducer);
+                    PACKAGE_HEADER, ChartType.BARS, 1, messageProducer);
             startTime = startTime.plusMonths(1);
             endTime = endTime.plusMonths(1);
         }
@@ -182,7 +185,7 @@ public class DynamicBarSizeDifferentBordersTest extends ChartingBaseTest {
                     startTime.toInstant(ZoneOffset.UTC).toEpochMilli() - 2 * QUARTER_MILLIS, endTime.toInstant(ZoneOffset.UTC).toEpochMilli() + 2 * QUARTER_MILLIS,
                     4 * HOUR_MILLIS, 5, 1000, 10, 10);
             runTestCheckCountOfPoints(QUARTER_MILLIS, startTime.toInstant(ZoneOffset.UTC), endTime.toInstant(ZoneOffset.UTC),
-                    MessageType.PACKAGE_HEADER, ChartType.BARS, 1, messageProducer);
+                    PACKAGE_HEADER, ChartType.BARS, 1, messageProducer);
             startTime = startTime.plusMonths(1);
             endTime = endTime.plusMonths(1);
         }
@@ -198,7 +201,7 @@ public class DynamicBarSizeDifferentBordersTest extends ChartingBaseTest {
                     startTime.toInstant(ZoneOffset.UTC).toEpochMilli() - 2 * YEAR_MILLIS, endTime.toInstant(ZoneOffset.UTC).toEpochMilli() + 2 * YEAR_MILLIS,
                     4 * DAY_MILLIS, 5, 1000, 10, 10);
             runTestCheckCountOfPoints(YEAR_MILLIS, startTime.toInstant(ZoneOffset.UTC), endTime.toInstant(ZoneOffset.UTC),
-                    MessageType.PACKAGE_HEADER, ChartType.BARS, 1, messageProducer);
+                    PACKAGE_HEADER, ChartType.BARS, 1, messageProducer);
             startTime = startTime.plusMonths(1);
             endTime = endTime.plusMonths(1);
         }

@@ -20,8 +20,6 @@ export class GridHeaderPreviewComponent implements OnInit {
   dropdownCommonItems = ['None', 'keyword', 'symbol', 'Instrument Type', 'Date/Time'];
 
   streamFieldMatched: string;
-  streamFieldsDropdown = this.importFromTextFileService.streamFieldsDropdown;
-  streamTypes = Object.keys(this.streamFieldsDropdown);
   openFieldType: string;
   displayName: string;
   variablesOpen: boolean = false;

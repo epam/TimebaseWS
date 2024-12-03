@@ -21,3 +21,25 @@ accordion {
 .form-group {
   margin-top: 2rem;
 }
+
+.form-check {
+  margin-top: 0.3rem;
+  .form-check-label {
+    margin-top: 0.15rem;
+  }
+}
+
+.validation-error {
+  flex: 1;
+  text-align: center;
+  color: rgb(254, 97, 115);
+  display: flex;
+  justify-content: center;
+  div:first-of-type {
+    margin: 0 1rem;
+  }
+}
+
+app-date-range-picker ::ng-deep .datepicker-input {
+  width: 113 * $ss;
+}
