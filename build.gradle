@@ -201,14 +201,14 @@ configure(javaProjects) {
             dependency 'io.micrometer:micrometer-registry-prometheus:1.9.1'
             dependency 'io.micrometer:micrometer-core:1.9.1'
 
-            dependencySet(group: 'org.bouncycastle', version: '1.68') {
+            dependencySet(group: 'org.bouncycastle', version: '1.70') {
                 entry 'bcpkix-jdk15on'
                 entry 'bcprov-jdk15on'
-                entry 'bcprov-ext-jdk15on'
                 entry 'bcmail-jdk15on'
+                entry 'bcprov-ext-jdk15on'
             }
 
-            dependencySet(group: 'org.springframework', version: '5.3.33') {
+            dependencySet(group: 'org.springframework', version: '5.3.39') {
                 entry 'spring-beans'
                 entry 'spring-jcl'
                 entry 'spring-core'
@@ -256,7 +256,7 @@ configure(javaProjects) {
             }
 
             dependency 'org.springframework.security.oauth:spring-security-oauth2:2.5.2.RELEASE'
-            dependency 'org.springframework.security:spring-security-jwt:1.1.0.RELEASE'
+            dependency 'org.springframework.security:spring-security-jwt:1.1.1.RELEASE'
 
             dependency 'org.testcontainers:testcontainers:1.16.2'
             dependency 'org.testcontainers:junit-jupiter:1.16.2'
