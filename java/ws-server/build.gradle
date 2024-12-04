@@ -180,6 +180,10 @@ jar {
     enabled = false
 }
 
+test {
+    enabled = false
+}
+
 artifacts {
     archives devguide
 }
