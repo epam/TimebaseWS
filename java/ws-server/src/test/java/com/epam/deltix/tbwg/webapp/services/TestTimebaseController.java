@@ -1,4 +1,4 @@
-package deltix.tbwg.webapp.services;
+package com.epam.deltix.tbwg.webapp.services;
 
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;

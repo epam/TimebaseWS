@@ -24,10 +24,7 @@ dependencies {
         exclude group: 'org.finos.timebase-ce', module: 'timebase-snmpagent'
     }
 
-    implementation ('org.finos.timebase-ce:timebase-qql') {
-        exclude group: 'org.finos.timebase-ce', module: 'timebase-computations-api'
-        exclude group: 'org.finos.timebase-ce', module: 'timebase-computations-std'
-    }
+    implementation ('org.finos.timebase-ce:timebase-qql')
 
     // Timebase Commons
     implementation "com.epam.deltix:timebase-lang"

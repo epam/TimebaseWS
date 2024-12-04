@@ -39,6 +39,7 @@ public class DefaultTypeLoader extends MappingTypeLoader {
         bind("com.epam.deltix.timebase.messages.BarMessage", BarMessage.class);
 
         bind("deltix.timebase.api.messages.universal.PackageHeader", PackageHeader.class);
+        bind("deltix.timebase.api.messages.universal.BasePriceEntry", BasePriceEntry.class);
         bind("deltix.timebase.api.messages.universal.L1Entry", L1Entry.class);
         bind("deltix.timebase.api.messages.universal.L2EntryNew", L2EntryNew.class);
         bind("deltix.timebase.api.messages.universal.TradeEntry", TradeEntry.class);

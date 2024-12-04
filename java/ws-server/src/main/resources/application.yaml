@@ -1,6 +1,8 @@
 # EMBEDDED SERVER CONFIGURATION (ServerProperties)
 server:
   port: 8099
+  error:
+    include-message: always
   compression:
     enabled: true
     mime-types: text/html,text/css,application/javascript,application/json
@@ -8,12 +10,20 @@ spring:
   mvc:
     async:
       request-timeout: 3600000 # 60 * 60 * 1000  = 1 hour
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          no-store: true
+          no-cache: true
+          must-revalidate: true
+          proxy-revalidate: true
+          max-age: 0
 management:
   endpoints:
     web:
       exposure:
         include: "metrics,prometheus"
-
 timebase:
   url: dxtick://localhost:8011
   readonly: false
@@ -41,6 +51,9 @@ security:
       oauthServer: http://localhost:8099
       getTokenEndpoint: /oauth/token
       checkTokenEndpoint: /oauth/check
+      scopes:
+        - openid
+        - profile
     clientId: web
     secret: $2a$10$1DWT60qCpc1bTJUNiV/C0u.Zw0L5Yq80OhZbsyA8LAKn7G/18q9za
     authorizedGrantTypes:
@@ -48,12 +61,23 @@ security:
       - refresh_token
     users:
       - username: admin
-#        password: $2a$10$7M3W5JMk1wggimrbVegxWeeasqjrZUjNEiZTpMSYdId92409D2TSq
+        password: $2a$10$7M3W5JMk1wggimrbVegxWeeasqjrZUjNEiZTpMSYdId92409D2TSq
         authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
       - username: reader
-#        password: $2a$10$7M3W5JMk1wggimrbVegxWeeasqjrZUjNEiZTpMSYdId92409D2TSq
+        password: $2a$10$7M3W5JMk1wggimrbVegxWeeasqjrZUjNEiZTpMSYdId92409D2TSq
         authorities: [ TB_ALLOW_READ]
+      - username: test
+        password: $2a$10$3PL6X1Gn8VjRy4r0od9NLeZrO2YWpUjzozv3jOxU0/RMjsElzPQdu
+        authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
     scopes:
       - trust
+    #    contentSecurityPolicy: "default-src 'self';
+    #      style-src 'self' 'unsafe-inline';
+    #      img-src 'self' data: 'unsafe-inline';
+    #      font-src 'self' data: 'unsafe-inline';
+    #      worker-src 'self' data: 'unsafe-inline' blob: 'unsafe-inline';
+    #      connect-src 'self' https://login.microsoftonline.com/;
+    #      script-src 'self' 'nonce-aykJK1CokURPt5Tb+ikxSA==';"
+    #    allowClientIdUser: true # uncomment if you want to use 'web' user.
     accessTokenValiditySeconds: 300 # 5 min
     refreshTokenValiditySeconds: 86400 # one day

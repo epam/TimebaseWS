@@ -55,7 +55,7 @@ import com.epam.deltix.tbwg.webapp.model.qql.ShortFunctionDef;
 import com.epam.deltix.tbwg.webapp.model.schema.*;
 import com.epam.deltix.tbwg.webapp.model.schema.changes.StreamMetaDataChangeDef;
 import com.epam.deltix.tbwg.webapp.model.smd.InstrumentDef;
-import com.epam.deltix.tbwg.webapp.services.InstrumentsService;
+//import com.epam.deltix.tbwg.webapp.services.InstrumentsService;
 import com.epam.deltix.tbwg.webapp.services.OptionsService;
 import com.epam.deltix.tbwg.webapp.services.orderbook.OrderBookDebugger;
 import com.epam.deltix.tbwg.webapp.services.orderbook.OrderBookSnapshotRequest;
@@ -126,7 +126,7 @@ public class TimebaseController {
     private final TimebaseService service;
     private final SchemaManipulationService schemaManipulationService;
     private final SelectService selectService;
-    private final InstrumentsService instrumentsService;
+    //private final InstrumentsService instrumentsService;
     private final ExportService exportService;
     private final OptionsService optionsService;
     private final ViewService viewService;
@@ -137,11 +137,11 @@ public class TimebaseController {
     @Autowired
     public TimebaseController(TimebaseService service, SelectService selectService, ExportService exportService,
                               SchemaManipulationService schemaManipulationService, OptionsService optionsService,
-                              InstrumentsService instrumentsService, ViewService viewService, OrderBookDebugger orderBookDebugger) {
+                              ViewService viewService, OrderBookDebugger orderBookDebugger) {
         this.service = service;
         this.schemaManipulationService = schemaManipulationService;
         this.selectService = selectService;
-        this.instrumentsService = instrumentsService;
+        //this.instrumentsService = instrumentsService;
         this.exportService = exportService;
         this.optionsService = optionsService;
         this.viewService = viewService;
@@ -1259,10 +1259,10 @@ public class TimebaseController {
     @RequestMapping(value = "/instruments/{id}/info", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<InstrumentDef> instruments(@PathVariable String id, @RequestParam(required = false) String[] hiddenExchanges) {
         return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(instrumentsService.getInstrument(
-                        id, hiddenExchanges != null ? new HashSet<>(Arrays.asList(hiddenExchanges)) : new HashSet<>()
-                ));
+                .contentType(MediaType.APPLICATION_JSON).body(new InstrumentDef());
+//                .body(instrumentsService.getInstrument(
+//                        id, hiddenExchanges != null ? new HashSet<>(Arrays.asList(hiddenExchanges)) : new HashSet<>()
+//                ));
     }
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
