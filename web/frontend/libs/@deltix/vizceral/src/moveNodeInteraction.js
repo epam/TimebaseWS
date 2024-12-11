@@ -103,13 +103,19 @@ class MoveNodeInteraction {
         }
       }
     } else if (this._state === 2) {
-      this.vizceral.validateRaycaster(event.clientX, event.clientY);
-      const o = this.vizceral.raycaster.ray.origin;
-      const dx = o.x - this._lastMBPress_mouseLocInGraphSpace.x;
-      const dy = o.y - this._lastMBPress_mouseLocInGraphSpace.y;
-      const newX = this._lastMBPress_pressedObj_pos.x + dx;
-      const newY = this._lastMBPress_pressedObj_pos.y + dy;
-      this._setDraggableObjectPosition(this._lastMBPress_pressedObj, newX, newY);
+      const container = document.querySelector('canvas[vizceral]').parentElement.getBoundingClientRect();
+      const elementIsCloseToTheEdge = event.clientX < container.left + 70 || event.clientX > container.right - 70 || 
+        event.clientY < container.top + 10 || event.clientY > container.bottom - 10;
+        
+      if (!elementIsCloseToTheEdge) {
+        this.vizceral.validateRaycaster(event.clientX, event.clientY);
+        const o = this.vizceral.raycaster.ray.origin;
+        const dx = o.x - this._lastMBPress_mouseLocInGraphSpace.x;
+        const dy = o.y - this._lastMBPress_mouseLocInGraphSpace.y;
+        const newX = this._lastMBPress_pressedObj_pos.x + dx;
+        const newY = this._lastMBPress_pressedObj_pos.y + dy;
+        this._setDraggableObjectPosition(this._lastMBPress_pressedObj, newX, newY);
+      }
     }
   }
 

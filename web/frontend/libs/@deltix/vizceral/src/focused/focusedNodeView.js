@@ -73,7 +73,8 @@ class FocusedNodeView extends NodeView {
 
     // Add the service name
     if ((this.object.graphRenderer === 'global' && !this.object.isEntryNode())
-        || this.object.graphRenderer === 'region' || this.object.displayName) {
+        || this.object.graphRenderer === 'region' || this.object.graphRenderer === 'focused' 
+        || this.object.displayName) {
       this.nameView = new NodeNameView(this, this.object.graphRenderer === 'global');
       this.showLabel(this.object.options.showLabel);
     }
@@ -217,6 +218,7 @@ class FocusedNodeView extends NodeView {
     const mat = new THREE.MeshBasicMaterial({
       color: new THREE.Color(color.r, color.g, color.b), side: THREE.DoubleSide, transparent: true, opacity: color.a
     });
+    slice.faces = this.mockFacesLength(slice.faces);
     const mesh = new THREE.Mesh(slice, mat);
     mesh.position.set(0, 0, this.surfaceDepth + 2);
     mesh.rotation.y = Math.PI;
@@ -297,6 +299,7 @@ class FocusedNodeView extends NodeView {
     const mat = new THREE.MeshBasicMaterial({
       color: new THREE.Color(color.r, color.g, color.b), side: THREE.DoubleSide, transparent: true, opacity: color.a
     });
+    slice.faces = this.mockFacesLength(slice.faces);
     const mesh = new THREE.Mesh(slice, mat);
     mesh.position.set(0, 0, this.surfaceDepth + 5);
     mesh.rotation.y = Math.PI;
@@ -385,6 +388,7 @@ class FocusedNodeView extends NodeView {
 
   setupLoadingAnimation () {
     const slice = new THREE.RingGeometry(this.innerRadius, this.radius, 30, 8, 0, Math.PI * 2 * 0.2);
+    slice.faces = this.mockFacesLength(slice.faces);
     const mat = new THREE.MeshBasicMaterial({ color: GlobalStyles.styles.colorTraffic.normal, side: THREE.DoubleSide });
     this.loadingSpinner = new THREE.Mesh(slice, mat);
     this.loadingSpinner.position.set(0, 0, this.surfaceDepth + 2);
@@ -433,6 +437,14 @@ class FocusedNodeView extends NodeView {
     super.cleanup();
     this.donutMaterial.dispose();
     this.innerBorderMaterial.dispose();
+  }
+
+  mockFacesLength(faces) {
+    if (faces && !faces.length) {
+      faces = Object.fromEntries(faces);
+      faces.length = -1;
+    }
+    return faces;
   }
 }
 

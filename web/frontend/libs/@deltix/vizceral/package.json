@@ -1,6 +1,6 @@
 {
   "name": "@deltix/vizceral",
-  "version": "5.1.1",
+  "version": "5.1.4",
   "description": "Intuitive animated traffic graph visualization using webgl. If a graph of nodes and edges with data about traffic volume is provided, it will render a traffic graph animating the connection volume between nodes.",
   "main": "dist/vizceral.js",
   "repository": {
@@ -8,19 +8,19 @@
     "url": "git@gitlab.deltixhub.com:Deltix/Common/Web/vizceral.git"
   },
   "scripts": {
+    "clean": "npx rimraf dist",
     "dev": "yarn run watch",
     "doc": "documentation build ./src/vizceral.js --shallow -f md > USAGE.md",
     "lint": "eslint src --fix",
     "build": "yarn run doc && yarn run build:js",
-    "build:js": "webpack --bail --mode=production && webpack --bail -p --mode=production",
-    "build:dev": "webpack --bail --mode=development && webpack --bail -d --mode=development",
+    "build:js": "yarn run clean && webpack --mode=production",
+    "build:dev": "yarn run clean && webpack --mode=development",
     "watch": "webpack --watch -d",
     "release": "release",
     "validate": "yarn ls",
     "deltix-publish": "deltix-publish"
   },
   "devDependencies": {
-    "@deltix/publish": "^1.0.5",
     "babel-core": "^6.18.0",
     "babel-eslint": "^9.0.0",
     "babel-loader": "^7.1.5",

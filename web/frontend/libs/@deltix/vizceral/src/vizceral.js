@@ -18,24 +18,24 @@
  */
 
 import { clone, each, every, find, isEqual } from 'lodash';
-import EventEmitter                          from 'events';
-import * as THREE                            from 'three';
-import TWEEN                                 from '@tweenjs/tween.js';
-import Hammer                                from 'hammerjs';
+import EventEmitter from 'events';
+import * as THREE from 'three';
+import TWEEN from '@tweenjs/tween.js';
+import Hammer from 'hammerjs';
 
-import DNSLayout                from './layouts/dnsLayout';
-import DnsTrafficGraph          from './dns/dnsTrafficGraph';
+import DNSLayout from './layouts/dnsLayout';
+import DnsTrafficGraph from './dns/dnsTrafficGraph';
 import FocusedChildTrafficGraph from './focused/focusedChildTrafficGraph';
-import FocusedTrafficGraph      from './focused/focusedTrafficGraph';
-import GlobalDefinitions        from './globalDefinitions';
-import GlobalStyles             from './globalStyles';
-import GlobalTrafficGraph       from './global/globalTrafficGraph';
-import LTRTreeLayout            from './layouts/ltrTreeLayout';
-import RegionTrafficGraph       from './region/regionTrafficGraph';
-import RingCenterLayout         from './layouts/ringCenterLayout';
-import RingLayout               from './layouts/ringLayout';
+import FocusedTrafficGraph from './focused/focusedTrafficGraph';
+import GlobalDefinitions from './globalDefinitions';
+import GlobalStyles from './globalStyles';
+import GlobalTrafficGraph from './global/globalTrafficGraph';
+import LTRTreeLayout from './layouts/ltrTreeLayout';
+import RegionTrafficGraph from './region/regionTrafficGraph';
+import RingCenterLayout from './layouts/ringCenterLayout';
+import RingLayout from './layouts/ringLayout';
 
-import RendererUtils       from './rendererUtils';
+import RendererUtils from './rendererUtils';
 import MoveNodeInteraction from './moveNodeInteraction';
 
 /**
@@ -76,7 +76,6 @@ import MoveNodeInteraction from './moveNodeInteraction';
  *
  * @event viewUpdated
  */
-  
   
   // These are a static size and ratio for graph placement.  The element itself can resize.
 let graphWidth = 1800;
@@ -845,4 +844,4 @@ class Vizceral extends EventEmitter {
 }
 
 export default Vizceral;
-export *                   from './base';
+export * from './base';

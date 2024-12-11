@@ -2,6 +2,7 @@ import * as i0 from '@angular/core';
 import { Injectable, EventEmitter, Directive, Output, Input, Component, ViewEncapsulation, HostBinding, ViewChild, NgModule, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import VizceralGraph from '@deltix/vizceral';
 import { ResizeObserver } from '@juggle/resize-observer';
+import equal from 'fast-deep-equal';
 import { CommonModule } from '@angular/common';
 
 class NgxVizceralService {
@@ -128,9 +129,12 @@ class VizceralDirective {
                 showLabels: this.showLabels,
             });
             //   //return back for this
-            //  if (!isEqual(this.filters, this.defaultProps.filters)) {
-            //     this.instance.setFilters(this.filters);
-            //   }
+            if (!equal(this.filters, this.defaultProps.filters)) {
+                this.instance.setFilters(this.filters);
+            }
+            if (this.styles && !equal(this.styles, this.defaultProps.styles)) {
+                this.instance.updateStyles(this.styles);
+            }
             //   if (!isEqual(this.definitions, this.defaultProps.definitions)) {
             //     this.instance.updateDefinitions(this.definitions);
             //   }
