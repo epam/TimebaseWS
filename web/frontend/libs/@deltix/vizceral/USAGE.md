@@ -110,7 +110,6 @@ Represents a Vizceral component.
 
 -   `canvas` **[object][37]?** The canvas to render the graph onto; if not provided, will create a canvas accessible by this.renderer.domElement
 -   `targetFramerate` **[Number][39]?** Target frame rate to render at. Will not limit FPS if not provided or set to 0.
--   `graphSize`   (optional, default `{}`)
 
 ## getStyles
 

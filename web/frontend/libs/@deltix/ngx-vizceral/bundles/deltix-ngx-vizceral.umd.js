@@ -1,8 +1,8 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('@angular/core'), require('@deltix/vizceral'), require('@juggle/resize-observer'), require('@angular/common')) :
-    typeof define === 'function' && define.amd ? define('@deltix/ngx-vizceral', ['exports', '@angular/core', '@deltix/vizceral', '@juggle/resize-observer', '@angular/common'], factory) :
-    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory((global.deltix = global.deltix || {}, global.deltix['ngx-vizceral'] = {}), global.ng.core, global.VizceralGraph, global.resizeObserver, global.ng.common));
-}(this, (function (exports, i0, VizceralGraph, resizeObserver, common) { 'use strict';
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('@angular/core'), require('@deltix/vizceral'), require('@juggle/resize-observer'), require('fast-deep-equal'), require('@angular/common')) :
+    typeof define === 'function' && define.amd ? define('@deltix/ngx-vizceral', ['exports', '@angular/core', '@deltix/vizceral', '@juggle/resize-observer', 'fast-deep-equal', '@angular/common'], factory) :
+    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory((global.deltix = global.deltix || {}, global.deltix['ngx-vizceral'] = {}), global.ng.core, global.VizceralGraph, global.resizeObserver, global.equal, global.ng.common));
+}(this, (function (exports, i0, VizceralGraph, resizeObserver, equal, common) { 'use strict';
 
     function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
 
@@ -28,6 +28,7 @@
 
     var i0__namespace = /*#__PURE__*/_interopNamespace(i0);
     var VizceralGraph__default = /*#__PURE__*/_interopDefaultLegacy(VizceralGraph);
+    var equal__default = /*#__PURE__*/_interopDefaultLegacy(equal);
 
     var NgxVizceralService = /** @class */ (function () {
         function NgxVizceralService() {
@@ -160,9 +161,12 @@
                     showLabels: _this.showLabels,
                 });
                 //   //return back for this
-                //  if (!isEqual(this.filters, this.defaultProps.filters)) {
-                //     this.instance.setFilters(this.filters);
-                //   }
+                if (!equal__default['default'](_this.filters, _this.defaultProps.filters)) {
+                    _this.instance.setFilters(_this.filters);
+                }
+                if (_this.styles && !equal__default['default'](_this.styles, _this.defaultProps.styles)) {
+                    _this.instance.updateStyles(_this.styles);
+                }
                 //   if (!isEqual(this.definitions, this.defaultProps.definitions)) {
                 //     this.instance.updateDefinitions(this.definitions);
                 //   }
