@@ -16,7 +16,8 @@
  */
 package com.epam.deltix.spring.apikeys;
 
-import javax.servlet.Filter;
+import jakarta.servlet.Filter;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 
-public interface ApiKeysFilter extends Filter {
+public interface ApiKeysFilter extends Filter, RequestMatcher {
 }

@@ -16,7 +16,7 @@
  */
 package deltix.ws;
 
-import javax.websocket.*;
+import jakarta.websocket.*;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -60,50 +60,50 @@ public class WSClient {
         latch.countDown();
     }
 
-    public static void main(String[] args) {
-        ClientManager client = ClientManager.createClient();
-        try {
-            client.getProperties().put(ClientProperties.INCOMING_BUFFER_SIZE, 1024 * 1024);
-            Session session = client.connectToServer(WSClient.class, new URI("ws://localhost:8099/ws/v0/L3/select"));
-            latch.await();
-
-
-            double                          s = (end - start) * 0.001;
-            System.out.printf (
-                    "%,d messages in %,.3fs; speed: %,.0f msg/s\n",
-                    count,
-                    s,
-                    count / s
-            );
-
-        } catch (DeploymentException | URISyntaxException | InterruptedException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void main2(String[] args) {
-        ClientManager client = ClientManager.createClient();
-        try {
-            Session session = client.connectToServer(WSClient.class, new URI("ws://localhost:8025/ws/data"));
-            session.getBasicRemote().sendText("start");
-            latch.await();
-            session.getBasicRemote().sendText("close");
-
-
-            double                          s = (end - start) * 0.001;
-            System.out.printf (
-                    "%,d messages in %,.3fs; speed: %,.0f msg/s\n",
-                    count,
-                    s,
-                    count / s
-            );
-
-        } catch (DeploymentException | URISyntaxException | InterruptedException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+//    public static void main(String[] args) {
+//        ClientManager client = ClientManager.createClient();
+//        try {
+//            client.getProperties().put(ClientProperties.INCOMING_BUFFER_SIZE, 1024 * 1024);
+//            Session session = client.connectToServer(WSClient.class, new URI("ws://localhost:8099/ws/v0/L3/select"));
+//            latch.await();
+//
+//
+//            double                          s = (end - start) * 0.001;
+//            System.out.printf (
+//                    "%,d messages in %,.3fs; speed: %,.0f msg/s\n",
+//                    count,
+//                    s,
+//                    count / s
+//            );
+//
+//        } catch (DeploymentException | URISyntaxException | InterruptedException e) {
+//            throw new RuntimeException(e);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
+//
+//    public static void main2(String[] args) {
+//        ClientManager client = ClientManager.createClient();
+//        try {
+//            Session session = client.connectToServer(WSClient.class, new URI("ws://localhost:8025/ws/data"));
+//            session.getBasicRemote().sendText("start");
+//            latch.await();
+//            session.getBasicRemote().sendText("close");
+//
+//
+//            double                          s = (end - start) * 0.001;
+//            System.out.printf (
+//                    "%,d messages in %,.3fs; speed: %,.0f msg/s\n",
+//                    count,
+//                    s,
+//                    count / s
+//            );
+//
+//        } catch (DeploymentException | URISyntaxException | InterruptedException e) {
+//            throw new RuntimeException(e);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
 }

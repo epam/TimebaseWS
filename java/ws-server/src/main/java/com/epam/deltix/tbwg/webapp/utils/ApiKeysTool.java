@@ -17,8 +17,6 @@
 package com.epam.deltix.tbwg.webapp.utils;
 
 import com.epam.deltix.util.cmdline.DefaultApplication;
-import org.apache.commons.codec.digest.HmacAlgorithms;
-import org.apache.commons.codec.digest.HmacUtils;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -46,10 +44,10 @@ public class ApiKeysTool extends DefaultApplication {
         String secret = getArgValue("-secret");
 
         if (payload != null) {
-            String signature = Base64.getEncoder().encodeToString(
-                new HmacUtils(HmacAlgorithms.HMAC_SHA_384, secret).hmac(payload)
-            );
-            System.out.println("Signature: " + signature);
+//            String signature = Base64.getEncoder().encodeToString(
+//                new HmacUtils(HmacAlgorithms.HMAC_SHA_384, secret).hmac(payload)
+//            );
+//            System.out.println("Signature: " + signature);
         } else if (generate) {
             System.out.println("----------");
             System.out.println("API KEY: " + randomAlphabetic(keySize));

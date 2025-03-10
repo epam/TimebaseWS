@@ -47,7 +47,7 @@ public class ApiKeyUtils {
         headers.set("X-Deltix-ApiKey", apiKey);
         headers.set("X-Deltix-Signature", buildSignature(method.name(), path, body, apiSecret));
         if (body != null) {
-            headers.set("Content-Type", "application/json");
+            headers.setContentType(MediaType.APPLICATION_JSON);
         }
 
         HttpEntity entity = (body != null ? new HttpEntity<>(body, headers) : new HttpEntity<>(headers));
@@ -78,7 +78,7 @@ public class ApiKeyUtils {
         headers.set("X-Deltix-Session-Id", session.sessionId);
         headers.set("X-Deltix-Signature", buildSignature(method.name(), path, body, nonce, session));
         if (body != null) {
-            headers.set("Content-Type", "application/json");
+            headers.setContentType(MediaType.APPLICATION_JSON);
         }
 
         HttpEntity entity = (body != null ? new HttpEntity<>(body, headers) : new HttpEntity<>(headers));

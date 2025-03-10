@@ -24,13 +24,12 @@ public class TokenUtils {
     public static String requestToken(RestTemplate restTemplate, String user, String password) throws IOException {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/x-www-form-urlencoded");
-        headers.set("Authorization", "Basic d2ViOnNlY3JldA==");
         HttpEntity entity = new HttpEntity<>(
-            String.format("username=%s&password=%s&grant_type=password&scope=trust", user, password),
+            String.format("client_id=%s&client_secret=%s&grant_type=client_credentials&scope=openid profile", user, password),
             headers
         );
 
-        ResponseEntity<String> response = restTemplate.exchange("/oauth/token", HttpMethod.POST, entity, String.class);
+        ResponseEntity<String> response = restTemplate.exchange("/oauth2/token", HttpMethod.POST, entity, String.class);
 
         return new ObjectMapper().readValue(response.getBody(), Token.class).access_token;
     }

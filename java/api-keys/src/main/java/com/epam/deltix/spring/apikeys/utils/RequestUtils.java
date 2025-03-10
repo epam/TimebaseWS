@@ -19,7 +19,7 @@ package com.epam.deltix.spring.apikeys.utils;
 import com.epam.deltix.spring.apikeys.ApiKeysAuthenticationService;
 import org.springframework.http.HttpMethod;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;

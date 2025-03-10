@@ -27,7 +27,7 @@ import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
 import com.epam.deltix.tbwg.webapp.utils.cache.CachedMessageBufferImpl;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PreDestroy;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
