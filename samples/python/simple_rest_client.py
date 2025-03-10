@@ -5,15 +5,14 @@ url = "http://localhost:8099"
 stream = "BINANCE"
 
 def getToken(url, user, password):
-    headers = {'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic d2ViOnNlY3JldA=='}
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
     data = {
-        'grant_type': 'password',
-        'username': user,
-        'password': password,
-        'scope': 'trust',
+        'grant_type': 'client_credentials',
+        'client_id': user,
+        'client_secret': password,
+        'scope': 'openid profile',
     }
-    response = requests.post(url + "/oauth/token", headers=headers, data=data)
+    response = requests.post(url + "/oauth2/token", headers=headers, data=data)
     accessDetails = response.json()
     return accessDetails
     

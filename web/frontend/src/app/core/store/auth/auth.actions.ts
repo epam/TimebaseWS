@@ -121,8 +121,8 @@ export class TryLogIn implements Action {
 
   constructor(
     public payload: {
-      password: string;
-      username: string;
+      client_id: string;
+      client_secret: string;
     },
   ) {}
 }

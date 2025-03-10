@@ -46,38 +46,31 @@ grafana:
 security:
   oauth2:
     provider:
+      name: spring
       providerType: BUILT_IN_OAUTH # valid values: EXTERNAL_OAUTH, BUILT_IN_OAUTH, SSO
-      clientId: web
+      clientId:
       oauthServer: http://localhost:8099
-      getTokenEndpoint: /oauth/token
-      checkTokenEndpoint: /oauth/check
+      getTokenEndpoint: /oauth2/token
+      checkTokenEndpoint: /oauth2/jwks
       scopes:
         - openid
         - profile
-    clientId: web
-    secret: $2a$10$1DWT60qCpc1bTJUNiV/C0u.Zw0L5Yq80OhZbsyA8LAKn7G/18q9za
-    authorizedGrantTypes:
-      - password
-      - refresh_token
     users:
       - username: admin
         password: $2a$10$7M3W5JMk1wggimrbVegxWeeasqjrZUjNEiZTpMSYdId92409D2TSq
         authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
       - username: reader
-        password: $2a$10$7M3W5JMk1wggimrbVegxWeeasqjrZUjNEiZTpMSYdId92409D2TSq
+        password: $2a$12$ZEIAFaexgqAg2ROMawHs2OXMDSFsBohkZkU8NCS5xWviLw2Ay/xt.
         authorities: [ TB_ALLOW_READ]
       - username: test
         password: $2a$10$3PL6X1Gn8VjRy4r0od9NLeZrO2YWpUjzozv3jOxU0/RMjsElzPQdu
         authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
-    scopes:
-      - trust
-    #    contentSecurityPolicy: "default-src 'self';
-    #      style-src 'self' 'unsafe-inline';
-    #      img-src 'self' data: 'unsafe-inline';
-    #      font-src 'self' data: 'unsafe-inline';
-    #      worker-src 'self' data: 'unsafe-inline' blob: 'unsafe-inline';
-    #      connect-src 'self' https://login.microsoftonline.com/;
-    #      script-src 'self' 'nonce-aykJK1CokURPt5Tb+ikxSA==';"
-    #    allowClientIdUser: true # uncomment if you want to use 'web' user.
+#    contentSecurityPolicy: "default-src 'self';
+#      style-src 'self' 'unsafe-inline';
+#      img-src 'self' data: 'unsafe-inline';
+#      font-src 'self' data: 'unsafe-inline';
+#      worker-src 'self' data: 'unsafe-inline' blob: 'unsafe-inline';
+#      connect-src 'self' https://login.microsoftonline.com/;
+#      script-src 'self' 'nonce-aykJK1CokURPt5Tb+ikxSA==';"
     accessTokenValiditySeconds: 300 # 5 min
     refreshTokenValiditySeconds: 86400 # one day

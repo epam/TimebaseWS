@@ -107,7 +107,7 @@ public class ChartingController {
 
         if (chartingResult != null) {
             return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON_UTF8)
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(new ChartStreamingResponseBody(chartingResult));
         } else {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();

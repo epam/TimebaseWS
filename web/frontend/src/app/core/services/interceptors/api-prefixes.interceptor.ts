@@ -42,7 +42,6 @@ export class ApiPrefixesInterceptor implements HttpInterceptor {
 
         if (headers['_authrequest'] === 'true') {
           prefix = appState.authPrefix;
-          headers['Authorization'] = 'Basic d2ViOnNlY3JldA==';
         }
         delete headers['_authrequest'];
 

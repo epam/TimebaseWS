@@ -25,14 +25,20 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.OAuth2ResourceServerProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.*;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.firewall.DefaultHttpFirewall;
 import org.springframework.security.web.firewall.HttpFirewall;
 
@@ -40,7 +46,7 @@ import static com.epam.deltix.tbwg.webapp.config.WebMvcConfig.GRAFANA_API_PREFIX
 import static com.epam.deltix.tbwg.webapp.config.WebMvcConfig.MAIN_API_PREFIX;
 
 @EnableWebSecurity()
-@ConditionalOnProperty(value = "security.oauth2.provider.providerType", havingValue = "SSO", matchIfMissing = true)
+@Configuration
 public class ResourceServerConfig {
 
     private final OAuth2ResourceServerProperties.Jwt jwtConfig;
@@ -68,33 +74,44 @@ public class ResourceServerConfig {
     }
 
     @Bean
+    @Order(2)
     public SecurityFilterChain filterChain(final HttpSecurity http) throws Exception {
         http
             //.cors().and()
-            .authorizeRequests()
-                .antMatchers("/ws/v0/**").fullyAuthenticated()
-                .antMatchers("/ping").permitAll()
-                .antMatchers("/api/v0/v").permitAll()
-                .antMatchers("/api/v0/docs/**").permitAll()
-                .antMatchers("/api/v0/authInfo").permitAll()
-                .antMatchers("/api/v0/download").permitAll()
-                .antMatchers(MAIN_API_PREFIX + "/**").fullyAuthenticated()
-                .antMatchers(GRAFANA_API_PREFIX + "/**").fullyAuthenticated()
-            .and()
-                .oauth2ResourceServer()
-                    .jwt().jwtAuthenticationConverter(jwtAuthenticationConverter);
+            .authorizeHttpRequests(auth ->
+                auth
+                    .requestMatchers("/ping").permitAll()
+                    .requestMatchers(MAIN_API_PREFIX + "/v").permitAll()
+                    .requestMatchers(MAIN_API_PREFIX + "/docs/**").permitAll()
+                    .requestMatchers(MAIN_API_PREFIX + "/authInfo").permitAll()
+                    .requestMatchers(MAIN_API_PREFIX + "/download").permitAll()
+                    .requestMatchers(MAIN_API_PREFIX + "/**").fullyAuthenticated()
+//                    .requestMatchers(WS_API_PREFIX + "/**").fullyAuthenticated()
+                    .requestMatchers(GRAFANA_API_PREFIX + "/**").fullyAuthenticated()
+                    .anyRequest().permitAll()
+            ).csrf(csrf ->
+                csrf.ignoringRequestMatchers("/session/login/**") // ignore session login
+            ).oauth2ResourceServer(oauth2 ->
+                oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
+            );
 
-        http.headers().frameOptions().sameOrigin();
-        if (isContentSecurityPolicyConfigured()) {
-            http.headers().contentSecurityPolicy(contentSecurityPolicy);
+        http.headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
+        http.addFilterBefore(apiKeysFilterProvider.getInstance(), BearerTokenAuthenticationFilter.class);
+        CsrfConfigurer<?> csrf = http.getConfigurer(CsrfConfigurer.class);
+        if (csrf != null) {
+            csrf.ignoringRequestMatchers(apiKeysFilterProvider.getInstance());
         }
-        http.addFilterAfter(apiKeysFilterProvider.getInstance(), BasicAuthenticationFilter.class);
+        if (isContentSecurityPolicyConfigured()) {
+            http.headers(headers -> headers.contentSecurityPolicy(c -> c.policyDirectives(contentSecurityPolicy)));
+        }
+
         return http.build();
     }
 
     @Bean
+    @ConditionalOnProperty(value = "security.oauth2.provider.providerType", havingValue = "SSO", matchIfMissing = true)
     public JwtDecoder jwtDecoder() {
-        NimbusJwtDecoder jwtDecoder = (NimbusJwtDecoder) JwtDecoders.fromIssuerLocation(jwtConfig.getIssuerUri());
+        NimbusJwtDecoder jwtDecoder = JwtDecoders.fromIssuerLocation(jwtConfig.getIssuerUri());
 
         OAuth2TokenValidator<Jwt> validator;
         if (providerConfig.isValidateIssuer()) {
@@ -114,7 +131,6 @@ public class ResourceServerConfig {
     }
 
     // Encoded slashes fix
-
     @Bean
     public HttpFirewall allowUrlEncodedSlashHttpFirewall() {
         DefaultHttpFirewall firewall = new DefaultHttpFirewall();
@@ -125,6 +141,11 @@ public class ResourceServerConfig {
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return web -> web.httpFirewall(allowUrlEncodedSlashHttpFirewall());
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     public boolean isContentSecurityPolicyConfigured() {

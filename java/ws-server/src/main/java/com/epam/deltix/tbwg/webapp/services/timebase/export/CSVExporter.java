@@ -23,7 +23,7 @@ import com.epam.deltix.tbwg.webapp.model.input.ExportRequest;
 import com.epam.deltix.tbwg.webapp.utils.CsvLineWriter;
 import com.epam.deltix.util.io.CSVWriter;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;

@@ -24,9 +24,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.*;
 
 public class ApiKeysResolveFilter extends OncePerRequestFilter implements ApiKeysFilter {
@@ -63,4 +63,10 @@ public class ApiKeysResolveFilter extends OncePerRequestFilter implements ApiKey
         chain.doFilter(request, response);
     }
 
+    @Override
+    public boolean matches(HttpServletRequest request) {
+        String key = RequestUtils.getApiKeyFromRequest(request);
+        String signature = RequestUtils.getSignatureFromRequest(request);
+        return key != null && signature != null;
+    }
 }

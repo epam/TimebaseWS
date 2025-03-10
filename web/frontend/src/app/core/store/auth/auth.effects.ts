@@ -257,8 +257,8 @@ export class AuthEffects {
     withLatestFrom(this.appStore.pipe(select(getAuthProvider))),
     switchMap(([action, authProvider]) => {
       const body_data = new URLSearchParams('');
-      body_data.append('grant_type', 'password');
-      body_data.append('scope', 'trust');
+      body_data.append('grant_type', 'client_credentials');
+      body_data.append('scope', 'openid profile');
       for (const i in action.payload) {
         if (action.payload.hasOwnProperty(i)) {
           body_data.append(i, action.payload[i]);
