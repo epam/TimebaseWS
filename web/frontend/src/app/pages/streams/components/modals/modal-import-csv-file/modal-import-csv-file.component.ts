@@ -547,7 +547,7 @@ export class ModalImportCSVFileComponent implements OnInit, OnDestroy {
           timeZone: this.importFromTextFileService.settings.timeZone,
           strategy: res.generalSettings.strategy ?? 'SKIP',
           symbols: null,
-          instrumentType: [ this.importFromTextFileService.instrumentTypes[0] ]
+          instrumentType: [ this.importFromTextFileService.instrumentTypes?.[0] ]
         }
 
         const savedSettings = localStorage.getItem(`settings-${this.importFromTextFileService.streamId}`);
