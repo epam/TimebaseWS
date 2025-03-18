@@ -74,12 +74,6 @@ dependencies {
             'org.springframework.security:spring-security-oauth2-jose'
 
     implementation 'org.springframework.security:spring-security-oauth2-authorization-server'
-    implementation('org.springframework.security:spring-security-jwt') {
-        exclude group: 'org.bouncycastle', module: 'bcpkix-jdk15on'
-        exclude group: 'org.bouncycastle', module: 'bcprov-jdk15on'
-    }
-    implementation 'org.bouncycastle:bcpkix-jdk18on'
-    implementation 'org.bouncycastle:bcprov-jdk18on'
 
     implementation 'com.intellij:annotations:12.0'
 
