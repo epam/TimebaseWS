@@ -70,15 +70,11 @@ public class AuthorizationServerConfig {
                     .clientSecret(user.getPassword())
                     .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
                     .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                    .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                     .scopes((scopes) -> scopes.addAll(securityOauth2ProviderSettings.getScopes()))
                     .tokenSettings(
                             TokenSettings.builder()
                                     .accessTokenTimeToLive(
                                             Duration.ofSeconds(securityOauth2ServerSettings.getAccessTokenValiditySeconds())
-                                    )
-                                    .refreshTokenTimeToLive(
-                                            Duration.ofSeconds(securityOauth2ServerSettings.getRefreshTokenValiditySeconds())
                                     ).build()
                     )
                     .build()

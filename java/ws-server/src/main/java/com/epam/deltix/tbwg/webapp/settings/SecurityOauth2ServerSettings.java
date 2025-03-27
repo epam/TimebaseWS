@@ -39,9 +39,6 @@ public class SecurityOauth2ServerSettings {
     @NotNull
     private Integer accessTokenValiditySeconds;
 
-    @NotNull
-    private Integer refreshTokenValiditySeconds;
-
     private String contentSecurityPolicy;
 
     public String getPrivateKey() {
@@ -66,14 +63,6 @@ public class SecurityOauth2ServerSettings {
 
     public void setAccessTokenValiditySeconds(Integer accessTokenValiditySeconds) {
         this.accessTokenValiditySeconds = accessTokenValiditySeconds;
-    }
-
-    public Integer getRefreshTokenValiditySeconds() {
-        return refreshTokenValiditySeconds;
-    }
-
-    public void setRefreshTokenValiditySeconds(Integer refreshTokenValiditySeconds) {
-        this.refreshTokenValiditySeconds = refreshTokenValiditySeconds;
     }
 
     public String getContentSecurityPolicy() {

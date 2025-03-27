@@ -72,5 +72,4 @@ security:
 #      worker-src 'self' data: 'unsafe-inline' blob: 'unsafe-inline';
 #      connect-src 'self' https://login.microsoftonline.com/;
 #      script-src 'self' 'nonce-aykJK1CokURPt5Tb+ikxSA==';"
-    accessTokenValiditySeconds: 300 # 5 min
-    refreshTokenValiditySeconds: 86400 # one day
+    accessTokenValiditySeconds: 86400 # one day
