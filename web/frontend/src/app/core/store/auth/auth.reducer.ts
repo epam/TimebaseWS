@@ -41,6 +41,19 @@ export function reducer(state = initialState, action: AuthActions): State {
         tokenRefreshTime: Date.now()
       };
 
+    case AuthActionTypes.SAVE_TOKEN:
+      const expires_in = (action['payload']['expires_in'] * 1000) + action['payload']['time'] - Date.now();
+      return {
+        ...state,
+        customTokenResponse: {
+          access_token: action['payload']['access_token'],
+          expires_in
+        },
+        tokenIsInitialized: true,
+        tokenRefreshTime: Date.now()
+      };
+  
+
     case AuthActionTypes.TOKEN_UPDATED:
       return state;
 

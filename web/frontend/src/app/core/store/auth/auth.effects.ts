@@ -27,6 +27,7 @@ import {
   map,
   mergeMap,
   retry,
+  startWith,
   switchMap,
   take,
   tap,
@@ -83,11 +84,14 @@ export class AuthEffects {
         take(1),
       );
     }),
-    switchMap(() => this.localStorage.getItem(AUTH_KEY_IN_LS)),
+    switchMap(() => (this.localStorage.getItem(AUTH_KEY_IN_LS) as Observable<string>).pipe(startWith(null))),
     switchMap(
-      (authItem): Observable<AuthActions.SilentUpdateToken | AuthActions.InitialiseToken> => {
-        if (!!authItem) {
-          return of<AuthActions.SilentUpdateToken>(new AuthActions.SilentUpdateToken());
+      (authItem: string): Observable<AuthActions.SilentUpdateToken | AuthActions.InitialiseToken | AppActions.AllowHTTPRequests> => {
+        const tokenInfo = JSON.parse(authItem);
+        const tokenIsValid = tokenInfo?.access_token && Date.now() < (tokenInfo?.expires_in * 1000) + tokenInfo?.time;
+        if (tokenIsValid) {
+          this.appStore.dispatch(new AuthActions.SaveToken(tokenInfo));
+          return of(new AppActions.AllowHTTPRequests());
         } else {
           return this.appStore.pipe(
             select(getCurrentUrl),
@@ -301,12 +305,17 @@ export class AuthEffects {
     ofType<AuthActions.LogIn>(AuthActionTypes.LOGIN),
     withLatestFrom(this.appStore.pipe(select(getAuthProvider))),
     tap(([action, authProvider]) => {
+      const response = action.payload.tokenResponse as CustomTokenResponseModel;
+      const tokenInfo = {
+        access_token: response.access_token,
+        expires_in: response.expires_in,
+        time: Date.now()
+      };
+
       this.localStorage
         .setItem(
           AUTH_KEY_IN_LS,
-          authProvider.custom_provider
-            ? (action.payload.tokenResponse as CustomTokenResponseModel).refresh_token
-            : 'true',
+          authProvider.custom_provider ? JSON.stringify(tokenInfo) : 'true',
         )
         .subscribe();
       setTimeout(() => {
