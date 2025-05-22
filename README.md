@@ -46,7 +46,7 @@ docker run --rm -d \
    --network timebase-network \
    -p 8011:8011 \
    --ulimit nofile=65536:65536 \
-   finos/timebase-ce-server:6.2
+   finos/timebase-ce-server:6.1
 ```
 ### 2. Run Docker Container with [TimeBase WS Server](https://hub.docker.com/r/epam/timebase-ws-server)
 
@@ -58,7 +58,7 @@ docker run --rm -d \
    -p 8099:8099 \
    -e "JAVA_OPTS=-Dtimebase.url=dxtick://timebase-server:8011" \
    --ulimit nofile=65536:65536 \
-   epam/timebase-ws-server:1.2
+   epam/timebase-ws-server:1.1
 ```
 or start server from command line
 
