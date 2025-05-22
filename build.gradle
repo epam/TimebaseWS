@@ -55,7 +55,12 @@ licenseReport {
 //    }
 
     excludeGroups = ['javax.servlet.*']
-    excludes = ['asm:asm', 'com.sun.codemodel:codemodel-project', 'net.jcip:jcip-annotations', 'com.fasterxml.jackson:jackson-bom']
+    excludeGroups = ['javax.servlet.*']
+    excludes = [
+            'com.fasterxml.jackson:jackson-bom',
+            'jakarta.annotation:jakarta.annotation-api', // DUAL license
+            'com.sun.activation:jakarta.activation' // DUAL license
+    ]
 
     configurations = ['runtimeClasspath']
     allowedLicensesFile = new File("$rootDir/allowed-lic.json")
@@ -67,8 +72,8 @@ checkLicense {
 
 configure(javaProjects) {
 
-    apply plugin: 'java-library'
     apply plugin: 'java'
+    apply plugin: 'java-library'
     apply plugin: 'maven-publish'
     apply plugin: 'io.spring.dependency-management'
     apply plugin: 'org.owasp.dependencycheck'
@@ -105,6 +110,7 @@ configure(javaProjects) {
     compileJava.options.compilerArgs.add("-parameters")
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
+
     // Defines versions of dependencies to be used by subprojects
     // https://github.com/spring-gradle-plugins/dependency-management-plugin#dependency-management-dsl
     dependencyManagement {
@@ -181,20 +187,23 @@ configure(javaProjects) {
             dependency 'org.hamcrest:hamcrest:2.2'
             dependency 'net.bytebuddy:byte-buddy:1.15.4'
 
-
-            dependencySet(group: 'com.fasterxml.jackson.core', version: "$jacksonVersion") {
-                entry 'jackson-databind'
-                entry 'jackson-core'
-                entry 'jackson-annotations'
-                entry 'jackson-module-parameter-names'
-            }
+//            dependencySet(group: 'com.fasterxml.jackson.core', version: "$jacksonVersion") {
+//                entry 'jackson-databind'
+//                entry 'jackson-core'
+//                entry 'jackson-annotations'
+//                entry 'jackson-module-parameter-names'
+//            }
 
             dependency 'com.azure:azure-security-keyvault-secrets:4.8.4'
             dependency 'net.java.dev.jna:jna-platform:5.6.0' // azure sdk requires jna 5.6.0
             dependency 'com.microsoft.azure:msal4j:1.15.1'
 
-            dependency "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion"
-            dependency "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$jacksonVersion"
+//            dependencySet(group: 'com.fasterxml.jackson.datatype', version: "$jacksonVersion") {
+//                entry 'jackson-datatype-jsr310'
+//                entry 'jackson-datatype-jdk8'
+//                entry 'jackson-datatype-joda'
+//                entry 'jackson-datatype-joda'
+//            }
 
             dependencySet(group: 'io.micrometer', version: '1.14.4') {
                 entry 'micrometer-core'

@@ -28,7 +28,6 @@ dependencies {
     implementation "com.epam.deltix:timebase-messages"
     implementation "com.epam.deltix:timebase-collections"
 
-
     implementation 'com.epam.deltix:orderbook-core'
 
     implementation 'org.reflections:reflections'
@@ -89,7 +88,6 @@ dependencies {
 
     testImplementation 'com.google.code.findbugs:annotations'
 
-
     testImplementation "junit:junit",
             'org.springframework.boot:spring-boot-starter-test',
             'org.junit.jupiter:junit-jupiter-api',
@@ -130,10 +128,11 @@ licenseReport {
 //    }
 
     excludeGroups = ['javax.servlet.*']
-    excludes = ['asm:asm',
-                'com.sun.codemodel:codemodel-project',
-                'net.jcip:jcip-annotations',
-                'com.fasterxml.jackson:jackson-bom']
+    excludes = [
+            'com.fasterxml.jackson:jackson-bom',
+            'jakarta.annotation:jakarta.annotation-api', // DUAL license
+            'com.sun.activation:jakarta.activation' // DUAL license
+    ]
 
     configurations = ['runtimeClasspath']
     allowedLicensesFile = new File("$rootDir/allowed-licenses.json")
