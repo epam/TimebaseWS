@@ -25,7 +25,7 @@ import com.epam.deltix.spring.apikeys.model.SuccessfulLoginAttemptDto;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.util.Base64;

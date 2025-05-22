@@ -21,6 +21,7 @@ import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.model.ApiError;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.*;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -34,7 +35,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(WriteOperationsException.class)
     public ResponseEntity<ApiError> handleException(WriteOperationsException e) {
         logException(e);
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .contentType(MediaType.APPLICATION_JSON).body(
             new ApiError(e, HttpStatus.FORBIDDEN)
         );
     }
@@ -45,7 +47,8 @@ public class GlobalExceptionHandler {
         NoStreamsException.class})
     public ResponseEntity<ApiError> handleException(TimebaseException e) {
         logException(e);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .contentType(MediaType.APPLICATION_JSON).body(
             new ApiError(e, HttpStatus.BAD_REQUEST)
         );
     }
@@ -53,7 +56,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> handleException(AccessDeniedException e) {
         logException(e);
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .contentType(MediaType.APPLICATION_JSON).body(
             new ApiError(e, HttpStatus.FORBIDDEN)
         );
     }
@@ -61,7 +65,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleException(IllegalArgumentException e) {
         logException(e);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .contentType(MediaType.APPLICATION_JSON).body(
             new ApiError(e, HttpStatus.BAD_REQUEST)
         );
     }
@@ -69,9 +74,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleException(Exception e) {
         logException(e);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-            new ApiError(e, HttpStatus.INTERNAL_SERVER_ERROR)
-        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(new ApiError(e, HttpStatus.INTERNAL_SERVER_ERROR));
     }
 
     private void logException(Exception e){

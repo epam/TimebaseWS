@@ -19,14 +19,15 @@ package com.epam.deltix.tbwg.webapp.interceptors;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.servlet.HandlerInterceptor;
+
 import java.security.Principal;
 
 @Component
-public class RestLogInterceptor extends HandlerInterceptorAdapter {
+public class RestLogInterceptor implements HandlerInterceptor {
 
     private static final Log LOGGER = LogFactory.getLog(RestLogInterceptor.class);
 

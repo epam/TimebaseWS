@@ -42,7 +42,7 @@ public class StreamGenerator {
 
         DXTickStream stream = db.getStream(key);
         if (stream == null) {
-            StreamOptions options = new StreamOptions (StreamScope.DURABLE, key, null, 0);
+            StreamOptions options = new StreamOptions(StreamScope.DURABLE, key, null, 0);
             options.setFixedType(mkBarMessageDescriptor());
             stream = db.createStream(options.name, options);
         } else {
@@ -53,8 +53,9 @@ public class StreamGenerator {
         long timestamp = System.currentTimeMillis() - total * interval;
 
         double price = 9000.;
-
-        try (TickLoader loader = stream.createLoader()) {
+        LoadingOptions options = LoadingOptions.withAppendMode(false);
+        options.typeLoader = new DefaultTypeLoader();
+        try (TickLoader loader = stream.createLoader(options)) {
             for (int i = 0; i < total; i++) {
                 loader.send(createBar(price, timestamp += interval, getSymbol()));
             }
@@ -65,17 +66,17 @@ public class StreamGenerator {
         return Introspector.createEmptyMessageIntrospector().introspectRecordClass(BarMessage.class);
     }
 
-    private static String getSymbol(String ... symbols) {
+    private static String getSymbol(String... symbols) {
         if (symbols.length == 0) {
             return "TEST";
         }
         return symbols[RANDOM.nextInt(symbols.length)];
     }
 
-    public static void loadBarsLive(long interval, int total, String key, DXTickDB db, String ... symbols) throws Introspector.IntrospectionException {
+    public static void loadBarsLive(long interval, int total, String key, DXTickDB db, String... symbols) throws Introspector.IntrospectionException {
         DXTickStream stream = db.getStream(key);
         if (stream == null) {
-            StreamOptions options = new StreamOptions (StreamScope.DURABLE, key, null, 0);
+            StreamOptions options = new StreamOptions(StreamScope.DURABLE, key, null, 0);
             options.setFixedType(mkBarMessageDescriptor());
             stream = db.createStream(options.name, options);
         }

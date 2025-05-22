@@ -27,7 +27,7 @@ import com.epam.deltix.tbwg.webapp.model.input.ExportRequest;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
 import com.epam.deltix.util.time.Interval;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;

@@ -23,7 +23,7 @@ import com.epam.deltix.gflog.api.LogFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PreDestroy;
 
 @Service
 public class StompSubscriptionTaskServiceImpl {

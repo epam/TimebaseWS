@@ -39,7 +39,7 @@ export class GeneralParametersComponent implements OnInit, OnDestroy {
     private clickOutsideService: ClickOutsideService) {}
 
   ngOnInit(): void {
-    this.instrumentTypeOptions = this.mapOptionsForMultiSelect(this.importFromTextFileService.instrumentTypes);
+    this.instrumentTypeOptions = this.mapOptionsForMultiSelect(this.importFromTextFileService.instrumentTypes ?? []);
     this.charsetOptions = this.mapOptionsForMultiSelect(charsetTypes);
 
     const settings = this.importFromTextFileService.settings;
@@ -112,7 +112,7 @@ export class GeneralParametersComponent implements OnInit, OnDestroy {
 
   instrumentTypeInputDisabled() {
     const instrumentTypeField = this.importFromTextFileService.currentMappings.find(item => item.field.title === 'Instrument Type');
-    return !!instrumentTypeField.column;
+    return !instrumentTypeField || !!instrumentTypeField.column;
   }
 
   ngOnDestroy(): void {
@@ -133,7 +133,7 @@ export class GeneralParametersComponent implements OnInit, OnDestroy {
   }
 
   mapOptionsForMultiSelect(options: string[]) {
-    return options.map((option: string) => ({name: option, id: option}))
+    return options.map((option: string) => ({ name: option, id: option }));
   }
 
   toggleAddSymbolDropdown() {

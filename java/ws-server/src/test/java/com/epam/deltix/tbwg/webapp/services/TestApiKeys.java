@@ -39,9 +39,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.*;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -69,7 +69,7 @@ import static org.junit.Assert.*;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Application.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("testApiKeys")
-@Ignore
+//@Ignore
 public class TestApiKeys {
 
     private static final Log LOGGER = LogFactory.getLog(TestApiKeys.class);
@@ -89,7 +89,7 @@ public class TestApiKeys {
 
     private static volatile CountDownLatch GLOBAL_WS_LATCH;
 
-    @LocalServerPort
+    @Value("${local.server.port}")
     private int port;
 
     @Autowired

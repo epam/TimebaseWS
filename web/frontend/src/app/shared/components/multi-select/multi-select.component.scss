@@ -16,6 +16,7 @@
   &.disabled {
     background-color: rgba(128, 128, 128, 0.3);
     color: rgb(162, 162, 162);
+    cursor: default;
   }
 
   &.multiple.has-data {

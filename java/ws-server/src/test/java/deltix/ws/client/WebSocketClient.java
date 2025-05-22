@@ -20,7 +20,7 @@ import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.gflog.api.LogLevel;
 
-import javax.websocket.*;
+import jakarta.websocket.*;
 import java.net.URI;
 import java.util.concurrent.CountDownLatch;
 

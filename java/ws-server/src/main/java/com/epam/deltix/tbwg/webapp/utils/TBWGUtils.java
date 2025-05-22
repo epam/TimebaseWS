@@ -38,7 +38,7 @@ import com.epam.deltix.util.time.Interval;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.web.socket.WebSocketSession;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;

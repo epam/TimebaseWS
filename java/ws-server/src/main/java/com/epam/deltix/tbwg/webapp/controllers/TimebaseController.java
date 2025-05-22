@@ -84,7 +84,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.io.*;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
