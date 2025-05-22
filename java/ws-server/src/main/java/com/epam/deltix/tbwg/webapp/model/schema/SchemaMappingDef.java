@@ -18,7 +18,7 @@ package com.epam.deltix.tbwg.webapp.model.schema;
 
 import com.webcohesion.enunciate.metadata.DocumentationExample;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
 

@@ -21,9 +21,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-import java.util.List;
+import jakarta.validation.constraints.NotNull;
 
 /**
  *
@@ -34,20 +32,6 @@ import java.util.List;
 @ConditionalOnProperty(value = "security.oauth2.provider.providerType", havingValue = "BUILT_IN_OAUTH")
 public class SecurityOauth2ServerSettings {
 
-    @NotNull
-    private String clientId;
-
-    @NotNull
-    private String secret = "";
-
-    @NotNull
-    @NotEmpty
-    private List<String> authorizedGrantTypes;
-
-    @NotNull
-    @NotEmpty
-    private List<String> scopes;
-
     private String privateKey;
 
     private String publicKey;
@@ -55,44 +39,7 @@ public class SecurityOauth2ServerSettings {
     @NotNull
     private Integer accessTokenValiditySeconds;
 
-    @NotNull
-    private Integer refreshTokenValiditySeconds;
-
-    private boolean allowClientIdUser;
-
     private String contentSecurityPolicy;
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
-
-    public String getSecret() {
-        return secret;
-    }
-
-    public void setSecret(String secret) {
-        this.secret = secret;
-    }
-
-    public List<String> getAuthorizedGrantTypes() {
-        return authorizedGrantTypes;
-    }
-
-    public void setAuthorizedGrantTypes(List<String> authorizedGrantTypes) {
-        this.authorizedGrantTypes = authorizedGrantTypes;
-    }
-
-    public List<String> getScopes() {
-        return scopes;
-    }
-
-    public void setScopes(List<String> scopes) {
-        this.scopes = scopes;
-    }
 
     public String getPrivateKey() {
         return privateKey;
@@ -116,22 +63,6 @@ public class SecurityOauth2ServerSettings {
 
     public void setAccessTokenValiditySeconds(Integer accessTokenValiditySeconds) {
         this.accessTokenValiditySeconds = accessTokenValiditySeconds;
-    }
-
-    public Integer getRefreshTokenValiditySeconds() {
-        return refreshTokenValiditySeconds;
-    }
-
-    public void setRefreshTokenValiditySeconds(Integer refreshTokenValiditySeconds) {
-        this.refreshTokenValiditySeconds = refreshTokenValiditySeconds;
-    }
-
-    public boolean isAllowClientIdUser() {
-        return allowClientIdUser;
-    }
-
-    public void setAllowClientIdUser(boolean allowClientIdUser) {
-        this.allowClientIdUser = allowClientIdUser;
     }
 
     public String getContentSecurityPolicy() {

@@ -38,8 +38,7 @@ security:
         authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
     scopes:
       - trust
-    accessTokenValiditySeconds: 300 # 5 min
-    refreshTokenValiditySeconds: 86400 # one day
+    accessTokenValiditySeconds: 86400 # one day
     privateKey: |
       -----BEGIN RSA PRIVATE KEY-----
       MIIJKQIBAAKCAgEApByYkL1z5Pdc46dCE/o758KTo3+aHmzDFRjcwxmQz657lvmy

@@ -131,27 +131,27 @@ export class AppComponent implements OnInit {
     });
     this.tabNavigationService.addNavigationEventListeners();
 
-    fromEvent(window, 'load')
-      .pipe(first())
-      .subscribe(() => {
-        const tabCount = localStorage.getItem('tabCount');
-        const currentTabCount = !isNaN(+tabCount) ? +tabCount + 1 : 1;
-        localStorage.setItem('tabCount', `${currentTabCount}`);
-        if (currentTabCount > 1) {
-          this.appStore.dispatch(
-            new NotificationsActions.AddNotification({
-              message: 'You may encounter synchronization issues, because Web Administrator is already opened in another tab or window.',
-              dismissible: true,
-              closeInterval: 5000,
-              type: 'warning',
-            }),
-          );
-        }
-      });
+    // fromEvent(window, 'load')
+    //   .pipe(first())
+    //   .subscribe(() => {
+    //     const tabCount = localStorage.getItem('tabCount');
+    //     const currentTabCount = !isNaN(+tabCount) ? +tabCount + 1 : 1;
+    //     localStorage.setItem('tabCount', `${currentTabCount}`);
+    //     if (currentTabCount > 1) {
+    //       this.appStore.dispatch(
+    //         new NotificationsActions.AddNotification({
+    //           message: 'You may encounter synchronization issues, because Web Administrator is already opened in another tab or window.',
+    //           dismissible: true,
+    //           closeInterval: 5000,
+    //           type: 'warning',
+    //         }),
+    //       );
+    //     }
+    //   });
 
-    fromEvent(window, 'beforeunload').pipe(first()).subscribe(() => {
-      const tabCount = localStorage.getItem('tabCount');
-      localStorage.setItem('tabCount', !isNaN(+tabCount) ? `${+tabCount - 1}` : null);
-    })
+    // fromEvent(window, 'beforeunload').pipe(first()).subscribe(() => {
+    //   const tabCount = localStorage.getItem('tabCount');
+    //   localStorage.setItem('tabCount', !isNaN(+tabCount) ? `${+tabCount - 1}` : null);
+    // })
   };
 }

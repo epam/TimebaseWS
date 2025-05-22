@@ -23,14 +23,13 @@ function requestToken(url, port, username, password) {
 	return makeRequest({
 			hostname: url,
 			port: port,
-			path: '/oauth/token',
+			path: '/oauth2/token',
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
-				'Authorization': 'Basic d2ViOnNlY3JldA=='
 			}
 		}, 
-		'grant_type=password&username=' + username + '&password=' + password + '&scope=trust'
+		'grant_type=client_credentials&client_id=' + username + '&client_secret=' + password + '&scope=openid profile'
 	);
 }
 

@@ -23,6 +23,7 @@ import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.pub.md.Introspector;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassSet;
+import com.epam.deltix.tbwg.webapp.interceptors.TimebaseLoginInterceptor;
 import com.epam.deltix.tbwg.webapp.model.L2PackageHeader;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartingFrameDto;
@@ -35,18 +36,24 @@ import com.epam.deltix.tbwg.webapp.services.producers.MessageProducer;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.utils.ApiKeyUtils;
 import lombok.SneakyThrows;
+import org.junit.Before;
 import org.junit.jupiter.api.Assertions;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.InputStream;
@@ -58,11 +65,12 @@ import java.util.Scanner;
 
 import static com.epam.deltix.tbwg.webapp.utils.BordersTimeBarChartsUtils.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Application.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("testCharting")
+@AutoConfigureMockMvc
 public abstract class ChartingBaseTest {
 
     public static final long MINUTE_MILLIS = 60 * 1000L;
@@ -84,20 +92,39 @@ public abstract class ChartingBaseTest {
 
     private static final Log LOG = LogFactory.getLog(ChartingBaseTest.class);
 
-    @LocalServerPort
+    @Value("${local.server.port}")
     private int port;
 
     @Autowired
     private TestRestTemplate restTemplate;
+    @Autowired
+    private MockMvc mockMvc;
 
     @Autowired
     MessageSourceFactory messageSourceFactory;
 
-    @Autowired
+    @MockBean
     TimebaseService timebaseService;
+
+    @SpyBean
+    TimebaseLoginInterceptor loginInterceptor;
 
     @Mock
     private BookSymbolQueryImpl bookSymbolQuery;
+
+    @Before
+    public void before() {
+        // Configure the spy TimebaseLoginInterceptor,
+        // since we need its main functionality, but we stub the methods since the login and logout calls may overlap
+        // with other stub methods of the timebase server
+        doReturn(true).when(loginInterceptor).preHandle(any(), any(), any());
+        doNothing().when(loginInterceptor).afterCompletion(any(), any(), any(), any());
+
+        // Reset the MockMvc instance to use the mock TimebaseLoginInterceptor
+        mockMvc = MockMvcBuilders.standaloneSetup(timebaseService)
+                .addInterceptors(loginInterceptor)
+                .build();
+    }
 
     @SneakyThrows
     public void setUp(long pointInterval, Instant startTime, Instant endTime, MessageType messageType,

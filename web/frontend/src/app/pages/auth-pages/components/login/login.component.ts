@@ -109,8 +109,8 @@ export class LoginComponent implements AfterContentChecked, OnInit, AfterViewIni
     if (this.isValid()) {
       this.appStore.dispatch(
         new AuthActions.TryLogIn({
-          password: this.password,
-          username: this.username,
+          client_id: this.password,
+          client_secret: this.username,
         }),
       );
     }

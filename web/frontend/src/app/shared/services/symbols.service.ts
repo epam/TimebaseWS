@@ -66,7 +66,7 @@ export class SymbolsService {
       const params = { symbols };
       this.lastRangeRequestTimestamp = Date.now();
       this.rangeRequestsInProgress[cashKey] = 
-        this.httpClient.get<{ start: string, end: string }>(`/${encodeURIComponent(stream)}/range/`, { params }).pipe(shareReplay(1));
+        this.httpClient.get<{ start: string, end: string }>(`/${encodeURIComponent(stream)}/range`, { params }).pipe(shareReplay(1));
       return this.rangeRequestsInProgress[cashKey];
     }
   }

@@ -5,10 +5,6 @@ import org.springframework.boot.gradle.tasks.bundling.BootJar
 apply plugin: "com.webcohesion.enunciate"
 apply plugin: 'io.freefair.lombok'
 
-configurations.implementation {
-    exclude group: 'jakarta.annotation', module: 'jakarta.annotation-api' // GNU license, why it's used in 'compile' dependencies?
-}
-
 dependencies {
 
     implementation project(":web:frontend"),
@@ -32,7 +28,6 @@ dependencies {
     implementation "com.epam.deltix:timebase-messages"
     implementation "com.epam.deltix:timebase-collections"
 
-
     implementation 'com.epam.deltix:orderbook-core'
 
     implementation 'org.reflections:reflections'
@@ -45,8 +40,6 @@ dependencies {
 
     implementation 'org.apache.commons:commons-lang3'
     implementation 'org.apache.commons:commons-compress'
-
-    implementation 'javax.annotation:javax.annotation-api'
 
     api 'com.epam.deltix:gflog-api'
     api 'com.epam.deltix:gflog-core'
@@ -71,16 +64,15 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
-    implementation 'org.springframework.security.oauth:spring-security-oauth2'
-
-    implementation 'org.springframework.security:spring-security-config',
+    implementation 'org.springframework.security:spring-security-core',
+            'org.springframework.security:spring-security-config',
             'org.springframework.security:spring-security-web',
             'org.springframework.security:spring-security-messaging',
             'org.springframework.security:spring-security-oauth2-client',
             'org.springframework.security:spring-security-oauth2-resource-server',
             'org.springframework.security:spring-security-oauth2-jose'
 
-    implementation 'org.springframework.security:spring-security-jwt'
+    implementation 'org.springframework.security:spring-security-oauth2-authorization-server'
 
     implementation 'com.intellij:annotations:12.0'
 
@@ -95,7 +87,6 @@ dependencies {
     compileOnly 'com.webcohesion.enunciate:enunciate-core-annotations'
 
     testImplementation 'com.google.code.findbugs:annotations'
-
 
     testImplementation "junit:junit",
             'org.springframework.boot:spring-boot-starter-test',
@@ -137,10 +128,11 @@ licenseReport {
 //    }
 
     excludeGroups = ['javax.servlet.*']
-    excludes = ['asm:asm',
-                'com.sun.codemodel:codemodel-project',
-                'net.jcip:jcip-annotations',
-                'com.fasterxml.jackson:jackson-bom']
+    excludes = [
+            'com.fasterxml.jackson:jackson-bom',
+            'jakarta.annotation:jakarta.annotation-api', // DUAL license
+            'com.sun.activation:jakarta.activation' // DUAL license
+    ]
 
     configurations = ['runtimeClasspath']
     allowedLicensesFile = new File("$rootDir/allowed-licenses.json")
@@ -171,7 +163,7 @@ task    devguide(type: Zip, dependsOn: enunciate) {
     }
 
     doLast {
-        println "Created documentation [$archiveName] in [$destinationDir]"
+        println "Created documentation [$archiveFileName] in [$destinationDirectory]"
     }
 }
 
@@ -197,6 +189,7 @@ def bootGroup = 'boot'
 
 task bootJar(type: BootJar, dependsOn: enunciate, group: bootGroup) {
 
+    targetJavaVersion = JavaVersion.VERSION_17
     mainClass.set('com.epam.deltix.tbwg.webapp.Application')
 
     manifest {
@@ -252,7 +245,7 @@ task    distribution(type: Zip, dependsOn: bootJar) {
     }
 
     doLast {
-        println "Created distribution package [$archiveName] in [$destinationDir]"
+        println "Created distribution package [$archiveFileName] in [$destinationDirectory]"
     }
 }
 
@@ -288,14 +281,14 @@ task prepareFilesForDocker(type: Copy, dependsOn: distribution) {
 }
 
 task bootRunJar(dependsOn: bootJar, type: JavaExec, group: bootGroup) {
-    jvmArgs = ["-Dfile.encoding=UTF-8"]
-    main="-jar"
+    jvmArgs += defaultJvmArgs
+    mainClass="-jar"
     args = [bootJar.getArchiveFile().get()]
 }
 
 task bootRun(dependsOn: bootJar, type: JavaExec, group: bootGroup) {
-    jvmArgs = ["-Dfile.encoding=UTF-8"]
-    main="-jar"
+    jvmArgs += defaultJvmArgs
+    mainClass="-jar"
     args = [bootJar.getArchiveFile().get()]
 }
 

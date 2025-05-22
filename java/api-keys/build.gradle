@@ -1,16 +1,16 @@
-apply plugin: 'org.springframework.boot'
-apply plugin: 'io.spring.dependency-management'
-
-bootJar {
-    enabled = false
-}
-
-jar {
-    enabled = true
-}
+//apply plugin: 'org.springframework.boot'
+//
+//bootJar {
+//    enabled = false
+//}
+//
+//jar {
+//    enabled = true
+//}
 
 dependencies {
     api 'com.epam.deltix:gflog-api', 'com.epam.deltix:gflog-core', 'com.epam.deltix:gflog-jul'
+
 
     implementation 'org.springframework.boot:spring-boot-starter',
             'org.springframework.boot:spring-boot-starter-web',

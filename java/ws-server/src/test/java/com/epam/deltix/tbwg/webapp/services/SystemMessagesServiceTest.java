@@ -26,8 +26,8 @@ import com.epam.deltix.tbwg.webapp.services.timebase.SystemMessagesService;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaders;
@@ -56,7 +56,7 @@ public class SystemMessagesServiceTest {
 
     CountDownLatch latch = new CountDownLatch(9);
 
-    @LocalServerPort
+    @Value("${local.server.port}")
     private int port;
 
     @Test

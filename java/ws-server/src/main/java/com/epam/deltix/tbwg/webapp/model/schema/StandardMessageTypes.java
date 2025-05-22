@@ -18,21 +18,21 @@ package com.epam.deltix.tbwg.webapp.model.schema;
 
 public enum StandardMessageTypes {
 
-    BARS(new String[]{"deltix.timebase.api.messages.BarMessage"}),
-    TRADES(new String[]{"deltix.timebase.api.messages.TradeMessage"}),
-    BBO(new String[]{"deltix.timebase.api.messages.BestBidOfferMessage"}),
-    UNIVERSAL(new String[]{"deltix.timebase.api.messages.universal.PackageHeader"}),
-    SECURITIES(new String[]{
-            "deltix.timebase.api.messages.securities.Equity",
-            "deltix.timebase.api.messages.securities.Future",
-            "deltix.timebase.api.messages.securities.ContinuousFuture",
-            "deltix.timebase.api.messages.securities.Currency",
-            "deltix.timebase.api.messages.securities.CustomInstrument",
-            "deltix.timebase.api.messages.securities.Option",
-            "deltix.timebase.api.messages.securities.Bond",
-            "deltix.timebase.api.messages.securities.Index",
-            "deltix.timebase.api.messages.securities.ETF",
-            "deltix.timebase.api.messages.securities.ExchangeTradedSynthetic"});
+    BARS(new String[]{"com.epam.deltix.tbwg.messages.BarMessage"}),
+//    TRADES(new String[]{"deltix.timebase.api.messages.TradeMessage"}),
+//    BBO(new String[]{"deltix.timebase.api.messages.BestBidOfferMessage"}),
+    UNIVERSAL(new String[]{"com.epam.deltix.timebase.messages.universal.PackageHeader"});
+//    SECURITIES(new String[]{
+//            "deltix.timebase.api.messages.securities.Equity",
+//            "deltix.timebase.api.messages.securities.Future",
+//            "deltix.timebase.api.messages.securities.ContinuousFuture",
+//            "deltix.timebase.api.messages.securities.Currency",
+//            "deltix.timebase.api.messages.securities.CustomInstrument",
+//            "deltix.timebase.api.messages.securities.Option",
+//            "deltix.timebase.api.messages.securities.Bond",
+//            "deltix.timebase.api.messages.securities.Index",
+//            "deltix.timebase.api.messages.securities.ETF",
+//            "deltix.timebase.api.messages.securities.ExchangeTradedSynthetic"});
 
     private final String[] classNames;
 

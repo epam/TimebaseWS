@@ -44,12 +44,12 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
-import org.springframework.util.Base64Utils;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.security.Principal;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -184,7 +184,7 @@ public class TimebaseServiceImpl implements TimebaseService {
         if (!Objects.equals(url, dbUrl) || db == null || isNotConnected(db)) {
             Util.close(db);
             dbUrl = url;
-            String decoded = !StringUtils.isEmpty(password) ? new String(Base64Utils.decodeFromString(password)) : null;
+            String decoded = !StringUtils.isEmpty(password) ? new String(Base64.getDecoder().decode(password)) : null;
             db = !StringUtils.isEmpty(userName) ? TickDBFactory.createFromUrl(url, userName, decoded) : TickDBFactory.createFromUrl(url);
 
             if (timebaseSettings.isOauth2ClientConfigured() && db instanceof TickDBClient) {
@@ -198,7 +198,7 @@ public class TimebaseServiceImpl implements TimebaseService {
                             KeystoreConfig.builder().withPkcs12(
                                 oauth2ClientSettings.getKeystore().getKeystoreLocation(),
                                 oauth2ClientSettings.getKeystore().getKeystoreAlias(),
-                                new String(Base64Utils.decodeFromString(oauth2ClientSettings.getKeystore().getKeystorePassword()))
+                                new String(Base64.getDecoder().decode(oauth2ClientSettings.getKeystore().getKeystorePassword()))
                             ).build()
                         );
                     } else {
@@ -207,14 +207,14 @@ public class TimebaseServiceImpl implements TimebaseService {
                             KeystoreConfig.builder().withJks(
                                 oauth2ClientSettings.getKeystore().getKeystoreLocation(),
                                 oauth2ClientSettings.getKeystore().getKeystoreAlias(),
-                                new String(Base64Utils.decodeFromString(oauth2ClientSettings.getKeystore().getKeystorePassword()))
+                                new String(Base64.getDecoder().decode(oauth2ClientSettings.getKeystore().getKeystorePassword()))
                             ).build()
                         );
                     }
                 } else {
                     builder.withClientCredentials(
                         oauth2ClientSettings.getClientId(),
-                        new String(Base64Utils.decodeFromString(oauth2ClientSettings.getClientSecret()))
+                        new String(Base64.getDecoder().decode(oauth2ClientSettings.getClientSecret()))
                     );
                 }
 

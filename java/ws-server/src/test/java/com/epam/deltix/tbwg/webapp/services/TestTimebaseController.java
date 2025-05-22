@@ -18,9 +18,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -40,7 +40,7 @@ public class TestTimebaseController {
     private static final int messagesNumber = 20;
     public static final String STREAM_KEY = UUID.randomUUID().toString();
 
-    @LocalServerPort
+    @Value("${local.server.port}")
     private int port;
 
     @Autowired

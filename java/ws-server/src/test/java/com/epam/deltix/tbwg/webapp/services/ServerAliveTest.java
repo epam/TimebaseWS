@@ -41,15 +41,15 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import javax.websocket.*;
+import jakarta.websocket.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -73,7 +73,7 @@ import static org.junit.Assert.assertNotNull;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Application.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("testWS")
-@Ignore
+//@Ignore
 public class ServerAliveTest {
 
     private static final Log LOGGER = LogFactory.getLog(ServerAliveTest.class);
@@ -86,7 +86,7 @@ public class ServerAliveTest {
     private static final int messagesNumber = 20;
     private static String subscribeMessage = "";
 
-    @LocalServerPort
+    @Value("${local.server.port}")
     private int port;
 
     @Autowired

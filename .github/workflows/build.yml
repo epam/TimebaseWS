@@ -18,28 +18,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [ '11' ]
-        os: [ 'ubuntu-20.04']
+        java: [ '17' ]
+        os: [ 'ubuntu-22.04']
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
         with:
           lfs: true
       - name: Cache gradle dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.gradle/caches
           key: ${{ runner.os }}-gradle-caches-${{ hashFiles('**/*.gradle') }}
           restore-keys: |
             ${{ runner.os }}-gradle-caches-
       - name: Cache gradle wrapper
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
       - name: Setup java
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v3
         with:
+          distribution: 'temurin'
           java-version: ${{ matrix.java }}
       - name: Build with gradle
         run: ./gradlew build checkLicense
