@@ -20,7 +20,7 @@ TimeBase Administrator also serves as a **REST/WS gateway for TimeBase Server**.
 
 ### Requirements
 
-* **[Oracle JDK 17](https://docs.oracle.com/javase/11/docs/technotes/guides/install/install_overview.html)** or **[Open JDK 17](https://adoptopenjdk.net/)**
+* **[Oracle JDK 17](https://docs.oracle.com/javase/17/docs/technotes/guides/install/install_overview.html)** or **[Open JDK 17](https://adoptopenjdk.net/)**
 * **[Docker engine](https://docs.docker.com/engine/installation/)** (Optional) to build Docker images locally
 * Git and Git LFS installed ([How to Install Git LFS](https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage))
 1. Build project:
