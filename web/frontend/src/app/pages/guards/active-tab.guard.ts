@@ -115,7 +115,7 @@ export class ActiveTabGuard implements CanActivate {
       case data.query:
         return ['query'];
       case data.generateDDL:
-        return ['generate-qql-ddl'];
+        return ['generate-query'];
       case data.chart:
         return ['chart'];
       case data.flow:

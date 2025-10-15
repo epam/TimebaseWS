@@ -278,7 +278,7 @@
     "noOrderBook": "Order book is not available for this stream.",
     "importFromTextFile": "Import from text file",
     "playback": "Playback",
-    "generateDDL": "Generate QQL/DDL"
+    "generateDDL": "Generate Query"
   },
   "gridTitle": {
     "fieldsList": {
