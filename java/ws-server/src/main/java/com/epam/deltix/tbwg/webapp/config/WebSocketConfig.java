@@ -74,6 +74,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public static final String IMPORT_QSMSG_TOPIC = IMPORT_TOPIC + "/qsmsg";
     public static final String INIT_IMPORT_QSMSG_TOPIC = INIT_IMPORT_TOPIC + "/qsmsg";
 
+    public static final String GENAI_QQL_TOPIC = TOPIC + "/genai-qql";
+
     public static final String SUBSCRIPTIONS_METRIC = "websocket.subscriptions";
 
     public static final String SEND_MESSAGES_METRIC = "websocket.messages";

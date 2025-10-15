@@ -59,7 +59,8 @@ public class SettingsAuthorizationProvider implements UsersProvider, ApiKeyInfoP
                     new TbwgUser(
                         user.getUsername(),
                         providerType == ProviderType.BUILT_IN_OAUTH ? user.getPassword() : "",
-                        buildAuthorities(user.getAuthorities())
+                        buildAuthorities(user.getAuthorities()),
+                        user.getAiApiKey()
                     )
                 );
             });

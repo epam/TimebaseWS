@@ -31,6 +31,8 @@ public class UserDto {
     @NotEmpty
     private List<String> authorities;
 
+    private String aiApiKey;
+
     public String getUsername() {
         return username;
     }
@@ -53,5 +55,13 @@ public class UserDto {
 
     public void setAuthorities(List<String> authorities) {
         this.authorities = authorities;
+    }
+
+    public String getAiApiKey() {
+        return aiApiKey;
+    }
+
+    public void setAiApiKey(String aiApiKey) {
+        this.aiApiKey = aiApiKey;
     }
 }

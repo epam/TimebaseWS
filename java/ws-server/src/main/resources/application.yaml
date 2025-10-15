@@ -65,6 +65,7 @@ security:
       - username: test
         password: $2a$10$3PL6X1Gn8VjRy4r0od9NLeZrO2YWpUjzozv3jOxU0/RMjsElzPQdu
         authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
+        aiApiKey: TEST_AI_KEY
 #    contentSecurityPolicy: "default-src 'self';
 #      style-src 'self' 'unsafe-inline';
 #      img-src 'self' data: 'unsafe-inline';
@@ -73,3 +74,15 @@ security:
 #      connect-src 'self' https://login.microsoftonline.com/;
 #      script-src 'self' 'nonce-aykJK1CokURPt5Tb+ikxSA==';"
     accessTokenValiditySeconds: 86400 # one day
+
+ai-api:
+  enabled: true
+  endpointUrl: ""
+  deploymentName: gpt-5-mini-2025-08-07
+  embeddingDeploymentName: text-embedding-3-small-1
+  keys:
+    - username: admin
+      key: ADMIN_AI_KEY
+    - username: reader
+      key: READER_AI_KEY
+  maxAttempts: 3

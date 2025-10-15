@@ -284,6 +284,11 @@ configure(javaProjects) {
 
             dependency 'org.apache.bcel:bcel:6.6.0'
 
+            // AI integration
+            dependency 'dev.langchain4j:langchain4j:1.7.1'
+            dependency 'dev.langchain4j:langchain4j-azure-open-ai-spring-boot-starter:1.7.1-beta14'
+            dependency 'dev.langchain4j:langchain4j-spring-boot-starter:1.7.1-beta14'
+
             dependency 'org.reactivestreams:reactive-streams:1.0.4'
 
             dependencySet(group: 'io.netty', version: "$nettyVersion") {
