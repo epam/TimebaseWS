@@ -3,9 +3,11 @@ package deltix.tbwg.webapp.services.genai.models;
 import deltix.tbwg.webapp.services.authorization.SettingsAuthorizationProvider;
 import deltix.tbwg.webapp.services.authorization.TbwgUser;
 import deltix.tbwg.webapp.settings.AiApiSettings;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 @Service
+@ConditionalOnBean(AiApiSettings.class)
 public class UserAiApiKeyProvider {
 
     private final SettingsAuthorizationProvider usersProvider;
