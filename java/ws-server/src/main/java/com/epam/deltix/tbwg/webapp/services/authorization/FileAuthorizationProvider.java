@@ -97,7 +97,8 @@ public class FileAuthorizationProvider implements UsersProvider, ApiKeyInfoProvi
                     users.put(
                         user.getUsername(),
                         new TbwgUser(
-                            user.getUsername(), user.getPassword(), buildAuthorities(user.getAuthorities())
+                            user.getUsername(), user.getPassword(), buildAuthorities(user.getAuthorities()),
+                                user.getAiApiKey()
                         )
                     );
                 });
