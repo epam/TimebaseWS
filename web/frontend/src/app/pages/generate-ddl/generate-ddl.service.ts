@@ -1,47 +1,38 @@
-import { HttpClient, HttpHeaders }                  from '@angular/common/http';
-import { Injectable }                  from '@angular/core';
+import { Injectable } from '@angular/core';
+import { StompHeaders } from '@stomp/stompjs';
+import { map } from 'rxjs/operators';
+import { WSService } from 'src/app/core/services/ws.service';
 
 @Injectable({
-  providedIn: 'root',
+    providedIn: 'root',
 })
 export class TimebaseService {
 
-  currentQuery: string;
-  ddlIsUsing = false;
+    currentQuery: string;
+    ddlIsUsing = false;
 
-  private baseUrl = 'genai';
+    constructor(private wsService: WSService) { }
 
-  constructor(private httpClient: HttpClient) { }
+    generateQQL(inputDDL: string, streamKeys: string[]) {
+        const stompHeaders: StompHeaders = {
+            userInput: inputDDL.replace(/\n/g, ' '),
+            streamKeys: streamKeys.join(',')
+        };
 
-  generateDDL(inputDDL: string) {
-    return this.httpClient.post<GenerateDDLResponce>(`${this.baseUrl}/ddlgen`,
-      JSON.stringify( { userInput: inputDDL } ), {
-      headers: new HttpHeaders({
-        'Content-Type': 'application/json',
-      }),
-    });
-  }
+        return this.wsService.watch('/user/topic/genai-qql', stompHeaders).pipe(map((ws_message) => JSON.parse(ws_message.body)));
+    }
 
-  generateQQL(inputDDL: string, streamKeys: string[]) {
-    return this.httpClient.post<GenerateDDLResponce>(`${this.baseUrl}/qqlgen`,
-      JSON.stringify( { userInput: inputDDL, streamKeys } ), {
-      headers: new HttpHeaders({
-        'Content-Type': 'application/json',
-      }),
-    });
-  }
+    saveResult(key: string, value: string) {
+        sessionStorage.setItem(key, value);
+    }
 
-  saveResult(key: string, value: string) {
-    sessionStorage.setItem(key, value);
-  }
-
-  getSavedResult(key: string) {
-    return JSON.parse(sessionStorage.getItem(key));
-  }
+    getSavedResult(key: string) {
+        return JSON.parse(sessionStorage.getItem(key));
+    }
 }
 
 export interface GenerateDDLResponce {
-  errorMessage: string | null,
-  resultDDL: string,
-  resultIsNotValid: boolean
+    errorMessage: string | null,
+    resultDDL: string,
+    resultIsNotValid: boolean
 }

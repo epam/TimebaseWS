@@ -66,14 +66,14 @@ const routes: Routes = [
         canActivate: [ActiveTabGuard],
       },
       {
-        path: 'generate-qql-ddl',
+        path: 'generate-query',
         component: TabsRouterProxyComponent,
         data: {
           generateDDL: true,
         },
       },
       {
-        path: 'generate-qql-ddl/:id',
+        path: 'generate-query/:id',
         loadChildren: () => import('../generate-ddl/generate-ddl.module').then((m) => m.GenerateDDLModule),
         component: GenerateDDLComponent,
         data: {

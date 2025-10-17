@@ -1,4 +1,4 @@
-@import '~src/app/core/styles/variables';
+@import 'src/app/core/styles/_variables';
 
 textarea {
   display: block;
@@ -17,6 +17,13 @@ textarea {
   @extend textarea;
   margin: 0rem;
   height: 22vh;
+  overflow: auto;
+  &.unfinished {
+    color: rgba(245, 245, 245, 0.7);
+  }
+  &.error {
+    color: #c33f67ed;
+  }
 }
 
 .output-and-error {
@@ -33,7 +40,7 @@ button {
   padding: 0.3rem 0.6rem;
   text-transform: uppercase;
   margin: 1rem auto;
-  width: 13rem;
+  width: 17rem;
 }
 
 .loader {
@@ -113,7 +120,7 @@ form {
 }
 
 .error-or-warning {
-  height: 3.5rem;
+  height: 2.5rem;
   overflow: hidden;
   visibility: hidden;
   margin-bottom: 0.3rem;
@@ -124,7 +131,6 @@ form {
   padding: 0.5rem 1rem;
   border-radius: 0.3rem;
   text-overflow: ellipsis;
-  height: 100%;
 }
 
 .warning-message {
@@ -223,4 +229,28 @@ ng-multiselect-dropdown {
 
 .open-query-editor-button-text {
   margin-left: 0.7rem;
+}
+
+.loading-dots:after {
+  content: ' .';
+  display: inline-block;
+  width: 1.9rem;
+  font-weight: 800;
+  color: rgba(245, 245, 245, 0.7);
+  animation: dots 1s steps(5, end) infinite;
+}
+
+@keyframes dots {
+  0%, 20% {
+    content: ' .';
+  }
+  40% {
+    content: ' . .';
+  }
+  60% {
+    content: ' . . .';
+  }
+  80%, 100% {
+    content: ' . . .';
+  }
 }

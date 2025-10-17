@@ -1,39 +1,5 @@
 <div class="page-block">
-  <div class="toggle-button-container">
-    <label for="toggle-button" class="toggle-button-label" [class.active]="!ddlIsUsing">QQL</label>
-    <input type="checkbox" [checked]="ddlIsUsing" id="toggle-button" class="toggle-button" (click)="toggleDDL()">
-    <label for="toggle-button" class="toggle-button-label" [class.active]="ddlIsUsing">DDL</label>
-  </div>
-  <form *ngIf="ddlIsUsing">
-    <label>Describe desired stream content</label>
-    <textarea [formControl]="inputDDL"></textarea>
-    <button (click)="generate()" [disabled]="isLoading || !inputDDL.value"
-      class="btn btn-primary">
-      <span>{{ isLoading ? 'Generating...' : 'Generate DDL' }} </span>
-    </button>
-    <div class="output-and-error">
-      <div class="error-or-warning"
-        [class.visible]="(responceCame && ddlErrorMessage) || resultDDLNotValid">
-        <div *ngIf="responceCame && ddlErrorMessage" class="error-message">
-          Error: {{ ddlErrorMessage }}
-        </div>
-        <div class="warning-message" *ngIf="resultDDLNotValid && !ddlErrorMessage">
-          {{ warningMessage }}
-        </div>
-      </div>
-      <textarea readonly [value]="resultDDL" class="output"></textarea>
-    </div>
-    <div class="preloader" [ngStyle]="{'visibility': isLoading ? 'visible' : 'hidden' }">
-      <div class="lds-dual-ring" [class.loader-visible]="isLoading"></div>
-    </div>
-    <button (click)="openQueryEditor(true)" class="btn btn-primary"
-      [disabled]="!resultDDL || (responceCame && ddlErrorMessage)">
-      <ng-container *ngTemplateOutlet="shareIcon"></ng-container>
-      <span class="open-query-editor-button-text">Open query editor</span>
-    </button>
-  </form>
-
-  <form *ngIf="!ddlIsUsing" [formGroup]="form">
+  <form [formGroup]="form">
     <div class="stream-input-container">
       <label class="select-stream-label">Select stream(s)</label>
       <ng-multiselect-dropdown
@@ -46,28 +12,36 @@
       </ng-multiselect-dropdown>
     </div>
     <label class="qql-query-label">Describe desired query or goal</label>
-    <textarea [formControl]="inputQQL" class="qql-input"></textarea>
-    <button (click)="generate()" [disabled]="isLoading || !inputQQL.value || !selectedStreamList.value.length"
+    <textarea [formControl]="inputQuery" class="qql-input"></textarea>
+    <button *ngIf="!isLoading" (click)="generate()" [disabled]="isLoading || !inputQuery.value"
       class="btn btn-primary">
-      <span>{{ isLoading ? 'Generating...' : 'Generate QQL' }} </span>
+      <span>Generate</span>
     </button>
+    <button *ngIf="isLoading" (click)="stopGeneration()" [disabled]="!isLoading"
+      class="btn btn-primary">
+      <span>Stop Response Generation</span>
+    </button>
+
     <div class="output-and-error">
       <div class="error-or-warning"
-        [class.visible]="(responceCame && qqlErrorMessage) || resultQQLNotValid">
+        [class.visible]="(responceCame && qqlErrorMessage)">
         <div *ngIf="responceCame && qqlErrorMessage" class="error-message">
           Error: {{ qqlErrorMessage }}
         </div>
-        <div class="warning-message" *ngIf="resultQQLNotValid && !qqlErrorMessage">
+        <div class="warning-message" *ngIf="!qqlErrorMessage">
           {{ warningMessage }}
         </div>
       </div>
-      <textarea readonly [value]="resultQQL" class="output"></textarea>
-    </div>
-    <div class="preloader" [ngStyle]="{'visibility': isLoading ? 'visible' : 'hidden' }">
-      <div class="lds-dual-ring" [class.loader-visible]="isLoading"></div>
+      <div class="output" [class.unfinished]="isLoading" [class.error]="qqlErrorMessage">
+        <span *ngIf="isLoading" class="loading-dots"></span> 
+        <ng-container *ngIf="resultStatus">
+          <span>{{ resultStatus }}</span><br>
+        </ng-container>
+        <span>{{ resultQuery }}</span>
+      </div>
     </div>
     <button (click)="openQueryEditor()" class="btn btn-primary"
-      [disabled]="!resultQQL || (responceCame && qqlErrorMessage)">
+      [disabled]="!resultQuery || (responceCame && qqlErrorMessage)">
       <ng-container *ngTemplateOutlet="shareIcon"></ng-container>
       <span class="open-query-editor-button-text">Open query editor</span>
     </button>

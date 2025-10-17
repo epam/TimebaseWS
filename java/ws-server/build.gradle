@@ -80,9 +80,10 @@ dependencies {
 
 //    implementation 'deltix:deltix-spring-api-keys'
 
-//    implementation 'io.reactivex.rxjava2:rxjava'
-//    implementation 'deltix:deltix-timebase-api-rx'
-//    implementation        'deltix:transformation-api'
+    // AI integration
+    implementation 'dev.langchain4j:langchain4j'
+    implementation 'dev.langchain4j:langchain4j-azure-open-ai-spring-boot-starter'
+    implementation 'dev.langchain4j:langchain4j-spring-boot-starter'
 
     compileOnly 'com.webcohesion.enunciate:enunciate-core-annotations'
 

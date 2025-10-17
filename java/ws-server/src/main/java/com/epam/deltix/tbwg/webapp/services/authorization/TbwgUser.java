@@ -24,12 +24,21 @@ import java.util.Collection;
 
 public class TbwgUser extends User {
 
+    private final String aiApiKey;
+
     public static TbwgUser create(String name, String password) {
-        return new TbwgUser(name, password, new ArrayList<>());
+        return new TbwgUser(name, password, new ArrayList<>(), null);
     }
 
-    public TbwgUser(String username, String password, Collection<? extends GrantedAuthority> authorities) {
+    public TbwgUser(String username,
+                    String password,
+                    Collection<? extends GrantedAuthority> authorities,
+                    String aiApiKey) {
         super(username, password, authorities);
+        this.aiApiKey = aiApiKey;
     }
 
+    public String getAiApiKey() {
+        return aiApiKey;
+    }
 }

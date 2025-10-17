@@ -251,7 +251,7 @@ export class TabModel {
         link_array.push('order-book');
         break;
       case this.generateDDL:
-        link_array.push('generate-qql-ddl');
+        link_array.push('generate-query');
         break;
       case this.flow:
         link_array.push('flow');
