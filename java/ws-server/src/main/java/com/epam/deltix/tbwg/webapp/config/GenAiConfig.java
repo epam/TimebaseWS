@@ -1,10 +1,26 @@
-package deltix.tbwg.webapp.config;
+/*
+ * Copyright 2025 EPAM Systems, Inc
+ *
+ * See the NOTICE file distributed with this work for additional information
+ * regarding copyright ownership. Licensed under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+package com.epam.deltix.tbwg.webapp.config;
 
-import deltix.tbwg.webapp.services.genai.*;
-import deltix.tbwg.webapp.services.genai.docsloader.MarkdownCodeAwareSplitter;
-import deltix.tbwg.webapp.services.genai.docsloader.MarkdownDocsLoader;
-import deltix.tbwg.webapp.services.genai.models.*;
-import deltix.tbwg.webapp.settings.AiApiSettings;
+import com.epam.deltix.tbwg.webapp.services.genai.GenAiHelperService;
+import com.epam.deltix.tbwg.webapp.services.genai.models.*;
+import com.epam.deltix.tbwg.webapp.services.genai.docsloader.MarkdownCodeAwareSplitter;
+import com.epam.deltix.tbwg.webapp.services.genai.docsloader.MarkdownDocsLoader;
+import com.epam.deltix.tbwg.webapp.settings.AiApiSettings;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.segment.TextSegment;

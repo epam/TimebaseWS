@@ -1,18 +1,34 @@
-package deltix.tbwg.webapp.services.genai;
+/*
+ * Copyright 2025 EPAM Systems, Inc
+ *
+ * See the NOTICE file distributed with this work for additional information
+ * regarding copyright ownership. Licensed under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+package com.epam.deltix.tbwg.webapp.services.genai;
 
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.google.common.io.Resources;
-import deltix.qsrv.hf.pub.md.RecordClassDescriptor;
-import deltix.qsrv.hf.pub.md.RecordClassSet;
-import deltix.qsrv.hf.tickdb.comm.client.TickDBClient;
-import deltix.qsrv.hf.tickdb.pub.DXTickStream;
-import deltix.tbwg.webapp.model.genai.QqlGenMessage;
-import deltix.tbwg.webapp.services.genai.models.PerUserChatMaker;
-import deltix.tbwg.webapp.services.genai.plan.PlanTagParser;
-import deltix.tbwg.webapp.services.timebase.TimebaseService;
-import deltix.tbwg.webapp.settings.AiApiSettings;
-import deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
+import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
+import com.epam.deltix.qsrv.hf.pub.md.RecordClassSet;
+import com.epam.deltix.qsrv.hf.tickdb.comm.client.TickDBClient;
+import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
+import com.epam.deltix.tbwg.webapp.model.genai.QqlGenMessage;
+import com.epam.deltix.tbwg.webapp.services.genai.models.PerUserChatMaker;
+import com.epam.deltix.tbwg.webapp.services.genai.plan.PlanTagParser;
+import com.epam.deltix.tbwg.webapp.settings.AiApiSettings;
+import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.service.Result;
 import dev.langchain4j.service.TokenStream;
