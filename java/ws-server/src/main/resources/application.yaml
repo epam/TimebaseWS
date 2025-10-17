@@ -62,10 +62,11 @@ security:
       - username: reader
         password: $2a$12$ZEIAFaexgqAg2ROMawHs2OXMDSFsBohkZkU8NCS5xWviLw2Ay/xt.
         authorities: [ TB_ALLOW_READ]
+        aiApiKey: SOME_AI_KEY # key from ai-api.keys section has priority
       - username: test
         password: $2a$10$3PL6X1Gn8VjRy4r0od9NLeZrO2YWpUjzozv3jOxU0/RMjsElzPQdu
         authorities: [TB_ALLOW_READ, TB_ALLOW_WRITE]
-        aiApiKey: TEST_AI_KEY
+        aiApiKey: TEST_AI_KEY # ai api key for test user
 #    contentSecurityPolicy: "default-src 'self';
 #      style-src 'self' 'unsafe-inline';
 #      img-src 'self' data: 'unsafe-inline';
@@ -77,12 +78,12 @@ security:
 
 ai-api:
   enabled: true
-  endpointUrl: ""
-  deploymentName: gpt-5-mini-2025-08-07
-  embeddingDeploymentName: text-embedding-3-small-1
-  keys:
+  endpointUrl: "" # endpoint must support Azure OpenAI API
+  deploymentName: gpt-5-mini-2025-08-07 # deployment for QQL generation
+  embeddingDeploymentName: text-embedding-3-small-1 # deployment for embeddings
+  keys: # ai api keys per user
     - username: admin
-      key: ADMIN_AI_KEY
+      key: ${ADMIN_AI_KEY} # resolves from environment variable
     - username: reader
-      key: READER_AI_KEY
-  maxAttempts: 3
+      key: READER_AI_KEY # takes priority over key from security.oauth2.users section
+  maxAttempts: 3 # max attempts allowed for an AI to produce a valid QQL query
