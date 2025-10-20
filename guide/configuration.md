@@ -164,3 +164,29 @@ services:
       - SECURITY_API-KEYS-PROVIDER_API-KEYS_0_USER=admin
       - SECURITY_API-KEYS-PROVIDER_API-KEYS_0_AUTHORITIES=TB_ALLOW_READ, TB_ALLOW_WRITE
 ```
+
+## Gen AI Configuration
+
+TimeBase Web Administrator can generate QQL queries with the help of an external Gen AI provider. 
+The feature reads its settings from the `ai-api` section of `application.yaml`.
+
+Example config:
+
+```yaml
+ai-api:
+  enabled: true
+  endpointUrl: "https://YOUR-RESOURCE-NAME.openai.azure.com" # endpoint must support Azure OpenAI API
+  deploymentName: gpt-5-mini-2025-08-07 # deployment for QQL generation
+  embeddingDeploymentName: text-embedding-3-small-1 # deployment for embeddings
+  keys: # ai api keys per user
+    - username: admin
+      key: ${ADMIN_AI_KEY} # resolves from environment variable
+    - username: reader
+      key: READER_AI_KEY # takes priority over key from security.oauth2.users section
+  maxAttempts: 3 # max attempts allowed for an AI to produce a valid QQL query
+```
+
+If a user is not present in `ai-api.keys`, the system falls back to `security.oauth2.users[].aiApiKey` when it is defined.
+
+> [!IMPORTANT]
+> The Gen AI endpoint must be compatible with the Azure OpenAI API.
