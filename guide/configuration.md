@@ -167,7 +167,7 @@ services:
 
 ## Gen AI Configuration
 
-TimeBase Web Administrator can generate QQL queries with the help of an external Gen AI provider. 
+TimeBase Web Administrator can generate QQL queries with the help of an external Gen AI provider.
 The feature reads its settings from the `ai-api` section of `application.yaml`.
 
 Example config:
@@ -175,7 +175,8 @@ Example config:
 ```yaml
 ai-api:
   enabled: true
-  endpointUrl: "https://YOUR-RESOURCE-NAME.openai.azure.com" # endpoint must support Azure OpenAI API
+  provider: AZURE_LEGACY # OPENAI | AZURE | AZURE_LEGACY | GITHUB
+  endpointUrl: "https://YOUR-RESOURCE-NAME.openai.azure.com" # base url of the ai api, may be ommitted for OPENAI and GITHUB providers
   deploymentName: gpt-5-mini-2025-08-07 # deployment for QQL generation
   embeddingDeploymentName: text-embedding-3-small-1 # deployment for embeddings
   keys: # ai api keys per user
@@ -189,4 +190,17 @@ ai-api:
 If a user is not present in `ai-api.keys`, the system falls back to `security.oauth2.users[].aiApiKey` when it is defined.
 
 > [!IMPORTANT]
-> The Gen AI endpoint must be compatible with the Azure OpenAI API.
+> The Gen AI endpoint must be compatible with the selected provider's API.
+
+Supported AI providers:
+
+1. AZURE_LEGACY includes the deployment name in the request URL. Example:
+   `https://YOUR-RESOURCE-NAME.openai.azure.com/openai/deployments/gpt-5-mini-2025-08-07/chat/completions`
+   where `https://YOUR-RESOURCE-NAME.openai.azure.com` is the `endpointUrl` and
+   `gpt-5-mini-2025-08-07` is the `deploymentName`.
+2. AZURE uses the `endpointUrl` and provides the model name in the request body.
+3. OPENAI is the official OpenAI API. The endpoint defaults to
+   `https://api.openai.com/v1`, but may be any compatible endpoint.
+4. GITHUB uses the GitHub Models compatible API. The endpoint defaults to
+   `https://models.inference.ai.azure.com`. Use a GitHub personal access token
+   as the key — see GitHub docs [docs](https://docs.github.com/en/github-models/about-github-models) for details.

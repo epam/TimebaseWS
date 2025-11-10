@@ -16,26 +16,24 @@
  */
 package com.epam.deltix.tbwg.webapp.services.genai.models;
 
-import dev.langchain4j.model.azure.AzureOpenAiChatModel;
+import com.epam.deltix.tbwg.webapp.settings.AiApiSettings;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.openaiofficial.OpenAiOfficialChatModel;
 
-public class PerUserAzureChatModel implements ChatModel {
+public class PerUserOpenAiOfficialChatModel implements ChatModel {
 
-    private final String endpoint;
-    private final String deploymentName;
+    private final AiApiSettings settings;
     private final UserAiApiKeyProvider keyProvider;
     private final ChatRequestParameters defaultParams;
 
-    public PerUserAzureChatModel(String endpoint,
-                                 String deploymentName,
-                                 UserAiApiKeyProvider keyProvider) {
-        this.endpoint = endpoint;
-        this.deploymentName = deploymentName;
+    public PerUserOpenAiOfficialChatModel(AiApiSettings settings,
+                                          UserAiApiKeyProvider keyProvider) {
+        this.settings = settings;
         this.keyProvider = keyProvider;
-        this.defaultParams = PerUserChatMaker.defaultParams(deploymentName);
+        this.defaultParams = PerUserChatMaker.defaultOpenAiOfficialParams(settings.chatModelNameForParams());
     }
 
     @Override
@@ -49,13 +47,33 @@ public class PerUserAzureChatModel implements ChatModel {
         String username = pr.username();
         ChatRequest effectiveRequest = pr.request();
 
-        ChatModel model = AzureOpenAiChatModel.builder()
-                .endpoint(endpoint)
-                .apiKey(keyProvider.resolve(username))
-                .deploymentName(deploymentName)
-                .build();
+        ChatModel model = createDelegate(username);
 
         return model.doChat(effectiveRequest);
     }
 
+    private ChatModel createDelegate(String username) {
+        OpenAiOfficialChatModel.Builder builder = OpenAiOfficialChatModel.builder()
+                .apiKey(keyProvider.resolve(username));
+
+        String endpoint = settings.getEndpointUrl();
+        if (endpoint != null && !endpoint.isBlank()) {
+            builder.baseUrl(endpoint);
+        }
+
+        String deployment = settings.requireDeploymentName();
+        switch (settings.providerOrDefault()) {
+            case OPENAI -> builder.modelName(deployment);
+            case AZURE -> builder.isAzure(true)
+                    .modelName(deployment)
+                    .azureDeploymentName(deployment);
+            case AZURE_LEGACY -> builder.isAzure(true)
+                    .azureDeploymentName(deployment)
+                    .modelName("");
+            case GITHUB -> builder.isGitHubModels(true)
+                    .modelName(deployment);
+        }
+
+        return builder.build();
+    }
 }

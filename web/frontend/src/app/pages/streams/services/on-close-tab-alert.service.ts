@@ -28,10 +28,11 @@ export class OnCloseTabAlertService {
   check(tab: TabModel = null): Observable<boolean> {
     return this.needAlertTabs().pipe(
       take(1),
-      switchMap((tabs) => {
+      switchMap(tabs => {
         const needToShow = (tab && tabs.some((t) => t.id === tab.id)) || (!tab && tabs.length);
+        const notificationMessageType = tabs[0]?.generateDDL ? 'onStopGenerationMessage' : 'onbeforeunloadMessage';
         return needToShow && !this.withoutAlert
-          ? this.confirmModalService.confirm('notification_messages.onbeforeunloadMessage')
+          ? this.confirmModalService.confirm(`notification_messages.${notificationMessageType}`)
           : of(true);
       }),
     );

@@ -18,7 +18,8 @@
     "updateMessageSucceeded": "Message is updated",
     "smallTimeRange": "You select too small time range. Time range should be more than {{range}}ms.",
     "auth_error_notification": "Your auth token it invalid. You will redirect to login page after closing this notification.",
-    "onbeforeunloadMessage": "There are some necessary changes on page. Do you really want to drop changes and continue your action?",
+    "onStopGenerationMessage": "Are you sure you want to leave the page and stop the response generation?",
+    "onbeforeunloadMessage": "Are you sure you want to leave the page and discard changes?",
     "isAbstractActivateError": "Impossible to make this class abstract because It's used in next fields:<br> {{classListString}}",
     "access_denied_page_text": "You have no access to this application.",
     "access_denied": "You have no permission to use next API: <br>"

@@ -120,10 +120,11 @@ form {
 }
 
 .error-or-warning {
-  height: 2.5rem;
+  height: 3.2rem;
   overflow: hidden;
   visibility: hidden;
   margin-bottom: 0.3rem;
+  overflow-y: auto;
 }
 
 .error-message {
@@ -253,4 +254,16 @@ ng-multiselect-dropdown {
   80%, 100% {
     content: ' . . .';
   }
+}
+
+.history-status {
+  margin-left: 1.9rem;
+  color: rgba(245, 245, 245, 0.4);
+}
+
+pre {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  color: #fff;
 }

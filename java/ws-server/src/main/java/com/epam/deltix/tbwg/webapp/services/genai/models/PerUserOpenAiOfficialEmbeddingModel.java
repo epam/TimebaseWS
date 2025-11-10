@@ -16,26 +16,24 @@
  */
 package com.epam.deltix.tbwg.webapp.services.genai.models;
 
+import com.epam.deltix.tbwg.webapp.settings.AiApiSettings;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.azure.AzureOpenAiEmbeddingModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.openaiofficial.OpenAiOfficialEmbeddingModel;
 import dev.langchain4j.model.output.Response;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class PerUserAzureEmbeddingModel implements EmbeddingModel {
+public class PerUserOpenAiOfficialEmbeddingModel implements EmbeddingModel {
 
-    private final String endpoint;
-    private final String deploymentName;
+    private final AiApiSettings settings;
     private final UserAiApiKeyProvider keyProvider;
 
-    public PerUserAzureEmbeddingModel(String endpoint,
-                                      String deploymentName,
-                                      UserAiApiKeyProvider keyProvider) {
-        this.endpoint = endpoint;
-        this.deploymentName = deploymentName;
+    public PerUserOpenAiOfficialEmbeddingModel(AiApiSettings settings,
+                                               UserAiApiKeyProvider keyProvider) {
+        this.settings = settings;
         this.keyProvider = keyProvider;
     }
 
@@ -60,11 +58,32 @@ public class PerUserAzureEmbeddingModel implements EmbeddingModel {
             effectiveSegments.add(TextSegment.from(unwrappedText, segment.metadata()));
         }
 
-        EmbeddingModel model = AzureOpenAiEmbeddingModel.builder()
-                .endpoint(endpoint)
-                .deploymentName(deploymentName)
-                .apiKey(keyProvider.resolve(username))
-                .build();
+        EmbeddingModel model = createDelegate(username);
         return model.embedAll(effectiveSegments);
+    }
+
+    private EmbeddingModel createDelegate(String username) {
+        OpenAiOfficialEmbeddingModel.Builder builder = OpenAiOfficialEmbeddingModel.builder()
+                .apiKey(keyProvider.resolve(username));
+
+        String endpoint = settings.getEndpointUrl();
+        if (endpoint != null && !endpoint.isBlank()) {
+            builder.baseUrl(endpoint);
+        }
+
+        String deployment = settings.requireEmbeddingDeploymentName();
+        switch (settings.providerOrDefault()) {
+            case OPENAI -> builder.modelName(deployment);
+            case AZURE -> builder.isAzure(true)
+                    .modelName(deployment)
+                    .azureDeploymentName(deployment);
+            case AZURE_LEGACY -> builder.isAzure(true)
+                    .azureDeploymentName(deployment)
+                    .modelName("");
+            case GITHUB -> builder.isGitHubModels(true)
+                    .modelName(deployment);
+        }
+
+        return builder.build();
     }
 }

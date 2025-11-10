@@ -80,6 +80,7 @@ const routes: Routes = [
           generateDDL: true,
         },
         canActivate: [ActiveTabGuard],
+        canDeactivate: [CheckShowingOnCloseAlertGuard],
       },
       {
         path: 'chart',

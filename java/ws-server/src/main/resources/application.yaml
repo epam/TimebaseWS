@@ -78,12 +78,13 @@ security:
 
 ai-api:
   enabled: true
-  endpointUrl: "" # endpoint must support Azure OpenAI API
+  provider: AZURE_LEGACY # OPENAI | AZURE | AZURE_LEGACY | GITHUB
+  endpointUrl: ${DIAL_ENDPOINT} # endpoint must support selected provider's API
   deploymentName: gpt-5-mini-2025-08-07 # deployment for QQL generation
   embeddingDeploymentName: text-embedding-3-small-1 # deployment for embeddings
   keys: # ai api keys per user
     - username: admin
-      key: ${ADMIN_AI_KEY} # resolves from environment variable
+      key: ${DIAL_API_KEY} # resolves from environment variable
     - username: reader
       key: READER_AI_KEY # takes priority over key from security.oauth2.users section
   maxAttempts: 3 # max attempts allowed for an AI to produce a valid QQL query

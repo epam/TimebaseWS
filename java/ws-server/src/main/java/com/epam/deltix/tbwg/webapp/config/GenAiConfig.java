@@ -54,27 +54,21 @@ public class GenAiConfig {
     private static final String FALLBACK_EMB_FILE = "qql-docs-embeddings.json";
 
     @Bean
-    public PerUserAzureChatModel perUserAzureChatModel(AiApiSettings settings,
-                                                       UserAiApiKeyProvider keyProvider) {
-        return new PerUserAzureChatModel(settings.getEndpointUrl(),
-                settings.getDeploymentName(),
-                keyProvider);
+    public ChatModel perUserChatModel(AiApiSettings settings,
+                                      UserAiApiKeyProvider keyProvider) {
+        return new PerUserOpenAiOfficialChatModel(settings, keyProvider);
     }
 
     @Bean
-    public PerUserAzureStreamingChatModel perUserAzureStreamingChatModel(AiApiSettings settings,
-                                                                         UserAiApiKeyProvider keyProvider) {
-        return new PerUserAzureStreamingChatModel(settings.getEndpointUrl(),
-                settings.getDeploymentName(),
-                keyProvider);
+    public StreamingChatModel perUserStreamingChatModel(AiApiSettings settings,
+                                                        UserAiApiKeyProvider keyProvider) {
+        return new PerUserOpenAiOfficialStreamingChatModel(settings, keyProvider);
     }
 
     @Bean
-    public PerUserAzureEmbeddingModel perUserAzureEmbeddingModel(AiApiSettings settings,
-                                                                 UserAiApiKeyProvider keyProvider) {
-        return new PerUserAzureEmbeddingModel(settings.getEndpointUrl(),
-                settings.getEmbeddingDeploymentName(),
-                keyProvider);
+    public EmbeddingModel perUserEmbeddingModel(AiApiSettings settings,
+                                                UserAiApiKeyProvider keyProvider) {
+        return new PerUserOpenAiOfficialEmbeddingModel(settings, keyProvider);
     }
 
     @Bean

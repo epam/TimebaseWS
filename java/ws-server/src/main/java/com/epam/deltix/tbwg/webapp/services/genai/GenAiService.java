@@ -30,6 +30,8 @@ import com.epam.deltix.tbwg.webapp.services.genai.plan.PlanTagParser;
 import com.epam.deltix.tbwg.webapp.settings.AiApiSettings;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.PartialResponse;
+import dev.langchain4j.model.chat.response.PartialResponseContext;
 import dev.langchain4j.service.Result;
 import dev.langchain4j.service.TokenStream;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -158,8 +160,16 @@ public class GenAiService {
 
             String wrappedPrompt = PerUserChatMaker.wrapUserInput(username, prompt);
             TokenStream ts = genAiHelperService.genQql(schema, pinned, wrappedPrompt)
-                    .onPartialResponse((String part) -> {
-                        if (!ctx.stopped().get() && part != null && !part.isEmpty()) {
+                    .onPartialResponseWithContext((PartialResponse partResp, PartialResponseContext partCtx) -> {
+                        if (ctx.stopped().get()) {
+                            partCtx.streamingHandle().cancel();
+                            latch.countDown();
+                            LOG.info("Generation cancelled by user.");
+                            return;
+                        }
+
+                        String part = partResp.text();
+                        if (part != null && !part.isEmpty()) {
                             streamed.append(part);
                             send(ch, QqlGenMessage.builder("PART")
                                     .data(part));
@@ -175,7 +185,6 @@ public class GenAiService {
                                     .error(e.getMessage()).finalEvent(true));
                         latch.countDown();
                     });
-
             ts.start();
             try {
                 if (!latch.await(STREAM_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
@@ -223,7 +232,7 @@ public class GenAiService {
         ch.sendMessage(b.build());
     }
 
-    private String loadOverview() {
+    private static String loadOverview() {
         try {
             return Resources.toString(
                     Resources.getResource("qql_gen/overview.md"),
@@ -273,19 +282,19 @@ public class GenAiService {
         b.append("\n\n");
     }
 
-    private String repairPrompt(String intent, String prev, String err) {
+    private static String repairPrompt(String intent, String prev, String err) {
         return "User intent:\n" + intent +
                 "\n\nPrevious QQL (fix minimally):\n" + prev +
                 "\n\nCompiler error:\n" + err +
                 "\n\nOutput ONLY corrected QQL.";
     }
 
-    private String summaryPinned(String pinned) {
+    private static String summaryPinned(String pinned) {
         if (pinned == null) return "No pinned docs.";
         return "Pinned size=" + pinned.length();
     }
 
-    private Set<String> parseStreamKeys(String raw) {
+    private static Set<String> parseStreamKeys(String raw) {
         if (raw == null || raw.isBlank()) return Collections.emptySet();
         return Stream.of(raw.split(","))
                 .map(String::trim)
