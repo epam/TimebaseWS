@@ -15,7 +15,7 @@ import {
 }                                                                             from 'ag-grid-community';
 import { BsModalRef, BsModalService }                                         from 'ngx-bootstrap/modal';
 import { Observable, ReplaySubject, Subject, Subscription, of }            from 'rxjs';
-import { filter, map, take, takeUntil, withLatestFrom, switchMap } from 'rxjs/operators';
+import { filter, map, take, takeUntil, withLatestFrom, switchMap, distinctUntilChanged } from 'rxjs/operators';
 import { TabModel } from 'src/app/pages/streams/models/tab.model';
 import { getActiveTab } from 'src/app/pages/streams/store/streams-tabs/streams-tabs.selectors';
 import { WebsocketService }                                                   from '../../core/services/websocket.service';
@@ -188,6 +188,7 @@ export class LiveGridComponent implements OnInit, OnDestroy, OnChanges {
 
     this.appStore.pipe(
       select(getActiveTab),
+      distinctUntilChanged((t1, t2) => t1?.stream === t2?.stream),
       switchMap((tab: TabModel) => {
         if (tab?.stream?.endsWith('#topic#')) {
           return this.topicService.getTopicSchema(tab.stream.slice(0, tab.stream.length - 7));

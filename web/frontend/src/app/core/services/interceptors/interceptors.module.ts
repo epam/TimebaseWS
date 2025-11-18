@@ -4,6 +4,7 @@ import {ApiPrefixesInterceptor} from './api-prefixes.interceptor';
 import {AttachTokenInterceptor} from './attach-token.interceptor';
 import {CatchConnectionErrorInterceptor} from './catch-connection-error.interceptor';
 import {RequestDefaultErrorInterceptor} from './request-default-error.interceptor';
+import { AcceptBigIntFormatInterceptor } from './js-header.interceptor';
 
 @NgModule({
   providers: [
@@ -11,6 +12,7 @@ import {RequestDefaultErrorInterceptor} from './request-default-error.intercepto
     {provide: HTTP_INTERCEPTORS, useClass: AttachTokenInterceptor, multi: true},
     {provide: HTTP_INTERCEPTORS, useClass: ApiPrefixesInterceptor, multi: true},
     {provide: HTTP_INTERCEPTORS, useClass: CatchConnectionErrorInterceptor, multi: true},
+    {provide: HTTP_INTERCEPTORS, useClass: AcceptBigIntFormatInterceptor, multi: true},
   ],
 })
 export class InterceptorsModule {}

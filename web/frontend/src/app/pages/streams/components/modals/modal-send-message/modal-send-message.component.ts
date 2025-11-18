@@ -29,6 +29,8 @@ import {FieldModel}                          from '../../../../../shared/utils/d
 import * as NotificationsActions             from '../../../../../core/modules/notifications/store/notifications.actions';
 import { getAppSettings } from 'src/app/core/store/app/app.selectors';
 
+const JSONbig = require('json-bigint')({ storeAsString: true });
+
 export interface editedMessageProps {
   symbols?: string[],
   types?: string[],
@@ -452,7 +454,7 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   saveJson(field: FieldModel) {
-    this.formGroup.get(field.name).patchValue(JSON.parse(this.jsonFieldControl.value));
+    this.formGroup.get(field.name).patchValue(JSONbig.parse(this.jsonFieldControl.value));
     this.jsonFieldControl.setValidators(null);
     this.jsonFieldControl.patchValue(null);
     this.editJsonField$.next(null);

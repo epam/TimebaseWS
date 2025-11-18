@@ -42,6 +42,10 @@ export class WSService extends RxStomp implements OnDestroy {
       headers.ack = 'auto';
     }
 
+    if (!headers['X-JSON-BigInt-Encoding'] && destination.includes('monitor')) {
+      headers['X-JSON-BigInt-Encoding'] = 'string';
+    }
+
     if (!unsubscribeHeaders) {
       unsubscribeHeaders = {
         destination: destination,
