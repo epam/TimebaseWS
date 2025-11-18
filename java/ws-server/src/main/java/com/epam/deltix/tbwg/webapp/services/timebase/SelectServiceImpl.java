@@ -20,6 +20,7 @@ import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.pub.ChannelQualityOfService;
 import com.epam.deltix.tbwg.webapp.services.timebase.base.SelectService;
+import com.epam.deltix.tbwg.webapp.utils.json.JsonBigIntEncoding;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
 import com.epam.deltix.qsrv.hf.tickdb.pub.SelectionOptions;
@@ -52,7 +53,8 @@ public class SelectServiceImpl implements SelectService {
 
     @Override
     public MessageSource2ResponseStream select(long startTime, long endTime, long offset, int rows, boolean reverse,
-                                               String[] types, String[] symbols, String[] keys, String space, int maxRecords)
+                                               String[] types, String[] symbols, String[] keys, String space, int maxRecords,
+                                               JsonBigIntEncoding bigIntEncoding)
             throws NoStreamsException {
 
         List<DXTickStream> streams = getStreams(keys);
@@ -81,15 +83,15 @@ public class SelectServiceImpl implements SelectService {
                 .append("AND timestamp [").append(GMT.formatDateTimeMillis(startTime)).append(":")
                 .append(GMT.formatDateTimeMillis(endTime)).append("]")
                 .commit();
-        return new MessageSource2ResponseStream(source, endTime, startIndex, endIndex, maxRecords);
+        return new MessageSource2ResponseStream(source, endTime, startIndex, endIndex, maxRecords, bigIntEncoding);
     }
 
     @Override
-    public MessageSource2ResponseStream select(SelectRequest selectRequest, int maxRecords) throws NoStreamsException {
+    public MessageSource2ResponseStream select(SelectRequest selectRequest, int maxRecords, JsonBigIntEncoding bigIntEncoding) throws NoStreamsException {
         List<DXTickStream> streams = getStreams(selectRequest.streams);
         long startTime = selectRequest.getStartTime(getEndTime(streams));
         return select(startTime, selectRequest.getEndTime(), selectRequest.offset, selectRequest.rows, selectRequest.reverse,
-                selectRequest.types, selectRequest.symbols, selectRequest.streams, selectRequest.space, maxRecords);
+                selectRequest.types, selectRequest.symbols, selectRequest.streams, selectRequest.space, maxRecords, bigIntEncoding);
     }
 
     private List<DXTickStream> getStreams(String ... streamKeys) throws NoStreamsException {

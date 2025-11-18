@@ -25,6 +25,7 @@ import com.epam.deltix.qsrv.hf.tickdb.lang.pub.Statement;
 import com.epam.deltix.qsrv.hf.tickdb.pub.lock.LockType;
 import com.epam.deltix.qsrv.hf.tickdb.ui.tbshell.TickDBShell;
 import com.epam.deltix.tbwg.webapp.model.smd.CurrencyDef;
+import com.epam.deltix.tbwg.webapp.utils.json.JsonBigIntEncoding;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.timebase.messages.InstrumentKey;
 import com.epam.deltix.timebase.messages.InstrumentMessage;
@@ -175,14 +176,14 @@ public class TimebaseController {
      */
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/select", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StreamingResponseBody> select(@Valid @RequestBody(required = false) SelectRequest select)
-            throws NoStreamsException {
+    public ResponseEntity<StreamingResponseBody> select(@Valid @RequestBody(required = false) SelectRequest select,
+                                                        JsonBigIntEncoding bigIntEncoding) throws NoStreamsException {
         if (select == null) {
             select = new SelectRequest();
         }
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(selectService.select(select, MAX_NUMBER_OF_RECORDS_PER_REST_RESULTSET));
+                .body(selectService.select(select, MAX_NUMBER_OF_RECORDS_PER_REST_RESULTSET, bigIntEncoding));
     }
 
     /**
@@ -217,7 +218,8 @@ public class TimebaseController {
             @RequestParam(required = false) Long offset,
             @RequestParam(required = false) Integer rows,
             @RequestParam(required = false) String space,
-            @RequestParam(required = false) boolean reverse) throws NoStreamsException {
+            @RequestParam(required = false) boolean reverse,
+            JsonBigIntEncoding bigIntEncoding) throws NoStreamsException {
         SelectRequest request = new SelectRequest();
         request.streams = streams;
         request.symbols = symbols;
@@ -230,7 +232,7 @@ public class TimebaseController {
         request.reverse = reverse;
         request.depth = depth;
         request.space = space;
-        return select(request);
+        return select(request, bigIntEncoding);
     }
 
     /**
@@ -249,13 +251,14 @@ public class TimebaseController {
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/select", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StreamingResponseBody> select(@PathVariable String streamId,
-                                                        @Valid @RequestBody(required = false) StreamRequest select)
+                                                        @Valid @RequestBody(required = false) StreamRequest select,
+                                                        JsonBigIntEncoding bigIntEncoding)
             throws NoStreamsException {
         if (select == null)
             select = new StreamRequest();
 
         return select(streamId, select.symbols, select.types, null, select.from, select.to, select.offset,
-                select.rows, select.space, select.reverse);
+                select.rows, select.space, select.reverse, bigIntEncoding);
     }
 
     /**
@@ -297,11 +300,12 @@ public class TimebaseController {
             @RequestParam(required = false) Long offset,
             @RequestParam(required = false) Integer rows,
             @RequestParam(required = false) String space,
-            @RequestParam(required = false) boolean reverse) throws NoStreamsException {
+            @RequestParam(required = false) boolean reverse,
+            JsonBigIntEncoding bigIntEncoding) throws NoStreamsException {
         if (TextUtils.isEmpty(streamId))
             throw new NoStreamsException();
 
-        return select(new String[]{streamId}, symbols, types, depth, from, to, offset, rows, space, reverse);
+        return select(new String[]{streamId}, symbols, types, depth, from, to, offset, rows, space, reverse, bigIntEncoding);
     }
 
     // download operation is permitted for any user
@@ -1025,7 +1029,7 @@ public class TimebaseController {
     @RequestMapping(value = "/{streamId}/{symbolId}/select", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StreamingResponseBody> select(@PathVariable String streamId, @PathVariable String symbolId,
                                                         @Valid @RequestBody(required = false) InstrumentRequest select,
-                                                        OutputStream outputStream) {
+                                                        OutputStream outputStream, JsonBigIntEncoding bigIntEncoding) {
         DXTickStream stream = service.getStream(streamId);
 
         if (stream == null)
@@ -1054,7 +1058,7 @@ public class TimebaseController {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new MessageSource2ResponseStream(
                         stream.select(startTime, options, select.types, ids), select.getEndTime(), startIndex, endIndex,
-                        MAX_NUMBER_OF_RECORDS_PER_REST_RESULTSET)
+                        MAX_NUMBER_OF_RECORDS_PER_REST_RESULTSET, bigIntEncoding)
                 );
     }
 
@@ -1090,14 +1094,15 @@ public class TimebaseController {
             @RequestParam(required = false) Long offset,
             @RequestParam(required = false) Integer rows,
             @RequestParam(required = false) String space,
-            @RequestParam(required = false) boolean reverse) throws NoStreamsException {
+            @RequestParam(required = false) boolean reverse,
+            JsonBigIntEncoding bigIntEncoding) throws NoStreamsException {
         if (TextUtils.isEmpty(streamId))
             throw new NoStreamsException();
 
         if (TextUtils.isEmpty(symbolId))
             return ResponseEntity.notFound().build();
 
-        return select(new String[]{streamId}, new String[]{symbolId}, types, depth, from, to, offset, rows, space, reverse);
+        return select(new String[]{streamId}, new String[]{symbolId}, types, depth, from, to, offset, rows, space, reverse, bigIntEncoding);
     }
 
     private SelectionOptions getSelectionOption(BaseRequest r) {
@@ -1535,9 +1540,8 @@ public class TimebaseController {
      */
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/query", method = {RequestMethod.POST})
-    public ResponseEntity<StreamingResponseBody> query(Principal principal, @Valid @RequestBody(required = false) QueryRequest select)
-            throws InvalidQueryException, WriteOperationsException {
-
+    public ResponseEntity<StreamingResponseBody> query(Principal principal, @Valid @RequestBody(required = false) QueryRequest select,
+                                                       JsonBigIntEncoding bigIntEncoding) throws InvalidQueryException, WriteOperationsException {
         if (select == null || StringUtils.isEmpty(select.query))
             throw new InvalidQueryException(select == null ? "" : select.query);
 
@@ -1559,7 +1563,34 @@ public class TimebaseController {
                 .body(new MessageSource2ResponseStream(
                         service.getConnection().executeQuery(
                                 select.query, options, null, null, select.getStartTime(Long.MIN_VALUE), select.getEndTime(Long.MIN_VALUE)),
-                        select.getEndTime(), startIndex, endIndex, MAX_NUMBER_OF_RECORDS_PER_REST_RESULTSET));
+                        select.getEndTime(), startIndex, endIndex, MAX_NUMBER_OF_RECORDS_PER_REST_RESULTSET, bigIntEncoding));
+    }
+
+    /**
+     * Executes an QQL query and returns the maximum possible number of records
+     */
+    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
+    @RequestMapping(value = "/unlimitedQuery", method = {RequestMethod.POST})
+    public ResponseEntity<StreamingResponseBody> unlimitedQuery(Principal principal, @Valid @RequestBody(required = false) QueryRequest select,
+                                                                JsonBigIntEncoding bigIntEncoding)
+            throws InvalidQueryException, WriteOperationsException {
+
+        if (select == null || StringUtils.isEmpty(select.query))
+            throw new InvalidQueryException(select == null ? "" : select.query);
+        if (service.isReadonly() && (select.query.toLowerCase().contains("drop") || select.query.toLowerCase().contains("create")))
+            throw new WriteOperationsException("CREATE or DROP");
+        if (isDdlQuery(select.query) && !hasAuthority(principal, "TB_ALLOW_WRITE")) {
+            throw new AccessDeniedException("TB_ALLOW_WRITE permission required.");
+        }
+
+        SelectionOptions options = getSelectionOption(select);
+        LOGGER.info().append("UNLIMITED QUERY: (").append(select.query).append(")").commit();
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new MessageSource2ResponseStream(
+                        service.getConnection().executeQuery(
+                                select.query, options, null, null, select.getStartTime(Long.MIN_VALUE), select.getEndTime(Long.MIN_VALUE)),
+                        select.getEndTime(), 0, Integer.MAX_VALUE, Integer.MAX_VALUE, bigIntEncoding));
     }
 
     private boolean isDdlQuery(String query) {
@@ -1663,8 +1694,8 @@ public class TimebaseController {
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/filter", method = {RequestMethod.POST}, consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StreamingResponseBody> filter(@PathVariable String streamId, @Valid @RequestBody FilterRequest filter)
-            throws UnknownStreamException {
+    public ResponseEntity<StreamingResponseBody> filter(@PathVariable String streamId, @Valid @RequestBody FilterRequest filter,
+                                                        JsonBigIntEncoding bigIntEncoding) throws UnknownStreamException {
         DXTickStream stream = service.getStream(streamId);
         if (stream == null)
             throw new UnknownStreamException(streamId);
@@ -1697,7 +1728,7 @@ public class TimebaseController {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new MessageSource2ResponseStream(service.getConnection()
                         .executeQuery(query, options, null, null, startTime), endTime, startIndex, endIndex,
-                        MAX_NUMBER_OF_RECORDS_PER_REST_RESULTSET));
+                        MAX_NUMBER_OF_RECORDS_PER_REST_RESULTSET, bigIntEncoding));
     }
 
     /**
