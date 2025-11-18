@@ -16,16 +16,18 @@
  */
 package com.epam.deltix.tbwg.webapp.services.timebase;
 
+import com.epam.deltix.tbwg.webapp.utils.json.JsonBigIntEncoding;
+
 import java.util.List;
 import java.util.function.Consumer;
 
 public interface MonitorService {
 
     void subscribe(String sessionId, String subscriptionId, String key, String qql, long fromTimestamp, List<String> types,
-                   List<String> symbols, Consumer<String> consumer);
+                   List<String> symbols, Consumer<String> consumer, JsonBigIntEncoding bigIntEncoding);
 
     void subscribeTopic(String sessionId, String subscriptionId, String key,
-                        Consumer<String> consumer);
+                        Consumer<String> consumer, JsonBigIntEncoding bigIntEncoding);
 
     void unsubscribe(String sessionId, String subscriptionId);
 

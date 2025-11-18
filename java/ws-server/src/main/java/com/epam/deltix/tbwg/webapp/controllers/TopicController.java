@@ -28,6 +28,8 @@ import com.epam.deltix.tbwg.webapp.model.tree.TimeBaseStructureRequestDef;
 import com.epam.deltix.tbwg.webapp.model.tree.TreeNodeDef;
 import com.epam.deltix.tbwg.webapp.services.timebase.MonitorService;
 import com.epam.deltix.tbwg.webapp.services.topic.TopicService;
+import com.epam.deltix.tbwg.webapp.utils.HeaderAccessorHelper;
+import com.epam.deltix.tbwg.webapp.utils.json.JsonBigIntEncoding;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.Subscription;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionController;
@@ -126,8 +128,9 @@ public class TopicController implements SubscriptionController {
         String topicKey = URLDecoder.decode(extractId(destination), StandardCharsets.UTF_8);
         String sessionId = header.getSessionId();
         String subscriptionId = header.getSubscriptionId();
+        JsonBigIntEncoding bigIntEncoding = HeaderAccessorHelper.getJsonBigIntEncoding(header);
 
-        monitorService.subscribeTopic(sessionId, subscriptionId, topicKey, channel::sendMessage);
+        monitorService.subscribeTopic(sessionId, subscriptionId, topicKey, channel::sendMessage, bigIntEncoding);
         return () -> monitorService.unsubscribe(sessionId, subscriptionId);
     }
 

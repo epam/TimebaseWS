@@ -20,13 +20,15 @@ import com.epam.deltix.qsrv.hf.pub.RawMessage;
 import com.epam.deltix.qsrv.util.json.JSONRawMessagePrinter;
 import com.epam.deltix.tbwg.messages.Message;
 import com.epam.deltix.tbwg.webapp.model.charting.line.RawElementDef;
+import com.epam.deltix.tbwg.webapp.utils.json.WebGatewayJsonRawMessagePrinterFactory;
 
 import java.util.Collections;
 
+@Deprecated // not implemented on the front-end side
 public class QqlConversionTransformation extends AbstractChartTransformation<RawElementDef, RawMessage> {
 
     private final StringBuilder sb = new StringBuilder();
-    private final JSONRawMessagePrinter rawMessagePrinter = new JSONRawMessagePrinter();
+    private final JSONRawMessagePrinter rawMessagePrinter = WebGatewayJsonRawMessagePrinterFactory.create();
 
     public QqlConversionTransformation() {
         super(Collections.singletonList(RawMessage.class), Collections.singletonList(RawElementDef.class));

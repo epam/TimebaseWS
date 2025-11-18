@@ -52,6 +52,7 @@
     "fast-deep-equal": "^3.1.3",
     "global": "^4.4.0",
     "gzip-js": "^0.3.2",
+    "json-bigint": "^1.0.0",
     "jszip": "^3.10.1",
     "luxon": "^1.25.0",
     "lz-string": "^1.4.4",
@@ -81,10 +82,10 @@
     "@deltix/hd.components-worker": "file:./libs/@deltix/hd.components-worker",
     "@deltix/hd.components-di": "file:./libs/@deltix/hd.components-di",
     "@deltix/ng-autocomplete": "file:./libs/@deltix/ng-autocomplete",
-	"@deltix/hd-date": "file:./libs/@deltix/hd-date",
+    "@deltix/hd-date": "file:./libs/@deltix/hd-date",
     "@deltix/ngx-vizceral": "file:./libs/@deltix/ngx-vizceral",
     "@deltix/vizceral": "file:./libs/@deltix/vizceral",
-	"@deltix/sso-auth": "file:./libs/@deltix/sso-auth"
+    "@deltix/sso-auth": "file:./libs/@deltix/sso-auth"
   },
   "peerDependencies": {
     "postcss": "^8.0.0"
