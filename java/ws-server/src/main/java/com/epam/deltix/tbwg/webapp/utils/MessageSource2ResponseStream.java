@@ -20,9 +20,9 @@ import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.pub.RawMessage;
 import com.epam.deltix.qsrv.hf.tickdb.pub.query.InstrumentMessageSource;
-import com.epam.deltix.qsrv.util.json.DataEncoding;
 import com.epam.deltix.qsrv.util.json.JSONRawMessagePrinter;
-import com.epam.deltix.qsrv.util.json.PrintType;
+import com.epam.deltix.tbwg.webapp.utils.json.JsonBigIntEncoding;
+import com.epam.deltix.tbwg.webapp.utils.json.WebGatewayJsonRawMessagePrinterFactory;
 import com.epam.deltix.util.lang.Util;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
@@ -41,28 +41,28 @@ public class MessageSource2ResponseStream implements StreamingResponseBody {
     private final long endIndex; // inclusive
     private final int maxRecords;
 
-    private final JSONRawMessagePrinter printer =
-            new JSONRawMessagePrinter(false, true, DataEncoding.STANDARD, true,
-                    false, PrintType.FULL, true, "$type");
+    private final JSONRawMessagePrinter printer;
 
     private final StringBuilder sb = new StringBuilder();
 
     @SuppressWarnings({"unused"})
-    public MessageSource2ResponseStream(InstrumentMessageSource source, int maxRecords) {
+    public MessageSource2ResponseStream(InstrumentMessageSource source, int maxRecords, JsonBigIntEncoding bigIntEncoding) {
         this.source = source;
         this.toTimestamp = Long.MAX_VALUE;
         this.startIndex = 0;
         this.endIndex = Integer.MAX_VALUE;
         this.maxRecords = maxRecords;
+        this.printer = WebGatewayJsonRawMessagePrinterFactory.create(bigIntEncoding);
     }
 
     public MessageSource2ResponseStream(InstrumentMessageSource messageSource, long toTimestamp, long startIndex,
-                                        long endIndex, int maxRecords) {
+                                        long endIndex, int maxRecords, JsonBigIntEncoding bigIntEncoding) {
         this.source = messageSource;
         this.toTimestamp = toTimestamp;
         this.startIndex = startIndex;
         this.endIndex = endIndex;
         this.maxRecords = maxRecords;
+        this.printer = WebGatewayJsonRawMessagePrinterFactory.create(bigIntEncoding);
     }
 
     @Override

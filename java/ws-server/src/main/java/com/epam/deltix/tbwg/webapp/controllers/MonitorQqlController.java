@@ -16,11 +16,10 @@
  */
 package com.epam.deltix.tbwg.webapp.controllers;
 
-import com.epam.deltix.gflog.api.Log;
-import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
 import com.epam.deltix.tbwg.webapp.services.timebase.MonitorService;
 import com.epam.deltix.tbwg.webapp.utils.HeaderAccessorHelper;
+import com.epam.deltix.tbwg.webapp.utils.json.JsonBigIntEncoding;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.Subscription;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionController;
@@ -55,8 +54,9 @@ public class MonitorQqlController implements SubscriptionController {
         long fromTimestamp = headerAccessorHelper.getTimestamp(headerAccessor);
         List<String> symbols = headerAccessorHelper.getSymbols(headerAccessor);
         List<String> types = headerAccessorHelper.getTypes(headerAccessor);
+        JsonBigIntEncoding bigIntEncoding = HeaderAccessorHelper.getJsonBigIntEncoding(headerAccessor);
 
-        monitorService.subscribe(sessionId, subscriptionId, null, qql, fromTimestamp, types, symbols, channel::sendMessage);
+        monitorService.subscribe(sessionId, subscriptionId, null, qql, fromTimestamp, types, symbols, channel::sendMessage, bigIntEncoding);
         return () -> monitorService.unsubscribe(sessionId, subscriptionId);
     }
 

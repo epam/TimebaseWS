@@ -12,7 +12,7 @@
       </ng-multiselect-dropdown>
     </div>
     <label class="qql-query-label">Describe desired query or goal</label>
-    <textarea [formControl]="inputQuery" class="qql-input"></textarea>
+    <textarea [formControl]="inputQuery" class="qql-input" (keydown.control.enter)="generate()"></textarea>
     <button *ngIf="!isLoading" (click)="generate()" [disabled]="isLoading || !inputQuery.value"
       class="btn btn-primary">
       <span>Generate</span>
@@ -32,16 +32,19 @@
           {{ warningMessage }}
         </div>
       </div>
-      <div class="output" [class.unfinished]="isLoading" [class.error]="qqlErrorMessage">
+      <div class="output" [class.error]="qqlErrorMessage">
+        <ng-container *ngIf="!isLoading"><pre>{{ resultQuery }}</pre><br></ng-container>
         <span *ngIf="isLoading" class="loading-dots"></span> 
         <ng-container *ngIf="resultStatus">
           <span>{{ resultStatus }}</span><br>
         </ng-container>
-        <span>{{ resultQuery }}</span>
+        <ng-container *ngFor="let status of generationStatuses">
+          <span class="history-status">{{ status }}</span><br>
+        </ng-container>
+        
       </div>
     </div>
-    <button (click)="openQueryEditor()" class="btn btn-primary"
-      [disabled]="!resultQuery || (responceCame && qqlErrorMessage)">
+    <button (click)="openQueryEditor()" class="btn btn-primary" [disabled]="!resultQuery">
       <ng-container *ngTemplateOutlet="shareIcon"></ng-container>
       <span class="open-query-editor-button-text">Open query editor</span>
     </button>

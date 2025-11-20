@@ -369,7 +369,7 @@ export class GridService implements OnDestroy {
           return params.value.toFixed(exponent);
         }
 
-        if (['number', 'string'].includes(typeof params.value) && Math.abs(params.value) >= 1000) {
+        if (typeof params.value === 'number' && Math.abs(params.value) >= 1000 && Math.abs(params.value) <= Number.MAX_SAFE_INTEGER) {
           return parseFloat(params.value).toLocaleString(this.locale);
         }
   

@@ -16,6 +16,8 @@
  */
 package com.epam.deltix.tbwg.webapp.utils;
 
+import com.epam.deltix.tbwg.webapp.utils.json.JsonBigIntEncoding;
+import com.epam.deltix.tbwg.webapp.utils.json.JsonBigIntEncodingArgumentResolver;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.epam.deltix.gflog.api.Log;
@@ -45,6 +47,19 @@ public class HeaderAccessorHelper {
             return Instant.parse(list.get(0)).toEpochMilli();
         }
         return Long.MIN_VALUE;
+    }
+
+    public static JsonBigIntEncoding getJsonBigIntEncoding(SimpMessageHeaderAccessor accessor) {
+        String headerValue = accessor.getFirstNativeHeader(JsonBigIntEncodingArgumentResolver.BIG_INT_ENCODING_HEADER);
+        if (headerValue != null) {
+            try {
+                return JsonBigIntEncoding.valueOf(headerValue.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                LOG.warn("Unknown value for %s: '%s', using default: %s")
+                        .with(JsonBigIntEncodingArgumentResolver.BIG_INT_ENCODING_HEADER).with(headerValue).with(JsonBigIntEncodingArgumentResolver.DEFAULT_ENCODING);
+            }
+        }
+        return JsonBigIntEncodingArgumentResolver.DEFAULT_ENCODING;
     }
 
     public List<String> getSymbols(SimpMessageHeaderAccessor headerAccessor) {

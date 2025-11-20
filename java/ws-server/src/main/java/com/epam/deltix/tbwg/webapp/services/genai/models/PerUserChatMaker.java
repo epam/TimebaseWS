@@ -20,6 +20,7 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.openaiofficial.OpenAiOfficialChatRequestParameters;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -104,5 +105,9 @@ public class PerUserChatMaker {
 
     public static ChatRequestParameters defaultParams(String modelName) {
         return ChatRequestParameters.builder().modelName(modelName).build();
+    }
+
+    public static OpenAiOfficialChatRequestParameters defaultOpenAiOfficialParams(String modelName) {
+        return OpenAiOfficialChatRequestParameters.builder().modelName(modelName).build();
     }
 }

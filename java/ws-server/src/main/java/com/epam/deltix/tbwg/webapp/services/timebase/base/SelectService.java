@@ -19,13 +19,15 @@ package com.epam.deltix.tbwg.webapp.services.timebase.base;
 import com.epam.deltix.tbwg.webapp.model.input.SelectRequest;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.NoStreamsException;
 import com.epam.deltix.tbwg.webapp.utils.MessageSource2ResponseStream;
+import com.epam.deltix.tbwg.webapp.utils.json.JsonBigIntEncoding;
 
 public interface SelectService {
 
     MessageSource2ResponseStream select(long startTime, long endTime, long offset, int rows, boolean reverse,
-                                        String[] types, String[] symbols, String[] keys, String space, int maxRecords)
+                                        String[] types, String[] symbols, String[] keys, String space, int maxRecords,
+                                        JsonBigIntEncoding bigIntEncoding)
             throws NoStreamsException;
 
-    MessageSource2ResponseStream select(SelectRequest selectRequest, int maxRecords) throws NoStreamsException;
+    MessageSource2ResponseStream select(SelectRequest selectRequest, int maxRecords, JsonBigIntEncoding bigIntEncoding) throws NoStreamsException;
 
 }

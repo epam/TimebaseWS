@@ -24,6 +24,7 @@ import com.epam.deltix.tbwg.webapp.services.MetricsService;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.timebase.connections.TbUserDetails;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
+import com.epam.deltix.tbwg.webapp.utils.json.WebGatewayJsonRawMessagePrinterFactory;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -32,9 +33,7 @@ import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.pub.RawMessage;
 import com.epam.deltix.qsrv.hf.tickdb.pub.topic.DirectChannel;
-import com.epam.deltix.qsrv.util.json.DataEncoding;
 import com.epam.deltix.qsrv.util.json.JSONRawMessagePrinter;
-import com.epam.deltix.qsrv.util.json.PrintType;
 import com.epam.deltix.tbwg.webapp.utils.cache.CachedMessageBufferImpl;
 import com.epam.deltix.tbwg.webapp.utils.cache.MessageBuffer;
 import com.epam.deltix.tbwg.webapp.utils.cache.MessageBufferImpl;
@@ -79,11 +78,6 @@ public class WSHandler extends TextWebSocketHandler {
     protected final class PumpTask extends QuickExecutor.QuickTask {
         final Runnable avlnr = PumpTask.this::submit;
 
-        private final JSONRawMessagePrinter printer
-                = new JSONRawMessagePrinter(false, true, DataEncoding.STANDARD, true, true, PrintType.FULL, "$type");
-
-        //final JSONRawMessagePrinter     printer = new JSONRawMessagePrinter(false, true);
-
         private final TickCursor        cursor;
         private final DXTickStream[]    selection;
         private final IntermittentlyAvailableCursor c;
@@ -104,6 +98,7 @@ public class WSHandler extends TextWebSocketHandler {
             this.c = (IntermittentlyAvailableCursor)cursor;
             this.toTimestamp = toTimestamp;
             this.session = session;
+            JSONRawMessagePrinter printer = WebGatewayJsonRawMessagePrinterFactory.create();
             this.buffer = useCache() ? new CachedMessageBufferImpl(printer) : new MessageBufferImpl(printer, live);
 
             sendCounter = metrics.endpointCounter(WebSocketConfig.SEND_MESSAGES_METRIC, endpoint());

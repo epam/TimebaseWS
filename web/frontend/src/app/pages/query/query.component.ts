@@ -69,7 +69,7 @@ import { LastQueriesService }       from './services/last-queries.service';
 import { QueryService }             from './services/query.service';
 import * as NotificationsActions    from '../../core/modules/notifications/store/notifications.actions';
 import { getAppInfo } from 'src/app/core/store/app/app.selectors';
-import { TimebaseService } from '../generate-ddl/generate-ddl.service';
+import { GenerateQueryService } from '../generate-ddl/generate-ddl.service';
 import IRange = monaco.IRange;
 import { QqlEditorComponent } from 'src/app/shared/qql-editor/qql-editor.component';
 
@@ -162,7 +162,8 @@ export class QueryComponent implements OnInit, AfterViewInit {
     private permissionsService: PermissionsService,
     private shareLinkService: ShareLinkService,
     private gridTotalService: GridTotalService,
-    private timebaseService: TimebaseService
+    private generateQueryService: GenerateQueryService,
+    private elementRef: ElementRef
   ) {}
   
   ngOnInit() {
@@ -199,9 +200,10 @@ export class QueryComponent implements OnInit, AfterViewInit {
       .pipe(takeUntil(this.destroy$))
       .subscribe();
 
-      if (this.timebaseService.currentQuery) {
-        this.form.patchValue({ query: this.timebaseService.currentQuery });
-        this.timebaseService.currentQuery = null;
+      if (this.generateQueryService.currentQuery) {
+        this.form.patchValue({ query: this.generateQueryService.currentQuery });
+        this.form.markAsPristine();
+        this.generateQueryService.currentQuery = null;
       }
     
     this.liveGridName$ = this.tabId().pipe(map((id) => `gridLive${id}`));

@@ -82,8 +82,8 @@ dependencies {
 
     // AI integration
     implementation 'dev.langchain4j:langchain4j'
-    implementation 'dev.langchain4j:langchain4j-azure-open-ai-spring-boot-starter'
     implementation 'dev.langchain4j:langchain4j-spring-boot-starter'
+    implementation 'dev.langchain4j:langchain4j-open-ai-official'
 
     compileOnly 'com.webcohesion.enunciate:enunciate-core-annotations'
 

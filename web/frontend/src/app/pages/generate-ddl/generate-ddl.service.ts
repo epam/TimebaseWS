@@ -6,7 +6,7 @@ import { WSService } from 'src/app/core/services/ws.service';
 @Injectable({
     providedIn: 'root',
 })
-export class TimebaseService {
+export class GenerateQueryService {
 
     currentQuery: string;
     ddlIsUsing = false;
@@ -29,10 +29,5 @@ export class TimebaseService {
     getSavedResult(key: string) {
         return JSON.parse(sessionStorage.getItem(key));
     }
-}
 
-export interface GenerateDDLResponce {
-    errorMessage: string | null,
-    resultDDL: string,
-    resultIsNotValid: boolean
 }

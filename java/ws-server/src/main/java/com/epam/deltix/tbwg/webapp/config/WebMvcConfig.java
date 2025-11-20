@@ -18,14 +18,18 @@ package com.epam.deltix.tbwg.webapp.config;
 
 import com.epam.deltix.tbwg.webapp.interceptors.TimebaseLoginInterceptor;
 import com.epam.deltix.tbwg.webapp.interceptors.RestLogInterceptor;
+import com.epam.deltix.tbwg.webapp.utils.json.JsonBigIntEncodingArgumentResolver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.AsyncTaskExecutor;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.util.UrlPathHelper;
+
+import java.util.List;
 
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
@@ -36,6 +40,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
     private final AsyncTaskExecutor asyncTaskExecutor;
     private final RestLogInterceptor logInterceptor;
     private final TimebaseLoginInterceptor timebaseLoginInterceptor;
+
+    @Autowired
+    private JsonBigIntEncodingArgumentResolver argumentResolver;
 
     @Autowired
     public WebMvcConfig(AsyncTaskExecutor asyncTaskExecutor,
@@ -64,5 +71,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(logInterceptor);
         registry.addInterceptor(timebaseLoginInterceptor);
+    }
+
+    @Override
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+        resolvers.add(argumentResolver);
     }
 }
