@@ -53,7 +53,7 @@ public class CustomEncodingJsonRawMessagePrinter extends JSONRawMessagePrinter {
                         appendSeparator(sb);
                     else
                         needSepa = true;
-                    sb.append(rv.getString());
+                    appendString(String.valueOf(rv.getLong()), sb);
                 } catch (NullValueException e) {
                     sb.append("null");
                 }
