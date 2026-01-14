@@ -32,6 +32,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
+import org.springframework.security.config.annotation.web.configurers.RequestCacheConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
@@ -77,6 +78,8 @@ public class ResourceServerConfig {
     @Order(2)
     public SecurityFilterChain filterChain(final HttpSecurity http) throws Exception {
         http
+            // Workaround for strict URI parsing when '%' appears in the request path
+            .requestCache(RequestCacheConfigurer::disable)
             //.cors().and()
             .authorizeHttpRequests(auth ->
                 auth
