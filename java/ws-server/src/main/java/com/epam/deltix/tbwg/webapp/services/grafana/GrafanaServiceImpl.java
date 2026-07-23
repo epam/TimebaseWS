@@ -23,6 +23,7 @@ import com.epam.deltix.tbwg.webapp.services.grafana.base.GrafanaService;
 import com.epam.deltix.tbwg.webapp.services.grafana.exc.NoSuchStreamException;
 import com.epam.deltix.tbwg.webapp.services.grafana.exc.NoSuchSymbolsException;
 import com.epam.deltix.tbwg.webapp.services.grafana.qql.SelectBuilder2;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.settings.GrafanaSettings;
 import com.epam.deltix.gflog.api.Log;
@@ -85,13 +86,13 @@ public class GrafanaServiceImpl implements GrafanaService {
     private static final Log LOG = LogFactory.getLog(GrafanaServiceImpl.class);
     private static final TypeInfo INSTRUMENT_MSG = instrumentMessage();
 
-    private final TimebaseService timebase;
+    private final TimebaseRegistry registry;
     private final FunctionsService functionsService;
     private final GrafanaSettings grafanaSettings;
 
     @Autowired
-    public GrafanaServiceImpl(TimebaseService timebase, FunctionsService functionsService, GrafanaSettings grafanaSettings) {
-        this.timebase = timebase;
+    public GrafanaServiceImpl(TimebaseRegistry registry, FunctionsService functionsService, GrafanaSettings grafanaSettings) {
+        this.registry = registry;
         this.functionsService = functionsService;
         this.grafanaSettings = grafanaSettings;
     }
@@ -100,19 +101,21 @@ public class GrafanaServiceImpl implements GrafanaService {
     public void postConstruct() {
         if (Boolean.getBoolean("grafana.testStream")) {
             GrafanaStreamCreator creator = new GrafanaStreamCreator(new String[]{});
-            creator.createAndLoad(timebase.getConnection(), "GrafanaTestStream");
+            creator.createAndLoad(registry.getDefault().getConnection(), "GrafanaTestStream");
         }
     }
 
     @Override
-    public DataFrame dataFrame(String refId, String rawQuery, TimeRange timeRange, boolean isVariableQuery) throws ValidationException {
+    public DataFrame dataFrame(String refId, String rawQuery, TimeRange timeRange, boolean isVariableQuery,
+                               String tbId) throws ValidationException {
+        TimebaseService service = registry.resolve(tbId);
         if (isVariableQuery) {
             if (GrafanaUtils.isListStreams(rawQuery)) {
-                return GrafanaUtils.listStreams(refId, timebase.getConnection());
+                return GrafanaUtils.listStreams(refId, service.getConnection());
             }
             String streamKey = GrafanaUtils.isListSymbols(rawQuery);
             if (streamKey != null) {
-                DXTickStream stream = timebase.getStream(streamKey);
+                DXTickStream stream = service.getStream(streamKey);
                 if (stream == null) {
                     throw new NoSuchStreamException(streamKey);
                 }
@@ -120,12 +123,12 @@ public class GrafanaServiceImpl implements GrafanaService {
             }
         }
         SelectionOptions options = new SelectionOptions(true, false);
-        ClassSet<?> schema = timebase.getConnection().describeQuery(rawQuery, options);
+        ClassSet<?> schema = service.getConnection().describeQuery(rawQuery, options);
         if (schema == null) {
             throw new UnsupportedOperationException();
         }
         MapBasedDataFrame dataFrame = new MapBasedDataFrame(refId, GrafanaUtils.convert(schema));
-        try (InstrumentMessageSource source = timebase.getConnection().executeQuery(rawQuery, options, null, null,
+        try (InstrumentMessageSource source = service.getConnection().executeQuery(rawQuery, options, null, null,
                 isVariableQuery ? Long.MIN_VALUE: timeRange.getFrom().toEpochMilli(), isVariableQuery ? Long.MIN_VALUE: timeRange.getTo().toEpochMilli())) {
             RawMessageHelper helper = new RawMessageHelper();
             long endTime = timeRange.getTo().toEpochMilli();
@@ -143,9 +146,10 @@ public class GrafanaServiceImpl implements GrafanaService {
     }
 
     @Override
-    public DataFrame dataFrame(SelectQuery query, TimeRange range, int maxDataPoints, Long intervalMs) throws ValidationException,
-            RecordValidationException {
-        SelectBuilder2 selectBuilder = constructQuery(query, range);
+    public DataFrame dataFrame(SelectQuery query, TimeRange range, int maxDataPoints, Long intervalMs,
+                               String tbId) throws ValidationException, RecordValidationException {
+        TimebaseService service = registry.resolve(tbId);
+        SelectBuilder2 selectBuilder = constructQuery(query, range, service);
         long step = calculateStep(query, range, maxDataPoints, intervalMs);
         if (query.getFunctions() == null || query.getFunctions().isEmpty()) {
             return new MutableDataFrameImpl(query.getRefId());
@@ -309,21 +313,22 @@ public class GrafanaServiceImpl implements GrafanaService {
     }
 
     @Override
-    public DynamicList listStreams(String template, int offset, int limit) {
+    public DynamicList listStreams(String template, int offset, int limit, String tbId) {
+        TimebaseService service = registry.resolve(tbId);
         DynamicList result = new DynamicList();
         List<String> list = new ObjectArrayList<>();
         result.setList(list);
         result.setHasMore(false);
         List<String> streams;
         if (StringUtils.isEmpty(template)) {
-            streams = Arrays.stream(timebase.listStreams())
+            streams = Arrays.stream(service.listStreams())
                     .map(DXTickStream::getKey)
                     .filter(grafanaSettings::isKeyAccepted)
                     .sorted()
                     .skip(offset)
                     .collect(Collectors.toList());
         } else {
-            streams = Arrays.stream(timebase.listStreams())
+            streams = Arrays.stream(service.listStreams())
                     .map(DXTickStream::getKey)
                     .filter(grafanaSettings::isKeyAccepted)
                     .filter(key -> key.toLowerCase().contains(template.toLowerCase()))
@@ -342,8 +347,10 @@ public class GrafanaServiceImpl implements GrafanaService {
     }
 
     @Override
-    public DynamicList listSymbols(String streamKey, String template, int offset, int limit) throws NoSuchStreamException {
-        DXTickStream stream = timebase.getStream(streamKey);
+    public DynamicList listSymbols(String streamKey, String template, int offset, int limit,
+                                   String tbId) throws NoSuchStreamException {
+        TimebaseService service = registry.resolve(tbId);
+        DXTickStream stream = service.getStream(streamKey);
         if (stream == null) {
             throw new NoSuchStreamException(streamKey);
         }
@@ -377,8 +384,9 @@ public class GrafanaServiceImpl implements GrafanaService {
     }
 
     @Override
-    public StreamSchema schema(String streamKey) throws NoSuchStreamException {
-        DXTickStream stream = timebase.getStream(streamKey);
+    public StreamSchema schema(String streamKey, String tbId) throws NoSuchStreamException {
+        TimebaseService service = registry.resolve(tbId);
+        DXTickStream stream = service.getStream(streamKey);
         if (stream == null) {
             throw new NoSuchStreamException(streamKey);
         }
@@ -470,10 +478,10 @@ public class GrafanaServiceImpl implements GrafanaService {
                 || dataField.getType() instanceof TimeOfDayDataType;
     }
 
-    private SelectBuilder2 constructQuery(SelectQuery query, TimeRange range) throws NoSuchStreamException,
+    private SelectBuilder2 constructQuery(SelectQuery query, TimeRange range, TimebaseService service) throws NoSuchStreamException,
             NoSuchSymbolsException, SelectBuilder2.NoSuchFieldException, SelectBuilder2.WrongTypeException,
             SelectBuilder2.NoSuchTypeException {
-        DXTickDB db = timebase.getConnection();
+        DXTickDB db = service.getConnection();
         DXTickStream stream = db.getStream(query.getStream());
         if (stream == null) {
             throw new NoSuchStreamException(query.getStream());

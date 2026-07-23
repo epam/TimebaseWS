@@ -70,7 +70,8 @@ public class ImportQsmsgController implements SubscriptionController {
                         importRequest.to != null ? importRequest.to.toEpochMilli() : Long.MAX_VALUE,
                         getPeriodicity(importRequest.periodicity),
                         importRequest.fileBySymbol,
-                        importRequest.writeMode
+                        importRequest.writeMode,
+                        importRequest.tbId
                 )
         );
     }

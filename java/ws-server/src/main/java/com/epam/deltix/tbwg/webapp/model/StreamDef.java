@@ -41,5 +41,8 @@ public class StreamDef {
     public int          symbols;
 
     @JsonProperty
+    public String       tbId;
+
+    @JsonProperty
     public ChartTypeDef[] chartType;
 }

@@ -16,7 +16,8 @@
  */
 package com.epam.deltix.tbwg.webapp.interceptors;
 
-import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseLoginService;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.timebase.connections.TbUserDetails;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
 import org.springframework.stereotype.Component;
@@ -29,19 +30,21 @@ import java.security.Principal;
 @Component
 public class TimebaseLoginInterceptor implements HandlerInterceptor {
 
-    private final TimebaseLoginService timebaseLoginService;
+    private final TimebaseRegistry registry;
 
-    public TimebaseLoginInterceptor(TimebaseLoginService timebaseLoginService) {
-        this.timebaseLoginService = timebaseLoginService;
+    public TimebaseLoginInterceptor(TimebaseRegistry registry) {
+        this.registry = registry;
     }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         Principal principal = request.getUserPrincipal();
         if (principal != null) {
-            timebaseLoginService.login(request.getUserPrincipal(), TbUserDetails.create(TBWGUtils.getIp(request)));
+            TbUserDetails details = TbUserDetails.create(TBWGUtils.getIp(request));
+            for (TimebaseService svc : registry.getAll()) {
+                svc.login(principal, details);
+            }
         }
-
         return true;
     }
 
@@ -49,7 +52,10 @@ public class TimebaseLoginInterceptor implements HandlerInterceptor {
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
         Principal principal = request.getUserPrincipal();
         if (principal != null) {
-            timebaseLoginService.logout(request.getUserPrincipal(), TbUserDetails.create(TBWGUtils.getIp(request)));
+            TbUserDetails details = TbUserDetails.create(TBWGUtils.getIp(request));
+            for (TimebaseService svc : registry.getAll()) {
+                svc.logout(principal, details);
+            }
         }
     }
 

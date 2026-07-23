@@ -56,7 +56,7 @@ public class MonitorQqlController implements SubscriptionController {
         List<String> types = headerAccessorHelper.getTypes(headerAccessor);
         JsonBigIntEncoding bigIntEncoding = HeaderAccessorHelper.getJsonBigIntEncoding(headerAccessor);
 
-        monitorService.subscribe(sessionId, subscriptionId, null, qql, fromTimestamp, types, symbols, channel::sendMessage, bigIntEncoding);
+        monitorService.subscribe(sessionId, subscriptionId, null, qql, fromTimestamp, types, symbols, channel::sendMessage, bigIntEncoding, null);
         return () -> monitorService.unsubscribe(sessionId, subscriptionId);
     }
 

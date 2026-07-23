@@ -30,6 +30,7 @@ public class StreamStates extends SystemMessage {
     protected final ConcurrentLinkedDeque<RenameMessage> renamed = new ConcurrentLinkedDeque<>();
 
     protected AtomicLong id = new AtomicLong();
+    private volatile String tbId;
 
     public void putAdded(String key) {
         added.add(key);
@@ -94,6 +95,11 @@ public class StreamStates extends SystemMessage {
                 ", id=" + id +
                 '}';
     }
+
+    @JsonProperty("tbId")
+    public String getTbId() { return tbId; }
+
+    public void setTbId(String tbId) { this.tbId = tbId; }
 
     @JsonIgnore
     public synchronized boolean isEmpty() {

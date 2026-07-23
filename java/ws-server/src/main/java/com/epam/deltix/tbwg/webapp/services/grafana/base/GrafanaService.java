@@ -38,35 +38,37 @@ public interface GrafanaService {
 
     Log LOG = LogFactory.getLog(GrafanaService.class);
 
-    DataFrame dataFrame(String refId, String rawQuery, TimeRange timeRange, boolean isVariableQuery) throws ValidationException;
+    DataFrame dataFrame(String refId, String rawQuery, TimeRange timeRange, boolean isVariableQuery,
+                        String tbId) throws ValidationException;
 
-    DataFrame dataFrame(SelectQuery query, TimeRange timeRange, int maxDataPoints, Long intervalMs) throws ValidationException,
-            RecordValidationException;
+    DataFrame dataFrame(SelectQuery query, TimeRange timeRange, int maxDataPoints, Long intervalMs,
+                        String tbId) throws ValidationException, RecordValidationException;
 
-    default List<DataFrame> dataFrames(DataQueryRequest<SelectQuery> request) throws RecordValidationException,
-            ValidationException {
+    default List<DataFrame> dataFrames(DataQueryRequest<SelectQuery> request, String tbId)
+            throws RecordValidationException, ValidationException {
         List<DataFrame> dataFrames = new ObjectArrayList<>();
         for (SelectQuery target : request.getTargets()) {
-            dataFrames.add(target.isRaw() ? dataFrame(target.getRefId(), target.getRawQuery(), request.getRange(), target.isVariableQuery()) :
-                    dataFrame(target, request.getRange(), request.getMaxDataPoints(), request.getIntervalMs()));
+            dataFrames.add(target.isRaw() ?
+                    dataFrame(target.getRefId(), target.getRawQuery(), request.getRange(), target.isVariableQuery(), tbId) :
+                    dataFrame(target, request.getRange(), request.getMaxDataPoints(), request.getIntervalMs(), tbId));
         }
         return dataFrames;
     }
 
-    default List<TimeSeriesEntry> timeSeries(DataQueryRequest<SelectQuery> request) throws RecordValidationException,
-            ValidationException {
-        return dataFrames(request).stream().flatMap(df -> GrafanaUtils.convert(df).stream()).collect(Collectors.toList());
+    default List<TimeSeriesEntry> timeSeries(DataQueryRequest<SelectQuery> request, String tbId)
+            throws RecordValidationException, ValidationException {
+        return dataFrames(request, tbId).stream().flatMap(df -> GrafanaUtils.convert(df).stream()).collect(Collectors.toList());
     }
 
-    default List<Object> select(DataQueryRequest<SelectQuery> request) throws RecordValidationException,
-            ValidationException {
+    default List<Object> select(DataQueryRequest<SelectQuery> request, String tbId)
+            throws RecordValidationException, ValidationException {
         long start = System.currentTimeMillis();
         List<SelectQuery> targets = request.getTargets();
         request.setTargets(targets.stream().filter(q -> q.getView() == null || q.getView() == SelectQuery.View.DATAFRAME).collect(Collectors.toList()));
         List<Object> list = new ObjectArrayList<>();
-        list.addAll(dataFrames(request));
+        list.addAll(dataFrames(request, tbId));
         request.setTargets(targets.stream().filter(q -> q.getView() == SelectQuery.View.TIMESERIES).collect(Collectors.toList()));
-        list.addAll(timeSeries(request));
+        list.addAll(timeSeries(request, tbId));
         long end = System.currentTimeMillis();
         LOG.info().append("Request execution took ").append((end - start) / 1000., 3).append(" seconds.").commit();
         return list;
@@ -74,10 +76,11 @@ public interface GrafanaService {
 
     List<String> groupByViewOptions();
 
-    DynamicList listStreams(String template, int offset, int limit);
+    DynamicList listStreams(String template, int offset, int limit, String tbId);
 
-    DynamicList listSymbols(String streamKey, String template, int offset, int limit) throws NoSuchStreamException;
+    DynamicList listSymbols(String streamKey, String template, int offset, int limit,
+                            String tbId) throws NoSuchStreamException;
 
-    StreamSchema schema(String streamKey) throws NoSuchStreamException;
+    StreamSchema schema(String streamKey, String tbId) throws NoSuchStreamException;
 
 }

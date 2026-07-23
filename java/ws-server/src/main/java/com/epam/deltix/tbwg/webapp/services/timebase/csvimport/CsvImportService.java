@@ -53,7 +53,7 @@ public interface CsvImportService {
 
     CsvImportSettings generateDefaultSettings(String id, String streamKey);
 
-    String initImport(String streamKey);
+    String initImport(String streamKey, String tbId);
 
     void addPreview(String id, MultipartFile files, boolean fullFile);
 

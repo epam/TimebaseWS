@@ -78,7 +78,7 @@ public class TickDbTreeNode extends TreeNode<TickDbTreeNode.DBTreeContent> {
 
         List<DBTreeContent> dbContent;
         if (config.isViews()) {
-            dbContent = viewService.list().stream()
+            dbContent = viewService.list(db.getId()).stream()
                 .map(v -> {
                     try {
                         DXTickStream stream = db.getStream(v.getStream());

@@ -23,7 +23,7 @@ import com.epam.deltix.qsrv.hf.tickdb.pub.topic.DirectChannel;
 import com.epam.deltix.qsrv.hf.tickdb.pub.topic.settings.TopicSettings;
 import com.epam.deltix.tbwg.webapp.model.tree.TreeNodeDef;
 import com.epam.deltix.tbwg.webapp.model.tree.TreeNodeType;
-import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.tree.TreeFilter;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,42 +37,42 @@ import java.util.stream.Collectors;
 public class TopicServiceImpl implements TopicService {
 
 
-    private final TimebaseService timebaseService;
+    private final TimebaseRegistry registry;
     private final List<TopicListener> listeners = new CopyOnWriteArrayList<>();
 
     @Autowired
-    public TopicServiceImpl(TimebaseService timebaseService) {
-        this.timebaseService = timebaseService;
+    public TopicServiceImpl(TimebaseRegistry registry) {
+        this.registry = registry;
     }
 
 
     @Override
     public List<String> listTopics() {
-        return timebaseService.getTopicDB().listTopics();
+        return registry.getDefault().getTopicDB().listTopics();
     }
 
     @Override
     public DirectChannel createTopic(String key, RecordClassDescriptor[] types, TopicSettings settings) {
         String copyToStream = settings.getCopyToStream();
         if (copyToStream != null) {
-            DXTickStream stream = timebaseService.getStream(copyToStream);
+            DXTickStream stream = registry.getDefault().getStream(copyToStream);
             if (stream == null) {
                 TBWGUtils.validateStreamKey(copyToStream);
-                timebaseService.getOrCreateStream(copyToStream, (options) -> { }, types);
+                registry.getDefault().getOrCreateStream(copyToStream, (options) -> { }, types);
             } else {
                 if (!SchemaMergeHelper.containsAll(stream.getTypes(), types)) {
                     throw new IllegalArgumentException("Duplicate stream scheme is not comparable with the topic scheme");
                 }
             }
         }
-        DirectChannel topic = timebaseService.getTopicDB().createTopic(key, types, settings);
+        DirectChannel topic = registry.getDefault().getTopicDB().createTopic(key, types, settings);
         listeners.forEach(l -> l.topicCreated(key));
         return topic;
     }
 
     @Override
     public TreeNodeDef getStructure(TreeFilter treeFilter) {
-        TreeNodeDef structure = new TreeNodeDef(timebaseService.getId(), timebaseService.getId(), TreeNodeType.TOPIC);
+        TreeNodeDef structure = new TreeNodeDef(registry.getDefault().getId(), registry.getDefault().getId(), TreeNodeType.TOPIC);
         List<String> listTopics = listTopics();
         if (treeFilter != null) {
             listTopics = listTopics.stream().filter(treeFilter::test).collect(Collectors.toList());
@@ -88,13 +88,13 @@ public class TopicServiceImpl implements TopicService {
 
     @Override
     public void delete(String key) {
-        timebaseService.getTopicDB().deleteTopic(key);
+        registry.getDefault().getTopicDB().deleteTopic(key);
         listeners.forEach(l -> l.topicDeleted(key));
     }
 
     @Override
     public RecordClassDescriptor[] getTypes(String key) {
-        return timebaseService.getTopicDB().getTypes(key);
+        return registry.getDefault().getTopicDB().getTypes(key);
     }
 
     @Override

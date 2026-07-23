@@ -55,8 +55,9 @@ public class MonitorController implements SubscriptionController {
         List<String> symbols = headerAccessorHelper.getSymbols(headerAccessor);
         List<String> types = headerAccessorHelper.getTypes(headerAccessor);
         JsonBigIntEncoding bigIntEncoding = HeaderAccessorHelper.getJsonBigIntEncoding(headerAccessor);
+        String tb = headerAccessor.getFirstNativeHeader("tbId");
 
-        monitorService.subscribe(sessionId, subscriptionId, stream, null, fromTimestamp, types, symbols, channel::sendMessage, bigIntEncoding);
+        monitorService.subscribe(sessionId, subscriptionId, stream, null, fromTimestamp, types, symbols, channel::sendMessage, bigIntEncoding, tb);
         return () -> monitorService.unsubscribe(sessionId, subscriptionId);
     }
 

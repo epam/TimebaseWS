@@ -18,6 +18,7 @@ package com.epam.deltix.tbwg.webapp.services.genai;
 
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.google.common.io.Resources;
 import com.epam.deltix.qsrv.hf.pub.md.RecordClassDescriptor;
@@ -60,8 +61,8 @@ public class GenAiService {
     private final GenAiHelperService genAiHelperService;
     private final PinnedDocsBuilder pinnedBuilder;
     private final QueryCompiler compiler;
-    private final TimebaseService timebaseService;
     private final int maxAttempts;
+    private final TimebaseRegistry registry;
 
     private static final ExecutorService EXEC = Executors.newCachedThreadPool();
 
@@ -71,25 +72,26 @@ public class GenAiService {
     public GenAiService(GenAiHelperService genAiHelperService,
                         PinnedDocsBuilder pinnedBuilder,
                         QueryCompiler compiler,
-                        TimebaseService timebaseService,
-                        AiApiSettings settings) {
+                        AiApiSettings settings,
+                        TimebaseRegistry registry) {
         this.genAiHelperService = genAiHelperService;
         this.pinnedBuilder = pinnedBuilder;
         this.compiler = compiler;
-        this.timebaseService = timebaseService;
         this.maxAttempts = settings.getMaxAttempts();
+        this.registry = registry;
     }
 
     public void subscribe(String username, String userInput,
-                          String rawStreamKeys, SubscriptionChannel channel) {
+                          String rawStreamKeys, SubscriptionChannel channel, String tbId) {
         if (active.containsKey(channel)) {
             channel.sendError(new IllegalStateException("Already subscribed"));
             return;
         }
+        TimebaseService service = registry.resolve(tbId);
         Set<String> streamKeys = parseStreamKeys(rawStreamKeys);
         Context ctx = new Context(new AtomicBoolean(false));
         active.put(channel, ctx);
-        EXEC.submit(() -> orchestrate(username, userInput, streamKeys, channel, ctx));
+        EXEC.submit(() -> orchestrate(username, userInput, streamKeys, channel, ctx, service));
     }
 
     public void unsubscribe(SubscriptionChannel channel) {
@@ -101,12 +103,12 @@ public class GenAiService {
     }
 
     private void orchestrate(String username, String intent, Set<String> streamKeys,
-                             SubscriptionChannel ch, Context ctx) {
+                             SubscriptionChannel ch, Context ctx, TimebaseService service) {
         try {
             if (ctx.stopped().get()) return;
 
             String overview = loadOverview();
-            String schema = schemaDescription(streamKeys);
+            String schema = schemaDescription(streamKeys, service);
             send(ch, QqlGenMessage.builder("PLANNING_START"));
 
             List<String> tags;
@@ -133,7 +135,7 @@ public class GenAiService {
             String pinned = pinnedBuilder.build(username, overview, tags, intent);
             send(ch, QqlGenMessage.builder("DOCS_RETRIEVED").data(summaryPinned(pinned)));
 
-            iterativeGenerate(username, schema, pinned, intent, ch, ctx);
+            iterativeGenerate(username, schema, pinned, intent, ch, ctx, service);
 
         } catch (Throwable t) {
             LOG.warn("GenAI orchestration error: %s").with(t.toString());
@@ -146,7 +148,7 @@ public class GenAiService {
     }
 
     private void iterativeGenerate(String username, String schema, String pinned,
-                                   String intent, SubscriptionChannel ch, Context ctx) {
+                                   String intent, SubscriptionChannel ch, Context ctx, TimebaseService service) {
         String prompt = intent;
         String lastQuery = "";
         String lastError = null;
@@ -199,7 +201,7 @@ public class GenAiService {
             if (ctx.stopped().get()) return;
 
             lastQuery = streamed.toString().trim();
-            String compileErr = compiler.compile(lastQuery);
+            String compileErr = compiler.compile(lastQuery, service);
 
             if (compileErr.isEmpty()) {
                 send(ch, QqlGenMessage.builder("ATTEMPT_COMPILE_OK")
@@ -243,10 +245,10 @@ public class GenAiService {
         }
     }
 
-    private String schemaDescription(Set<String> streamKeys) {
+    private String schemaDescription(Set<String> streamKeys, TimebaseService service) {
         if (streamKeys == null || streamKeys.isEmpty()) return "No streams selected.";
         StringBuilder b = new StringBuilder();
-        TickDBClient tb = (TickDBClient) timebaseService.getConnection();
+        TickDBClient tb = (TickDBClient) service.getConnection();
         for (String key : streamKeys) {
             DXTickStream s = tb.getStream(key);
             if (s == null) {

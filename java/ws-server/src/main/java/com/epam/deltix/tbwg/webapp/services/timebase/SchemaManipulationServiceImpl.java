@@ -28,6 +28,7 @@ import com.epam.deltix.qsrv.hf.tickdb.schema.StreamMetaDataChange;
 import com.epam.deltix.tbwg.webapp.model.input.QueryRequest;
 import com.epam.deltix.tbwg.webapp.model.schema.*;
 import com.epam.deltix.tbwg.webapp.model.schema.changes.StreamMetaDataChangeDef;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.base.SchemaManipulationService;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.InvalidSchemaChangeException;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.TimebaseExceptions;
@@ -55,12 +56,12 @@ public class SchemaManipulationServiceImpl implements SchemaManipulationService 
 
     private static final Log LOG = LogFactory.getLog(SchemaManipulationService.class);
 
-    private final TimebaseService service;
+    private final TimebaseRegistry registry;
     private final ThreadLocal<Matcher> matcher = ThreadLocal.withInitial(() -> PATTERN.matcher(""));
 
     @Autowired
-    public SchemaManipulationServiceImpl(TimebaseService service) {
-        this.service = service;
+    public SchemaManipulationServiceImpl(TimebaseRegistry registry) {
+        this.registry = registry;
     }
 
     @Override
@@ -70,7 +71,7 @@ public class SchemaManipulationServiceImpl implements SchemaManipulationService 
         List<DataTypeDef> types = new ArrayList<>();
 
         // is nanoseconds supported on server?
-        boolean nsSupported = VersionUtils.versionHasNsEncoding(service.getServerVersion());
+        boolean nsSupported = VersionUtils.versionHasNsEncoding(registry.getDefault().getServerVersion());
 
         for (DataType type : allTypes) {
             if (type.getCode() == DataType.T_DATE_TIME_TYPE) {
@@ -85,13 +86,16 @@ public class SchemaManipulationServiceImpl implements SchemaManipulationService 
 
     @Override
     public SchemaDef describe(QueryRequest select, boolean tree) {
+        return describe(registry.getDefault(), select, tree);
+    }
+
+    @Override
+    public SchemaDef describe(TimebaseService svc, QueryRequest select, boolean tree) {
         SelectionOptions options = select.getSelectionOptions();
 
         LOG.info().append("DESCRIBE QUERY (").append(select.query).append(")").commit();
 
-        DXTickDB connection = service.getConnection();
-
-        ClassSet metaData = connection.describeQuery(select.query, options);
+        ClassSet metaData = svc.getConnection().describeQuery(select.query, options);
 
         ClassDescriptor[] top = metaData.getContentClasses();
         ClassDescriptor[] classes = metaData.getClasses();
@@ -115,12 +119,22 @@ public class SchemaManipulationServiceImpl implements SchemaManipulationService 
 
     @Override
     public DescribeResponse describeStream(String key) throws UnknownStreamException {
-        return DescribeResponse.create(getStream(key));
+        return describeStream(registry.getDefault(), key);
+    }
+
+    @Override
+    public DescribeResponse describeStream(TimebaseService svc, String key) throws UnknownStreamException {
+        return DescribeResponse.create(getStream(svc, key));
     }
 
     @Override
     public SchemaDef schema(String key, boolean tree) throws UnknownStreamException {
-        DXTickStream stream = getStream(key);
+        return schema(registry.getDefault(), key, tree);
+    }
+
+    @Override
+    public SchemaDef schema(TimebaseService svc, String key, boolean tree) throws UnknownStreamException {
+        DXTickStream stream = getStream(svc, key);
 
         RecordClassSet metaData = stream.getStreamOptions().getMetaData();
 
@@ -146,7 +160,12 @@ public class SchemaManipulationServiceImpl implements SchemaManipulationService 
 
     @Override
     public SchemaDef createStream(@NotNull String key, @NotNull SchemaDef schemaDef) throws WriteOperationsException {
-        if (service.isReadonly()) {
+        return createStream(registry.getDefault(), key, schemaDef);
+    }
+
+    @Override
+    public SchemaDef createStream(TimebaseService svc, @NotNull String key, @NotNull SchemaDef schemaDef) throws WriteOperationsException {
+        if (svc.isReadonly()) {
             throw TimebaseExceptions.createStreamForbidden();
         }
 
@@ -156,14 +175,20 @@ public class SchemaManipulationServiceImpl implements SchemaManipulationService 
 
         LOG.info().append("CREATE STREAM (").append(key).append(")").commit();
 
-        DXTickStream stream = service.getConnection().createStream(key, options);
+        DXTickStream stream = svc.getConnection().createStream(key, options);
         return SchemaBuilder.toSchemaDef(stream.getStreamOptions().getMetaData(), false);
     }
 
     @Override
     public StreamMetaDataChangeDef schemaChanges(@NotNull String key, @NotNull SchemaChangesRequest schemaChangesRequest)
             throws UnknownStreamException {
-        DXTickStream stream = getStream(key);
+        return schemaChanges(registry.getDefault(), key, schemaChangesRequest);
+    }
+
+    @Override
+    public StreamMetaDataChangeDef schemaChanges(TimebaseService svc, @NotNull String key, @NotNull SchemaChangesRequest schemaChangesRequest)
+            throws UnknownStreamException {
+        DXTickStream stream = getStream(svc, key);
         RecordClassSet source = stream.getStreamOptions().getMetaData();
         RecordClassSet target = SchemaBuilder.toClassSet(schemaChangesRequest.getSchema());
         SchemaAnalyzer schemaAnalyzer = new SchemaAnalyzer(toSchemaMapping(schemaChangesRequest.getSchemaMapping(),
@@ -179,11 +204,17 @@ public class SchemaManipulationServiceImpl implements SchemaManipulationService 
     @Override
     public SchemaDef changeSchema(@NotNull String key, @NotNull ChangeSchemaRequest changeSchemaRequest)
             throws UnknownStreamException, WriteOperationsException, InvalidSchemaChangeException {
-        if (service.isReadonly()) {
+        return changeSchema(registry.getDefault(), key, changeSchemaRequest);
+    }
+
+    @Override
+    public SchemaDef changeSchema(TimebaseService svc, @NotNull String key, @NotNull ChangeSchemaRequest changeSchemaRequest)
+            throws UnknownStreamException, WriteOperationsException, InvalidSchemaChangeException {
+        if (svc.isReadonly()) {
             throw TimebaseExceptions.schemaChangeForbidden();
         }
 
-        DXTickStream stream = getStream(key);
+        DXTickStream stream = getStream(svc, key);
         RecordClassSet source = stream.getStreamOptions().getMetaData();
         RecordClassSet target = SchemaBuilder.toClassSet(changeSchemaRequest.getSchema());
         SchemaAnalyzer schemaAnalyzer = new SchemaAnalyzer(toSchemaMapping(changeSchemaRequest.getSchemaMapping(),
@@ -227,7 +258,11 @@ public class SchemaManipulationServiceImpl implements SchemaManipulationService 
     }
 
     private DXTickStream getStream(String key) throws UnknownStreamException {
-        DXTickStream stream = service.getStream(key);
+        return getStream(registry.getDefault(), key);
+    }
+
+    private DXTickStream getStream(TimebaseService svc, String key) throws UnknownStreamException {
+        DXTickStream stream = svc.getStream(key);
 
         if (stream == null)
             throw new UnknownStreamException(key);

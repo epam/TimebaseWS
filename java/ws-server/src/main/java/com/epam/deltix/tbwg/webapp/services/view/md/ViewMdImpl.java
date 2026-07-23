@@ -27,6 +27,7 @@ import java.util.Objects;
 abstract class ViewMdImpl implements MutableViewMd {
 
     private String id;
+    private String tbId;
     private long timestamp = Long.MIN_VALUE;
     private String stream;
     private boolean live;
@@ -43,6 +44,16 @@ abstract class ViewMdImpl implements MutableViewMd {
     @Override
     public void setId(String id) {
         this.id = id;
+    }
+
+    @Override
+    public String getTbId() {
+        return tbId;
+    }
+
+    @Override
+    public void setTbId(String tbId) {
+        this.tbId = tbId;
     }
 
     @Override

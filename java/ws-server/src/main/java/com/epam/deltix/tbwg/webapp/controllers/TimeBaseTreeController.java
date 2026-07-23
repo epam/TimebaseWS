@@ -49,9 +49,13 @@ public class TimeBaseTreeController {
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{stream}/{symbol}", method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<TreeNodeDef> getSymbolTree(@PathVariable String stream, @PathVariable String symbol, @RequestBody TimeBaseStructureRequestDef request) {
+    public ResponseEntity<TreeNodeDef> getSymbolTree(
+            @PathVariable String stream,
+            @PathVariable String symbol,
+            @RequestParam(required = false) String tb,
+            @RequestBody TimeBaseStructureRequestDef request) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(
-                timeBaseTree.findSymbolTree(stream, symbol, request.isShowSpaces(), request.isViews())
+                timeBaseTree.findSymbolTree(tb, stream, symbol, request.isShowSpaces(), request.isViews())
         );
     }
 

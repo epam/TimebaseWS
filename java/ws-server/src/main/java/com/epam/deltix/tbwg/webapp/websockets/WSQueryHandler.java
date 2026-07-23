@@ -28,6 +28,7 @@ import com.epam.deltix.qsrv.hf.tickdb.pub.query.InstrumentMessageSource;
 import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
 import com.epam.deltix.tbwg.webapp.model.ws.*;
 import com.epam.deltix.tbwg.webapp.services.MetricsService;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.util.concurrent.QuickExecutor;
 import com.epam.deltix.util.time.TimeKeeper;
@@ -41,8 +42,8 @@ import java.util.*;
 
 public class WSQueryHandler extends WSHandler {
 
-    public WSQueryHandler(TimebaseService timebase, QuickExecutor executor, MetricsService metrics) {
-        super(timebase, executor, metrics);
+    public WSQueryHandler(TimebaseRegistry registry, QuickExecutor executor, MetricsService metrics) {
+        super(registry, executor, metrics);
     }
 
     protected String endpoint() {
@@ -84,7 +85,7 @@ public class WSQueryHandler extends WSHandler {
                     CharSequence[] instruments = symbols != null ?
                             symbols.toArray(new CharSequence[0]) : null;
 
-                    InstrumentMessageSource messageSource = timebase.getConnection().executeQuery(
+                    InstrumentMessageSource messageSource = connection.executeQuery(
                         subscribeMessage.query, options, null, instruments, timestamp
                     );
 

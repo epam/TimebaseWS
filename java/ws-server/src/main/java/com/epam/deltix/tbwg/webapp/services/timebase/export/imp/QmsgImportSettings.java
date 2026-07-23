@@ -36,4 +36,5 @@ public class QmsgImportSettings implements ImportSettings {
     private Periodicity periodicity;
     private boolean fileBySymbol;
     private LoadingOptions.WriteMode writeMode;
+    private String tbId;
 }

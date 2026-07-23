@@ -111,7 +111,16 @@ public class TimebaseServiceImpl implements TimebaseService {
 
     @Override
     public String getId() {
-        return db.getId();
+        String configuredId = timebaseSettings.getId();
+        if (configuredId != null && !configuredId.isEmpty()) {
+            return configuredId;
+        }
+        return db != null ? db.getId() : null;
+    }
+
+    @Override
+    public String getUrl() {
+        return timebaseSettings.getUrl();
     }
 
     @Override
@@ -238,7 +247,7 @@ public class TimebaseServiceImpl implements TimebaseService {
             }
 
             if (db instanceof DBStateNotifier) {
-                ((DBStateNotifier) db).addStateListener(systemMessagesService.getStateListener());
+                ((DBStateNotifier) db).addStateListener(systemMessagesService.getStateListenerForTb(getId()));
             } else {
                 LOGGER.error().append("Cannot add ")
                         .append(DBStateListener.class.getSimpleName())

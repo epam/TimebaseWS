@@ -50,6 +50,7 @@ public class LiveChartingController implements SubscriptionController {
     private static final String POINT_INTERVAL_HEADER = "pointInterval";
     private static final String LEVELS_HEADER = "levels";
     private static final String SOURCE_HEADER = "source";
+    private static final String TB_ID_HEADER = "tbId";
 
     private final LiveChartingService liveChartingService;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -121,14 +122,15 @@ public class LiveChartingController implements SubscriptionController {
         return subscribe(
             headerAccessor, channel,
             chartType, streamKey, instruments,
-            new TimeInterval(startTime, endTime), pointInterval, levels, source
+            new TimeInterval(startTime, endTime), pointInterval, levels, source,
+            headerAccessor.getFirstNativeHeader(TB_ID_HEADER)
         );
     }
 
     private Subscription subscribe(SimpMessageHeaderAccessor headerAccessor, SubscriptionChannel channel,
                                    ChartType chartType, String stream, String[] instruments,
                                    TimeInterval timeInterval, long pointInterval, int levels,
-                                   ModelDataSourceType source)
+                                   ModelDataSourceType source, String tbId)
     {
         String sessionId = headerAccessor.getSessionId();
         String subscriptionId = headerAccessor.getSubscriptionId();
@@ -147,7 +149,7 @@ public class LiveChartingController implements SubscriptionController {
         liveChartingService.subscribe(
             sessionId, subscriptionId,
             new ChartingSettings(
-                stream, null, instruments, chartType, timeInterval, pointInterval, levels, source
+                stream, null, instruments, chartType, timeInterval, pointInterval, levels, source, tbId
             ),
             channel
         );

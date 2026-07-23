@@ -21,9 +21,7 @@ import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.model.charting.ChartingFrameDef;
 import com.epam.deltix.tbwg.webapp.model.input.QueryRequest;
 import com.epam.deltix.tbwg.webapp.services.charting.queries.ChartingResult;
-import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.UnknownStreamException;
-import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -41,12 +39,10 @@ import static com.epam.deltix.tbwg.webapp.utils.BordersTimeBarChartsUtils.*;
 @RequestMapping("/api/v0/charting")
 public class ChartingController {
 
-    private final TimebaseService timebaseService;
     private final ChartingService chartingService;
 
     @Autowired
-    public ChartingController(TimebaseService timebaseService, ChartingService chartingService) {
-        this.timebaseService = timebaseService;
+    public ChartingController(ChartingService chartingService) {
         this.chartingService = chartingService;
     }
 
@@ -72,8 +68,9 @@ public class ChartingController {
     }
 
     @RequestMapping(value = "/{streamKey}/settings/linear-chart-columns", method = RequestMethod.GET)
-    public String[] chartableColumns(@PathVariable String streamKey) throws UnknownStreamException {
-        return TBWGUtils.getLinearChartColumns(timebaseService.getStreamChecked(streamKey).getTypes());
+    public String[] chartableColumns(@PathVariable String streamKey,
+                                     @RequestParam(required = false) String tb) throws UnknownStreamException {
+        return chartingService.linearChartColumns(streamKey, tb);
     }
 
     @RequestMapping(value = "/dx/{streamKey}", method = RequestMethod.GET)
@@ -85,7 +82,8 @@ public class ChartingController {
                                                          @RequestParam(required = false, defaultValue = "1000") long pointInterval,
                                                          @RequestParam(required = false, defaultValue = "20") int levels,
                                                          @RequestParam(required = false) Long correlationId,
-                                                         @RequestParam(defaultValue = "L2") ModelDataSourceType source)
+                                                         @RequestParam(defaultValue = "L2") ModelDataSourceType source,
+                                                         @RequestParam(required = false) String tb)
     {
         if (pointInterval <= 0) {
             throw new RuntimeException("Illegal pointInterval value: " + pointInterval);
@@ -101,7 +99,7 @@ public class ChartingController {
             new ChartingSettings(
                 streamKey, null, symbols, type,
                 new TimeInterval(startTime, endTime),
-                pointInterval, levels, source
+                pointInterval, levels, source, tb
             ), correlationId
         );
 

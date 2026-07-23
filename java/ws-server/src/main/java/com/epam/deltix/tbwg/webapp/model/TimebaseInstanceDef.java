@@ -14,14 +14,26 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.services.orderbook;
+package com.epam.deltix.tbwg.webapp.model;
 
-import com.epam.deltix.tbwg.webapp.model.orderbook.L2PackageDto;
+import com.epam.deltix.qsrv.hf.tickdb.client.Version;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
-import com.epam.deltix.tbwg.webapp.services.timebase.exc.NoStreamsException;
 
-public interface OrderBookDebugger {
+public class TimebaseInstanceDef {
 
-    L2PackageDto        snapshot(OrderBookSnapshotRequest request, TimebaseService service) throws NoStreamsException;
+    public final String id;
+    public final String url;
+    public final boolean readonly;
+    public final boolean connected;
+    public final String serverVersion;
+    public final String clientVersion;
 
+    public TimebaseInstanceDef(TimebaseService svc) {
+        this.id = svc.getId();
+        this.url = svc.getUrl();
+        this.readonly = svc.isReadonly();
+        this.connected = svc.isConnected();
+        this.serverVersion = svc.getServerVersion();
+        this.clientVersion = Version.getVersion();
+    }
 }

@@ -23,7 +23,7 @@ import com.epam.deltix.qsrv.hf.pub.md.json.*;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
 import com.epam.deltix.qsrv.hf.tickdb.ui.tbshell.TickDBShell;
 import com.epam.deltix.tbwg.webapp.model.input.*;
-import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.export.imp.*;
 import com.epam.deltix.tbwg.webapp.utils.CsvImportUtil;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
@@ -55,22 +55,22 @@ public class CsvImportServiceImpl implements CsvImportService {
     private static final Log LOGGER = LogFactory.getLog(CsvImportServiceImpl.class);
     public static final int IMPORT_FINISH_DELAY = 60_000;
 
-    private final TimebaseService timebaseService;
+    private final TimebaseRegistry registry;
     private final UploadFileService uploadFileService;
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     private final Map<String, CsvImportData> importDataMap = new ConcurrentHashMap<>();
 
     public static int PREVIEW_SIZE;
 
-    public CsvImportServiceImpl(TimebaseService timebaseService, UploadFileService uploadFileService) {
-        this.timebaseService = timebaseService;
+    public CsvImportServiceImpl(TimebaseRegistry registry, UploadFileService uploadFileService) {
+        this.registry = registry;
         this.uploadFileService = uploadFileService;
     }
 
     @Override
-    public String initImport(String streamKey) {
+    public String initImport(String streamKey, String tbId) {
         String id = UUID.randomUUID().toString();
-        importDataMap.put(id, new CsvImportData(id, streamKey));
+        importDataMap.put(id, new CsvImportData(id, streamKey, tbId));
         return id;
     }
 
@@ -125,6 +125,7 @@ public class CsvImportServiceImpl implements CsvImportService {
     @Override
     public CsvImportSettings generateDefaultSettings(String id, String streamKey) {
         Map<String, Preview> previewMap = getPreviewMap(id);
+        String tbId = getImportById(id).getTbId();
 
         CsvImportSettings settings = new CsvImportSettings();
         CsvImportGeneralSettings generalSettings = new CsvImportGeneralSettings();
@@ -137,7 +138,7 @@ public class CsvImportServiceImpl implements CsvImportService {
         }
         generalSettings.setCharset(CsvImportUtil.determineCharset(previewMap));
 
-        Map<String, String> typeMappings = getTypeMappings(streamKey);
+        Map<String, String> typeMappings = getTypeMappings(streamKey, tbId);
         generalSettings.setTypeToKeywordMapping(typeMappings);
 
         settings.setMappings(getMappings(id, generalSettings));
@@ -149,7 +150,7 @@ public class CsvImportServiceImpl implements CsvImportService {
             generalSettings.setDataTimeFormat(DEFAULT_DATETIME_FORMAT);
         }
 
-        generalSettings.setSymbols(getStreamSymbols(streamKey));
+        generalSettings.setSymbols(getStreamSymbols(streamKey, tbId));
         if (CsvImportUtil.isAllFullFile(previewMap)) {
             generalSettings.setStartTime(Instant.ofEpochMilli(findStartTime(previewMap)));
             generalSettings.setEndTime(Instant.ofEpochMilli(findEndTime(previewMap)));
@@ -204,22 +205,22 @@ public class CsvImportServiceImpl implements CsvImportService {
 
         // generate schema
         CsvSchemaParser csvSchemaParser = new CsvSchemaParser(generalSettings, enumCheck, enumValuesCount,
-                enumRepeatRate, staticCheck, !VersionUtils.versionHasNsEncoding(timebaseService.getServerVersion()));
+                enumRepeatRate, staticCheck, !VersionUtils.versionHasNsEncoding(registry.getDefault().getServerVersion()));
         for (File file : importProcess.filesList()) {
             csvSchemaParser.processFile(file);
         }
         return csvSchemaParser.getSchema();
     }
 
-    private List<FieldToColumnMapping> getDefaultMapping(String streamKey) {
-        return getStreamFieldsInfo(streamKey, null)
+    private List<FieldToColumnMapping> getDefaultMapping(String streamKey, String tbId) {
+        return getStreamFieldsInfo(streamKey, null, tbId)
                 .stream()
                 .map(streamFieldInfo -> new FieldToColumnMapping(streamFieldInfo, null))
                 .collect(Collectors.toList());
     }
 
-    private String[] getStreamSymbols(String streamKey) {
-        DXTickStream stream = getStream(streamKey);
+    private String[] getStreamSymbols(String streamKey, String tbId) {
+        DXTickStream stream = getStream(streamKey, tbId);
         return Arrays.stream(stream.listEntities())
                 .map(IdentityKey::getSymbol)
                 .map(CharSequence::toString)
@@ -228,18 +229,20 @@ public class CsvImportServiceImpl implements CsvImportService {
 
     @Override
     public List<FieldToColumnMapping> getMappings(String id, CsvImportGeneralSettings settings) {
+        String tbId = getImportById(id).getTbId();
         try {
-            return getInitMappings(id, settings);
+            return getInitMappings(id, settings, tbId);
         } catch (Exception e) {
-            return getDefaultMapping(settings.getStreamKey());
+            return getDefaultMapping(settings.getStreamKey(), tbId);
         }
     }
 
     @Override
     public List<FieldMappingValidateResponse> validateMapping(CsvImportSettings settings, String id) {
+        String tbId = getImportById(id).getTbId();
         ImportValidator validator = createImportValidator(settings, id);
         Set<String> usedTypes = settings.getGeneralSettings().getTypeToKeywordMapping().keySet();
-        Set<StreamFieldInfo> usedFields = getStreamFieldsInfo(settings.getGeneralSettings().getStreamKey(), usedTypes);
+        Set<StreamFieldInfo> usedFields = getStreamFieldsInfo(settings.getGeneralSettings().getStreamKey(), usedTypes, tbId);
         return validator.validateMapping(usedFields);
     }
 
@@ -359,7 +362,10 @@ public class CsvImportServiceImpl implements CsvImportService {
             ImportProcessReport report = createImportReporterWithWriter(processId, channel);
             executorService.submit(() -> {
                 try {
-                    ImportTask task = new ImportDirectoryTask(timebaseService, importProcess, report, settings, status);
+                    String tbId = importData.getTbId();
+                    ImportTask task = new ImportDirectoryTask(
+                        registry.resolve(tbId),
+                        importProcess, report, settings, status);
                     importProcess.importTask(task);
                     LOGGER.info().append("Start CSV import process id: ").append(processId).commit();
                     while (!importProcess.ready()) {
@@ -556,9 +562,9 @@ public class CsvImportServiceImpl implements CsvImportService {
                 .orElse("timestamp");
     }
 
-    private List<FieldToColumnMapping> getInitMappings(String id, CsvImportGeneralSettings settings) {
+    private List<FieldToColumnMapping> getInitMappings(String id, CsvImportGeneralSettings settings, String tbId) {
         Map<String, List<String[]>> csvImportData = getPreviewParseValues(id, settings.getSeparator(), settings.getCharset());
-        Set<StreamFieldInfo> usedFields = getStreamFieldsInfo(settings.getStreamKey(), settings.getTypeToKeywordMapping().keySet());
+        Set<StreamFieldInfo> usedFields = getStreamFieldsInfo(settings.getStreamKey(), settings.getTypeToKeywordMapping().keySet(), tbId);
         return getStreamFieldToColumnNameMapping(usedFields, csvImportData);
     }
 
@@ -575,8 +581,8 @@ public class CsvImportServiceImpl implements CsvImportService {
         return getImportById(id).getCsvPreviewData();
     }
 
-    private Map<String, String> getTypeMappings(String streamKey) {
-        DXTickStream stream = getStream(streamKey);
+    private Map<String, String> getTypeMappings(String streamKey, String tbId) {
+        DXTickStream stream = getStream(streamKey, tbId);
         RecordClassDescriptor[] descriptors = TickDBShell.collectTypes(stream);
         Map<String, String> typeMappings = new HashMap<>();
         for (RecordClassDescriptor descriptor : descriptors) {
@@ -678,8 +684,8 @@ public class CsvImportServiceImpl implements CsvImportService {
         return (DirectoryImportProcess) importProcess;
     }
 
-    private Set<StreamFieldInfo> getStreamFieldsInfo(String streamKey, Set<String> typesFilter) {
-        DXTickStream stream = getStream(streamKey);
+    private Set<StreamFieldInfo> getStreamFieldsInfo(String streamKey, Set<String> typesFilter, String tbId) {
+        DXTickStream stream = getStream(streamKey, tbId);
         RecordClassDescriptor[] descriptors = TickDBShell.collectTypes(stream);
         Set<StreamFieldInfo> streamFields = new HashSet<>();
         for (RecordClassDescriptor descriptor : descriptors) {
@@ -728,8 +734,8 @@ public class CsvImportServiceImpl implements CsvImportService {
         return null;
     }
 
-    private DXTickStream getStream(String streamName) {
-        DXTickStream stream = TBWGUtils.getStream(timebaseService, streamName);
+    private DXTickStream getStream(String streamName, String tbId) {
+        DXTickStream stream = TBWGUtils.getStream(registry.resolve(tbId), streamName);
         if (stream == null) {
             throw new IllegalArgumentException(streamName + " stream not found.");
         }
@@ -738,7 +744,8 @@ public class CsvImportServiceImpl implements CsvImportService {
 
     private ImportValidator createImportValidator(CsvImportSettings settings, String id) {
         Map<String, Preview> previewMap = getPreviewMap(id);
-        DXTickStream stream = getStream(settings.getGeneralSettings().getStreamKey());
+        String tbId = getImportById(id).getTbId();
+        DXTickStream stream = getStream(settings.getGeneralSettings().getStreamKey(), tbId);
         RecordClassDescriptor[] descriptors = TickDBShell.collectTypes(stream);
         return new ImportValidatorCsv(descriptors, settings, previewMap);
     }

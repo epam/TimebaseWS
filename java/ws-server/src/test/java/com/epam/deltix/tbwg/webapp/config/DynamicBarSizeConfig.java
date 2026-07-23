@@ -17,11 +17,14 @@
 package com.epam.deltix.tbwg.webapp.config;
 
 import com.epam.deltix.tbwg.webapp.services.charting.datasource.MessageSourceFactory;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import org.mockito.Mockito;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+
+import java.util.List;
 
 @Profile("testCharting")
 @Configuration
@@ -37,5 +40,14 @@ public class DynamicBarSizeConfig {
 //    @Primary
     public TimebaseService timebaseService() {
         return Mockito.mock(TimebaseService.class);
+    }
+
+    @Bean
+    public TimebaseRegistry timebaseRegistry(TimebaseService timebaseService) {
+        return new TimebaseRegistry() {
+            @Override public List<TimebaseService> getAll() { return List.of(timebaseService); }
+            @Override public TimebaseService getById(String id) { return timebaseService; }
+            @Override public TimebaseService getDefault() { return timebaseService; }
+        };
     }
 }

@@ -30,6 +30,7 @@ import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
@@ -42,6 +43,7 @@ public class SystemMessagesService {
     private final StreamsStateListener masterListener;
 
     private final Map<String, StreamsStateListener> userToListener = new HashMap<>();
+    private final Map<String, StreamsStateListener> tbListeners = new ConcurrentHashMap<>();
 
     interface SubscribeUserListener {
         void subscribed(String user, SystemMessagesNotifier notifier);
@@ -66,9 +68,19 @@ public class SystemMessagesService {
     @Scheduled(fixedDelay = 1000)
     public void broadcastStreamsState() {
         masterListener.broadcastEvents();
+        tbListeners.forEach((tbId, listener) -> listener.broadcastEvents());
         synchronized (userToListener) {
             userToListener.forEach((k, v) -> v.broadcastEvents());
         }
+    }
+
+    public StreamsStateListener getStateListenerForTb(String tbId) {
+        if (tbId == null) return masterListener;
+        return tbListeners.computeIfAbsent(tbId, id -> {
+            StreamsStateListener l = new StreamsStateListener(template);
+            l.setTbId(id);
+            return l;
+        });
     }
 
     public StreamsStateListener getStateListener() {
@@ -99,6 +111,7 @@ public class SystemMessagesService {
 
         private final SimpMessagingTemplate template;
         private final String endpoint;
+        private String tbId;
 
         private final StreamStates streamStates = new StreamStates();
 
@@ -114,10 +127,15 @@ public class SystemMessagesService {
             this.endpoint = WebSocketConfig.STREAMS_TOPIC + "/" + user;
         }
 
+        public void setTbId(String tbId) {
+            this.tbId = tbId;
+        }
+
         public void broadcastEvents() {
             try {
                 synchronized (streamStates) {
                     if (!streamStates.isEmpty()) {
+                        streamStates.setTbId(tbId);
                         template.convertAndSend(endpoint, streamStates);
                         if (LOG.isTraceEnabled()) {
                             LOG.trace().append("Send message to topic ")

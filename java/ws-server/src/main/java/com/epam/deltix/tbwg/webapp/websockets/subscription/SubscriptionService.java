@@ -21,6 +21,7 @@ import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
 import com.epam.deltix.tbwg.webapp.model.ErrorDef;
 import com.epam.deltix.tbwg.webapp.services.MetricsService;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.timebase.connections.TbUserDetails;
 import com.epam.deltix.tbwg.webapp.utils.HeaderAccessorHelper;
@@ -79,7 +80,7 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
 
     @Autowired
     @Lazy
-    private TimebaseService timebaseService;
+    private TimebaseRegistry timebaseRegistry;
 
     private final MetricsService metrics;
 
@@ -191,10 +192,12 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
 
                 Principal principal = headers.getUser();
                 TbUserDetails details = TbUserDetails.create(TBWGUtils.getIp(headers));
-                timebaseService.login(principal, details);
+                for (TimebaseService svc : timebaseRegistry.getAll()) { svc.login(principal, details); }
                 try {
                     subscription = controller.onSubscribe(headers, channel);
-                    timebaseService.openSession(principal, details, getSessionId(sessionId, subscriptionId));
+                    for (TimebaseService svc : timebaseRegistry.getAll()) {
+                        svc.openSession(principal, details, getSessionId(sessionId, subscriptionId));
+                    }
                 } catch (final Throwable e) {
                     LOG.warn("SubscriptionService controller thew an exception on subscribe: : session=%s, subscription=%s, destination=%s, exception=%s")
                             .with(sessionId)
@@ -204,7 +207,7 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
 
                     channel.sendError(e);
                 } finally {
-                    timebaseService.logout(principal, details);
+                    for (TimebaseService svc : timebaseRegistry.getAll()) { svc.logout(principal, details); }
                 }
 
                 if (subscription != null) {
@@ -228,7 +231,9 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
                 .with(subscriptionId)
                 .with(destination);
 
-            timebaseService.closeSession(principal, details, getSessionId(sessionId, subscriptionId));
+            for (TimebaseService svc : timebaseRegistry.getAll()) {
+                svc.closeSession(principal, details, getSessionId(sessionId, subscriptionId));
+            }
             removeSubscription(sessionId, subscriptionId);
         }
 
@@ -245,7 +250,9 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
             Objects.requireNonNull(sessionId);
             List<String> subscriptionIds = removeSubscriptions(sessionId);
             for (String subscriptionId : subscriptionIds) {
-                timebaseService.closeSession(principal, details, getSessionId(sessionId, subscriptionId));
+                for (TimebaseService svc : timebaseRegistry.getAll()) {
+                    svc.closeSession(principal, details, getSessionId(sessionId, subscriptionId));
+                }
             }
         }
 

@@ -70,5 +70,7 @@ public interface TimebaseService extends TimebaseLoginService {
 
     String          getId();
 
+    String          getUrl();
+
     TopicDB         getTopicDB();
 }

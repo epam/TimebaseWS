@@ -34,11 +34,13 @@ import java.security.Principal;
 @CrossOrigin
 public class GenAiController implements SubscriptionController {
 
+    private static final String TB_HEADER = "tbId";
+
     private final @Nullable GenAiService genAiService;
 
-    public GenAiController(SubscriptionControllerRegistry registry,
+    public GenAiController(SubscriptionControllerRegistry subscriptionRegistry,
                            @Autowired(required = false) @Nullable GenAiService genAiService) {
-        registry.register(WebSocketConfig.GENAI_QQL_TOPIC, this);
+        subscriptionRegistry.register(WebSocketConfig.GENAI_QQL_TOPIC, this);
         this.genAiService = genAiService;
     }
 
@@ -65,7 +67,8 @@ public class GenAiController implements SubscriptionController {
             return () -> {};
         }
 
-        genAiService.subscribe(username, userInput, rawStreamKeys, channel);
+        String tb = headerAccessor.getFirstNativeHeader(TB_HEADER);
+        genAiService.subscribe(username, userInput, rawStreamKeys, channel, tb);
         return () -> genAiService.unsubscribe(channel);
     }
 }
