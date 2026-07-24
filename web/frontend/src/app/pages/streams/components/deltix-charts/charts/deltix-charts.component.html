@@ -97,8 +97,8 @@
   </ng-container>
 </div>
 <app-chart-scroll [ngStyle]="{'visibility': showChartScroll ? 'visible' : 'hidden'}"
- [selectedRange]="selectedRange" [streamId]="streamId" [symbolName]="symbolName" 
- [scrollRange]="scrollRange" [symbolList]="symbolList$ | async">
+ [selectedRange]="selectedRange" [streamId]="streamId" [symbolName]="symbolName"
+ [scrollRange]="scrollRange" [symbolList]="symbolList$ | async" [tbId]="(currentTab$ | async)?.tbId">
 </app-chart-scroll>
 <div [class.hide]="httpError$ | async" class="chart-date">{{ chartDate$ | async }}</div>
 

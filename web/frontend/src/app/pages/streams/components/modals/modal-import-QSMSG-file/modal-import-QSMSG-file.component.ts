@@ -51,6 +51,8 @@ import { SchemaClassTypeModel } from 'src/app/shared/models/schema.class.type.mo
 import { SeLayoutComponent } from '../../../modules/schema-editor/components/se-layout/se-layout.component';
 import { AppState } from 'src/app/core/store';
 import { getActiveTab } from '../../../store/streams-tabs/streams-tabs.selectors';
+import { getDefaultTimebase, getTimebases } from '../../../store/timebases/timebases.selectors';
+import { TimebaseInstanceDef } from '../../../../../shared/models/timebase-instance-def.model';
 import * as NotificationsActions from '../../../../../core/modules/notifications/store/notifications.actions';
 import * as StreamsActions from '../../../store/streams-list/streams.actions';
 import { KeyValue } from '@angular/common';
@@ -70,6 +72,8 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
   @ViewChild(SeLayoutComponent) schemaEditor!: SeLayoutComponent;
   @ViewChild('dataLossWarning') dataLossWarning: TemplateRef<HTMLElement>;
 
+  tbId: string = null;
+  timebases$: Observable<TimebaseInstanceDef[]>;
   form: UntypedFormGroup;
   autocomplete$: Observable<string[]>;
   
@@ -119,6 +123,7 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
   private confirmationModal: BsModalRef;
   private uploadProgress$ = new BehaviorSubject(0);
   private importProgress$ = new BehaviorSubject(0);
+  private _tbId$ = new BehaviorSubject<string>(null);
   private uploadId: number;
   private cancel$ = new Subject();
   private destroy$ = new ReplaySubject(1);
@@ -136,6 +141,14 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
   ) {}
   
   ngOnInit(): void {
+    this.timebases$ = this.appStore.pipe(select(getTimebases));
+    this.appStore.pipe(select(getDefaultTimebase), take(1)).subscribe(defaultTb => {
+      if (!this.tbId && defaultTb?.id) {
+        this.tbId = defaultTb.id;
+      }
+    });
+    this._tbId$.next(this.tbId);
+
     this.progress$ = combineLatest([this.uploadProgress$, this.importProgress$]).pipe(
       map(([uploadProgress, importProgress]) => Math.floor((uploadProgress + importProgress) / 2)),
     );
@@ -245,19 +258,15 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
       .pipe(take(1))
       .subscribe((filters) => this.form.get('timezone').patchValue(filters.timezone[0].name));
     
-    this.autocomplete$ = this.streamsStore.pipe(select(streamsListStateSelector)).pipe(
-      map((state) => {
-        if (!state.streams) {
-          return [];
-        }
+    this.autocomplete$ = this._tbId$.pipe(
+      switchMap(tbId => this.streamsService.getList(false, null, null, tbId || null)),
+      map((streams: StreamModel[]) => {
         if (this.stream) {
-          this.displayStreamName = state.streams.find(stream => stream.key === this.stream)?.name;
-          this.form.patchValue({ stream: this.displayStreamName ?? '' }); 
+          this.displayStreamName = streams.find(s => s.key === this.stream)?.name;
+          this.form.patchValue({ stream: this.displayStreamName ?? '' });
         }
-        
-        this.streamList = state.streams;
-        
-        return state.streams.map((stream) => stream.name);
+        this.streamList = streams;
+        return streams.map(s => s.name);
       }),
       publishReplay(1),
       refCount(),
@@ -346,6 +355,11 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
       .subscribe(() => this.cancelImport());
   }
   
+  onTbChange(tbId: string) {
+    this.tbId = tbId;
+    this._tbId$.next(tbId);
+  }
+
   onStreamChange(search: string) {
     this.form.get('stream').patchValue(search);
   }
@@ -501,7 +515,7 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
       from: formData.setRange ? formData.range.start : null,
       to: formData.setRange ? formData.range.end : null,
       writeMode: formData.writeMode,
-     });
+     }, this.tbId);
   }
 
   private catchResponceError(e: HttpErrorResponse) {

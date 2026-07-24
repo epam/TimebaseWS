@@ -83,13 +83,14 @@
                 class="sidebar-arrow"></i>
             <a
                 (keydown)="toggleMenuItemWithKeys(menuItem, menuItem.path, $event)"
+                (click)="menuItem.type === 'DB' ? onDbNodeClick(menuItem, $event) : undefined"
                 [appStreamsNavigationActive]="menuItem.id"
                 [queryParams]="menuItem | streamsNavigationParams: activeTabType"
                 [routerLink]="menuItem | streamsNavigationUrl: activeTabType: (reverseViewIsDefault$ | async)"
-                class="menu-item-link" 
+                class="menu-item-link"
                 [name]="menuItem.name"
                 [attr.data-type]="menuItem.type"
-                [class.selected-item]="selectedItem === menuItem.name || streamSelectedForImport === menuItem.name"
+                [class.selected-item]="selectedItem === menuItem.name || streamSelectedForImport === menuItem.name || activeDbNodeId === menuItem.id"
                 [class.highlighted-item]="highlightedItems?.stream === menuItem.name || highlightedItems?.symbol === menuItem.name"
                 tabindex="0">
                   <span

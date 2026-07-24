@@ -1,10 +1,10 @@
 import { Component, OnDestroy, OnInit }                    from '@angular/core';
 import { AbstractControl, UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
-import { Store }                                           from '@ngrx/store';
+import { select, Store }                                           from '@ngrx/store';
 import { TranslateService }                   from '@ngx-translate/core';
 import { BsModalRef }                         from 'ngx-bootstrap/modal';
-import { BehaviorSubject, Subject }                                   from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, Subject }                        from 'rxjs';
+import { switchMap, take } from 'rxjs/operators';
 import { AppState }                                            from '../../../../../core/store';
 import { ErrorLocation }                      from '../../../../../shared/models/query';
 import { MonacoQqlConfigService }             from '../../../../../shared/services/monaco-qql-config.service';
@@ -12,6 +12,8 @@ import { MonacoQqlTokensService }             from '../../../../../shared/servic
 import { ViewsService }                       from '../../../../../shared/services/views.service';
 import { noSpecialSymbols }                   from '../../../../../shared/utils/validators';
 import * as NotificationsActions from '../../../../../core/modules/notifications/store/notifications.actions';
+import { getDefaultTimebase, getTimebases } from '../../../store/timebases/timebases.selectors';
+import { TimebaseInstanceDef } from '../../../../../shared/models/timebase-instance-def.model';
 
 @Component({
   selector: 'app-create-view-modal',
@@ -20,7 +22,9 @@ import * as NotificationsActions from '../../../../../core/modules/notifications
   providers: [MonacoQqlConfigService, MonacoQqlTokensService],
 })
 export class CreateViewModalComponent implements OnInit, OnDestroy {
-  
+
+  tbId: string = null;
+  timebases$: Observable<TimebaseInstanceDef[]>;
   textError: string;
   hasError: boolean;
   errorLocation: ErrorLocation;
@@ -43,6 +47,14 @@ export class CreateViewModalComponent implements OnInit, OnDestroy {
   ) { }
   
   ngOnInit(): void {
+    this.timebases$ = this.appStore.pipe(select(getTimebases));
+
+    this.appStore.pipe(select(getDefaultTimebase), take(1)).subscribe(defaultTb => {
+      if (!this.tbId && defaultTb?.id) {
+        this.tbId = defaultTb.id;
+      }
+    });
+
     this.form = this.fb.group({
       title: [null, [Validators.required, noSpecialSymbols()]],
       query: [null],
@@ -55,7 +67,7 @@ export class CreateViewModalComponent implements OnInit, OnDestroy {
   
   createView() {
     const {title, live} = this.form.getRawValue();
-    this.viewsService.save(title, this.queryText, live).pipe(
+    this.viewsService.save(title, this.queryText, live, this.tbId).pipe(
       switchMap(() => this.translateService.get('qqlEditor.createViewModal.successCreated', {name: title})),
     ).subscribe((message) => {
       this.bsModalRef.hide();
@@ -71,6 +83,10 @@ export class CreateViewModalComponent implements OnInit, OnDestroy {
       this.form.get('title').setErrors({beError: true});
       this.beErrorText = error.error.message;
     });
+  }
+
+  onTbChange(tbId: string) {
+    this.tbId = tbId;
   }
 
   queryChanged({ text, error }) {

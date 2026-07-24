@@ -68,7 +68,7 @@ export class StreamsGridLiveComponent implements OnInit {
           filter(p => !!p),
         )
       } else {
-        return this.schemaService.getSchema(tab.stream, null, true).pipe(
+        return this.schemaService.getSchema(tab.stream, null, true, tab.tbId).pipe(
           catchError(e => {
             this.error$.next(e);
             return of(null);
@@ -88,7 +88,7 @@ export class StreamsGridLiveComponent implements OnInit {
         if (tab.isTopic) {
           return of(null);
         } else {
-          return this.streamsService.getProps(tab.stream).pipe(
+          return this.streamsService.getProps(tab.stream, true, tab.tbId).pipe(
             catchError(e => of(null)),
             filter(p => !!p),
           );
@@ -108,11 +108,11 @@ export class StreamsGridLiveComponent implements OnInit {
             space: tab.space,
             types: tab.filter.filter_types,
           };
-          
+
           if (tab.symbol) {
             filters.symbols = [tab.symbol];
           }
-          
+
           if (tab.filter.filter_symbols?.length) {
             filters.symbols = tab.filter.filter_symbols;
           }
@@ -124,6 +124,10 @@ export class StreamsGridLiveComponent implements OnInit {
             space: null,
             types: tab.filter.filter_types,
           }
+        }
+
+        if (tab.tbId) {
+          filters.tbId = tab.tbId;
         }
         
         return filters;

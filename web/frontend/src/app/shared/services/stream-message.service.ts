@@ -11,12 +11,13 @@ export class StreamMessageService {
     streamId: string,
     messages: object[],
     writeMode: string,
+    tbId?: string,
   ): Observable<{error: string; message: string}[]> {
     return this.httpClient.post<{error: string; message: string}[]>(
       `/${encodeURIComponent(streamId)}/write`,
       messages,
       {
-        params: {writeMode},
+        params: {writeMode, ...(tbId ? {tb: tbId} : {})},
       },
     );
   }
@@ -25,6 +26,7 @@ export class StreamMessageService {
     streamId: string,
     updatedMessage: object,
     messageInfo: editedMessageProps,
+    tbId?: string,
   ): Observable<{error: string; message: string}[]> {
     const params = {};
     Object.keys(messageInfo).forEach(key => {
@@ -32,6 +34,7 @@ export class StreamMessageService {
         params[key] = messageInfo[key];
       }
     })
+    if (tbId) params['tb'] = tbId;
     return this.httpClient.post<{error: string; message: string}[]>(
       `/${encodeURIComponent(streamId)}/update`,
       updatedMessage,

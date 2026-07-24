@@ -5,12 +5,13 @@ import { RxStompState } from '@stomp/rx-stomp';
 
 import { BehaviorSubject, Subject, of, combineLatest, merge, throwError, Observable, Subscription } from 'rxjs';
 import { takeUntil, switchMap, first, finalize, tap, catchError,
-  map, publishReplay, refCount, debounceTime, filter, skip } from 'rxjs/operators';
+  map, publishReplay, refCount, debounceTime, filter, skip, take } from 'rxjs/operators';
 import { BsModalRef } from 'ngx-bootstrap/modal';
 import * as fromStreams from '../../../store/streams-list/streams.reducer';
 import { streamsListStateSelector } from '../../../store/streams-list/streams.selectors';
 import { GlobalFiltersService } from 'src/app/shared/services/global-filters.service';
 import { ImportFromTextFileService } from '../../../services/import-from-text-file.service';
+import { StreamsService } from '../../../../../shared/services/streams.service';
 import { UploadFileComponent } from '../../csv-import/upload-file/upload-file.component';
 import { WriteModeAndTimeRangeComponent } from '../../csv-import/write-mode-and-time-range/write-mode-and-time-range.component';
 import { ImportProgress, ImportProgressType, ImportStateMessage } from '../../../models/import-progress';
@@ -20,6 +21,8 @@ import { StreamModel } from '../../../models/stream.model';
 import { AppState } from 'src/app/core/store';
 import * as StreamsActions from '../../../store/streams-list/streams.actions';
 import { KeyValue } from '@angular/common';
+import { getDefaultTimebase, getTimebases } from '../../../store/timebases/timebases.selectors';
+import { TimebaseInstanceDef } from '../../../../../shared/models/timebase-instance-def.model';
 
 const defaultHeight = 600;
 
@@ -30,14 +33,19 @@ const defaultHeight = 600;
 })
 export class ModalImportCSVFileComponent implements OnInit, OnDestroy {
 
+  tbId: string = null;
+  timebases$: Observable<TimebaseInstanceDef[]>;
   private importSteps = ['uploading', 'schema', 'parameters-setting', 'preview', 'time-range', 'import-progress'];
   private currentStepIndex: number = 0;
+  private _tbId$ = new BehaviorSubject<string>(null);
+
+  get isOnFirstStep(): boolean { return this.currentStepIndex === 0; }
   private fileUploadingProgress = 0;
   private importProgress = 0;
   private cancel$ = new Subject();
   private destroy$ = new Subject();
   private settingsForMapping: { separator: string, charset: string, typeToKeyWord: { [ key: string ]: string } };
-  private streamList: StreamModel[];
+  private streamList: StreamModel[] = [];
   private importToExistingStream: boolean;
   private importProcessSubscription: Subscription;
   private newStreamCreated = false;
@@ -78,13 +86,26 @@ export class ModalImportCSVFileComponent implements OnInit, OnDestroy {
   @ViewChild('progressMessages') progressMessages: ElementRef;
 
   constructor(
-    private bsModalRef: BsModalRef, 
+    private bsModalRef: BsModalRef,
     private importFromTextFileService: ImportFromTextFileService,
-    private globalFiltersService: GlobalFiltersService, 
+    private globalFiltersService: GlobalFiltersService,
     private streamsStore: Store<fromStreams.FeatureState>,
-    private appStore: Store<AppState>) {}
+    private appStore: Store<AppState>,
+    private streamsService: StreamsService) {}
+
+  onTbChange(tbId: string) {
+    this.tbId = tbId;
+    this.importFromTextFileService.tbId = tbId;
+    this._tbId$.next(tbId);
+  }
 
   ngOnInit(): void {
+    this.timebases$ = this.appStore.pipe(select(getTimebases));
+    this.appStore.pipe(select(getDefaultTimebase), take(1)).subscribe(defaultTb => {
+      if (!this.tbId && defaultTb?.id) { this.tbId = defaultTb.id; }
+    });
+    this._tbId$.next(this.tbId);
+    this.importFromTextFileService.tbId = this.tbId;
     this.noUploadedFiles$ = this.importFromTextFileService.noUploadedFiles$.asObservable();
     this.importFromTextFileService.noUploadedFiles$.next(true);
     this.bsModalRef.onHide
@@ -124,14 +145,11 @@ export class ModalImportCSVFileComponent implements OnInit, OnDestroy {
         this.setImportDataChanged();
       });
 
-    this.autocomplete$ = this.streamsStore.pipe(select(streamsListStateSelector)).pipe(
-      map((state) => {
-        if (!state.streams) {
-          return [];
-        }
-        this.streamList = state.streams;
-
-        return state.streams.map((stream) => stream.name);
+    this.autocomplete$ = this._tbId$.pipe(
+      switchMap(tbId => this.streamsService.getList(false, null, null, tbId || null)),
+      map((streams: StreamModel[]) => {
+        this.streamList = streams;
+        return streams.map(s => s.name);
       }),
       publishReplay(1),
       refCount(),

@@ -25,7 +25,7 @@ export class StreamDescribeContentComponent implements OnInit, OnChanges {
   ) { }
   
   ngOnInit(): void {
-    const ddl$ = this.streamsService.describe(this.stream.id).pipe(map(describe => describe.ddl), shareReplay(1));
+    const ddl$ = this.streamsService.describe(this.stream.id, this.stream.tbId).pipe(map(describe => describe.ddl), shareReplay(1));
     this.updateInitControl();
     this.content$ = this.viewControl.valueChanges.pipe(
       startWith(null),

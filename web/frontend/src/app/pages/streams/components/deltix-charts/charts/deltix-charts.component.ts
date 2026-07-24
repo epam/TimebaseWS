@@ -301,7 +301,7 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy, 
         filter(([tab,]) => tab && !!this.tabId && !!tab.stream && tab.chart),
         switchMap(([tab, list]) => {
           const savedSymbolList = this.chartService.getSavedSymbolList(tab.id);
-          return this.symbolService.getRanges(tab.stream, savedSymbolList ?? list);
+          return this.symbolService.getRanges(tab.stream, savedSymbolList ?? list, tab.tbId);
         }),
         distinctUntilChanged((r1, r2) => JSON.stringify(r1) === JSON.stringify(r2)),
         takeUntil(this.destroy$))
@@ -993,8 +993,9 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy, 
               this.symbolName,
               tab.space,
               barChartTypes.includes(tab.filter.chart_type) ? tab.filter.period.aggregation : null,
+              tab.tbId,
             ),
-            this.streamsService.rangeCached(tab.stream, this.symbolName, tab.space),
+            this.streamsService.rangeCached(tab.stream, this.symbolName, tab.space, null, tab.tbId),
           ]).pipe(map(([range, pureRange]) => [range, pureRange.end, tab]));
         }),
         debounceTime(300),
@@ -1002,7 +1003,7 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy, 
         takeUntil(this.retry$),
         switchMap(([range, pureRangeEnd, tab]) => {
           const lines$ = tab.filter.chart_type === ChartTypes.LINEAR ?
-            this.chartsHttpService.linesInfo(tab.stream) :
+            this.chartsHttpService.linesInfo(tab.stream, tab.tbId) :
             of([]);
           
           return lines$.pipe(
@@ -1013,7 +1014,7 @@ export class DeltixChartsComponent implements OnInit, AfterViewInit, OnDestroy, 
             map(([linesAndColors, currentTab]) => [range, pureRangeEnd, currentTab, linesAndColors]),
           );
         }),
-        switchMap(([range, pureRangeEnd, currentTab, linesAndColors]) => this.streamsService.getProps(this.streamId)
+        switchMap(([range, pureRangeEnd, currentTab, linesAndColors]) => this.streamsService.getProps(this.streamId, true, (currentTab as TabModel)?.tbId)
           .pipe(take(1), map(result => result.props.periodicity?.milliseconds), takeUntil(this.destroy$),
             map(periodicity => [range, pureRangeEnd, currentTab, linesAndColors, periodicity]))
           )

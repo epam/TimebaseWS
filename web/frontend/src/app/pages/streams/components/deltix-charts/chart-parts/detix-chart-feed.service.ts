@@ -91,6 +91,7 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
   private lastRequestedPoints: { [source: string]: DeltixChartFormattedData } = {};
   private range: { start: number, end: number } = { start: 0, end: 0 };
   private tabId: string;
+  private tbId: string;
   private endOfStream$ = new BehaviorSubject<number>(0);
   currentScrollEnd$ = new BehaviorSubject<{ value: number, liveData: boolean}>({ value: 0, liveData: false });
   private savedData = {};
@@ -115,7 +116,7 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
       filter(tab => !!tab),
       distinctUntilChanged((t1, t2) => t1 && t2 && t1.id === t2.id),
       takeUntil(this.destroy$))
-    .subscribe(tab => this.tabId = tab.id);
+    .subscribe(tab => { this.tabId = tab.id; this.tbId = tab.tbId; });
 
     this.symbolList = this.chartService.getAllSavedSymbols() ?? {};
   }
@@ -632,7 +633,7 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
         .pipe(
           switchMap((correlationId) => {
             currentCorrelationId = correlationId;
-            return this.chartsHttpService.data(stream, params, correlationId);
+            return this.chartsHttpService.data(stream, params, correlationId, this.tbId);
           }),
         )
         .subscribe(
@@ -726,9 +727,12 @@ export class DeltixChartFeedService implements IEverChartFeed, OnDestroy {
         if (storage.levels && storage.chartType === ChartTypes.PRICE_LEVELS) {
           params['levels'] = storage.levels.toString();
         }
+        if (this.tbId) {
+          params['tbId'] = this.tbId;
+        }
         this.increaseLoading();
         setTimeout(() => this.decreaseLoading(), 2000);
-        
+
         return this.wsService
           .watchObject<{ lines: ChartRowLines }>(`/user/topic/charting/${tab.stream}`, params)
           .pipe(map((data) => ({data, startWatch, pointInterval: storage.pointInterval, storage})));

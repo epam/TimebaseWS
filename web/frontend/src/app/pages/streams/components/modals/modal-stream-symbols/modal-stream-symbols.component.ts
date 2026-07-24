@@ -43,7 +43,7 @@ export class ModalStreamSymbolsComponent implements OnInit, OnDestroy {
     });
 
     this.symbols$ = this.symbolsService
-      .getSymbols(this.item.meta.stream.id)
+      .getSymbols(this.item.meta.stream.id, null, null, this.item.tbId)
       .pipe(map((symbols) => symbols.map((s) => ({id: s, name: s}))));
 
     this.form.get('symbol').valueChanges
@@ -94,6 +94,7 @@ export class ModalStreamSymbolsComponent implements OnInit, OnDestroy {
     this.appStore.dispatch(
       new StreamsActions.AskToDeleteSymbols({
         streamKey: this.item.meta.stream.id,
+        tbId: this.item.tbId,
         symbols: this.selectedSymbols
       }),
     );

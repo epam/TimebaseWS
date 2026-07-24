@@ -35,6 +35,8 @@ import { TabModel } from 'src/app/pages/streams/models/tab.model';
 import { ChartService } from '../../services/chart-service';
 import { forbiddenChars, forbiddenCharsForMessage } from '../../utils/forbiddenCharacters';
 import { StructureUpdatesService } from 'src/app/pages/streams/services/structure-updates.service';
+import { getTimebases } from '../../../pages/streams/store/timebases/timebases.selectors';
+import { TimebaseInstanceDef } from '../../models/timebase-instance-def.model';
 
 @Component({
   selector: 'app-streams-props',
@@ -69,6 +71,9 @@ export class StreamsPropsComponent implements OnInit, OnDestroy {
   periodicityForm: FormGroup;
 
   streamId: string;
+  private tbId: string;
+  tbId$: Observable<string>;
+  tbUrl$: Observable<string>;
   errorMessages = {
     periodicity: '',
     time_unit: '',
@@ -107,11 +112,18 @@ export class StreamsPropsComponent implements OnInit, OnDestroy {
     this.notView$ = this.appStore.pipe(select(getActiveTab)).pipe(map(tab => !tab?.isView));
     this.isWriter$ = this.permissionsService.isWriter();
     this.currentTab$ = this.appStore.pipe(select(getActiveOrFirstTab));
+    this.currentTab$.pipe(takeUntil(this.destroy$)).subscribe(tab => this.tbId = tab?.tbId);
+
+    this.tbId$ = this.currentTab$.pipe(map((tab) => tab?.tbId || null));
+    const timebases$ = this.appStore.pipe(select(getTimebases));
+    this.tbUrl$ = combineLatest([this.tbId$, timebases$]).pipe(
+      map(([tbId, timebases]) => timebases?.find((tb: TimebaseInstanceDef) => tb.id === tbId)?.url || null),
+    );
 
     this.streamsService.streamPropsOpened = true;
 
     this.streamsService
-      .getList(false)
+      .getList(false, null, null, this.tbId)
       .pipe(takeUntil(this.destroy$))
       .subscribe(streams => {
         this.existingStreams = {
@@ -152,9 +164,9 @@ export class StreamsPropsComponent implements OnInit, OnDestroy {
     routeParams$.pipe(
       withLatestFrom(this.currentTab$),
       filter(([params, tab]) => !!params.stream && !params.stream.endsWith('#topic#') && !tab?.isTopic),
-      switchMap(([params]) => params.symbol
-        ? this.symbolsService.getProps(params.stream, params.symbol, null, false)
-        : this.streamsService.getProps(params.stream, false)
+      switchMap(([params, tab]) => params.symbol
+        ? this.symbolsService.getProps(params.stream, params.symbol, null, false, tab?.tbId)
+        : this.streamsService.getProps(params.stream, false, tab?.tbId)
       ),
       take(1),
       withLatestFrom(this.globalFiltersService.getFilters()),
@@ -206,19 +218,19 @@ export class StreamsPropsComponent implements OnInit, OnDestroy {
         distinctUntilChanged((t1: TabModel, t2) => t1.id === t2.id),
         switchMap(tab => {
           if (!tab.chart) {
-            return routeParams$.pipe(map(params => ({ 
-              symbols: params.symbol ? [params.symbol] : [], stream: params.stream })));
+            return routeParams$.pipe(map(params => ({
+              symbols: params.symbol ? [params.symbol] : [], stream: params.stream, tbId: tab.tbId })));
           } else {
             return this.chartService.openSymbols$.pipe(
               pluck(tab.id),
-              map(list => ({ symbols: list?.length ? list : [tab.symbol], stream: tab.stream })),
+              map(list => ({ symbols: list?.length ? list : [tab.symbol], stream: tab.stream, tbId: tab.tbId })),
             );
           }
         }),
         filter(params => !!params.stream && !params.stream.endsWith('#topic#')),
         switchMap((params) => {
-          return params.symbols.length ? 
-            forkJoin(params.symbols.map(symbol => this.symbolsService.getProps(params.stream, symbol)))
+          return params.symbols.length ?
+            forkJoin(params.symbols.map(symbol => this.symbolsService.getProps(params.stream, symbol, null, undefined, params.tbId)))
               .pipe(
                 map(propList => {
                   const reducedProps = propList.reduce((acc, { props }, i) => {
@@ -228,13 +240,13 @@ export class StreamsPropsComponent implements OnInit, OnDestroy {
                       const symbolProps = Object.fromEntries(Object.entries(props)
                         .filter(([key]) => key.startsWith('symbol'))
                         .map(([key, value]) => [`${key}_${i}`, value]));
-                    
+
                       return { ...acc, ...symbolProps };
                     }
                   }, {});
                   return { props: reducedProps };
               }))
-            : this.streamsService.getProps(params.stream);
+            : this.streamsService.getProps(params.stream, undefined, params.tbId);
           }
         ),
         shareReplay(1),
@@ -251,7 +263,7 @@ export class StreamsPropsComponent implements OnInit, OnDestroy {
     this.structureUpdatesService.onStreamUpdates()
       .pipe(
         filter(event => event.changed?.[0] === this.streamId && event.deleted?.[0] !== this.streamId),
-        switchMap(() => this.structureUpdatesService.getBackgroundTask(this.streamId)),
+        switchMap(() => this.structureUpdatesService.getBackgroundTask(this.streamId, this.tbId)),
         withLatestFrom(this.globalFiltersService.getFilters()),
       )
       .subscribe(([info, filters]) => {
@@ -357,7 +369,7 @@ export class StreamsPropsComponent implements OnInit, OnDestroy {
       select(getActiveTab),
       filter(t => !!t),
       distinctUntilChanged((t1, t2) => t1.id === t2.id),
-      switchMap(tab => this.viewsService.get(tab.name)),
+      switchMap(tab => this.viewsService.get(tab.name, tab.tbId)),
     );
 
     this.infoFormatted$ = combineLatest([
@@ -383,13 +395,13 @@ export class StreamsPropsComponent implements OnInit, OnDestroy {
 
   stopBackgroudTask() {
     this.cancelButtonVisible = false;
-    this.structureUpdatesService.abortBackgroundTask(this.streamId)
+    this.structureUpdatesService.abortBackgroundTask(this.streamId, this.tbId)
       .pipe(take(1), takeUntil(this.destroy$))
       .subscribe(() => this.currentTaskAborted = true);
   }
 
   private backGroundTaskProgress() {
-    this.structureUpdatesService.getBackgroundTask(this.streamId).pipe(
+    this.structureUpdatesService.getBackgroundTask(this.streamId, this.tbId).pipe(
       take(1),
       withLatestFrom(this.globalFiltersService.getFilters()),
     ).subscribe(([info, filters]) => {

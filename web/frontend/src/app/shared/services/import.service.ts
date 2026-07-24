@@ -12,8 +12,9 @@ import { SchemaClassTypeModel } from '../models/schema.class.type.model';
 export class ImportService {
   constructor(private httpClient: HttpClient, private wsService: WSService) {}
 
-  startImport(data: object): Observable<number> {
-    return this.httpClient.post<number>('/initImport', data);
+  startImport(data: object, tbId?: string): Observable<number> {
+    const body = tbId ? {...data, tbId} : data;
+    return this.httpClient.post<number>('/initImport', body);
   }
 
   importChunks(id: number, file: File, start = 0): Observable<number> {

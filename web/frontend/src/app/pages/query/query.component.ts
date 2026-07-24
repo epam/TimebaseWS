@@ -64,6 +64,8 @@ import { TabStorageService }        from '../../shared/services/tab-storage.serv
 import { GridStateModel }           from '../streams/models/grid.state.model';
 import { StreamDetailsModel }       from '../streams/models/stream.details.model';
 import { getActiveTab }             from '../streams/store/streams-tabs/streams-tabs.selectors';
+import { getTimebases }            from '../streams/store/timebases/timebases.selectors';
+import { TimebaseInstanceDef }     from '../../shared/models/timebase-instance-def.model';
 import { CreateViewQueryComponent } from './create-view/create-view-query.component';
 import { LastQueriesService }       from './services/last-queries.service';
 import { QueryService }             from './services/query.service';
@@ -129,6 +131,11 @@ export class QueryComponent implements OnInit, AfterViewInit {
   editor;
   selectedRange: { [key: string]: IRange } = {};
   currentTabId: string;
+  tbId: string;
+  tbUrl: string;
+  timebases$: Observable<TimebaseInstanceDef[]>;
+  selectedTbId: string;
+  private timebasesList: TimebaseInstanceDef[] = [];
   private serverErrorQueries = this.queryService.serverErrorQueries;
   private validationErrors: { [key: string]: IRange } = {};
   
@@ -187,12 +194,23 @@ export class QueryComponent implements OnInit, AfterViewInit {
       .pipe(takeUntil(this.destroy$))
       .subscribe(id => this.currentTabId = id);
 
+    this.timebases$ = this.appStore.pipe(select(getTimebases));
+
+    combineLatest([this.appStore.pipe(select(getActiveTab)), this.timebases$])
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(([tab, timebases]) => {
+        this.timebasesList = timebases || [];
+        const storeTbId = tab?.tbId ?? this.timebasesList[0]?.id ?? null;
+        this.tbId = this.selectedTbId ?? storeTbId;
+        this.tbUrl = this.timebasesList.find((tb) => tb.id === this.tbId)?.url || null;
+      });
+
     this.gridService
       .infinityScroll((start, end) => {
         return this.tabId().pipe(
           take(1),
           switchMap((tabId) =>
-            this.queryService.query(this.storageService.getExecutedQuery(tabId), start, end - start),
+            this.queryService.query(this.storageService.getExecutedQuery(tabId), start, end - start, this.tbId),
           ),
           map((data) => this.mapResponseData(data)),
         );
@@ -280,6 +298,7 @@ export class QueryComponent implements OnInit, AfterViewInit {
               types: null,
               destination: `/user/topic/monitor-qql`,
               qql: query?.replace(/\r/g, '\\r').replace(/\n/g, '\\n'),
+              tbId: this.tbId,
             };
             this.toggleGrid(true);
             return;
@@ -432,9 +451,9 @@ export class QueryComponent implements OnInit, AfterViewInit {
     this.gridTotalService.startLoading();
     this.currentQuery = this.qqlEditor.validateQueryText(query, this.selectedRange[this.currentTabId]).pipe(
       switchMap(() => combineLatest([
-        this.queryService.describe(formData.query),
+        this.queryService.describe(formData.query, this.tbId),
         ![GridTypes.live, GridTypes.monitor].includes(this.gridType$.getValue())
-          ? this.queryService.query(formData.query, 0, 100).pipe(tap((data) => this.gridTotalService.endLoading(data.length)))
+          ? this.queryService.query(formData.query, 0, 100, this.tbId).pipe(tap((data) => this.gridTotalService.endLoading(data.length)))
           : of([]),
         ])),
         catchError((err) => {
@@ -526,7 +545,7 @@ export class QueryComponent implements OnInit, AfterViewInit {
           })),
         ),
         switchMap(() =>
-          this.queryService.export(this.form.get('query').value, this.exportType$.getValue()),
+          this.queryService.export(this.form.get('query').value, this.exportType$.getValue(), this.tbId),
         ),
         switchMap(({id}) => this.exportService.downloadUrl(id)),
         take(1),
@@ -580,7 +599,7 @@ export class QueryComponent implements OnInit, AfterViewInit {
         withLatestFrom(this.appStore.pipe(select(getActiveTab)), this.appStore.pipe(select(getAppInfo))))
       .subscribe(([tabId, tab, appInfo]) => {
         const stored = this.storageService.getQueryFilter(tabId);
-        const timebaseVersion = parseFloat(appInfo.timebase?.serverVersion);
+        const timebaseVersion = parseFloat(appInfo.timebases?.[0]?.serverVersion);
         let tabQuery = tab.queryStream ? `SELECT * FROM "${tab.queryStream}" ` : '';
         if (tab.querySymbol) {
           tabQuery += `WHERE symbol ${!timebaseVersion || timebaseVersion > 5.4 ? '==' : '='} '${tab.querySymbol}'`;
@@ -608,9 +627,15 @@ export class QueryComponent implements OnInit, AfterViewInit {
   }
   
   createView() {
-    const query = this.editor.getModel().getValueInRange(this.editor.getSelection()) || 
+    const query = this.editor.getModel().getValueInRange(this.editor.getSelection()) ||
       this.form.get('query').value;
-    this.bsModalService.show(CreateViewQueryComponent, {initialState: { query }});
+    this.bsModalService.show(CreateViewQueryComponent, {initialState: { query, tbId: this.tbId }});
+  }
+
+  onTbChange(tbId: string) {
+    this.selectedTbId = tbId;
+    this.tbId = tbId;
+    this.tbUrl = this.timebasesList.find((tb) => tb.id === tbId)?.url || null;
   }
   
   onValidUpdate() {

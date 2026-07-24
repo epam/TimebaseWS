@@ -193,7 +193,7 @@ export class LiveGridComponent implements OnInit, OnDestroy, OnChanges {
         if (tab?.stream?.endsWith('#topic#')) {
           return this.topicService.getTopicSchema(tab.stream.slice(0, tab.stream.length - 7));
         } else {
-          return tab?.stream ? this.schemaService.getSchema(tab.stream) : of(this.schemaData);
+          return tab?.stream ? this.schemaService.getSchema(tab.stream, null, false, tab?.tbId) : of(this.schemaData);
         } 
       }),
       switchMap(schema => {
@@ -312,7 +312,7 @@ export class LiveGridComponent implements OnInit, OnDestroy, OnChanges {
     this.messageInfoService.setGridApi(readyEvent);
   }
 
-  private runLive({symbols, types, space, fromTimestamp, destination, qql}: LiveGridFilters) {
+  private runLive({symbols, types, space, fromTimestamp, destination, qql, tbId}: LiveGridFilters) {
     this.gridReady$.pipe(take(1)).subscribe((readyEvent) => {
       readyEvent.api.setRowData([]);
       this.cleanWebsocketSubscription();
@@ -325,6 +325,7 @@ export class LiveGridComponent implements OnInit, OnDestroy, OnChanges {
       socketData.space = space;
       socketData.fromTimestamp = fromTimestamp;
       socketData.qql = qql;
+      socketData.tbId = tbId;
       Object.keys(socketData)
         .filter((key) => [undefined, null].includes(socketData[key]))
         .forEach((key) => delete socketData[key]);

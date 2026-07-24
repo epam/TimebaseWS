@@ -131,6 +131,12 @@ cdk-virtual-scroll-viewport {
         pointer-events: none;
         cursor: default;
       }
+
+      &[data-type="DB"] {
+        font-weight: 600;
+        color: $white;
+        opacity: 0.9;
+      }
     }
 
     .menu-item-title {

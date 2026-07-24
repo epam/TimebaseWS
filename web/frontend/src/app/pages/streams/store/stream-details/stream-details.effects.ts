@@ -1,6 +1,7 @@
 import {HttpClient} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {Actions, createEffect, ofType} from '@ngrx/effects';
+import {select, Store} from '@ngrx/store';
 import {Subject} from 'rxjs';
 import {
   distinctUntilChanged,
@@ -10,13 +11,16 @@ import {
   switchMap,
   takeUntil,
   tap,
+  withLatestFrom,
 } from 'rxjs/operators';
+import {AppState} from '../../../../core/store';
 import {SchemaService} from '../../../../shared/services/schema.service';
 import {StreamsService} from '../../../../shared/services/streams.service';
 import {SymbolsService} from '../../../../shared/services/symbols.service';
 import {TabModel} from '../../models/tab.model';
 import {TabsService} from '../../services/tabs.service';
 import * as FilterActions from '../filter/filter.actions';
+import {getStreamsList} from '../streams-list/streams.selectors';
 import * as StreamDetailsActions from './stream-details.actions';
 import {StreamDetailsActionTypes} from './stream-details.actions';
 
@@ -70,7 +74,7 @@ export class StreamDetailsEffects {
     ofType<StreamDetailsActions.GetStreamRange>(StreamDetailsActionTypes.GET_STREAM_RANGE),
     switchMap((action) => {
       return this.streamsService
-        .rangeCached(action.payload.streamId, action.payload.symbol, action.payload.spaceName)
+        .rangeCached(action.payload.streamId, action.payload.symbol, action.payload.spaceName, null, action.payload.tbId)
         .pipe(map((streamRange) => new StreamDetailsActions.SetStreamRange({streamRange})));
     }),
   ));
@@ -79,8 +83,10 @@ export class StreamDetailsEffects {
     ofType<StreamDetailsActions.GetSchema>(StreamDetailsActionTypes.GET_SCHEMA),
     map((action) => action.payload.streamId),
     // distinctUntilChanged(),
-    switchMap((streamId) => {
-      return this.schemaService.getSchema(streamId, null, true).pipe(
+    withLatestFrom(this.appStore.pipe(select(getStreamsList))),
+    switchMap(([streamId, streams]) => {
+      const tbId = streams?.find(s => s.key === streamId)?.tbId;
+      return this.schemaService.getSchema(streamId, null, true, tbId).pipe(
         takeUntil(this.stop_subscription$),
         map((resp) => {
           let schemaTypes = [];
@@ -116,8 +122,10 @@ export class StreamDetailsEffects {
     distinctUntilChanged(
       (e, prev) => `${e.streamId}-${e.spaceId}` === `${prev.streamId}-${prev.spaceId}`,
     ),
-    switchMap(({streamId, spaceId}) => {
-      return this.symbolsService.getSymbols(streamId, spaceId).pipe(
+    withLatestFrom(this.appStore.pipe(select(getStreamsList))),
+    switchMap(([{streamId, spaceId}, streams]) => {
+      const tbId = streams?.find(s => s.key === streamId)?.tbId;
+      return this.symbolsService.getSymbols(streamId, spaceId, null, tbId).pipe(
         takeUntil(this.stop_subscription$),
         map((resp: Array<string>) => {
           return new StreamDetailsActions.SetSymbols({
@@ -160,5 +168,6 @@ export class StreamDetailsEffects {
     private schemaService: SchemaService,
     private symbolsService: SymbolsService,
     private streamsService: StreamsService,
+    private appStore: Store<AppState>,
   ) {}
 }

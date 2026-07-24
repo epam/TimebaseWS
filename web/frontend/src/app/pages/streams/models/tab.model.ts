@@ -10,6 +10,7 @@ export class TabModel {
   public space?: string;
   public id?: string;
   public source?: string;
+  public tbId?: string;
 
   public name?: string;
 
@@ -158,12 +159,18 @@ export class TabModel {
     if (obj['exchange']) {
       this.exchange = obj['exchange'];
     }
+    if (obj['tbId']) {
+      this.tbId = obj['tbId'];
+    }
   }
 
   public get title(): string {
     let title = this.orderBook ? '' : (this.streamName || this.name || this.stream);
     if (this.space !== undefined && !this.orderBook) title += ' / ' + (this.space || 'root');
     if (this.symbol && !this.orderBook) title += ' / ' + this.symbol;
+    if (this.tbId && (this.streamCreate || this.topicCreate)) {
+      title += ` [${this.tbId}]`;
+    }
     return title;
   }
 
@@ -204,6 +211,7 @@ export class TabModel {
   public get linkQuery(): {[key: string]: string} {
     const QUERY = {};
     if (this.space !== undefined) QUERY['space'] = this.space;
+    if (this.tbId) QUERY['tbId'] = this.tbId;
     return QUERY;
   }
 

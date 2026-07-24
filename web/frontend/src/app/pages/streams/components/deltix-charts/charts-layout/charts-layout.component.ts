@@ -162,7 +162,7 @@ export class ChartsLayoutComponent implements OnInit, OnDestroy {
           }
 
           return combineLatest([
-            this.streamsService.rangeCached(tab.stream, tab.symbol.split(',')[0], tab.space),
+            this.streamsService.rangeCached(tab.stream, tab.symbol.split(',')[0], tab.space, null, tab.tbId),
             this.streamsService.getListWithUpdates().pipe(
               map((streams) => streams.find((s) => tab.stream === s.key)),
               filter(Boolean),

@@ -208,7 +208,10 @@
     "revert": "Revert",
     "closeTab": "Close tab",
     "expand": "Expand",
-    "collapse": "Collapse"
+    "collapse": "Collapse",
+    "create_stream": "Create Stream",
+    "create_topic": "Create Topic",
+    "create_view": "Create View"
   },
   "tooltips": {
     "query_mode": "Query mode",

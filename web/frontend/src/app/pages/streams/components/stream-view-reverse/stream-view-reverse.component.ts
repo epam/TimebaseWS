@@ -130,6 +130,7 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
   private selectedRowIndex: number;
   private messageEdited = false;
   private streamId: string;
+  private tbId: string;
   private visibleDefaultColumns: string[];
   private gridDefaults: GridOptions = {
     ...defaultGridOptions,
@@ -226,6 +227,7 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
       
       this.streamId = tab.stream;
       this.streamName = tab.name;
+      this.tbId = tab.tbId;
       this.tabName = tab.stream + tab.id;
       
       const sendMessageMenu = {
@@ -238,6 +240,7 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
                 stream: {
                   id: this.streamId,
                   name: this.streamName,
+                  tbId: this.tbId,
                 },
                 formData: {
                   ...(event.node.data as StreamDetailsModel)?.original,
@@ -264,6 +267,7 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
                 stream: {
                   id: this.streamId,
                   name: this.streamName,
+                  tbId: this.tbId,
                 },
                 formData: {
                   ...(event.node.data as StreamDetailsModel)?.original,
@@ -339,8 +343,8 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
         filter(url => !!url.find(segment => segment.path === 'reverse')),
         switchMap(() => this.activeTab.pipe(filter(tab => !!tab.stream), take(1))),
         switchMap(tab => (tab.symbol
-          ? this.symbolsService.getProps(tab.stream, tab.symbol, null, false)
-          : this.streamsService.getProps(tab.stream, false)).pipe(map(result => ({ props: result.props, currentTab: tab})))
+          ? this.symbolsService.getProps(tab.stream, tab.symbol, null, false, tab.tbId)
+          : this.streamsService.getProps(tab.stream, false, tab.tbId)).pipe(map(result => ({ props: result.props, currentTab: tab})))
         ),
         takeUntil(this.destroy$),
       ).subscribe(( { props, currentTab } ) => {
@@ -545,7 +549,7 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
         switchMap((activeTab: TabModel) => {
           this.hideGrid$.next(true);
           this.error$.next(null);
-          return this.schemaService.getSchema(activeTab.stream, null, true).pipe(
+          return this.schemaService.getSchema(activeTab.stream, null, true, activeTab.tbId).pipe(
             map((schema) => [activeTab, schema]),
             take(1),
             catchError(e => {
@@ -566,7 +570,7 @@ export class StreamViewReverseComponent implements OnInit, OnDestroy {
             readyEvent.api.setDatasource(this.dataSource.withTab(activeTab, schema.all));
           },
         ),
-        switchMap(([activeTab, schema]) => this.streamsService.getProps(activeTab.stream)),
+        switchMap(([activeTab, schema]) => this.streamsService.getProps(activeTab.stream, true, activeTab.tbId)),
         tap(streamInfo => {
           if (streamInfo.props.periodicity.type === 'REGULAR') {
             this.periodicity = streamInfo.props.periodicity.milliseconds;

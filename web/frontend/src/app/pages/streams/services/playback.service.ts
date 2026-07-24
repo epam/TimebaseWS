@@ -13,7 +13,9 @@ interface playbackSettings {
   permanent: boolean;
   from?: string,
   to?: string,
-  targetTopic?: boolean
+  targetTopic?: boolean,
+  sourceTb?: string,
+  targetTb?: string,
 }
 
 interface playBackInfo {

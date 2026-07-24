@@ -24,6 +24,8 @@ import { ViewsService }                           from '../../../../shared/servi
 import {ModalDescribeComponent}                   from '../../components/modals/modal-describe/modal-describe.component';
 import {ModalExportFileComponent}                 from '../../components/modals/modal-export-file/modal-export-file.component';
 import {ModalImportQSMSGFileComponent}                 from '../../components/modals/modal-import-QSMSG-file/modal-import-QSMSG-file.component';
+import {CreateStreamModalComponent}               from '../../components/modals/create-stream-modal/create-stream-modal.component';
+import {CreateViewModalComponent}                 from '../../components/modals/create-view/create-view-modal.component';
 import {ModalPurgeComponent}                      from '../../components/modals/modal-purge/modal-purge.component';
 import {ModalRenameComponent}                     from '../../components/modals/modal-rename/modal-rename.component';
 import {ModalSendMessageComponent}                from '../../components/modals/modal-send-message/modal-send-message.component';
@@ -52,6 +54,7 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
   queryParams: {[index: string]: string | string[]};
   newTabQueryParams: {[index: string]: string};
   item: MenuItem;
+  isDb: boolean;
   isRootSpace: boolean;
   isView: boolean;
   isTopic: boolean;
@@ -60,6 +63,7 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
   isNotStreamOrSpace: boolean;
   hasPricesL2Chart: boolean;
   isWriter$: Observable<boolean>;
+  showTopics$: Observable<boolean>;
   showPlaybackItem$ = new BehaviorSubject(true);
   reverseViewIsDefault$ = new BehaviorSubject(false);
   @ViewChild('deleteItemMessage') private deleteItemMessage: TemplateRef<HTMLElement>;
@@ -89,24 +93,28 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(({event, item}) => {
         this.item = item;
+        this.isDb = this.item.type === MenuItemType.db;
         this.isTopic = this.item.type === MenuItemType.topic;
-        const queryParams = {
-          chartType: this.item.meta.chartType.map(ct => ct.chartType),
-          chartTypeTitles: this.item.meta.chartType.map(ct => ct.title),
-          name: this.isTopic ? this.item.name : this.item.meta.stream.name,
-          isView: this.item.meta.isView ? '1' : '',
-          isTopic: this.isTopic ? '1' : '',
-        };
-        this.queryParams = this.item?.meta.space
-          ? {...queryParams, space: this.item.meta.space.id || ''}
-          : queryParams;
-        this.newTabQueryParams = {...this.queryParams, newTab: '1'};
-        this.isRootSpace = this.item.meta.space && this.item.meta.space.id === '';
-        this.isView = this.item.meta.isView;
-        this.isNotStream = !(this.item && !this.item.meta.symbol);
-        this.isNotStreamOrSpace = this.isNotStream || !!this.item.meta.space;
-        this.isSpace = !!this.item.meta.space && !this.item.meta.symbol;
-        this.hasPricesL2Chart = !!this.item.meta.chartType?.find(ct => ct.chartType === ChartTypes.PRICE_LEVELS);
+        if (!this.isDb) {
+          const queryParams = {
+            chartType: this.item.meta.chartType.map(ct => ct.chartType),
+            chartTypeTitles: this.item.meta.chartType.map(ct => ct.title),
+            name: this.isTopic ? this.item.name : this.item.meta.stream.name,
+            isView: this.item.meta.isView ? '1' : '',
+            isTopic: this.isTopic ? '1' : '',
+            ...(this.item.tbId ? {tbId: this.item.tbId} : {}),
+          };
+          this.queryParams = this.item?.meta.space
+            ? {...queryParams, space: this.item.meta.space.id || ''}
+            : queryParams;
+          this.newTabQueryParams = {...this.queryParams, newTab: '1'};
+          this.isRootSpace = this.item.meta.space && this.item.meta.space.id === '';
+          this.isView = this.item.meta.isView;
+          this.isNotStream = !(this.item && !this.item.meta.symbol);
+          this.isNotStreamOrSpace = this.isNotStream || !!this.item.meta.space;
+          this.isSpace = !!this.item.meta.space && !this.item.meta.symbol;
+          this.hasPricesL2Chart = !!this.item.meta.chartType?.find(ct => ct.chartType === ChartTypes.PRICE_LEVELS);
+        }
         this.cdRef.detectChanges();
 
         this.contextMenuService.show.next({
@@ -136,6 +144,11 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
         .subscribe(activeSessiodIds => {
           this.showPlaybackItem$.next(activeSessiodIds.length < 8);
       })
+
+    this.showTopics$ = this.globalFiltersService.getFilters().pipe(
+      map((f) => f?.showTopics),
+      distinctUntilChanged(),
+    );
 
     this.globalFiltersService.getFilters().pipe(
       map((f) => f?.reverseViewIsDefault),
@@ -181,6 +194,7 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
         this.appStore.dispatch(
           new StreamsActions.AskToDeleteSymbols({
             streamKey: this.item.meta.stream.id,
+            tbId: this.item.tbId,
             symbols: [this.item.meta.symbol]
           }),
         );
@@ -208,13 +222,14 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
         }
 
         if (this.isView) {
-          this.viewsService.delete(this.item.meta.stream.name).subscribe();
+          this.viewsService.delete(this.item.meta.stream.name, this.item.tbId).subscribe();
         } else if (this.isTopic) {
           this.topicService.deleteTopic(this.item.id).subscribe();
         } else {
           this.appStore.dispatch(
             new StreamsActions.AskToDeleteStream({
               streamKey: this.item.meta.stream.id,
+              tbId: this.item.tbId,
               ...(this.item.meta.space ? {spaceName: this.item.meta.space.id} : {}),
             }),
           );
@@ -232,7 +247,7 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
 
   showDescribe() {
     this.openModal(ModalDescribeComponent, {
-      initialState: {stream: this.item.meta.stream, view: this.item.viewMd},
+      initialState: {stream: {...this.item.meta.stream, tbId: this.item.tbId}, view: this.item.viewMd},
       ignoreBackdropClick: true,
       class: 'wide-modal scroll-content-modal',
     });
@@ -240,7 +255,7 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
 
   showSendMessage() {
     this.openModal(ModalSendMessageComponent, {
-      initialState: {stream: this.item.meta.stream},
+      initialState: {stream: {...this.item.meta.stream, tbId: this.item.tbId}},
       ignoreBackdropClick: true,
       class: 'modal-message scroll-content-modal',
     });
@@ -258,7 +273,7 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
     this.openModal(ModalImportQSMSGFileComponent, {
       class: 'modal-xl',
       ignoreBackdropClick: true,
-      initialState: {stream: this.item.meta.stream.id},
+      initialState: {stream: this.item.meta.stream.id, tbId: this.item.tbId},
     });
   }
 
@@ -266,7 +281,10 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
     this.openModal(ModalPlayBackComponent, {
       class: 'modal-xl',
       ignoreBackdropClick: true,
-      initialState: {stream: {id: this.item.meta.stream.id, name: this.item.meta.stream.name } },
+      initialState: {
+        stream: { id: this.item.meta.stream.id, name: this.item.meta.stream.name },
+        sourceTbId: this.item.tbId,
+      },
     });
   }
 
@@ -275,7 +293,7 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
     this.openModal(ModalImportCSVFileComponent, {
       class: 'modal-xl',
       ignoreBackdropClick: true,
-      initialState: {streamInput: this.item.meta.stream.name},
+      initialState: {streamInput: this.item.meta.stream.name, tbId: this.item.tbId},
     });
   }
 
@@ -301,7 +319,7 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
   private exportToFile(exportFormat: ExportFilterFormat) {
     this.openModal(ModalExportFileComponent, {
       initialState: {
-        stream: this.item.meta.stream,
+        stream: {...this.item.meta.stream, tbId: this.item.tbId},
         exportFormat,
         symbols: this.item.meta.symbol ? [this.item.meta.symbol] : null,
       },
@@ -309,8 +327,53 @@ export class SidebarContextMenuComponent implements OnInit, OnDestroy {
     });
   }
 
+  createStreamForDb() {
+    this.closeContextMenu();
+    this.modalService.show(CreateStreamModalComponent, {
+      class: 'modal-small',
+      ignoreBackdropClick: true,
+      initialState: { tbId: this.item.id },
+    });
+  }
+
+  createTopicForDb() {
+    this.closeContextMenu();
+    this.modalService.show(CreateStreamModalComponent, {
+      class: 'modal-small',
+      ignoreBackdropClick: true,
+      initialState: { topic: true, tbId: this.item.id },
+    });
+  }
+
+  createViewForDb() {
+    this.closeContextMenu();
+    this.modalService.show(CreateViewModalComponent, {
+      ignoreBackdropClick: true,
+      class: 'modal-xl',
+      initialState: { tbId: this.item.id },
+    });
+  }
+
+  importFromQSMSGForDb() {
+    this.closeContextMenu();
+    this.modalService.show(ModalImportQSMSGFileComponent, {
+      class: 'modal-xl',
+      ignoreBackdropClick: true,
+      initialState: { tbId: this.item.id },
+    });
+  }
+
+  importFromCSVForDb() {
+    this.closeContextMenu();
+    this.modalService.show(ModalImportCSVFileComponent, {
+      class: 'modal-xl',
+      ignoreBackdropClick: true,
+      initialState: { tbId: this.item.id },
+    });
+  }
+
   private openModal(content: string | TemplateRef<any> | any, options: ModalOptions): BsModalRef {
-    if (!this.item?.meta.stream?.id && !this.isTopic) return;
+    if (!this.isDb && !this.item?.meta.stream?.id && !this.isTopic) return;
 
     this.closeContextMenu();
     return this.modalService.show(content, options);

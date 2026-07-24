@@ -95,6 +95,20 @@
                   </div>
                 </div>
                 <div class="query-tools__right">
+                  <ng-container *ngIf="timebases$ | async as timebases">
+                    <select *ngIf="timebases.length > 1"
+                            class="db-selector"
+                            (change)="onTbChange($event.target['value'])">
+                      <option *ngFor="let tb of timebases" [value]="tb.id" [selected]="tb.id === tbId">{{ tb.id }}</option>
+                    </select>
+                    <span *ngIf="timebases.length === 1 && tbId"
+                          class="db-indicator"
+                          [tooltip]="tbUrl"
+                          placement="bottom"
+                          container="body">
+                      {{ tbId }}
+                    </span>
+                  </ng-container>
                   <button
                     *ngIf="isWriter$ | async"
                     (click)="createView()"
@@ -122,7 +136,7 @@
                   </button>
                 </div>
               </div>
-              <app-qql-editor #qqlEditor [requestError]="requestError?.[currentTabId]" (removeRequestError)="removeRequestError()" 
+              <app-qql-editor #qqlEditor [tbId]="tbId" [requestError]="requestError?.[currentTabId]" (removeRequestError)="removeRequestError()"
                 (setEditorAsReady)="setEditorAsReady()" [selectedText]="selectedText" [errorInsideSelectedText]="errorInsideSelectedText"
                 (setQueryError)="toggleQueryError($event)"
                 (validUpdate)="onValidUpdate()" formControlName="query" (setEditor)="setEditor($event)"

@@ -38,7 +38,7 @@ const delimiterValues = {
   styleUrls: ['./modal-export-file.component.scss'],
 })
 export class ModalExportFileComponent implements OnInit, OnDestroy {
-  stream: {id: string; name: string};
+  stream: {id: string; name: string; tbId?: string};
   symbols: string[];
   types: string[];
   exportFormat: ExportFilterFormat;
@@ -88,7 +88,7 @@ export class ModalExportFileComponent implements OnInit, OnDestroy {
 
     this.importToTextFile = this.exportFormat === ExportFilterFormat.CSV;
 
-    this.tree$ = this.schemaService.getSchema(this.stream.id).pipe(
+    this.tree$ = this.schemaService.getSchema(this.stream.id, null, false, this.stream.tbId).pipe(
       map(({types}) => {
         if (this.exportFormat === ExportFilterFormat.QSMSG) {
           return types.map((type) => ({
@@ -139,7 +139,7 @@ export class ModalExportFileComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(globalFilters => this.timezoneName = globalFilters.timezone[0].name);
 
-    combineLatest([fields$, this.streamsService.range(this.stream.id)])
+    combineLatest([fields$, this.streamsService.range(this.stream.id, null, null, null, this.stream.tbId)])
       .pipe(take(1))
       .subscribe(([fields, range]) => {
         this.form.patchValue({
@@ -216,7 +216,7 @@ export class ModalExportFileComponent implements OnInit, OnDestroy {
     }
 
     this.exportService
-      .export(this.stream.id, filter)
+      .export(this.stream.id, filter, this.stream.tbId)
       .pipe(switchMap(({id}) => this.exportService.downloadUrl(id)))
       .subscribe((url) => {
         location.href = url;
@@ -225,7 +225,7 @@ export class ModalExportFileComponent implements OnInit, OnDestroy {
   }
 
   private getSymbols(term: string): Observable<string[]> {
-    return this.symbolsService.getSymbols(this.stream.id, null, term);
+    return this.symbolsService.getSymbols(this.stream.id, null, term, this.stream.tbId);
   }
 
   private controlValue(controlName: string): Observable<unknown> {

@@ -33,6 +33,7 @@ import {
   first,
   map,
   mapTo,
+  skip,
   switchMap,
   take,
   takeUntil,
@@ -63,6 +64,7 @@ import { StreamsService } from 'src/app/shared/services/streams.service';
 import { ImportFromTextFileService } from '../../services/import-from-text-file.service';
 import { PlaybackService } from '../../services/playback.service';
 import { TabModel } from '../../models/tab.model';
+import { LoadTimebases } from '../../store/timebases/timebases.actions';
 
 const defaultTreeViews = [
   {
@@ -104,6 +106,7 @@ export class StreamsListComponent implements OnInit, OnDestroy {
   treeViews = defaultTreeViews;
   streamSelectedForImport: string;
   selectedItem: string;
+  activeDbNodeId: string;
   currentStream: string;
   currentSymbol: string;
   public showTopics$: Observable<boolean>;
@@ -143,6 +146,8 @@ export class StreamsListComponent implements OnInit, OnDestroy {
   ) {}
   
   ngOnInit() {
+    this.appStore.dispatch(new LoadTimebases());
+
     this.isWriter$ = this.permissionsService.isWriter();
 
     this.activeTab$ = this.appStore.pipe(select(getActiveOrFirstTab));
@@ -185,7 +190,10 @@ export class StreamsListComponent implements OnInit, OnDestroy {
       distinctUntilChanged(),
     );
 
-    showSpaces$.pipe(takeUntil(this.destroy$)).subscribe((showSpaces) => {
+    showSpaces$.pipe(take(1), takeUntil(this.destroy$)).subscribe(showSpaces => {
+      this.showSpaces = showSpaces ?? false;
+    });
+    showSpaces$.pipe(skip(1), takeUntil(this.destroy$)).subscribe(showSpaces => {
       this.toggleSpaces(showSpaces);
     });
 
@@ -195,14 +203,13 @@ export class StreamsListComponent implements OnInit, OnDestroy {
     );
 
     hideSystemStreams$
-      .pipe(
-        takeUntil(this.destroy$),
-        switchMap(hideSystemStreams => this.freshMenu().pipe(map(() => hideSystemStreams)))
-      )
+      .pipe(takeUntil(this.destroy$))
       .subscribe(hideSystemStreams => {
         this.hideSystemStreams = hideSystemStreams;
-        this.makeFlatMenu();
-        this.cdRef.detectChanges();
+        if (this.menuLoaded) {
+          this.makeFlatMenu();
+          this.cdRef.detectChanges();
+        }
       });
 
     this.globalFiltersService.getFilters().pipe(
@@ -273,21 +280,21 @@ export class StreamsListComponent implements OnInit, OnDestroy {
       ),
       takeUntil(this.destroy$),
     ).subscribe((events) => {
-      const updatedStreams = [];
+      const updatedStreams: {id: string, tbId?: string}[] = [];
       events.forEach(event => {
         if (event.type !== StructureUpdateType.playback) {
           switch (event.action) {
             case StructureUpdateAction.rename:
-              this.onStreamRenamed(event.id, event.target);
+              this.onStreamRenamed(event.id, event.target, event.tbId);
               break;
             case StructureUpdateAction.update:
-              updatedStreams.push(event.viewMd?.stream || event.id);
+              updatedStreams.push({id: event.viewMd?.stream || event.id, tbId: event.tbId});
               break;
             case StructureUpdateAction.add:
-              this.onItemAdded(event.viewMd?.stream || event.id);
+              this.onItemAdded(event.viewMd?.stream || event.id, event.tbId);
               break;
             case StructureUpdateAction.remove:
-              this.onItemDeleted([event.viewMd?.stream || event.id]);
+              this.onItemDeleted([event.viewMd?.stream || event.id], event.tbId);
               break;
           }
         } else {
@@ -301,11 +308,11 @@ export class StreamsListComponent implements OnInit, OnDestroy {
           }
         }
       });
-      
+
       if (updatedStreams.length) {
         this.onStreamChanged(updatedStreams);
       }
-      
+
       this.menuItemsService.clearCache();
     });
     
@@ -640,17 +647,19 @@ export class StreamsListComponent implements OnInit, OnDestroy {
     }));
   }
   
-  private onStreamRenamed(oldName: string, newName: string) {
+  private onStreamRenamed(oldName: string, newName: string, tbId?: string) {
     this.recursiveMenu((item, path) => {
-      if (item.type === MenuItemType.stream && item.id === oldName) {
+      if (item.type === MenuItemType.stream && item.id === oldName
+          && (!tbId || item.tbId === tbId)) {
         item.id = newName;
         item.name = newName;
-        const newPath = `/${encodeURIComponent(newName)}`;
+        const parentPath = path.substring(0, path.lastIndexOf('/'));
+        const newPath = `${parentPath}/${encodeURIComponent(newName)}`;
         this.leftSidebarStorageService.updatePath(
             (paths) => paths.map((p) => (p.startsWith(path) ? `${newPath}${p.substr(path.length)}` : p)),
           )
           .subscribe();
-        
+
         return true;
       }
     });
@@ -695,7 +704,48 @@ export class StreamsListComponent implements OnInit, OnDestroy {
     });
   }
   
-  private onItemAdded(stream: string) {
+  private onItemAdded(stream: string, tbId?: string) {
+    if (tbId) {
+      const dbNode = this.menu.find(item => item.type === MenuItemType.db && item.id === tbId);
+      if (!dbNode || dbNode.children?.find(c => c.id === stream)) {
+        return;
+      }
+
+      // Collapsed TB node: only bump the count — do not fill children with a partial list.
+      if (!dbNode.children?.length) {
+        dbNode.childrenCount = (dbNode.childrenCount ?? 0) + 1;
+        this.addMeta();
+        this.makeFlatMenu();
+        this.cdRef.detectChanges();
+        return;
+      }
+
+      const path = `/${encodeURIComponent(tbId)}/${encodeURIComponent(stream)}`;
+      this.getItems([path], false)
+        .pipe(take(1))
+        .subscribe((rootMenu) => {
+          const tbNodeInResponse = rootMenu.children?.find(c => c.id === tbId);
+          const newItem = tbNodeInResponse?.children?.find(c => c.id === stream);
+          if (newItem) {
+            dbNode.children = [...dbNode.children, {...newItem, children: [], displayName: newItem.name ?? newItem.id}];
+            dbNode.childrenCount = dbNode.children.length;
+          }
+          this.addMeta();
+          this.makeFlatMenu();
+          this.cdRef.detectChanges();
+
+          const selectedIndex = this.flatMenu.findIndex(elem => elem.id === stream && elem.tbId === tbId);
+          if (selectedIndex > -1) {
+            this.virtualScroll.scrollToIndex(selectedIndex);
+            this.selectedItem = stream;
+            fromEvent(this.hostElement.nativeElement, 'click')
+              .pipe(take(1), takeUntil(this.destroy$))
+              .subscribe(() => this.resetSelectedItem());
+          }
+        });
+      return;
+    }
+
     if (this.menu.find(item => item.id === stream)) {
       return;
     }
@@ -703,7 +753,6 @@ export class StreamsListComponent implements OnInit, OnDestroy {
       .pipe(take(1))
       .subscribe((rootMenu) => {
         const newItem = rootMenu.children.find(menuItem => menuItem.id === stream);
-        // this.streamsCount = rootMenu.totalCount || rootMenu.childrenCount;
         if (newItem) {
           this.menu = [ ...this.menu, {...newItem, children: [], displayName: newItem.name ?? newItem.id } ];
         }
@@ -722,18 +771,33 @@ export class StreamsListComponent implements OnInit, OnDestroy {
       });
   }
   
-  private onItemDeleted(ids: string[]) {
-    // this.getItems(['/'], false)
-    //   .pipe(take(1))
-    //   .subscribe((rootMenu) => (this.streamsCount = rootMenu.totalCount || rootMenu.childrenCount));
-    this.menu.forEach((item, index) => {
-      if (ids.includes(item.id)) {
-        this.leftSidebarStorageService.updatePath((paths) =>
-          paths.filter((path) => path.startsWith(`/${encodeURIComponent(item.id)}`)),
-        ).subscribe();
-        this.menu.splice(index, 1);
+  private onItemDeleted(ids: string[], tbId?: string) {
+    if (tbId) {
+      const dbNode = this.menu.find(item => item.type === MenuItemType.db && item.id === tbId);
+      if (dbNode?.children?.length) {
+        ids.forEach(id => {
+          const idx = dbNode.children.findIndex(c => c.id === id);
+          if (idx > -1) {
+            this.leftSidebarStorageService.updatePath((paths) =>
+              paths.filter((path) => path.startsWith(`/${encodeURIComponent(tbId)}/${encodeURIComponent(id)}`)),
+            ).subscribe();
+            dbNode.children.splice(idx, 1);
+          }
+        });
+        dbNode.childrenCount = dbNode.children.length;
+      } else if (dbNode) {
+        dbNode.childrenCount = Math.max(0, (dbNode.childrenCount ?? 0) - ids.length);
       }
-    });
+    } else {
+      this.menu.forEach((item, index) => {
+        if (ids.includes(item.id)) {
+          this.leftSidebarStorageService.updatePath((paths) =>
+            paths.filter((path) => path.startsWith(`/${encodeURIComponent(item.id)}`)),
+          ).subscribe();
+          this.menu.splice(index, 1);
+        }
+      });
+    }
     this.addMeta();
     this.makeFlatMenu();
     this.cdRef.detectChanges();
@@ -744,46 +808,69 @@ export class StreamsListComponent implements OnInit, OnDestroy {
     this.cdRef.detectChanges();
   }
   
-  private onStreamChanged(streams: string[]) {
-    const indexes = this.menu
-      ?.map((item, index) => (streams.includes(item.id) ? index : null))
-      .filter((i) => i !== null);
-    if (indexes?.length !== streams.length) {
+  private onStreamChanged(streams: {id: string, tbId?: string}[]) {
+    const itemsWithPaths: {item: MenuItem, path: string}[] = [];
+
+    streams.forEach(({id, tbId}) => {
+      let foundPath: string;
+      const found = this.recursiveMenu((item, path) => {
+        if ((item.type === MenuItemType.stream || item.type === MenuItemType.view)
+            && item.id === id && (!tbId || item.tbId === tbId)) {
+          foundPath = path;
+          return true;
+        }
+      });
+      if (found && foundPath) {
+        itemsWithPaths.push({item: found, path: foundPath});
+      }
+    });
+
+    if (itemsWithPaths.length !== streams.length) {
       timer(100).subscribe(() => this.onStreamChanged(streams));
       return;
     }
-    
-    this.freshStreams(indexes);
+
+    this.freshStreamItems(itemsWithPaths);
   }
-  
-  private freshStreams(indexes: number[]) {
-    const menuItems = indexes.map((index) => ({item: this.menu[index], index}));
-    const menuItemsPaths = menuItems.map(({item: {id}}) => `/${encodeURIComponent(id)}`);
+
+  private freshStreamItems(itemsWithPaths: {item: MenuItem, path: string}[]) {
+    const paths = itemsWithPaths.map(({path}) => path);
     this.leftSidebarStorageService.getStoragePaths().pipe(
-      map(allPaths => allPaths.filter(path => menuItemsPaths.find(mPath => path.startsWith(mPath)))),
-      switchMap(requestPaths => this.getItems(
-        [...menuItemsPaths, ...requestPaths],
-        false,
-      )),
+      map(allPaths => allPaths.filter(p => paths.some(mp => p.startsWith(mp)))),
+      switchMap(requestPaths => this.getItems([...paths, ...requestPaths], false)),
       take(1),
-    ).subscribe((responseItem) => {
-      menuItems.forEach(({item, index}) => {
-        const open = item.children?.length > 0;
-        const itemIndex = responseItem.children?.findIndex((child) => child.id === item.id);
-        const itemInResponse = responseItem.children[itemIndex];
-        if (itemIndex > -1) {
+    ).subscribe((responseRoot) => {
+      itemsWithPaths.forEach(({item, path}) => {
+        const segments = path.split('/').filter(Boolean);
+        let node: MenuItem = responseRoot;
+        for (const seg of segments) {
+          node = node?.children?.find(c => c.id === decodeURIComponent(seg));
+          if (!node) { break; }
+        }
+
+        if (node) {
+          const open = item.children?.length > 0;
           if (!open) {
-            item.childrenCount = itemInResponse.children.length;
-            item.viewMd = itemInResponse.viewMd;
-          } else {
-            this.menu[index] = itemInResponse;
+            item.childrenCount = node.children?.length ?? node.childrenCount;
+            item.viewMd = node.viewMd;
+          } else if (node.type === item.type && node.id === item.id) {
+            // Only assign when the walked node matches the tree item.
+            // Partial structure responses must not overwrite a parent DB node with a child STREAM.
+            const existingChildren = item.children;
+            Object.assign(item, node);
+            if (item.type === MenuItemType.db || item.type === MenuItemType.stream || item.type === MenuItemType.view) {
+              // Keep already-loaded children; response for a deep path may be partial.
+              if (existingChildren?.length && (!node.children?.length || node.children.length < existingChildren.length)) {
+                item.children = existingChildren;
+              }
+            }
           }
-          
-          this.addMeta();
-          this.makeFlatMenu();
-          this.cdRef.detectChanges();
         }
       });
+
+      this.addMeta();
+      this.makeFlatMenu();
+      this.cdRef.detectChanges();
     });
   }
   
@@ -793,14 +880,20 @@ export class StreamsListComponent implements OnInit, OnDestroy {
     path: string = '',
   ): MenuItem {
     items = items || this.menu;
-    return items?.find((item) => {
+    // Must not use Array.find here: find returns the parent element when the
+    // predicate returns a nested match object, which breaks callers that expect
+    // the matched descendant (e.g. freshStreamItems Object.assign'd a STREAM onto a DB node).
+    for (const item of items || []) {
       const itemPath = `${path}/${encodeURIComponent(item.id)}`;
       const inChildren = this.recursiveMenu(callback, item.children || [], itemPath);
       if (inChildren) {
         return inChildren;
       }
-      return callback(item, itemPath);
-    });
+      if (callback(item, itemPath)) {
+        return item;
+      }
+    }
+    return undefined;
   }
   
   private addMeta(
@@ -810,24 +903,30 @@ export class StreamsListComponent implements OnInit, OnDestroy {
     symbol = null,
     chartType = null,
     isView = false,
+    tbId: string = null,
   ) {
     const targetItems = items || this.menu;
     targetItems.forEach((item) => {
+      if (item.type === MenuItemType.db) {
+        tbId = item.id;
+      }
+
       if (item.type === MenuItemType.stream || item.type === MenuItemType.view) {
         stream = item;
         chartType = item.chartType;
       }
-      
+
       isView = isView || item.type === MenuItemType.view;
-      
+
       if (item.type === MenuItemType.space) {
         space = item;
       }
-      
+
       if (item.type === MenuItemType.identity) {
         symbol = item.id;
       }
-      
+
+      item.tbId = tbId;
       item.meta = {
         stream,
         space,
@@ -835,9 +934,9 @@ export class StreamsListComponent implements OnInit, OnDestroy {
         chartType: chartType || [],
         isView,
       };
-      
-      if (item.children?.length) {;
-        this.addMeta(item.children, stream, space, symbol, chartType, isView);
+
+      if (item.children?.length) {
+        this.addMeta(item.children, stream, space, symbol, chartType, isView, tbId);
       }
     });
   }
@@ -851,6 +950,12 @@ export class StreamsListComponent implements OnInit, OnDestroy {
   
   trackMenuItem(index, menuItem: MenuItem) {
     return JSON.stringify({id: menuItem.id, name: menuItem.name, type: menuItem.type, path: menuItem.path});
+  }
+
+  onDbNodeClick(item: MenuItem, event: MouseEvent): void {
+    this.activeDbNodeId = item.id;
+    event.stopPropagation();
+    this.cdRef.detectChanges();
   }
 
   public searchMenuItem(searchValue: string) {

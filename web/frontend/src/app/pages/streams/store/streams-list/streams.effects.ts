@@ -50,6 +50,7 @@ export class StreamsEffects {
       return this.httpClient
         .get<string[]>(url, {
           params: {
+            ...(action.payload.tbId ? {tb: action.payload.tbId} : {}),
             ...(action.payload?.props?._filter?.length
               ? {
                   filter: encodeURIComponent(action.payload.props._filter),
@@ -84,11 +85,12 @@ export class StreamsEffects {
           headers: {
             customError: 'true',
           },
-          ...(action.payload.props?._filter?.length
-            ? {
-                params: {filter: encodeURIComponent(action.payload.props._filter)},
-              }
-            : {}),
+          params: {
+            ...(action.payload.tbId ? {tb: action.payload.tbId} : {}),
+            ...(action.payload.props?._filter?.length
+              ? {filter: encodeURIComponent(action.payload.props._filter)}
+              : {}),
+          },
         })
         .pipe(
           map((resp: string[]) => {
@@ -99,6 +101,7 @@ export class StreamsEffects {
                 })
               : new StreamsActions.GetSymbols({
                   streamKey: action.payload.streamKey,
+                  tbId: action.payload.tbId,
                   ...(action.payload?.props._filter?.length
                     ? {
                         props: {_filter: encodeURIComponent(action.payload.props._filter)},
@@ -110,6 +113,7 @@ export class StreamsEffects {
             return of(
               new StreamsActions.GetSymbols({
                 streamKey: action.payload.streamKey,
+                tbId: action.payload.tbId,
                 ...(action.payload?.props._filter?.length
                   ? {
                       props: {_filter: encodeURIComponent(action.payload.props._filter)},
@@ -132,6 +136,7 @@ export class StreamsEffects {
       }),
       new StreamsActions.GetSymbols({
         streamKey: action.payload.stream.key,
+        tbId: action.payload.stream.tbId,
         props: action.payload.props,
         ...(typeof action.payload.spaceName === 'string'
           ? {spaceName: action.payload.spaceName}
@@ -150,6 +155,7 @@ export class StreamsEffects {
       }),
       new StreamsActions.GetSpaces({
         streamKey: action.payload.stream.key,
+        tbId: action.payload.stream.tbId,
         props: action.payload.props,
       }),
     ]),
@@ -161,6 +167,7 @@ export class StreamsEffects {
         .post<SymbolModel[]>(
           `${encodeURIComponent(action.payload.streamKey)}/truncate`,
           action.payload.params,
+          {params: action.payload.tbId ? {tb: action.payload.tbId} : {}},
         )
         .pipe(
           switchMap(() => this.translate.get('notification_messages')),
@@ -185,6 +192,7 @@ export class StreamsEffects {
         .post<SymbolModel[]>(
           `${encodeURIComponent(action.payload.streamKey)}/purge`,
           action.payload.params,
+          {params: action.payload.tbId ? {tb: action.payload.tbId} : {}},
         )
         .pipe(
           switchMap(() => this.translate.get('notification_messages')),
@@ -206,7 +214,8 @@ export class StreamsEffects {
     ofType<StreamsActions.GetStreamDescribe>(StreamsActionTypes.GET_STREAM_DESCRIBE),
     switchMap((action) => {
       return this.httpClient
-        .get<StreamDescribeModel>(`${encodeURIComponent(action.payload.streamId)}/describe`)
+        .get<StreamDescribeModel>(`${encodeURIComponent(action.payload.streamId)}/describe`,
+          {params: action.payload.tbId ? {tb: action.payload.tbId} : {}})
         .pipe(
           map((resp) => {
             return new StreamsActions.SetStreamDescribe({describe: resp});
@@ -224,18 +233,13 @@ export class StreamsEffects {
       return (
         action.payload.spaceName
           ? this.httpClient.get(`${encodeURIComponent(action.payload.streamKey)}${url}`, {
-              ...(action.payload.spaceName
-                ? {
-                    // headers: {
-                    //   'Content-Type': 'application/json',
-                    // },
-                    params: {
-                      space: action.payload.spaceName,
-                    },
-                  }
-                : {}),
+              params: {
+                space: action.payload.spaceName,
+                ...(action.payload.tbId ? {tb: action.payload.tbId} : {}),
+              },
             })
-          : this.httpClient.post(`${encodeURIComponent(action.payload.streamKey)}${url}`, {})
+          : this.httpClient.post(`${encodeURIComponent(action.payload.streamKey)}${url}`, {},
+              {params: action.payload.tbId ? {tb: action.payload.tbId} : {}})
       ).pipe(
         switchMap(() => this.translate.get('notification_messages')),
         mergeMap((messages) => {
@@ -275,7 +279,8 @@ export class StreamsEffects {
     ofType<StreamsActions.AskToDeleteSymbols>(StreamsActionTypes.ASK_TO_DELETE_SYMBOLS),
     switchMap((action) => {
       const url = '/deleteSymbols';
-      return this.httpClient.post(`${encodeURIComponent(action.payload.streamKey)}${url}`, action.payload.symbols)
+      return this.httpClient.post(`${encodeURIComponent(action.payload.streamKey)}${url}`, action.payload.symbols,
+        {params: action.payload.tbId ? {tb: action.payload.tbId} : {}})
       .pipe(
         switchMap(() => this.translate.get('notification_messages')),
         mergeMap((messages) => {
@@ -305,16 +310,14 @@ export class StreamsEffects {
       return (
         action.payload.spaceName
           ? this.httpClient.get(`${encodeURIComponent(action.payload.streamId)}${url}`, {
-              ...(action.payload.spaceName
-                ? {
-                    params: {
-                      space: action.payload.spaceName,
-                      newName: action.payload.newName,
-                    },
-                  }
-                : {}),
+              params: {
+                space: action.payload.spaceName,
+                newName: action.payload.newName,
+                ...(action.payload.tbId ? {tb: action.payload.tbId} : {}),
+              },
             })
-          : this.httpClient.post(`${encodeURIComponent(action.payload.streamId)}${url}`, data)
+          : this.httpClient.post(`${encodeURIComponent(action.payload.streamId)}${url}`, data,
+              {params: action.payload.tbId ? {tb: action.payload.tbId} : {}})
       ).pipe(
         switchMap(() => this.translate.get('notification_messages')),
         tap(() => {
@@ -364,6 +367,7 @@ export class StreamsEffects {
             action.payload.oldSymbolName,
           )}/rename`,
           data,
+          {params: action.payload.tbId ? {tb: action.payload.tbId} : {}},
         )
         .pipe(
           tap(() =>
@@ -438,6 +442,7 @@ export class StreamsEffects {
         .get(`/${action.payload.streamId}/export`, {
           observe: 'response',
           responseType: 'arraybuffer',
+          params: action.payload.tbId ? {tb: action.payload.tbId} : {},
         })
         .pipe(
           map((resp: HttpResponse<any>) => {
@@ -458,7 +463,10 @@ export class StreamsEffects {
     switchMap((action) => {
       return this.httpClient
         .post(`/${encodeURIComponent(action.payload.streamId)}/write`, action.payload.messages, {
-          params: {writeMode: action.payload.writeMode},
+          params: {
+            writeMode: action.payload.writeMode,
+            ...(action.payload.tbId ? {tb: action.payload.tbId} : {}),
+          },
         })
         .pipe(
           switchMap(() => this.translate.get('notification_messages')),

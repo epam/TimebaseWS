@@ -161,6 +161,7 @@ export class GetStreamRange implements Action {
       streamId: string;
       symbol?: string;
       spaceName?: string;
+      tbId?: string;
     },
   ) {}
 }

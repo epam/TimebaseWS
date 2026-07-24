@@ -43,8 +43,8 @@ import { ViewsService } from 'src/app/shared/services/views.service';
 })
 export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit {
   filters: UntypedFormGroup;
-  streams: { key: string, name: string }[];
-  streams$: Observable<{ key: string, name: string }[]>;
+  streams: { key: string, name: string, tbId?: string }[];
+  streams$: Observable<{ key: string, name: string, tbId?: string }[]>;
   streamNames$: Observable<string[]>;
   symbols$: Observable<string[]>;
   loading: boolean = true;
@@ -233,7 +233,7 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
           data.streams.map((streamName: string) => {
             const stream = this.streams.find(streamItem => streamItem.name === streamName);
 
-            return this.symbolsService.getSymbols(stream.key).pipe(
+            return this.symbolsService.getSymbols(stream.key, null, null, stream.tbId).pipe(
               catchError((e: HttpErrorResponse) => {
                 if (e.status === 400 && e.error.message.startsWith('Unknown stream')) {
                   this.streamsUpdated$.next();

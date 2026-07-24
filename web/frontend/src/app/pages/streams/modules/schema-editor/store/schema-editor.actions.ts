@@ -82,7 +82,7 @@ export const RemoveSchemaDiff = createAction(
 
 export const CreateStream = createAction(
   SchemaEditorActionTypes.CREATE_STREAM,
-  props<{key: string, topic: boolean, copyToStream?: string, version: string, distributionFactor: string, noNotification?: boolean}>(),
+  props<{key: string, topic: boolean, copyToStream?: string, version: string, distributionFactor: string, noNotification?: boolean, tbId?: string}>(),
 );
 
 export const SetStreamId = createAction(

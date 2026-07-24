@@ -5,4 +5,5 @@ export interface LiveGridFilters {
   destination: string;
   types: string[];
   qql?: string;
+  tbId?: string;
 }

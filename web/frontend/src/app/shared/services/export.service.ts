@@ -13,8 +13,10 @@ import {ExportFilter} from '../models/export-filter';
 export class ExportService {
   constructor(private httpClient: HttpClient, private appStore: Store<AppState>) {}
 
-  export(stream: string, filters: ExportFilter): Observable<{id: string}> {
-    return this.httpClient.post<{id: string}>(`/${encodeURIComponent(stream)}/export`, filters);
+  export(stream: string, filters: ExportFilter, tbId: string = null): Observable<{id: string}> {
+    return this.httpClient.post<{id: string}>(`/${encodeURIComponent(stream)}/export`, filters, {
+      params: tbId ? {tb: tbId} : {},
+    });
   }
 
   downloadUrl(exportId: string): Observable<string> {

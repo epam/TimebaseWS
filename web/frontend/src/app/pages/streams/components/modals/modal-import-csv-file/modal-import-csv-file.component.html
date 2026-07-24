@@ -2,10 +2,18 @@
   [contentClassName]="'import-file-content'" [contentHeightDifference]="170" [modalBodyHeightDifference]="120">
   <app-modal>
     <ng-container title>
-      {{ 'importFromFile.title.importFromTextFile' | translate }} 
+      {{ 'importFromFile.title.importFromTextFile' | translate }}
       <span *ngIf="streamInput || currentStreamId" class="stream-title">
         to <b>{{ streamInput ?? currentStreamId }}</b>
       </span>
+      <ng-container *ngIf="timebases$ | async as timebases">
+        <select *ngIf="timebases.length > 1" class="db-selector"
+                [disabled]="!isOnFirstStep"
+                (change)="onTbChange($event.target['value'])">
+          <option *ngFor="let tb of timebases" [value]="tb.id" [selected]="tb.id === tbId">{{ tb.id }}</option>
+        </select>
+        <span *ngIf="timebases.length === 1 && tbId" class="db-indicator">{{ tbId }}</span>
+      </ng-container>
     </ng-container>
     <div class="import-file-content" content>
       <ng-container *ngIf="importStepIs(TextFileImportStepsEnum.uploading)">

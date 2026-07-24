@@ -12,6 +12,7 @@ import {
 } from '../../../../../shared/models/schema.class.type.model';
 import * as StreamsTabsActions from '../../../store/streams-tabs/streams-tabs.actions';
 import {getActiveTab} from '../../../store/streams-tabs/streams-tabs.selectors';
+import {getStreamsList} from '../../../store/streams-list/streams.selectors';
 import {StreamMetaDataChangeModel} from '../models/stream.meta.data.change.model';
 import {
   CreateStream,
@@ -63,17 +64,20 @@ export class SchemaEditorEffects {
             map(streamId => ({ streamId, topic }))
           ),
       ),
-      switchMap(({ streamId, topic }) => {
+      withLatestFrom(this.appStore.pipe(select(getStreamsList))),
+      switchMap(([{ streamId, topic }, streams]) => {
+        const tbId = streams?.find(s => s.key === streamId)?.tbId;
         if (!topic) {
           return this.httpClient$.get<{types: SchemaClassTypeModel[]; all: SchemaClassTypeModel[]}>(
             `${encodeURIComponent(streamId)}/schema`,
             {
               params: {
                 tree: 'true',
+                ...(tbId ? {tb: tbId} : {}),
               },
             },
           )
-        } else { 
+        } else {
           return this.topicService.getTopicSchema(streamId);
         }
       }),
@@ -90,7 +94,8 @@ export class SchemaEditorEffects {
           take(1),
         ),
       ),
-      switchMap(([state, streamId]: [State, string]) => {
+      withLatestFrom(this.appStore.pipe(select(getStreamsList))),
+      switchMap(([[state, streamId], streams]: [[State, string], any]) => {
         const all = JSON.parse(JSON.stringify([...state.classes, ...state.enums])),
           types = all.filter((_type) => _type._props && _type._props._isUsed),
           schemaMapping = {...state.schemaMapping};
@@ -113,6 +118,7 @@ export class SchemaEditorEffects {
             });
           }
         });
+        const tbId = streams?.find(s => s.key === streamId)?.tbId;
         return this.httpClient$.post<StreamMetaDataChangeModel>(
           `/${encodeURIComponent(streamId)}/getSchemaChanges`,
           {
@@ -122,6 +128,7 @@ export class SchemaEditorEffects {
             },
             schemaMapping,
           },
+          {params: tbId ? {tb: tbId} : {}},
         );
       }),
       map((diff) => SetSchemaDiff({diff})),
@@ -131,7 +138,7 @@ export class SchemaEditorEffects {
     this.actions$.pipe(
       ofType(CreateStream),
       withLatestFrom(this.appStore.pipe(select(getEditSchemaState))),
-      switchMap(([{key, topic, copyToStream, version, distributionFactor, noNotification}, state]) => {
+      switchMap(([{key, topic, copyToStream, version, distributionFactor, noNotification, tbId}, state]) => {
         const all = JSON.parse(JSON.stringify([...state.classes, ...state.enums])),
           types = all.filter((_type) => _type._props && _type._props._isUsed);
         all.forEach((_type) => {
@@ -172,10 +179,11 @@ export class SchemaEditorEffects {
           }
           return this.httpClient$.post( '/topics', params).pipe(map(() => ({ topic, noNotification })));
         } else {
-          const params = {
+          const params: any = {
             key,
             version,
-            distributionFactor
+            distributionFactor,
+            ...(tbId ? {tb: tbId} : {}),
           };
           if (!params.distributionFactor) {
             delete params.distributionFactor;
@@ -220,9 +228,12 @@ export class SchemaEditorEffects {
     this.actions$.pipe(
       ofType(SaveSchemaChanges),
       tap(() => getSaveSchemaData.release()),
-      withLatestFrom(this.appStore.pipe(select(getSaveSchemaData))),
+      withLatestFrom(
+        this.appStore.pipe(select(getSaveSchemaData)),
+        this.appStore.pipe(select(getStreamsList)),
+      ),
       switchMap(
-        ([action, {schemaMapping, classes, enums, defaultValues, streamId, dropValues}]) => {
+        ([action, {schemaMapping, classes, enums, defaultValues, streamId, dropValues}, streams]) => {
           const all = JSON.parse(JSON.stringify([...classes, ...enums])),
             types = all.filter((_type) => _type._props && _type._props._isUsed);
           all.forEach((_type) => {
@@ -244,6 +255,7 @@ export class SchemaEditorEffects {
             }
           });
 
+          const tbId = streams?.find(s => s.key === streamId)?.tbId;
           return this.httpClient$
             .post(`/${encodeURIComponent(streamId)}/changeSchema`, {
               schemaMapping,
@@ -254,6 +266,8 @@ export class SchemaEditorEffects {
                 types,
               },
               background: action.background,
+            }, {
+              params: tbId ? {tb: tbId} : {},
             })
             .pipe(
               tap(() => {

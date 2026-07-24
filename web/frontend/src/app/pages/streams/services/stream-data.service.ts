@@ -127,6 +127,7 @@ export class StreamDataService implements IDatasource {
                 space: encodeURIComponent(activeTab.space),
               }
             : {}),
+          ...(activeTab.tbId ? {tb: activeTab.tbId} : {}),
         },
       })
       .pipe(takeUntil(this.loadedData$.pipe(skip(1))))

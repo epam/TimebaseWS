@@ -98,7 +98,11 @@ export class MonitorLogGridDataService {
           if (typeof activeTab.space === 'string') {
             params['space'] = encodeURIComponent(activeTab.space);
           }
-          return this.httpClient.post<StreamDetailsModel[]>(httpUrl, params);
+          return this.httpClient.post<StreamDetailsModel[]>(
+            httpUrl,
+            params,
+            activeTab.tbId ? {params: {tb: activeTab.tbId}} : {},
+          );
         }),
         map((data) => {
           this.rowsStore = data

@@ -307,12 +307,13 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
     this.newItemModalRef?.hide();
     const streamKey = this.insideModal ? this.stream : this.streamName;
     this.appStore.dispatch(CreateStream({
-      key: streamKey, 
-      topic: newTopic, 
+      key: streamKey,
+      topic: newTopic,
       version: newTopic ? this.topicService.dataForCopyToStream?.storageVersion : this.streamsService.streamCreationData.storageVersion,
       distributionFactor: newTopic ? this.topicService.dataForCopyToStream?.distributionFactor : this.streamsService.streamCreationData.distributionFactor,
-      copyToStream: this.topicStreamKey, 
-      noNotification: this.insideModal }));
+      copyToStream: this.topicStreamKey,
+      noNotification: this.insideModal,
+      tbId: newTopic ? null : (this.streamsService.streamCreationData?.tbId || this.currentTab?.tbId) }));
     this.topicService.dataForCopyToStream = null;
   }
 

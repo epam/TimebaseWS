@@ -1,10 +1,10 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
 import {FormControl, UntypedFormControl, Validators} from '@angular/forms';
 import {Router} from '@angular/router';
-import {Store} from '@ngrx/store';
+import {select, Store} from '@ngrx/store';
 import {BsModalRef} from 'ngx-bootstrap/modal';
 import { BehaviorSubject, Observable, Subject, combineLatest } from 'rxjs';
-import {filter, map, takeUntil} from 'rxjs/operators';
+import {filter, map, take, takeUntil} from 'rxjs/operators';
 import {AppState} from '../../../../../core/store';
 import {StreamsService} from '../../../../../shared/services/streams.service';
 import {appRoute} from '../../../../../shared/utils/routes.names';
@@ -12,6 +12,8 @@ import {uniqueName} from '../../../../../shared/utils/validators';
 import * as StreamDetailsActions from '../../../store/stream-details/stream-details.actions';
 import { forbiddenChars, forbiddenCharsForMessage } from 'src/app/shared/utils/forbiddenCharacters';
 import { TopicService } from '../../../modules/schema-editor/services/topic.service';
+import { getDefaultTimebase, getTimebases } from '../../../store/timebases/timebases.selectors';
+import { TimebaseInstanceDef } from '../../../../../shared/models/timebase-instance-def.model';
 
 @Component({
   selector: 'app-create-stream-modal',
@@ -27,6 +29,8 @@ export class CreateStreamModalComponent implements OnInit, OnDestroy {
   lastNameValidationError: {[key: string]: boolean };
   lastStreamValidationError: {[key: string]: boolean };
   topic: boolean;
+  tbId: string = null;
+  timebases$: Observable<TimebaseInstanceDef[]>;
   versionOptions = [4, 5];
   distributionFactorOptions = ['1', 'MAX'];
   copyToExistingStream: boolean;
@@ -44,9 +48,29 @@ export class CreateStreamModalComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    const allStreams$ = this.streamsService.getList(false);
+    this.timebases$ = this.appStore.pipe(select(getTimebases));
+    this.appStore.pipe(select(getDefaultTimebase), take(1)).subscribe(defaultTb => {
+      if (!this.tbId && defaultTb?.id) {
+        this.tbId = defaultTb.id;
+      }
+      this.initForm();
+    });
+  }
 
-    const existing$ = allStreams$.pipe(map((streams) => streams.map((stream) => stream.key)));
+  onTbChange(tbId: string) {
+    this.tbId = tbId;
+    this.initForm();
+  }
+
+  private initForm(): void {
+    // Scope uniqueness check to the target TB only (not all configured instances).
+    const allStreams$ = this.streamsService.getList(false, null, null, this.tbId);
+
+    const existing$ = allStreams$.pipe(
+      map((streams) => streams
+        .filter((s) => !this.tbId || !s.tbId || s.tbId === this.tbId)
+        .map((stream) => stream.key)),
+    );
     
     this.streamNameControl = new UntypedFormControl(null, {
       validators: [Validators.required, Validators.maxLength(255), this.noForbiddenSymbols()],
@@ -102,7 +126,7 @@ export class CreateStreamModalComponent implements OnInit, OnDestroy {
   }
 
   onCreateStream() {
-    if (this.streamNameControl.invalid) return;
+    if (!this.streamNameControl || this.streamNameControl.invalid) return;
     this.bsModalRef.hide();
     const distributionFactorValue = this.distributionFactorControl.value;
     const distributionFactor = this.versionControl.value !== '4' ? null :
@@ -118,11 +142,12 @@ export class CreateStreamModalComponent implements OnInit, OnDestroy {
     } else {
       this.streamsService.streamCreationData = {
         storageVersion: this.versionControl.value,
-        distributionFactor
+        distributionFactor,
+        tbId: this.tbId,
       };
     }
     this.router.navigate([appRoute, 'stream', this.topic ? 'topic-create' : 'stream-create', this.streamNameControl.value], {
-      queryParams: {newTab: '1'},
+      queryParams: {newTab: '1', ...(this.tbId ? {tbId: this.tbId} : {})},
     });
     this.appStore.dispatch(new StreamDetailsActions.RemoveErrorMessage());
   }
