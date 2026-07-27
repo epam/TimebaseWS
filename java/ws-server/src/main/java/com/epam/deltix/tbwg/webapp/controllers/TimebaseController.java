@@ -1868,12 +1868,13 @@ public class TimebaseController {
      */
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @GetMapping(value = "/availableSources", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> availableSources(@RequestParam String[] streams) {
+    public ResponseEntity<?> availableSources(@RequestParam String[] streams,
+                                              @RequestParam(required = false) String tb) {
         String[] decodeStreams = new String[streams.length];
         for (int i = 0; i < streams.length; i++) {
             decodeStreams[i] = URLDecoder.decode(streams[i], StandardCharsets.UTF_8);
         }
-        DXTickStream[] tickStreams = match(registry.getDefault(), decodeStreams);
+        DXTickStream[] tickStreams = match(registry.resolve(tb), decodeStreams);
         return ResponseEntity.ok(getAvailableSources(tickStreams));
     }
 

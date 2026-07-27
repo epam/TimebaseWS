@@ -11,7 +11,7 @@ import {
   SchemaClassTypeModel,
 } from '../../../../../shared/models/schema.class.type.model';
 import * as StreamsTabsActions from '../../../store/streams-tabs/streams-tabs.actions';
-import {getActiveTab} from '../../../store/streams-tabs/streams-tabs.selectors';
+import {getActiveOrFirstTab, getActiveTab} from '../../../store/streams-tabs/streams-tabs.selectors';
 import {getStreamsList} from '../../../store/streams-list/streams.selectors';
 import {StreamMetaDataChangeModel} from '../models/stream.meta.data.change.model';
 import {
@@ -64,9 +64,12 @@ export class SchemaEditorEffects {
             map(streamId => ({ streamId, topic }))
           ),
       ),
-      withLatestFrom(this.appStore.pipe(select(getStreamsList))),
-      switchMap(([{ streamId, topic }, streams]) => {
-        const tbId = streams?.find(s => s.key === streamId)?.tbId;
+      withLatestFrom(
+        this.appStore.pipe(select(getStreamsList)),
+        this.appStore.pipe(select(getActiveOrFirstTab)),
+      ),
+      switchMap(([{ streamId, topic }, streams, activeTab]) => {
+        const tbId = streams?.find(s => s.key === streamId)?.tbId ?? activeTab?.tbId;
         if (!topic) {
           return this.httpClient$.get<{types: SchemaClassTypeModel[]; all: SchemaClassTypeModel[]}>(
             `${encodeURIComponent(streamId)}/schema`,

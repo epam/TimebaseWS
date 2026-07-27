@@ -21,6 +21,7 @@ import {TabModel} from '../../models/tab.model';
 import {TabsService} from '../../services/tabs.service';
 import * as FilterActions from '../filter/filter.actions';
 import {getStreamsList} from '../streams-list/streams.selectors';
+import {getActiveOrFirstTab} from '../streams-tabs/streams-tabs.selectors';
 import * as StreamDetailsActions from './stream-details.actions';
 import {StreamDetailsActionTypes} from './stream-details.actions';
 
@@ -122,9 +123,12 @@ export class StreamDetailsEffects {
     distinctUntilChanged(
       (e, prev) => `${e.streamId}-${e.spaceId}` === `${prev.streamId}-${prev.spaceId}`,
     ),
-    withLatestFrom(this.appStore.pipe(select(getStreamsList))),
-    switchMap(([{streamId, spaceId}, streams]) => {
-      const tbId = streams?.find(s => s.key === streamId)?.tbId;
+    withLatestFrom(
+      this.appStore.pipe(select(getStreamsList)),
+      this.appStore.pipe(select(getActiveOrFirstTab)),
+    ),
+    switchMap(([{streamId, spaceId}, streams, activeTab]) => {
+      const tbId = streams?.find(s => s.key === streamId)?.tbId ?? activeTab?.tbId;
       return this.symbolsService.getSymbols(streamId, spaceId, null, tbId).pipe(
         takeUntil(this.stop_subscription$),
         map((resp: Array<string>) => {

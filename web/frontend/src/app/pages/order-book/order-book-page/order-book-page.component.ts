@@ -47,6 +47,7 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
   streams$: Observable<{ key: string, name: string, tbId?: string }[]>;
   streamNames$: Observable<string[]>;
   symbols$: Observable<string[]>;
+  tbId$: Observable<string | null>;
   loading: boolean = true;
   noData: boolean = false;
   hiddenExchanges$: Observable<string[]>;
@@ -182,7 +183,7 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
         map((streams) =>
           streams
             .filter((s) => !!s.chartType?.find((ct) => ct.chartType === ChartTypes.PRICE_LEVELS))
-            .map(({key, name}) => ( { key, name } ))
+            .map(({key, name, tbId}) => ( { key, name, tbId } ))
         ),
       ),
       this.viewService.getViews().pipe(map(views => views.map(view => ({ key: view.stream, name: view.stream }))))
@@ -200,12 +201,16 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
         delay(500),
         switchMap((streamList: StreamModel[]) => {
           const selectedStreamKeys = [];
+          let tbId: string = null;
           streamList.forEach(stream => {
             if (this.selectedStreams.includes(stream.name)) {
               selectedStreamKeys.push(stream.key);
+              if (!tbId && stream.tbId) {
+                tbId = stream.tbId;
+              }
             }
           })
-          return this.streamSourceService.getAvailableSources(selectedStreamKeys);
+          return this.streamSourceService.getAvailableSources(selectedStreamKeys, tbId);
         }),
         takeUntil(this.destroy$)
       )
@@ -221,6 +226,19 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
       })
 
     this.streamNames$ = this.streams$.pipe(map((s) => s.map(str => str.name)));
+
+    this.tbId$ = this.streams$.pipe(
+      switchMap((streamList) =>
+        this.filters.get('streams').valueChanges.pipe(
+          startWith(this.filters.get('streams').value),
+          map((selectedNames: string[]) => {
+            const match = streamList.find(s => selectedNames.includes(s.name) && !!s.tbId);
+            return match?.tbId || null;
+          }),
+        )
+      ),
+      distinctUntilChanged(),
+    );
 
     this.symbols$ = this.streams$.pipe(
       tap(streams => this.streams = streams),

@@ -61,6 +61,7 @@
         [streams]="streamKeys | async"
         [inDepthChart]="true"
         [source]="filters.get('source').value?.[0]"
+        [tbId]="tbId$ | async"
         [symbol]="filters.get('symbol').value[0]"></app-order-book>
     <div [class.show]="loading && !noData" class="loader"></div>
     <div [class.hidden]="!noData" class="no-data-message">

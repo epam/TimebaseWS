@@ -11,11 +11,14 @@ export class StreamSourceService {
 
   constructor(private httpClient: HttpClient) {}
 
-  getAvailableSources(streams: string[]) {
+  getAvailableSources(streams: string[], tbId: string = null) {
     const encodedStreams = streams.map(stream => encodeURIComponent(stream));
-    const params = { streams: encodedStreams };
+    const params: { [key: string]: string | string[] } = { streams: encodedStreams };
+    if (tbId) {
+      params.tb = tbId;
+    }
 
-    const cashKey = JSON.stringify(streams);
+    const cashKey = JSON.stringify({ streams, tbId });
     if (this.requestsInProgress[cashKey]) {
       return this.requestsInProgress[cashKey];
     } else {

@@ -204,8 +204,9 @@ public class CsvImportServiceImpl implements CsvImportService {
         }
 
         // generate schema
+        String tbId = getImportById(id).getTbId();
         CsvSchemaParser csvSchemaParser = new CsvSchemaParser(generalSettings, enumCheck, enumValuesCount,
-                enumRepeatRate, staticCheck, !VersionUtils.versionHasNsEncoding(registry.getDefault().getServerVersion()));
+                enumRepeatRate, staticCheck, !VersionUtils.versionHasNsEncoding(registry.resolve(tbId).getServerVersion()));
         for (File file : importProcess.filesList()) {
             csvSchemaParser.processFile(file);
         }
