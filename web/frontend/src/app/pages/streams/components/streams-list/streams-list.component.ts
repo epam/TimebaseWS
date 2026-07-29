@@ -13,6 +13,7 @@ import {
   select,
   Store,
 }                                         from '@ngrx/store';
+import { Actions, ofType }                from '@ngrx/effects';
 import { TranslateService }               from '@ngx-translate/core';
 import equal                              from 'fast-deep-equal/es6';
 import { ContextMenuService }             from '@perfectmemory/ngx-contextmenu';
@@ -64,7 +65,7 @@ import { StreamsService } from 'src/app/shared/services/streams.service';
 import { ImportFromTextFileService } from '../../services/import-from-text-file.service';
 import { PlaybackService } from '../../services/playback.service';
 import { TabModel } from '../../models/tab.model';
-import { LoadTimebases } from '../../store/timebases/timebases.actions';
+import { LoadTimebases, TimebasesActionTypes } from '../../store/timebases/timebases.actions';
 
 const defaultTreeViews = [
   {
@@ -142,7 +143,8 @@ export class StreamsListComponent implements OnInit, OnDestroy {
     private hostElement: ElementRef,
     private streamsService: StreamsService,
     private importFromTextFileService: ImportFromTextFileService,
-    private playbackService: PlaybackService
+    private playbackService: PlaybackService,
+    private actions$: Actions
   ) {}
   
   ngOnInit() {
@@ -269,6 +271,23 @@ export class StreamsListComponent implements OnInit, OnDestroy {
       .onScrollToActiveMenu()
       .pipe(takeUntil(this.destroy$), delay(0))
       .subscribe(() => this.scrollToActiveMenu());
+
+    // A timebase going down or coming back up can leave the tree stale (e.g. a DB node still
+    // shown as unavailable after the underlying timebase has recovered, or vice versa) -
+    // force a full re-fetch and redraw so it reflects the current state.
+    this.actions$.pipe(
+      ofType(TimebasesActionTypes.TIMEBASE_STATUS_CHANGED),
+      takeUntil(this.destroy$),
+      switchMap(() => {
+        this.menuItemsService.clearCache();
+        this.menuLoaded = false;
+        this.cdRef.detectChanges();
+        return this.freshMenu(false);
+      }),
+    ).subscribe(() => {
+      this.menuLoaded = true;
+      this.cdRef.detectChanges();
+    });
     
     this.leftSidebarStorageService.watchStorage().pipe(map(storage => storage.treeView), distinctUntilChanged()).pipe(
       switchMap((treeView) => this.structureUpdatesService.onUpdates().pipe(map(updates => ({treeView, updates})))),

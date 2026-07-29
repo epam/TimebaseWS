@@ -4,7 +4,7 @@ import { select, Store }                                           from '@ngrx/s
 import { TranslateService }                   from '@ngx-translate/core';
 import { BsModalRef }                         from 'ngx-bootstrap/modal';
 import { BehaviorSubject, Observable, Subject }                        from 'rxjs';
-import { switchMap, take } from 'rxjs/operators';
+import { switchMap, take, takeUntil } from 'rxjs/operators';
 import { AppState }                                            from '../../../../../core/store';
 import { ErrorLocation }                      from '../../../../../shared/models/query';
 import { MonacoQqlConfigService }             from '../../../../../shared/services/monaco-qql-config.service';
@@ -25,6 +25,12 @@ export class CreateViewModalComponent implements OnInit, OnDestroy {
 
   tbId: string = null;
   timebases$: Observable<TimebaseInstanceDef[]>;
+  private timebasesList: TimebaseInstanceDef[] = [];
+
+  get selectedTbUnavailable(): boolean {
+    return this.timebasesList.find((tb) => tb.id === this.tbId)?.connected === false;
+  }
+
   textError: string;
   hasError: boolean;
   errorLocation: ErrorLocation;
@@ -48,6 +54,9 @@ export class CreateViewModalComponent implements OnInit, OnDestroy {
   
   ngOnInit(): void {
     this.timebases$ = this.appStore.pipe(select(getTimebases));
+    this.timebases$.pipe(takeUntil(this.destroy$)).subscribe((timebases) => {
+      this.timebasesList = timebases || [];
+    });
 
     this.appStore.pipe(select(getDefaultTimebase), take(1)).subscribe(defaultTb => {
       if (!this.tbId && defaultTb?.id) {

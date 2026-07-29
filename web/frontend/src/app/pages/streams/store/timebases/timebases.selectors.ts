@@ -19,5 +19,5 @@ export const getTimebasesLoaded = createSelector(
 
 export const getDefaultTimebase = createSelector(
   getTimebases,
-  (timebases) => timebases?.[0] ?? null,
+  (timebases) => timebases?.find((tb) => tb.connected !== false) ?? timebases?.[0] ?? null,
 );

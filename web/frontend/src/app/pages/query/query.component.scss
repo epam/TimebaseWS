@@ -92,6 +92,18 @@
     }
   }
 
+  .db-selector-error {
+    border-color: $red;
+    color: $red;
+  }
+
+  .db-selector-hint {
+    font-size: 11px;
+    color: $red;
+    white-space: nowrap;
+    margin-right: 6px;
+  }
+
   &__rows {
     display: flex;
     align-items: center;

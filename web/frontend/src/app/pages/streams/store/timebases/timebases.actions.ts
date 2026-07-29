@@ -5,6 +5,7 @@ export enum TimebasesActionTypes {
   LOAD_TIMEBASES = '[Timebases] Load Timebases',
   SET_TIMEBASES = '[Timebases] Set Timebases',
   LOAD_TIMEBASES_FAILED = '[Timebases] Load Timebases Failed',
+  TIMEBASE_STATUS_CHANGED = '[Timebases] Timebase Status Changed',
 }
 
 export class LoadTimebases implements Action {
@@ -23,4 +24,10 @@ export class LoadTimebasesFailed implements Action {
   constructor(public payload: { error: any }) {}
 }
 
-export type TimebasesActions = LoadTimebases | SetTimebases | LoadTimebasesFailed;
+export class TimebaseStatusChanged implements Action {
+  readonly type = TimebasesActionTypes.TIMEBASE_STATUS_CHANGED;
+
+  constructor(public payload: { id: string; connected: boolean; errorMessage?: string }) {}
+}
+
+export type TimebasesActions = LoadTimebases | SetTimebases | LoadTimebasesFailed | TimebaseStatusChanged;

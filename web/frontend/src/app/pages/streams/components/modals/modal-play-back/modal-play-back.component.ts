@@ -31,6 +31,15 @@ export class ModalPlayBackComponent implements OnInit {
   timebases$: Observable<TimebaseInstanceDef[]>;
   sourceTbId: string = null;
   targetTbId: string = null;
+  private timebasesList: TimebaseInstanceDef[] = [];
+
+  get sourceTbUnavailable(): boolean {
+    return this.timebasesList.find((tb) => tb.id === this.sourceTbId)?.connected === false;
+  }
+
+  get targetTbUnavailable(): boolean {
+    return this.timebasesList.find((tb) => tb.id === this.targetTbId)?.connected === false;
+  }
   playbackSpeedOptions = ['1', '2', '5', '10', 'MAX'];
   endTimeMin: Date;
   validationErrorMessages = {
@@ -93,6 +102,9 @@ export class ModalPlayBackComponent implements OnInit {
     this.selectedTimezone$ = this.globalFiltersService.getFilters().pipe(map(filters => filters.timezone[0]), takeUntil(this.destroy$));
 
     this.timebases$ = this.streamsStore.pipe(select(getTimebases));
+    this.timebases$.pipe(takeUntil(this.destroy$)).subscribe((timebases) => {
+      this.timebasesList = timebases || [];
+    });
 
     // Load stream lists when source/target TB changes
     this._sourceTbId$.pipe(

@@ -16,10 +16,13 @@
  */
 package com.epam.deltix.tbwg.webapp.interceptors;
 
+import com.epam.deltix.gflog.api.Log;
+import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.timebase.connections.TbUserDetails;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -29,6 +32,8 @@ import java.security.Principal;
 
 @Component
 public class TimebaseLoginInterceptor implements HandlerInterceptor {
+
+    private static final Log LOGGER = LogFactory.getLog(TimebaseLoginInterceptor.class);
 
     private final TimebaseRegistry registry;
 
@@ -42,7 +47,14 @@ public class TimebaseLoginInterceptor implements HandlerInterceptor {
         if (principal != null) {
             TbUserDetails details = TbUserDetails.create(TBWGUtils.getIp(request));
             for (TimebaseService svc : registry.getAll()) {
-                svc.login(principal, details);
+                try {
+                    svc.login(principal, details);
+                } catch (AccessDeniedException e) {
+                    throw e;
+                } catch (Exception e) {
+                    LOGGER.warn().append("Failed to login to timebase [").append(svc.getId()).append("]: ")
+                            .append(e.getMessage()).commit();
+                }
             }
         }
         return true;
@@ -54,7 +66,12 @@ public class TimebaseLoginInterceptor implements HandlerInterceptor {
         if (principal != null) {
             TbUserDetails details = TbUserDetails.create(TBWGUtils.getIp(request));
             for (TimebaseService svc : registry.getAll()) {
-                svc.logout(principal, details);
+                try {
+                    svc.logout(principal, details);
+                } catch (Exception e) {
+                    LOGGER.warn().append("Failed to logout from timebase [").append(svc.getId()).append("]: ")
+                            .append(e.getMessage()).commit();
+                }
             }
         }
     }

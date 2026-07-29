@@ -1573,14 +1573,27 @@ public class TimebaseController {
                                                @RequestParam(required = false) String tb) {
         LOGGER.log(LogLevel.INFO, "GET streams() using filter = %s").with(filter);
 
-        List<TimebaseService> services = (tb != null && !tb.isEmpty())
+        boolean explicitTb = tb != null && !tb.isEmpty();
+        List<TimebaseService> services = explicitTb
                 ? Collections.singletonList(registry.resolve(tb))
                 : registry.getAll();
 
         List<StreamDef> result = new ArrayList<>();
         for (TimebaseService svc : services) {
-            DXTickStream[] streams = Arrays.stream(svc.listStreams(filter, spaces))
-                    .filter(stream -> !viewService.isViewStream(stream.getKey())).toArray(DXTickStream[]::new);
+            DXTickStream[] streams;
+            try {
+                streams = Arrays.stream(svc.listStreams(filter, spaces))
+                        .filter(stream -> !viewService.isViewStream(stream.getKey())).toArray(DXTickStream[]::new);
+            } catch (Exception e) {
+                // A single unreachable timebase must not prevent listing streams from the others.
+                // If the caller explicitly asked for this timebase (tb param), let the error propagate.
+                if (explicitTb) {
+                    throw e;
+                }
+                LOGGER.warn().append("Timebase [").append(svc.getId()).append("] is unavailable, skipping it in streams() : ")
+                        .append(e.getMessage()).commit();
+                continue;
+            }
             for (DXTickStream stream : streams) {
                 StreamDef def = new StreamDef(stream.getKey(), stream.getName(), stream.listEntities().length);
                 def.tbId = svc.getId();

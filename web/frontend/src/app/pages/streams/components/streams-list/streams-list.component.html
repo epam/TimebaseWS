@@ -88,6 +88,7 @@
                 [queryParams]="menuItem | streamsNavigationParams: activeTabType"
                 [routerLink]="menuItem | streamsNavigationUrl: activeTabType: (reverseViewIsDefault$ | async)"
                 class="menu-item-link"
+                [class.db-unavailable]="menuItem.type === 'DB' && menuItem.available === false"
                 [name]="menuItem.name"
                 [attr.data-type]="menuItem.type"
                 [class.selected-item]="selectedItem === menuItem.name || streamSelectedForImport === menuItem.name || activeDbNodeId === menuItem.id"
@@ -96,7 +97,7 @@
                   <span
                     [adaptivePosition]="false"
                     [delay]="700"
-                    [tooltip]="menuItem.name"
+                    [tooltip]="menuItem.available === false ? (menuItem.errorMessage || menuItem.name) : menuItem.name"
                     class="menu-item-title"
                     container="body"
                     placement="top">
@@ -112,6 +113,14 @@
               <span *ngIf="menuItem.childrenCount" class="children-count"
               >({{ menuItem.childrenCount }})</span>
               <span class="loader view-loader" *ngIf="menuItem.viewMd" [class.visible]="menuItem?.viewMd.state === 'PROCESSING'"></span>
+              <span
+                  *ngIf="menuItem.type === 'DB' && menuItem.available === false"
+                  class="db-unavailable-icon"
+                  [adaptivePosition]="false"
+                  [delay]="200"
+                  [tooltip]="menuItem.errorMessage"
+                  container="body"
+                  placement="top">&#9888;</span>
             </a>
           </app-menu-item-context-menu>
         </li>

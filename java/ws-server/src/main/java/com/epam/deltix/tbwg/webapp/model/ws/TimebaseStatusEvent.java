@@ -14,28 +14,17 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.epam.deltix.tbwg.webapp.model;
+package com.epam.deltix.tbwg.webapp.model.ws;
 
-import com.epam.deltix.qsrv.hf.tickdb.client.Version;
-import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
-
-public class TimebaseInstanceDef {
+public class TimebaseStatusEvent {
 
     public final String id;
-    public final String url;
-    public final boolean readonly;
     public final boolean connected;
-    public final String serverVersion;
-    public final String clientVersion;
     public final String errorMessage;
 
-    public TimebaseInstanceDef(TimebaseService svc) {
-        this.id = svc.getId();
-        this.url = svc.getUrl();
-        this.readonly = svc.isReadonly();
-        this.connected = svc.isConnected();
-        this.serverVersion = svc.getServerVersion();
-        this.clientVersion = Version.getVersion();
-        this.errorMessage = svc.getLastError();
+    public TimebaseStatusEvent(String id, boolean connected, String errorMessage) {
+        this.id = id;
+        this.connected = connected;
+        this.errorMessage = errorMessage;
     }
 }

@@ -90,3 +90,16 @@ app-qql-editor {
     box-shadow: none;
   }
 }
+
+.db-selector-error {
+  border-color: $red;
+  color: $red;
+}
+
+.db-selector-hint {
+  display: block;
+  font-size: 11px;
+  font-weight: normal;
+  text-transform: none;
+  color: $red;
+}

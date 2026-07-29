@@ -18,19 +18,19 @@
                 <div class="query-tools__left">
                   <div class="btn-group" #sendQueryDropDown dropdown>
                     <button
-                      [disabled]="!queryControl.value.trim()"
+                      [disabled]="!queryControl.value.trim() || selectedTbUnavailable"
                       (click)="onSubmit()"
-                      [tooltip]="sendButtonTooltip$ | async"
+                      [tooltip]="selectedTbUnavailable ? 'Selected timebase is unavailable' : (sendButtonTooltip$ | async)"
                       container="body"
                       class="btn btn-info send-btn"
                       placement="right">
-                      {{ sendBtnText$ | async }} 
+                      {{ sendBtnText$ | async }}
                       <ng-container *ngIf="!(pending$ | async) && selectedText">
                         <ng-container *ngTemplateOutlet="selectedTextIcon"></ng-container>
                       </ng-container>
                     </button>
                     <button
-                      [disabled]="!queryControl.value.trim()"
+                      [disabled]="!queryControl.value.trim() || selectedTbUnavailable"
                       class="btn btn-info dropdown-button dropdown-toggle dropdown-button--separate"
                       dropdownToggle
                       type="button"></button>
@@ -72,8 +72,8 @@
                   </div>
                   <div class="btn-group export-btn" #exportDropdown dropdown>
                     <button
-                      [disabled]="(exporting$ | async) || form.invalid"
-                      [tooltip]="exportBtnText$ | async"
+                      [disabled]="(exporting$ | async) || form.invalid || selectedTbUnavailable"
+                      [tooltip]="selectedTbUnavailable ? 'Selected timebase is unavailable' : (exportBtnText$ | async)"
                       class="btn btn-info"
                       type="button"
                       (click)="export()"
@@ -81,7 +81,7 @@
                       {{ exportBtnText$ | async }}
                     </button>
                     <button
-                      [class.disabled]="(exporting$ | async) || form.invalid"
+                      [class.disabled]="(exporting$ | async) || form.invalid || selectedTbUnavailable"
                       class="btn btn-info dropdown-button dropdown-toggle dropdown-button--separate"
                       dropdownToggle
                       type="button"></button>
@@ -98,21 +98,28 @@
                   <ng-container *ngIf="timebases$ | async as timebases">
                     <select *ngIf="timebases.length > 1"
                             class="db-selector"
+                            [class.db-selector-error]="selectedTbUnavailable"
                             (change)="onTbChange($event.target['value'])">
-                      <option *ngFor="let tb of timebases" [value]="tb.id" [selected]="tb.id === tbId">{{ tb.id }}</option>
+                      <option *ngFor="let tb of timebases" [value]="tb.id" [selected]="tb.id === tbId"
+                              [disabled]="tb.connected === false"
+                              [title]="tb.connected === false ? (tb.errorMessage || 'Timebase is unavailable') : null">{{ tb.id }}{{ tb.connected === false ? ' (unavailable)' : '' }}</option>
                     </select>
                     <span *ngIf="timebases.length === 1 && tbId"
                           class="db-indicator"
-                          [tooltip]="tbUrl"
+                          [class.db-selector-error]="selectedTbUnavailable"
+                          [tooltip]="selectedTbUnavailable ? (timebases[0].errorMessage || 'Timebase is unavailable') : tbUrl"
                           placement="bottom"
                           container="body">
                       {{ tbId }}
+                    </span>
+                    <span *ngIf="selectedTbUnavailable" class="db-selector-hint">
+                      Selected timebase is unavailable. Choose another one to continue.
                     </span>
                   </ng-container>
                   <button
                     *ngIf="isWriter$ | async"
                     (click)="createView()"
-                    [disabled]="(exporting$ | async) || ((form.invalid || queryError[currentTabId]) && !selectedText)"
+                    [disabled]="(exporting$ | async) || ((form.invalid || queryError[currentTabId]) && !selectedText) || selectedTbUnavailable"
                     class="btn btn-info"
                     type="button"
                     [tooltip]="(!selectedText ? 'qqlEditor.buttons.createView' : 'qqlEditor.buttons.createViewSelected')

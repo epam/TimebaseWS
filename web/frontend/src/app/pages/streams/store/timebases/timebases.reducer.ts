@@ -20,6 +20,16 @@ export function reducer(state = initialState, action: TimebasesActions): State {
         loaded: true,
       };
 
+    case TimebasesActionTypes.TIMEBASE_STATUS_CHANGED:
+      return {
+        ...state,
+        timebases: state.timebases.map((tb) =>
+          tb.id === action.payload.id
+            ? {...tb, connected: action.payload.connected, errorMessage: action.payload.errorMessage}
+            : tb,
+        ),
+      };
+
     default:
       return state;
   }

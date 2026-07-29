@@ -74,6 +74,12 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
 
   tbId: string = null;
   timebases$: Observable<TimebaseInstanceDef[]>;
+  private timebasesList: TimebaseInstanceDef[] = [];
+
+  get selectedTbUnavailable(): boolean {
+    return this.timebasesList.find((tb) => tb.id === this.tbId)?.connected === false;
+  }
+
   form: UntypedFormGroup;
   autocomplete$: Observable<string[]>;
   
@@ -142,6 +148,9 @@ export class ModalImportQSMSGFileComponent implements OnInit, OnDestroy {
   
   ngOnInit(): void {
     this.timebases$ = this.appStore.pipe(select(getTimebases));
+    this.timebases$.pipe(takeUntil(this.destroy$)).subscribe((timebases) => {
+      this.timebasesList = timebases || [];
+    });
     this.appStore.pipe(select(getDefaultTimebase), take(1)).subscribe(defaultTb => {
       if (!this.tbId && defaultTb?.id) {
         this.tbId = defaultTb.id;

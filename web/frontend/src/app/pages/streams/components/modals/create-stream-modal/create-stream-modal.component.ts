@@ -38,6 +38,11 @@ export class CreateStreamModalComponent implements OnInit, OnDestroy {
   showDistributionFactorInput$ = new BehaviorSubject(false);
   private destroy$ = new Subject();
   private topicStreamName$ = new BehaviorSubject('');
+  private timebasesList: TimebaseInstanceDef[] = [];
+
+  get selectedTbUnavailable(): boolean {
+    return this.timebasesList.find((tb) => tb.id === this.tbId)?.connected === false;
+  }
 
   constructor(
     private appStore: Store<AppState>,
@@ -49,6 +54,9 @@ export class CreateStreamModalComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.timebases$ = this.appStore.pipe(select(getTimebases));
+    this.timebases$.pipe(takeUntil(this.destroy$)).subscribe((timebases) => {
+      this.timebasesList = timebases || [];
+    });
     this.appStore.pipe(select(getDefaultTimebase), take(1)).subscribe(defaultTb => {
       if (!this.tbId && defaultTb?.id) {
         this.tbId = defaultTb.id;

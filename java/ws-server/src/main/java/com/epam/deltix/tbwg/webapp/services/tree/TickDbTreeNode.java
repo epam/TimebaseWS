@@ -78,6 +78,10 @@ public class TickDbTreeNode extends TreeNode<TickDbTreeNode.DBTreeContent> {
 
         List<DBTreeContent> dbContent;
         if (config.isViews()) {
+            if (!db.isConnected()) {
+                String error = db.getLastError();
+                throw new RuntimeException(error != null ? error : "Timebase is unavailable");
+            }
             dbContent = viewService.list(db.getId()).stream()
                 .map(v -> {
                     try {

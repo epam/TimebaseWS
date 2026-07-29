@@ -30,6 +30,7 @@ import com.epam.deltix.tbwg.webapp.websockets.WebSocketUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -192,12 +193,10 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
 
                 Principal principal = headers.getUser();
                 TbUserDetails details = TbUserDetails.create(TBWGUtils.getIp(headers));
-                for (TimebaseService svc : timebaseRegistry.getAll()) { svc.login(principal, details); }
+                loginAll(principal, details);
                 try {
                     subscription = controller.onSubscribe(headers, channel);
-                    for (TimebaseService svc : timebaseRegistry.getAll()) {
-                        svc.openSession(principal, details, getSessionId(sessionId, subscriptionId));
-                    }
+                    openSessionAll(principal, details, getSessionId(sessionId, subscriptionId));
                 } catch (final Throwable e) {
                     LOG.warn("SubscriptionService controller thew an exception on subscribe: : session=%s, subscription=%s, destination=%s, exception=%s")
                             .with(sessionId)
@@ -207,7 +206,7 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
 
                     channel.sendError(e);
                 } finally {
-                    for (TimebaseService svc : timebaseRegistry.getAll()) { svc.logout(principal, details); }
+                    logoutAll(principal, details);
                 }
 
                 if (subscription != null) {
@@ -231,9 +230,7 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
                 .with(subscriptionId)
                 .with(destination);
 
-            for (TimebaseService svc : timebaseRegistry.getAll()) {
-                svc.closeSession(principal, details, getSessionId(sessionId, subscriptionId));
-            }
+            closeSessionAll(principal, details, getSessionId(sessionId, subscriptionId));
             removeSubscription(sessionId, subscriptionId);
         }
 
@@ -250,9 +247,7 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
             Objects.requireNonNull(sessionId);
             List<String> subscriptionIds = removeSubscriptions(sessionId);
             for (String subscriptionId : subscriptionIds) {
-                for (TimebaseService svc : timebaseRegistry.getAll()) {
-                    svc.closeSession(principal, details, getSessionId(sessionId, subscriptionId));
-                }
+                closeSessionAll(principal, details, getSessionId(sessionId, subscriptionId));
             }
         }
 
@@ -354,6 +349,50 @@ public class SubscriptionService implements SubscriptionControllerRegistry {
 
         private String getSessionId(String sessionId, String subscriptionId) {
             return sessionId + "|" + subscriptionId;
+        }
+
+        private void loginAll(Principal principal, TbUserDetails details) {
+            for (TimebaseService svc : timebaseRegistry.getAll()) {
+                try {
+                    svc.login(principal, details);
+                } catch (AccessDeniedException e) {
+                    throw e;
+                } catch (Exception e) {
+                    LOG.warn("Failed to login to timebase [%s]: %s").with(svc.getId()).with(e.getMessage());
+                }
+            }
+        }
+
+        private void openSessionAll(Principal principal, TbUserDetails details, String sessionId) {
+            for (TimebaseService svc : timebaseRegistry.getAll()) {
+                try {
+                    svc.openSession(principal, details, sessionId);
+                } catch (AccessDeniedException e) {
+                    throw e;
+                } catch (Exception e) {
+                    LOG.warn("Failed to open session on timebase [%s]: %s").with(svc.getId()).with(e.getMessage());
+                }
+            }
+        }
+
+        private void logoutAll(Principal principal, TbUserDetails details) {
+            for (TimebaseService svc : timebaseRegistry.getAll()) {
+                try {
+                    svc.logout(principal, details);
+                } catch (Exception e) {
+                    LOG.warn("Failed to logout from timebase [%s]: %s").with(svc.getId()).with(e.getMessage());
+                }
+            }
+        }
+
+        private void closeSessionAll(Principal principal, TbUserDetails details, String sessionId) {
+            for (TimebaseService svc : timebaseRegistry.getAll()) {
+                try {
+                    svc.closeSession(principal, details, sessionId);
+                } catch (Exception e) {
+                    LOG.warn("Failed to close session on timebase [%s]: %s").with(svc.getId()).with(e.getMessage());
+                }
+            }
         }
 
     }

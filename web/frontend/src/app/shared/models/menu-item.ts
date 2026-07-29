@@ -34,4 +34,6 @@ export interface MenuItem {
   active?: boolean;
   parent?: string;
   tbId?: string;
+  available?: boolean;
+  errorMessage?: string;
 }

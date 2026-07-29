@@ -136,6 +136,10 @@ export class QueryComponent implements OnInit, AfterViewInit {
   timebases$: Observable<TimebaseInstanceDef[]>;
   selectedTbId: string;
   private timebasesList: TimebaseInstanceDef[] = [];
+
+  get selectedTbUnavailable(): boolean {
+    return this.timebasesList.find((tb) => tb.id === this.tbId)?.connected === false;
+  }
   private serverErrorQueries = this.queryService.serverErrorQueries;
   private validationErrors: { [key: string]: IRange } = {};
   
@@ -200,7 +204,8 @@ export class QueryComponent implements OnInit, AfterViewInit {
       .pipe(takeUntil(this.destroy$))
       .subscribe(([tab, timebases]) => {
         this.timebasesList = timebases || [];
-        const storeTbId = tab?.tbId ?? this.timebasesList[0]?.id ?? null;
+        const defaultTbId = this.timebasesList.find((tb) => tb.connected !== false)?.id ?? this.timebasesList[0]?.id ?? null;
+        const storeTbId = tab?.tbId ?? defaultTbId;
         this.tbId = this.selectedTbId ?? storeTbId;
         this.tbUrl = this.timebasesList.find((tb) => tb.id === this.tbId)?.url || null;
       });

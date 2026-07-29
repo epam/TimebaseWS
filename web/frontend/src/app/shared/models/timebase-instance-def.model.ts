@@ -3,4 +3,5 @@ export interface TimebaseInstanceDef {
   url: string;
   readonly: boolean;
   connected: boolean;
+  errorMessage?: string;
 }

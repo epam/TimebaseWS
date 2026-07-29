@@ -53,6 +53,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public static final String SYSTEM_ENDPOINT = "/stomp/v0";
     public static final String STREAMS_TOPIC = TOPIC + "/streams";
     public static final String STRUCTURE_EVENTS_TOPIC = TOPIC + "/structure-events";
+    public static final String TIMEBASE_STATUS_TOPIC = TOPIC + "/timebase-status";
     public static final String FLOWCHART_TOPIC = TOPIC + "/flowchart";
     public static final String FLOWCHART_METADATA_TOPIC = FLOWCHART_TOPIC + "/metadata";
     public static final String FLOWCHART_RING_CENTER_TOPIC = FLOWCHART_TOPIC + "/ringCenter";

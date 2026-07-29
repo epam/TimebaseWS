@@ -73,6 +73,7 @@ public class TimebaseServiceImpl implements TimebaseService {
     private DXTickDB db = null;
     private String dbUrl = null;
     private String serverVersion = null;
+    private volatile String lastError = null;
 
     private final TbUserConnectionsService userConnectionsService;
 
@@ -94,7 +95,8 @@ public class TimebaseServiceImpl implements TimebaseService {
         if (serverVersion == null) {
             try {
                 getConnection();
-            } catch (Exception ignored) {
+            } catch (Exception ex) {
+                lastError = describeError(ex);
             }
         }
         return serverVersion;
@@ -103,10 +105,24 @@ public class TimebaseServiceImpl implements TimebaseService {
     @Override
     public boolean      isConnected() {
         try {
-            return ((TickDBClient)getConnection()).isConnected();
+            boolean connected = ((TickDBClient)getConnection()).isConnected();
+            if (connected) {
+                lastError = null;
+            }
+            return connected;
         } catch (Exception ex) {
+            lastError = describeError(ex);
             return false;
         }
+    }
+
+    @Override
+    public String getLastError() {
+        return lastError;
+    }
+
+    private static String describeError(Throwable e) {
+        return e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
     }
 
     @Override

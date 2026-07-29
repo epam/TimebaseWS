@@ -35,9 +35,14 @@ export class ModalImportCSVFileComponent implements OnInit, OnDestroy {
 
   tbId: string = null;
   timebases$: Observable<TimebaseInstanceDef[]>;
+  private timebasesList: TimebaseInstanceDef[] = [];
   private importSteps = ['uploading', 'schema', 'parameters-setting', 'preview', 'time-range', 'import-progress'];
   private currentStepIndex: number = 0;
   private _tbId$ = new BehaviorSubject<string>(null);
+
+  get selectedTbUnavailable(): boolean {
+    return this.timebasesList.find((tb) => tb.id === this.tbId)?.connected === false;
+  }
 
   get isOnFirstStep(): boolean { return this.currentStepIndex === 0; }
   private fileUploadingProgress = 0;
@@ -101,6 +106,9 @@ export class ModalImportCSVFileComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.timebases$ = this.appStore.pipe(select(getTimebases));
+    this.timebases$.pipe(takeUntil(this.destroy$)).subscribe((timebases) => {
+      this.timebasesList = timebases || [];
+    });
     this.appStore.pipe(select(getDefaultTimebase), take(1)).subscribe(defaultTb => {
       if (!this.tbId && defaultTb?.id) { this.tbId = defaultTb.id; }
     });

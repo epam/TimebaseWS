@@ -16,6 +16,8 @@
  */
 package com.epam.deltix.tbwg.webapp.services.tree;
 
+import com.epam.deltix.gflog.api.Log;
+import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DBStateListener;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DBStateNotifier;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickDB;
@@ -39,6 +41,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class TimeBaseTreeServiceImpl implements TimeBaseTreeService, DBStateListener, ApplicationListener<TimeBaseEvent> {
+
+    private static final Log LOGGER = LogFactory.getLog(TimeBaseTreeServiceImpl.class);
 
     private static class TreePath {
         private final String[] elements;
@@ -148,15 +152,24 @@ public class TimeBaseTreeServiceImpl implements TimeBaseTreeService, DBStateList
         TreeNodeDef root = new TreeNodeDef("", "", TreeNodeType.ROOT);
         for (TimebaseService tb : allServices) {
             String tbId = tb.getId();
-            TreeConfig config = new TreeConfig(filter, showSpaces, views, filterRootOnly, settings, splitGroupsStrategy, spaceEntitiesCache);
-            TickDbTreeNode dbNode = new TickDbTreeNode(config, tb, viewService);
+            TreeNodeDef dbDef;
+            try {
+                TreeConfig config = new TreeConfig(filter, showSpaces, views, filterRootOnly, settings, splitGroupsStrategy, spaceEntitiesCache);
+                TickDbTreeNode dbNode = new TickDbTreeNode(config, tb, viewService);
 
-            List<TreePath> tbPaths = paths.stream()
-                .filter(p -> p.equals("/") || isPathForTb(p, tbId))
-                .map(p -> p.equals("/") ? "/" : stripTbPrefix(p, tbId))
-                .map(TreePath::new)
-                .collect(Collectors.toList());
-            TreeNodeDef dbDef = tbPaths.isEmpty() ? dbNode.getTreeNodeDef() : walk(dbNode, tbPaths, 1).getTreeNodeDef();
+                List<TreePath> tbPaths = paths.stream()
+                    .filter(p -> p.equals("/") || isPathForTb(p, tbId))
+                    .map(p -> p.equals("/") ? "/" : stripTbPrefix(p, tbId))
+                    .map(TreePath::new)
+                    .collect(Collectors.toList());
+                dbDef = tbPaths.isEmpty() ? dbNode.getTreeNodeDef() : walk(dbNode, tbPaths, 1).getTreeNodeDef();
+            } catch (Exception e) {
+                LOGGER.warn().append("Timebase [").append(tbId).append("] is unavailable, showing it as an errored node in the tree: ")
+                        .append(e.getMessage()).commit();
+                dbDef = new TreeNodeDef(tbId, tbId, TreeNodeType.DB);
+                dbDef.setAvailable(false);
+                dbDef.setErrorMessage(describeError(e));
+            }
 
             root.getChildren().add(dbDef);
         }
@@ -164,6 +177,10 @@ public class TimeBaseTreeServiceImpl implements TimeBaseTreeService, DBStateList
         root.setChildrenCount(root.getChildren().size());
         root.setTotalCount(root.getChildren().size());
         return root;
+    }
+
+    private static String describeError(Throwable e) {
+        return e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
     }
 
     private static boolean isPathForTb(String path, String tbId) {
