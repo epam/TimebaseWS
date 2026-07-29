@@ -690,7 +690,8 @@
     "tooltips": {
       "dateFormat": "Date Format",
       "timeFormat": "Time Format",
-      "timeZone": "Time Zone"
+      "timeZone": "Time Zone",
+      "showTopicsComingSoon": "Coming soon"
     }
   },
   "streamList": {

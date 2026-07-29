@@ -68,9 +68,20 @@
     <div class="row">
       <div class="col-md-12">
         <label class="container-ch">
-          <input type="checkbox" formControlName="showTopics" />
-          <span class="checkmark"></span>
-          {{ 'globalSettingsModal.labels.showTopics' | translate }}
+          <span
+              class="checkbox-hit-area"
+              tooltip="{{ 'globalSettingsModal.tooltips.showTopicsComingSoon' | translate }}"
+              placement="right"
+              container="body">
+            <input type="checkbox" formControlName="showTopics" />
+            <span class="checkmark"></span>
+          </span>
+          <span
+              tooltip="{{ 'globalSettingsModal.tooltips.showTopicsComingSoon' | translate }}"
+              placement="top"
+              container="body">
+            {{ 'globalSettingsModal.labels.showTopics' | translate }}
+          </span>
         </label>
       </div>
     </div>
