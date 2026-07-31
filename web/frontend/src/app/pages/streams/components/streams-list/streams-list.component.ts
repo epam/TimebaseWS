@@ -115,7 +115,7 @@ export class StreamsListComponent implements OnInit, OnDestroy {
   public emptyListTitle$: Observable<string>;
   public searchValue = '';
   public searchValueNotFound: boolean;
-  public highlightedItems: { stream: string, symbol: string };
+  public highlightedItems: { stream: string, symbol: string, tbId?: string, streamId?: string };
   public synchronizationEnabled: boolean;
 
   private scrollSubscription: Subscription;
@@ -162,8 +162,8 @@ export class StreamsListComponent implements OnInit, OnDestroy {
     }
 
     this.activeTab$.pipe(
-        takeUntil(this.destroy$), 
-        distinctUntilChanged((t1, t2) => t1?.stream === t2?.stream && t1?.symbol === t2?.symbol))
+        takeUntil(this.destroy$),
+        distinctUntilChanged((t1, t2) => t1?.stream === t2?.stream && t1?.symbol === t2?.symbol && t1?.tbId === t2?.tbId))
       .subscribe(activeTab => {
         this.activeTabType = activeTab?.type || null;
         this.highlightedItems = { stream: '', symbol: '' };
@@ -482,29 +482,50 @@ export class StreamsListComponent implements OnInit, OnDestroy {
   }
 
   private synchronizeWithTabs(activeTab: TabModel) {
-    const { stream, symbol } = activeTab;
+    const { stream, symbol, tbId } = activeTab;
     const isView = activeTab.isView;
     const streamName = activeTab.name;
 
+    const matchesStream = (menuItem: MenuItem) =>
+      menuItem[isView ? 'name' : 'id'] === (isView ? streamName : stream) &&
+      (!tbId || !menuItem.tbId || menuItem.tbId === tbId);
+
     const symbolList = symbol?.split(',');
     if (symbol && symbolList.length === 1) {
-      const streamMenuItemIndex = this.flatMenu?.findIndex(menuItem => menuItem[isView ? 'name' : 'id'] === (isView ? streamName : stream));
+      const streamMenuItemIndex = this.flatMenu?.findIndex(matchesStream);
       const streamMenuItem = this.flatMenu[streamMenuItemIndex];
       this.virtualScroll.scrollToIndex(streamMenuItemIndex);
       this.streamMenuItemIndex = streamMenuItemIndex;
-      this.openStreamChildrenItems(streamMenuItem, symbol);
-      this.highlightedItems = { stream: '', symbol };
+      this.openStreamChildrenItems(streamMenuItem, symbol, tbId);
+      this.highlightedItems = { stream: '', symbol, tbId, streamId: stream };
     } else if (!symbol) {
-      const streamMenuItemIndex = this.flatMenu.findIndex(menuItem => menuItem[isView ? 'name' : 'id'] === (isView ? streamName : stream));
+      const streamMenuItemIndex = this.flatMenu.findIndex(matchesStream);
       this.virtualScroll.scrollToIndex(streamMenuItemIndex);
     } else if (symbol && symbolList.length > 1) {
-      const streamMenuItemIndex = this.flatMenu.findIndex(menuItem => menuItem[isView ? 'name' : 'id'] === (isView ? streamName : stream));
+      const streamMenuItemIndex = this.flatMenu.findIndex(matchesStream);
       const streamMenuItem = this.flatMenu[streamMenuItemIndex];
       this.virtualScroll.scrollToIndex(streamMenuItemIndex);
       this.streamMenuItemIndex = streamMenuItemIndex;
-      this.openStreamChildrenItems(streamMenuItem, symbolList[0]);
-      this.highlightedItems = { stream: streamName, symbol: symbolList[0] };
+      this.openStreamChildrenItems(streamMenuItem, symbolList[0], tbId);
+      this.highlightedItems = { stream: streamName, symbol: symbolList[0], tbId, streamId: stream };
     }
+  }
+
+  isHighlighted(menuItem: MenuItem): boolean {
+    if (!this.highlightedItems) return false;
+    const { stream, symbol, tbId, streamId } = this.highlightedItems;
+
+    if (stream && stream === menuItem.name) {
+      return !tbId || !menuItem.tbId || menuItem.tbId === tbId;
+    }
+
+    if (symbol && symbol === menuItem.name) {
+      if (!streamId) return true;
+      if (menuItem.parent !== streamId) return false;
+      return !tbId || !menuItem.path?.length || menuItem.path[0] === tbId;
+    }
+
+    return false;
   }
 
   toggleSynchronization() {
@@ -517,7 +538,7 @@ export class StreamsListComponent implements OnInit, OnDestroy {
     }
   }
 
-  private openStreamChildrenItems(streamMenuItem: MenuItem, symbol: string) {
+  private openStreamChildrenItems(streamMenuItem: MenuItem, symbol: string, tbId?: string) {
     return this.leftSidebarStorageService.getStorage()
       .pipe(
         switchMap(({treeView, search, searchOptions}) => {
@@ -528,6 +549,7 @@ export class StreamsListComponent implements OnInit, OnDestroy {
             search,
             treeView === 'views',
             search ? searchOptions : null,
+            tbId,
           )
         }),
         take(1),

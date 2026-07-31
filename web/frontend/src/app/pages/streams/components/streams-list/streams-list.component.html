@@ -92,7 +92,7 @@
                 [name]="menuItem.name"
                 [attr.data-type]="menuItem.type"
                 [class.selected-item]="selectedItem === menuItem.name || streamSelectedForImport === menuItem.name || activeDbNodeId === menuItem.id"
-                [class.highlighted-item]="highlightedItems?.stream === menuItem.name || highlightedItems?.symbol === menuItem.name"
+                [class.highlighted-item]="isHighlighted(menuItem)"
                 tabindex="0">
                   <span
                     [adaptivePosition]="false"
