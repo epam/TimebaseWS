@@ -558,6 +558,7 @@
   },
   "orderBook": {
     "filterLabels": {
+      "timebase": "Timebase",
       "streams": "Streams",
       "symbol": "Symbol",
       "exchanges": "Exchanges",

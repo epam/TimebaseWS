@@ -1,4 +1,5 @@
 @import '~src/app/pages/streams/components/stream-details/stream-details.component';
+@import '~src/app/core/styles/db-selector';
 
 .diff-view {
   position: relative;
@@ -227,16 +228,4 @@
 
 .unused-enums-warning {
   color: #ffc107;
-}
-
-.db-indicator {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 8px;
-  padding: 0 8px;
-  font-size: 12px;
-  font-weight: normal;
-  text-transform: none;
-  opacity: 0.7;
-  vertical-align: middle;
 }
