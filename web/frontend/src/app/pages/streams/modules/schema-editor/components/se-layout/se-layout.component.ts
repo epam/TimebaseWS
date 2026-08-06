@@ -55,6 +55,7 @@ import {
   GetDefaultTypes,
   GetSchema,
   GetSchemaDiff,
+  RemoveDuplicatedSchemaItems,
   RemoveSchemaDiff,
   SaveSchemaChanges,
   SetSchema,
@@ -66,7 +67,9 @@ import {
   getEditSchemaState,
   getSchemaDiff,
   getSelectedSchemaItem,
+  iSchemaDuplicates,
 } from '../../store/schema-editor.selectors';
+import * as NotificationsActions from 'src/app/core/modules/notifications/store/notifications.actions';
 import { ClControlPanelComponent } from '../cl-control-panel/cl-control-panel.component';
 import { FlControlPanelComponent } from '../fl-control-panel/fl-control-panel.component';
 import { ClassEnumListItem } from '../../models/class-enum-list-item.model';
@@ -112,7 +115,7 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
   keyForm: UntypedFormGroup;
   isWriter$: Observable<boolean>;
   classEnumList: ClassEnumListItem[];
-  fieldList: string[];
+  fieldList: {name: string; id: string}[];
   schemaChanged$: Observable<boolean>;
   showChanges: boolean = false;
   newStream: boolean;
@@ -246,6 +249,39 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
     this.appStore.dispatch(GetDefaultTypes());
 
     this.selectedSchemaItem$ = this.appStore.pipe(select(getSelectedSchemaItem));
+
+    this.appStore.pipe(
+      select(iSchemaDuplicates),
+      delay(100), // let the store settle after SetSchema/EditSchemaMergeState before reacting, avoids racing other schema subscribers
+      map(({duplicatedItems}) => duplicatedItems),
+      distinctUntilChanged((i1, i2) => i1.toString() === i2.toString()),
+      takeUntil(this.destroy$),
+    ).subscribe((duplicatedItems) => {
+      if (!duplicatedItems.length) {
+        this.appStore.dispatch(new NotificationsActions.RemoveWarnByAlias('Schema with duplicates'));
+      } else {
+        const typeList = duplicatedItems.filter((item) => !item.type).map((item) => item.name);
+        const fieldList = duplicatedItems.filter((item) => !!item.type);
+        this.appStore.dispatch(new NotificationsActions.AddWarn({
+          alias: 'Schema with duplicates',
+          dismissible: true,
+          closeInterval: 100000,
+          message: 'The schema is invalid and contains duplicates, do you want to remove duplicating data?',
+          typeList,
+          fieldList,
+          requestDialogParams: {
+            closeActions: {
+              onSuccess: () => this.removeDuplications(),
+              onCancel: () => {},
+            },
+            buttonsTextLinks: {
+              success: 'Remove Duplicates',
+              cancel: 'Keep Duplicates',
+            },
+          },
+        }));
+      }
+    });
 
     this.route.params
       .pipe(
@@ -417,8 +453,12 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
     this.classEnumList = itemList;
   }
 
-  setFieldList(itemList: string[]) {
+  setFieldList(itemList: {name: string; id: string}[]) {
     this.fieldList = itemList;
+  }
+
+  private removeDuplications() {
+    this.appStore.dispatch(RemoveDuplicatedSchemaItems());
   }
 
   private getStandaloneEnums() {

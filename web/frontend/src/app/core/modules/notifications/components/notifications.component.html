@@ -9,12 +9,33 @@
 </div>
 <div class="notification warns-wrapper">
   <alert
+      #currentAlert
       (onClosed)="onClosed(warn, i)"
       *ngFor="let warn of (notificationsState | async).warns; let i = index"
       [dismissible]="true"
-      [dismissOnTimeout]="10000"
+      [dismissOnTimeout]="warn.closeInterval ?? 10000"
       type="warning">
-    <span [innerHtml]="warn.message"></span>
+    <span *ngIf="!warn.requestDialogParams" [innerHtml]="warn.message"></span>
+
+    <div *ngIf="warn.requestDialogParams" class="requestDialogContent">
+      <span [innerHtml]="warn.message"></span>
+      <ul *ngIf="warn.typeList?.length">
+        <li *ngFor="let type of warn.typeList">- {{ type }}</li>
+      </ul>
+      <ul *ngIf="warn.fieldList?.length">
+        <li *ngFor="let field of warn.fieldList">- {{ field.name }} of <span class="type-name">{{ field.type }}</span></li>
+      </ul>
+      <div class="requestDialogButtons flex-center">
+        <button (click)="warn.requestDialogParams.closeActions.onSuccess(); currentAlert.close()"
+          class="btn btn-sm remove-btn" type="button">
+          <span>{{ warn.requestDialogParams.buttonsTextLinks.success | translate }}</span>
+        </button>
+        <button (click)="warn.requestDialogParams.closeActions.onCancel(); currentAlert.close()"
+          class="btn btn-sm keep-btn" type="button">
+          <span>{{ warn.requestDialogParams.buttonsTextLinks.cancel | translate }}</span>
+        </button>
+      </div>
+    </div>
   </alert>
 </div>
 <div class="notification notifications-wrapper">

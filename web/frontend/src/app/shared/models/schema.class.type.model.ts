@@ -7,6 +7,7 @@ export interface SchemaClassTypeModel {
   parent: string;
   title: string;
   isConcrete?: boolean;
+  duplicated?: boolean;
 
   _props?: SchemaClassTypePropsModel;
 }
@@ -31,12 +32,14 @@ export interface SchemaClassTypePropsModel extends DefaultPropsModel {
 export interface SchemaClassFieldModel {
   hide: boolean; // false
   name: string; // "contractId"
+  id?: string;
   // nullable: boolean; // true
   title: string; // "Contract ID"
   type: FieldTypeModel; // "VARCHAR (ALPHANUMERIC(10))"
   static: boolean;
   relativeTo?: string;
   value?: string;
+  duplicated?: boolean;
   _props?: SchemaClassFieldPropsModel;
 }
 

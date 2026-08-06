@@ -37,7 +37,7 @@ export class FlControlPanelComponent implements OnInit, OnDestroy {
   @Input() readonly = false;
   @Input() extendable = true;
 
-  @Input() fieldList: string[];
+  @Input() fieldList: {name: string; id: string}[];
   @ViewChild('modalTemplate', {static: true}) modalTemplate;
   @ViewChild('modalNewItemTemplate', {static: true}) modalNewItemTemplate;
   @ViewChild('modalRemoveItemsTemplate', {static: true}) modalRemoveItemsTemplate;
@@ -108,8 +108,8 @@ export class FlControlPanelComponent implements OnInit, OnDestroy {
     if (this.itemsToBeRemoved.size) {
       const deletingItems = Array.from(this.itemsToBeRemoved);
       this.appStore.dispatch(RemoveSchemaFields({ deletingItems }));
-      for (let item of deletingItems) {
-        this.schemaEditorService.editedFieldNames.add(item);
+      for (let field of this.fieldList.filter(f => deletingItems.includes(f.id))) {
+        this.schemaEditorService.editedFieldNames.add(field.name);
       }
       this.itemsToBeRemoved.clear();
     } else {
@@ -200,7 +200,8 @@ export class FlControlPanelComponent implements OnInit, OnDestroy {
 
   openRemovingConfirmationModal() {
     if (this.removeItemsModalRef) this.removeItemsModalRef.hide();
-    this.requestMessage = `Remove fields: [${Array.from(this.itemsToBeRemoved).join(', ')}]?`;
+    const names = this.fieldList.filter(f => this.itemsToBeRemoved.has(f.id)).map(f => f.name);
+    this.requestMessage = `Remove fields: [${names.join(', ')}]?`;
     this.deleteModalRef = this.modalService.show(this.modalTemplate, {
       class: 'modal-small createEdit-typeItem-modal',
       ignoreBackdropClick: true,
@@ -214,9 +215,9 @@ export class FlControlPanelComponent implements OnInit, OnDestroy {
     });
   }
 
-  onRemoveItemsModalCheckboxChange(event: Event, fieldName: string) {
-    (event.target as HTMLInputElement).checked ? this.itemsToBeRemoved.add(fieldName) : 
-      this.itemsToBeRemoved.delete(fieldName);
+  onRemoveItemsModalCheckboxChange(event: Event, fieldId: string) {
+    (event.target as HTMLInputElement).checked ? this.itemsToBeRemoved.add(fieldId) :
+      this.itemsToBeRemoved.delete(fieldId);
   }
 
   hideRemoveItemsModal() {

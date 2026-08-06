@@ -34,6 +34,7 @@ export enum SchemaEditorActionTypes {
   EDIT_SCHEMA_RESET_STATE = '[EditSchema] ResetState',
   EDIT_SCHEMA_UPDATE_STATE = '[EditSchema] UpdateState',
   EDIT_SCHEMA_MERGE_STATE = '[EditSchema] MergeState',
+  REMOVE_DUPLICATED_ITEMS = '[EditSchema] Remove Duplicated Schema Items',
 
   GET_SCHEMA_DIFF = '[EditSchema] Get schema diff',
   SET_SCHEMA_DIFF = '[EditSchema] Set schema diff',
@@ -178,6 +179,10 @@ export const EditSchemaMergeState = createAction(
     classes: SchemaClassTypeModel[];
     enums: SchemaClassTypeModel[];
   }>(),
+);
+
+export const RemoveDuplicatedSchemaItems = createAction(
+  SchemaEditorActionTypes.REMOVE_DUPLICATED_ITEMS,
 );
 
 export const UpdateSchemaAndRemoveType = createAction(

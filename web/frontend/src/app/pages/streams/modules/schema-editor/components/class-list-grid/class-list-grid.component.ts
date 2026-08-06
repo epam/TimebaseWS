@@ -86,7 +86,8 @@ export class ClassListGridComponent implements OnInit, OnDestroy {
             classItem: ({data}) => data && !data.isEnum,
             enumItem: ({data}) => data?.isEnum,
             'type-edited': ({data}) => this.seFieldFormsService.typeHasChanges(data),
-            hasError: ({data}) => this.schemaValidityService.showErrorOnType(data, this.insideModal) || this.seFieldFormsService.showErrorOnType(data) || 
+            hasError: ({data}) => data.duplicated || data?.fields.some((field: SchemaClassFieldModel) => field.duplicated) ||
+              this.schemaValidityService.showErrorOnType(data, this.insideModal) || this.seFieldFormsService.showErrorOnType(data) ||
               data.fields.some((field: SchemaClassFieldModel) => !FIELD_NAME_PATTER_REGEXP.test(field.name)),
             'ag-row-selected': ({data}) => data?._props?._isSelected,
           },
@@ -317,7 +318,7 @@ export class ClassListGridComponent implements OnInit, OnDestroy {
       HIERARCHY.unshift(current_row.name);
       current_parent = current_row.parent;
       if (current_parent) {
-        current_row = schemaAll.find((schemaItem) => schemaItem.name === current_row.parent);
+        current_row = schemaAll.find((schemaItem) => schemaItem.id === current_row.parent);
       }
     }
     return HIERARCHY;

@@ -124,6 +124,11 @@ export const ifNewFieldIsAdding = createSelector(
       : false,
 );
 
+export const iSchemaDuplicates = createSelector(
+  getEditSchemaState,
+  (state: fromEditSchema.State) => ({duplicatedItems: state.duplicatedItems}),
+);
+
 export const iSchemaItemsEdited = createSelector(
   getEditSchemaState,
   (state: fromEditSchema.State) => ({
