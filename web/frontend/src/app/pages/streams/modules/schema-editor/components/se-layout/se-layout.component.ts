@@ -270,7 +270,7 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
       .subscribe(([tabModel, data]: [TabModel, Data]) => {
         if (!tabModel.streamCreate && !tabModel)
           this.streamDetailsStore.dispatch(
-            new StreamDetailsActions.GetSymbols({streamId: tabModel.stream}),
+            new StreamDetailsActions.GetSymbols({streamId: tabModel.stream, tbId: tabModel.tbId}),
           );
         this.streamName = tabModel.stream;
         if (!tabModel.stream) return;
@@ -286,7 +286,7 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
           this.tabName += tabModel.symbol;
         }
 
-        this.appStore.dispatch(SetStreamId({streamId: tab.stream}));
+        this.appStore.dispatch(SetStreamId({streamId: tab.stream, tbId: tabModel.tbId}));
         if (!tabModel.streamCreate && !tabModel.topicCreate) {
           this.appStore.dispatch(GetSchema({ topic: tabModel.schemaView }));
         } else if (this.topicService.dataForCopyToStream?.copyToExistingStream) {

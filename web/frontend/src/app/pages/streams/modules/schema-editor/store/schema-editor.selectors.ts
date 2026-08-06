@@ -14,6 +14,11 @@ export const getStreamId = createSelector(
   (state: fromEditSchema.State) => state.streamId,
 );
 
+export const getStreamTbId = createSelector(
+  getEditSchemaState,
+  (state: fromEditSchema.State) => state.tbId,
+);
+
 export const getEnums = createSelector(
   getEditSchemaState,
   (state: fromEditSchema.State) => state.enums,
@@ -46,7 +51,7 @@ export const getDDTypesNames = createSelector(getEditSchemaState, (state: State)
 });
 
 export const getDiffData = createSelector(getEditSchemaState, (state: State) => {
-  return [state, state.streamId];
+  return [state, state.streamId, state.tbId];
 });
 
 export const getSaveSchemaData = createSelector(getEditSchemaState, (state: State) => {
@@ -56,6 +61,7 @@ export const getSaveSchemaData = createSelector(getEditSchemaState, (state: Stat
     enums: state.enums,
     defaultValues: state.newDefaultValues || {},
     streamId: state.streamId,
+    tbId: state.tbId,
     dropValues: state.dropValues,
   };
 });

@@ -15,6 +15,7 @@ export const schemaEditorFeatureKey = 'schemaEditor';
 
 export interface State {
   streamId: string;
+  tbId: string;
   classes: SchemaClassTypeModel[];
   enums: SchemaClassTypeModel[];
   newClassAdding: boolean;
@@ -29,6 +30,7 @@ export interface State {
 
 const defaultState: State = {
   streamId: null,
+  tbId: null,
   classes: [],
   enums: [],
   newClassAdding: false,
@@ -142,7 +144,7 @@ const getDropValues = (diff: StreamMetaDataChangeModel): {[key: string]: string[
 
 const schemaEditorReducer = createReducer(
   initialState,
-  on(SchemaEditorActions.SetStreamId, (state, {streamId}) => ({...state, streamId})),
+  on(SchemaEditorActions.SetStreamId, (state, {streamId, tbId}) => ({...state, streamId, tbId: tbId ?? null})),
   on(SchemaEditorActions.SetSchema, (state, {schema}) => ({
     ...state,
     ...getSortedSchema({ types: addIdsToSchema(schema.types), all: addIdsToSchema(schema.all) }),

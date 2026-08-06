@@ -87,7 +87,7 @@ export const CreateStream = createAction(
 
 export const SetStreamId = createAction(
   SchemaEditorActionTypes.SET_STREAM_ID,
-  props<{streamId: string}>(),
+  props<{streamId: string, tbId?: string}>(),
 );
 export const SetSelectedSchemaItem = createAction(
   SchemaEditorActionTypes.SET_SELECTED_SCHEMA_ITEM,

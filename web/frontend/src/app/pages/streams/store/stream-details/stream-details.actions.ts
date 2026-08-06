@@ -45,6 +45,7 @@ export class GetSchema implements Action {
   constructor(
     public payload: {
       streamId: string;
+      tbId?: string;
     },
   ) {}
 }
@@ -139,6 +140,7 @@ export class GetSymbols implements Action {
     public payload: {
       streamId: string;
       spaceId?: string;
+      tbId?: string;
     },
   ) {}
 }
