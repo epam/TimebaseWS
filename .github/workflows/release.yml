@@ -11,7 +11,7 @@ jobs:
   prepare:
     name: Prepare
     if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
-    runs-on: ubuntu-22.04
+    runs-on: [ 'ubuntu-latest']
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -39,7 +39,7 @@ jobs:
       fail-fast: false
       matrix:
         java: [ '17' ]
-        os: [ 'ubuntu-22.04']
+        os: [ 'ubuntu-latest']
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -71,7 +71,7 @@ jobs:
     name: Release
     if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: build
-    runs-on: ubuntu-22.04
+    runs-on: [ 'ubuntu-latest']
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -90,7 +90,7 @@ jobs:
   publish:
     name: Publish
     needs: release
-    runs-on: ubuntu-latest
+    runs-on: [ 'ubuntu-latest']
     steps:
       - name: Skip
         run: |
@@ -100,7 +100,7 @@ jobs:
     name: Publish Dockers
     if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: release
-    runs-on: ubuntu-22.04
+    runs-on: [ 'ubuntu-latest']
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -128,7 +128,7 @@ jobs:
     name: Cleanup
     if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: publish-docker
-    runs-on: ubuntu-latest
+    runs-on: [ 'ubuntu-latest']
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
