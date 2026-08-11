@@ -33,7 +33,7 @@ export class LeftSidebarComponent implements OnInit {
   version$: Observable<string>;
   activePlaybackIds: number[];
   showTopics$: Observable<boolean>;
-  private activeTabTbId: string = null;
+  activeTabTbId: string = null;
   private searchValue = '';
   @ViewChild(StreamsListComponent) streamsListComponent: StreamsListComponent;
 
