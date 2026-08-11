@@ -5,6 +5,7 @@ export class WSLiveModel {
   space?: string;
   types?: string[];
   qql?: string;
+  tbId?: string;
 
   constructor(obj: WSLiveModel | {}) {
     Object.assign(this, obj);

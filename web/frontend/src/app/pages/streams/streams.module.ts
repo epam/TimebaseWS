@@ -78,6 +78,7 @@ import {StreamsEffects} from './store/streams-list/streams.effects';
 import * as fromStreams from './store/streams-list/streams.reducer';
 import {StreamsTabsEffects} from './store/streams-tabs/streams-tabs.effects';
 import {TimelineBarEffects} from './store/timeline-bar/timeline-bar.effects';
+import {TimebasesEffects} from './store/timebases/timebases.effects';
 import {StreamsNavigationModule} from './streams-navigation/streams-navigation.module';
 import {StreamsRoutingModule} from './streams-routing.module';
 import {FiltersPanelModule} from './components/filters-panel/filters-panel.module';
@@ -183,6 +184,7 @@ const DEFAULT_PERFECT_SCROLLBAR_CONFIG: PerfectScrollbarConfigInterface = {
             StreamsTabsEffects,
             StreamQueryEffects,
             SelectedMessageEffects,
+            TimebasesEffects,
         ]),
         PerfectScrollbarModule,
         AngularSplitModule,

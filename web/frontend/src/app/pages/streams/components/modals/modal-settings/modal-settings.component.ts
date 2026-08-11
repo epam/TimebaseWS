@@ -52,7 +52,7 @@ export class ModalSettingsComponent implements OnInit, OnDestroy {
       reverseViewIsDefault: null,
       showSpaces: null,
       hideSystemStreams: null,
-      showTopics: null
+      showTopics: {value: false, disabled: true}
     });
 
     this.globalFiltersService.getFilters().pipe(takeUntil(this.destroy$)).subscribe(filters => {
@@ -63,7 +63,7 @@ export class ModalSettingsComponent implements OnInit, OnDestroy {
         reverseViewIsDefault: filters.reverseViewIsDefault,
         showSpaces: filters.showSpaces,
         hideSystemStreams: filters.hideSystemStreams,
-        showTopics: filters.showTopics
+        showTopics: false
       }, {emitEvent: false});
       this.cdRef.detectChanges();
     });
@@ -79,7 +79,7 @@ export class ModalSettingsComponent implements OnInit, OnDestroy {
         reverseViewIsDefault: data.reverseViewIsDefault,
         showSpaces: data.showSpaces,
         hideSystemStreams: data.hideSystemStreams,
-        showTopics: data.showTopics
+        showTopics: false
       });
     });
   }

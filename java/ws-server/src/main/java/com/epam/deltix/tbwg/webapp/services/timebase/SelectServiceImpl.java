@@ -19,6 +19,7 @@ package com.epam.deltix.tbwg.webapp.services.timebase;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.pub.ChannelQualityOfService;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.base.SelectService;
 import com.epam.deltix.tbwg.webapp.utils.json.JsonBigIntEncoding;
 import com.epam.deltix.timebase.messages.IdentityKey;
@@ -44,11 +45,11 @@ public class SelectServiceImpl implements SelectService {
 
     private static final Log LOG = LogFactory.getLog(SelectServiceImpl.class);
 
-    private final TimebaseService timebase;
+    private final TimebaseRegistry registry;
 
     @Autowired
-    public SelectServiceImpl(TimebaseService timebase) {
-        this.timebase = timebase;
+    public SelectServiceImpl(TimebaseRegistry registry) {
+        this.registry = registry;
     }
 
     @Override
@@ -56,13 +57,20 @@ public class SelectServiceImpl implements SelectService {
                                                String[] types, String[] symbols, String[] keys, String space, int maxRecords,
                                                JsonBigIntEncoding bigIntEncoding)
             throws NoStreamsException {
+        return select(registry.getDefault(),startTime, endTime, offset, rows, reverse, types, symbols, keys, space, maxRecords, bigIntEncoding);
+    }
 
-        List<DXTickStream> streams = getStreams(keys);
+    @Override
+    public MessageSource2ResponseStream select(TimebaseService svc, long startTime, long endTime, long offset, int rows, boolean reverse,
+                                               String[] types, String[] symbols, String[] keys, String space, int maxRecords,
+                                               JsonBigIntEncoding bigIntEncoding)
+            throws NoStreamsException {
+
+        List<DXTickStream> streams = getStreams(svc, keys);
         HashSet<IdentityKey> instruments = getInstruments(streams, symbols);
         SelectionOptions options = getSelectionOptions(reverse);
         final long startIndex = offset < 0 ? 0 : offset;
         final long endIndex = startIndex + rows - 1; // inclusive
-        //DXTickStream[] tickStreams = streams.toArray(new DXTickStream[streams.size()]);
 
         TickCursor source;
 
@@ -70,7 +78,7 @@ public class SelectServiceImpl implements SelectService {
             options.withSpace(space);
             source = streams.get(0).select(startTime, options, types, collect(instruments));
         } else {
-            source = timebase.getConnection().select(startTime, options, types, collect(instruments),
+            source = svc.getConnection().select(startTime, options, types, collect(instruments),
                     streams.toArray(new DXTickStream[streams.size()]));
         }
 
@@ -88,19 +96,28 @@ public class SelectServiceImpl implements SelectService {
 
     @Override
     public MessageSource2ResponseStream select(SelectRequest selectRequest, int maxRecords, JsonBigIntEncoding bigIntEncoding) throws NoStreamsException {
-        List<DXTickStream> streams = getStreams(selectRequest.streams);
+        return select(registry.getDefault(),selectRequest, maxRecords, bigIntEncoding);
+    }
+
+    @Override
+    public MessageSource2ResponseStream select(TimebaseService svc, SelectRequest selectRequest, int maxRecords, JsonBigIntEncoding bigIntEncoding) throws NoStreamsException {
+        List<DXTickStream> streams = getStreams(svc, selectRequest.streams);
         long startTime = selectRequest.getStartTime(getEndTime(streams));
-        return select(startTime, selectRequest.getEndTime(), selectRequest.offset, selectRequest.rows, selectRequest.reverse,
+        return select(svc, startTime, selectRequest.getEndTime(), selectRequest.offset, selectRequest.rows, selectRequest.reverse,
                 selectRequest.types, selectRequest.symbols, selectRequest.streams, selectRequest.space, maxRecords, bigIntEncoding);
     }
 
     private List<DXTickStream> getStreams(String ... streamKeys) throws NoStreamsException {
+        return getStreams(registry.getDefault(), streamKeys);
+    }
+
+    private List<DXTickStream> getStreams(TimebaseService svc, String ... streamKeys) throws NoStreamsException {
         if (streamKeys == null || streamKeys.length == 0) {
             throw new NoStreamsException();
         }
         List<DXTickStream> streams = new ArrayList<>(streamKeys.length);
         for (String key : streamKeys) {
-            DXTickStream stream = timebase.getStream(key);
+            DXTickStream stream = svc.getStream(key);
             if (stream != null)
                 streams.add(stream);
         }

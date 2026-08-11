@@ -30,6 +30,7 @@ import com.epam.deltix.qsrv.hf.tickdb.schema.SchemaConverter;
 import com.epam.deltix.qsrv.hf.tickdb.ui.tbshell.TickDBShell;
 import com.epam.deltix.streaming.MessageChannel;
 import com.epam.deltix.streaming.MessageSource;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.NoStreamsException;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
@@ -37,7 +38,6 @@ import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
 import com.epam.deltix.timebase.messages.InstrumentMessage;
 import com.epam.deltix.util.lang.Util;
 import com.epam.deltix.util.time.TimeKeeper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -56,9 +56,6 @@ public class PlaybackServiceImpl implements PlaybackService {
 
     private final static AtomicLong ID_GENERATOR = new AtomicLong(System.currentTimeMillis());
 
-    @Autowired
-    private TimebaseService timebaseService;
-
     private final Map<Long, PlaybackPlayer> players = new HashMap<>();
     private final Map<Long, String> playerToUser = new HashMap<>();
     private final List<PlaybackListener> listeners = new CopyOnWriteArrayList<>();
@@ -68,12 +65,20 @@ public class PlaybackServiceImpl implements PlaybackService {
     @Value("${playback.close-delay:60}")
     private long closeDelaySec;
 
+    private final TimebaseRegistry registry;
+
+    public PlaybackServiceImpl(TimebaseRegistry registry) {
+        this.registry = registry;
+    }
+
     @Override
     public long createPlayer(PlaybackConfig config, String userName) throws NoStreamsException {
+        TimebaseService sourceService = registry.resolve(config.getSourceTb());
+        TimebaseService targetService = registry.resolve(config.getTargetTb());
         synchronized (players) {
             checkSize();
             long id = ID_GENERATOR.incrementAndGet();
-            PlaybackPlayer player = createNewPlayer(config);
+            PlaybackPlayer player = createNewPlayer(config, sourceService, targetService);
             players.put(id, player);
             playerToUser.put(id, userName);
             listeners.forEach(l -> l.playbackCreated(id));
@@ -121,22 +126,22 @@ public class PlaybackServiceImpl implements PlaybackService {
         }
     }
 
-    private PlaybackPlayer createNewPlayer(PlaybackConfig config) throws NoStreamsException {
-        return createRealtimePlayer(config);
+    private PlaybackPlayer createNewPlayer(PlaybackConfig config, TimebaseService sourceService, TimebaseService targetService) throws NoStreamsException {
+        return createRealtimePlayer(config, sourceService, targetService);
     }
 
-    private PlaybackPlayer createRealtimePlayer(PlaybackConfig config) throws NoStreamsException {
+    private PlaybackPlayer createRealtimePlayer(PlaybackConfig config, TimebaseService sourceService, TimebaseService targetService) throws NoStreamsException {
 
-        DXTickStream[] sourceStreams = TBWGUtils.match(timebaseService, config.getSourceStreams());
+        DXTickStream[] sourceStreams = TBWGUtils.match(sourceService, config.getSourceStreams());
         if (sourceStreams == null) {
             throw new NoStreamsException(config.getSourceStreams());
         }
         DXChannel targetChannel;
         try {
             if (config.isTargetTopic()) {
-                targetChannel = getOrCreateTopic(config.getTargetStream(), sourceStreams);
+                targetChannel = getOrCreateTopic(targetService, config.getTargetStream(), sourceStreams);
             } else {
-                targetChannel = getOrCreateStream(config.getTargetStream(), sourceStreams);
+                targetChannel = getOrCreateStream(targetService, config.getTargetStream(), sourceStreams);
             }
         } catch (Exception e) {
             throw new IllegalArgumentException("Can't create playback destination. Reason: " + e.getMessage(), e);
@@ -156,7 +161,7 @@ public class PlaybackServiceImpl implements PlaybackService {
 
             LoadingOptions rawLoaderOptions = LoadingOptions.withRewriteMode(true);
             SelectionOptions selectionOptions = new SelectionOptions(true, false);
-            DXTickDB connection = timebaseService.getConnection();
+            DXTickDB connection = sourceService.getConnection();
             final InstrumentMessageSource finalCur = connection.select(startTime, selectionOptions, sourceStreams);
             cur = finalCur;
             if (config.isTargetTopic()) {
@@ -194,8 +199,8 @@ public class PlaybackServiceImpl implements PlaybackService {
         return new RealtimePlayer(playerExecutor, config);
     }
 
-    private DXChannel getOrCreateTopic(String key, DXTickStream[] sourceStreams) {
-        TopicDB db = timebaseService.getTopicDB();
+    private DXChannel getOrCreateTopic(TimebaseService service, String key, DXTickStream[] sourceStreams) {
+        TopicDB db = service.getTopicDB();
         DirectChannel topic = db.getTopic(key);
         if (topic == null) {
             RecordClassDescriptor[] types = mergeStreamsSchema(sourceStreams);
@@ -204,8 +209,8 @@ public class PlaybackServiceImpl implements PlaybackService {
         return topic;
     }
 
-    private DXTickStream getOrCreateStream(String targetStreamName, StreamOptions options) {
-        DXTickDB db = timebaseService.getConnection();
+    private DXTickStream getOrCreateStream(TimebaseService service, String targetStreamName, StreamOptions options) {
+        DXTickDB db = service.getConnection();
         DXTickStream stream = db.getStream(targetStreamName);
         if (stream == null) {
             options.version = null;
@@ -215,11 +220,11 @@ public class PlaybackServiceImpl implements PlaybackService {
         return stream;
     }
 
-    private DXTickStream getOrCreateStream(String targetStreamName, DXTickStream[] streams) {
+    private DXTickStream getOrCreateStream(TimebaseService service, String targetStreamName, DXTickStream[] streams) {
         if (streams.length == 1) {
-            return getOrCreateStream(targetStreamName, streams[0].getStreamOptions());
+            return getOrCreateStream(service, targetStreamName, streams[0].getStreamOptions());
         }
-        DXTickDB db = timebaseService.getConnection();
+        DXTickDB db = service.getConnection();
         DXTickStream stream = db.getStream(targetStreamName);
         if (stream == null) {
             StreamOptions options = new StreamOptions(StreamScope.DURABLE, targetStreamName, null, 1);

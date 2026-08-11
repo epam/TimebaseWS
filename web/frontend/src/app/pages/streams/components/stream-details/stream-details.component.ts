@@ -221,6 +221,7 @@ export class StreamDetailsComponent implements OnInit, AfterViewInit, OnDestroy 
             new StreamDetailsActions.GetSymbols({
               streamId: tabModel.stream,
               ...(tabModel.space ? {spaceId: tabModel.space} : {}),
+              ...(tabModel.tbId ? {tbId: tabModel.tbId} : {}),
             }),
           );
         }

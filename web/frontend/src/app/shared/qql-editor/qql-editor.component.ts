@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { ControlValueAccessor, UntypedFormControl, NG_VALUE_ACCESSOR, NgControl, Validators } from '@angular/forms';
 import { EditorComponent }                                   from 'ngx-monaco-editor';
-import { Observable, ReplaySubject, timer, of }                                    from 'rxjs';
+import { BehaviorSubject, Observable, ReplaySubject, timer, of }                    from 'rxjs';
 import { debounceTime, delay, distinctUntilChanged, filter, map, shareReplay, switchMap, take, takeUntil, withLatestFrom } from 'rxjs/operators';
 import { QueryFunction }                                           from '../../pages/query/query-function';
 import { QueryService }                                                                from '../../pages/query/services/query.service';
@@ -43,6 +43,13 @@ export class QqlEditorComponent implements OnInit, AfterViewInit, OnDestroy, Con
   @Input() selectedRange: IRange;
   @Input() selectedText = '';
   @Input() errorInsideSelectedText: boolean;
+  @Input() set tbId(id: string) {
+    this._inputTbId = id;
+    this._tbId$.next(id ?? this._storeTbId ?? null);
+  }
+  get tbId(): string {
+    return this._inputTbId ?? this._storeTbId ?? null;
+  }
   
   @Output() validUpdate = new EventEmitter();
   @Output() onQueryChange = new EventEmitter<{ text: string, error: boolean }>();
@@ -61,9 +68,11 @@ export class QqlEditorComponent implements OnInit, AfterViewInit, OnDestroy, Con
   private contextMenuSubscription;
   private currentTab$: Observable<TabModel>;
   private currentTabId: string;
-  
+  private _inputTbId: string;
+  private _storeTbId: string;
+  private _tbId$ = new BehaviorSubject<string | null>(null);
   private destroy$ = new ReplaySubject(1);
-  
+
   constructor(
     private streamsService: StreamsService,
     private schemaService: SchemaService,
@@ -82,6 +91,12 @@ export class QqlEditorComponent implements OnInit, AfterViewInit, OnDestroy, Con
   
   ngOnInit(): void {
     this.currentTab$ = this.appStore.pipe(select(getActiveOrFirstTab));
+    this.currentTab$.pipe(takeUntil(this.destroy$)).subscribe((tab) => {
+      this._storeTbId = tab?.tbId ?? null;
+      if (!this._inputTbId) {
+        this._tbId$.next(this._storeTbId);
+      }
+    });
     this.editorOptions = this.monacoQqlConfigService.options();
     this.control.valueChanges
       .pipe(debounceTime(400), takeUntil(this.destroy$), distinctUntilChanged(), withLatestFrom(this.currentTab$))
@@ -118,12 +133,17 @@ export class QqlEditorComponent implements OnInit, AfterViewInit, OnDestroy, Con
   editorInit(editor) {
     this.setEditor.emit(editor);
     
-    const streams$ = this.streamsService
-      .getListWithUpdates()
-      .pipe(map((streams: StreamModel[]) => streams.map((stream) => stream.name)));
+    const streams$ = this._tbId$.pipe(
+      distinctUntilChanged(),
+      switchMap(tbId => tbId
+        ? this.streamsService.getList(false, null, null, tbId)
+        : this.streamsService.getListWithUpdates()
+      ),
+      map((streams: StreamModel[]) => streams.map((stream) => stream.name)),
+    );
     
     const columns = (stream) =>
-      this.schemaService.getSchema(stream).pipe(
+      this.schemaService.getSchema(stream, null, false, this.tbId).pipe(
         map(({types, all}) => {
           const result = [];
           const fieldNamesCount = {};
@@ -171,6 +191,10 @@ export class QqlEditorComponent implements OnInit, AfterViewInit, OnDestroy, Con
       'BOOLEAN', 'CHAR', 'TIMESTAMP(MS)', 'TIMESTAMP(NS)',	'VARCHAR',	'ENUM'
     ]);
     this.monacoQqlConfigService.init(editor, streams$, columns, functions$, dataTypes);
+
+    this._tbId$.pipe(takeUntil(this.destroy$)).subscribe(tbId => {
+      this.monacoQqlConfigService.tbId = tbId;
+    });
 
     this.contextMenuSubscription = editor.onContextMenu((e) => {
       const contextMenuElement = editor.getDomNode().querySelector(".monaco-menu-container") as HTMLElement;
@@ -227,10 +251,10 @@ export class QqlEditorComponent implements OnInit, AfterViewInit, OnDestroy, Con
       return of(false);
     }
     
-    return this.queryService.compile(query).pipe(
+    return this.queryService.compile(query, this.tbId).pipe(
       delay(1000),
       map(response => {
-      
+
       const location = response?.errorLocation;
       if (location) {
         let errorLocation = {
@@ -304,10 +328,10 @@ export class QqlEditorComponent implements OnInit, AfterViewInit, OnDestroy, Con
       }
       
       return timer(500).pipe(switchMap(() => {
-        return this.queryService.compile(control.value).pipe(
+        return this.queryService.compile(control.value, this.tbId).pipe(
           delay(1000),
           map(response => {
-          
+
             const location = response?.errorLocation;
             if (location) {
               const errorLocation = {

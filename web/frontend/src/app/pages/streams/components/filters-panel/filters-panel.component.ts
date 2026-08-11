@@ -40,6 +40,8 @@ import { TopicService } from '../../modules/schema-editor/services/topic.service
 import { formatHDate } from 'src/app/shared/locale.timezone';
 import { GlobalFilters } from 'src/app/shared/models/global-filters';
 import * as NotificationsActions    from 'src/app/core/modules/notifications/store/notifications.actions';
+import { getTimebases } from '../../store/timebases/timebases.selectors';
+import { TimebaseInstanceDef } from '../../../../shared/models/timebase-instance-def.model';
 
 const now = new HdDate();
 
@@ -71,6 +73,8 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
   bsConfig$: Observable<Partial<BsDatepickerConfig>>;
   showExportBtn$: Observable<boolean>;
   filterByEndDate: boolean;
+  tbId$: Observable<string>;
+  tbUrl$: Observable<string>;
   
   private destroy$ = new Subject();
   private now = new Date();
@@ -99,15 +103,18 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
   
   ngOnInit() {
     this.activatedRoute.params
-      .pipe(switchMap((tab) => {
-        if (tab.stream.endsWith('#topic#')) {
-          this.stream = tab.stream.slice(0, tab.stream.length - 7);
-          return this.topicService.getTopicSchema(this.stream);
-        } else {
-          this.stream = tab.stream;
-          return this.schemaService.getSchema(tab.stream, null, true);
-        }   
-      }))
+      .pipe(
+        withLatestFrom(this.appStore.pipe(select(getActiveOrFirstTab))),
+        switchMap(([tab, activeTab]) => {
+          if (tab.stream.endsWith('#topic#')) {
+            this.stream = tab.stream.slice(0, tab.stream.length - 7);
+            return this.topicService.getTopicSchema(this.stream);
+          } else {
+            this.stream = tab.stream;
+            return this.schemaService.getSchema(tab.stream, null, true, activeTab?.tbId);
+          }
+        }),
+      )
       .pipe(
         map((response) => [...response.types]),
         takeUntil(this.destroy$),
@@ -119,13 +126,14 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
       .subscribe((schema) => (this.schema = schema));
     
     const range$ = this.activatedRoute.params.pipe(
-      switchMap((params) => 
+      withLatestFrom(this.appStore.pipe(select(getActiveOrFirstTab))),
+      switchMap(([params, activeTab]) => 
         params.stream.endsWith('#topic#') ? of(null) :
           params.symbol
             ? this.symbolsService
-              .getProps(params.stream, params.symbol, 1000)
+              .getProps(params.stream, params.symbol, 1000, true, activeTab?.tbId)
               .pipe(map((p) => p?.props.symbolRange))
-            : this.streamsService.getProps(params.stream, false).pipe(map((p) => p?.props.range)),
+            : this.streamsService.getProps(params.stream, false, activeTab?.tbId).pipe(map((p) => p?.props.range)),
       ),
       shareReplay(1),
       catchError(e => {
@@ -211,7 +219,13 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
     
     this.bsConfig$ = this.globalFiltersService.getBsConfig(true);
     const activeTab$ = this.appStore.pipe(select(getActiveOrFirstTab));
-    
+
+    this.tbId$ = activeTab$.pipe(map((tab) => tab?.tbId || null));
+    const timebases$ = this.appStore.pipe(select(getTimebases));
+    this.tbUrl$ = combineLatest([this.tbId$, timebases$]).pipe(
+      map(([tbId, timebases]) => timebases?.find((tb: TimebaseInstanceDef) => tb.id === tbId)?.url || null),
+    );
+
     this.showExportBtn$ = activeTab$.pipe(
       filter((t) => !!t),
       map((tab) => !tab.monitor && !tab.live),
@@ -224,7 +238,7 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
         debounceTime(100),
         switchMap(([updates, activeTab]) => {
           if (updates.changed.includes(activeTab.stream) && activeTab.filter?.filter_symbols) {
-            return this.symbolsService.getSymbols(activeTab.stream, activeTab.space);
+            return this.symbolsService.getSymbols(activeTab.stream, activeTab.space, null, activeTab.tbId);
           }
           
           return of(null);
@@ -310,6 +324,7 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
           stream: tab.stream,
           symbol: tab.symbol,
           space: tab.space,
+          tbId: tab.tbId,
         };
         
         const bsModalRef = this.modalService.show(ModalFilterComponent, {
@@ -335,7 +350,7 @@ export class FiltersPanelComponent implements OnInit, OnDestroy {
       .pipe(take(1))
       .subscribe((tab) => {
         const initialState = {
-          stream: {id: tab.stream, name: tab.stream},
+          stream: {id: tab.stream, name: tab.stream, tbId: tab.tbId},
           exportFormat: ExportFilterFormat.QSMSG,
           symbols: tab.symbol ? [tab.symbol] : tab.filter.filter_symbols,
           types: tab.filter.filter_types,

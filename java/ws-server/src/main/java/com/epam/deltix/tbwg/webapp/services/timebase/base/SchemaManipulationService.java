@@ -25,76 +25,35 @@ import com.epam.deltix.tbwg.webapp.services.timebase.exc.InvalidSchemaChangeExce
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.UnknownStreamException;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.WriteOperationsException;
 
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
+
 import javax.annotation.Nonnull;
 
 public interface SchemaManipulationService {
 
-    /**
-     * List all data types
-     * @return all types array
-     */
     DataTypeDef[] allTypes();
 
-    /**
-     * Describe query
-     * @param queryRequest query request
-     * @return schema, that describes request
-     */
     SchemaDef describe(QueryRequest queryRequest, boolean tree);
+    SchemaDef describe(TimebaseService svc, QueryRequest queryRequest, boolean tree);
 
-    /**
-     * Stream DDL description.
-     * @param key stream key
-     * @return object that contains DDL description.
-     * @throws UnknownStreamException if stream does not exist
-     */
     DescribeResponse describeStream(String key) throws UnknownStreamException;
+    DescribeResponse describeStream(TimebaseService svc, String key) throws UnknownStreamException;
 
-    /**
-     * Get stream schema
-     * @param key stream key
-     * @return stream schema
-     * @throws UnknownStreamException if stream does not exist
-     */
     SchemaDef schema(String key, boolean tree) throws UnknownStreamException;
+    SchemaDef schema(TimebaseService svc, String key, boolean tree) throws UnknownStreamException;
 
-    /**
-     * Create stream with provided key, schema and distribution factor.
-     * @param key stream key
-     * @param schemaDef stream schema
-     * @return new stream schema
-     * @throws WriteOperationsException if user isn't allowed to create streams
-     */
-    SchemaDef createStream(@Nonnull String key, @Nonnull SchemaDef schemaDef)
-            throws WriteOperationsException;
+    SchemaDef createStream(@Nonnull String key, @Nonnull SchemaDef schemaDef) throws WriteOperationsException;
+    SchemaDef createStream(TimebaseService svc, @Nonnull String key, @Nonnull SchemaDef schemaDef) throws WriteOperationsException;
 
-    /**
-     * List changes between current stream schema and provided by user.
-     * @param key stream key
-     * @param schemaChangesRequest new schema and schema mapping
-     * @return changes
-     * @throws UnknownStreamException if stream does not exist
-     */
     StreamMetaDataChangeDef schemaChanges(@Nonnull String key, @Nonnull SchemaChangesRequest schemaChangesRequest)
             throws UnknownStreamException;
+    StreamMetaDataChangeDef schemaChanges(TimebaseService svc, @Nonnull String key, @Nonnull SchemaChangesRequest schemaChangesRequest)
+            throws UnknownStreamException;
 
-    /**
-     * Execute schema change.
-     * @param key stream key
-     * @param changeSchemaRequest new stream schema, schema mapping and default values
-     * @return new stream schema
-     * @throws UnknownStreamException if stream does not exist
-     * @throws WriteOperationsException if timebase is readonly
-     * @throws InvalidSchemaChangeException if some of default values are missing
-     */
     SchemaDef changeSchema(@Nonnull String key, @Nonnull ChangeSchemaRequest changeSchemaRequest)
             throws UnknownStreamException, WriteOperationsException, InvalidSchemaChangeException;
+    SchemaDef changeSchema(TimebaseService svc, @Nonnull String key, @Nonnull ChangeSchemaRequest changeSchemaRequest)
+            throws UnknownStreamException, WriteOperationsException, InvalidSchemaChangeException;
 
-    /**
-     * Returns schema for the specified message type.
-     *
-     * @param key                message type key
-     * @return schema for message type
-     */
     SchemaDef getSchema(String key);
 }

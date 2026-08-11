@@ -22,8 +22,10 @@ import com.google.common.collect.Table;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.model.orderbook.L2PackageDto;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -51,7 +53,7 @@ public class OrderBookServiceImpl implements OrderBookService {
 
     private final Table<String, String, Task> tasks = HashBasedTable.create();
 
-    private final TimebaseService timebase;
+    private final TimebaseRegistry registry;
 
     private static final class Task {
         private final ScheduledFuture<?> scheduledFuture;
@@ -68,8 +70,9 @@ public class OrderBookServiceImpl implements OrderBookService {
         }
     }
 
-    public OrderBookServiceImpl(TimebaseService timebase) {
-        this.timebase = timebase;
+    @Autowired
+    public OrderBookServiceImpl(TimebaseRegistry registry) {
+        this.registry = registry;
     }
 
     @PostConstruct
@@ -99,10 +102,11 @@ public class OrderBookServiceImpl implements OrderBookService {
     @Override
     public synchronized void subscribe(String sessionId, String subscriptionId,
                                        String instrument, String[] streams, String[] hiddenExchanges,
-                                       Consumer<L2PackageDto> consumer)
+                                       String tbId, Consumer<L2PackageDto> consumer)
     {
+        TimebaseService service = registry.resolve(tbId);
         OrderBookSubscription subscription = new OrderBookSubscription(
-            timebase, instrument, streams, hiddenExchanges,
+            service, instrument, streams, hiddenExchanges,
             useLegacyConverter, consumer
         );
         ScheduledFuture<?> scheduledFuture = scheduledExecutorService.scheduleAtFixedRate(

@@ -73,4 +73,7 @@ public class ImportRequest {
 
     public LoadingOptions.WriteMode writeMode;
 
+    @JsonProperty
+    public String tbId;
+
 }

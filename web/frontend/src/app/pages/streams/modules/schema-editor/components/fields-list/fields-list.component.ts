@@ -29,7 +29,6 @@ import {
   SetSelectedFieldForSchemaItem,
   SetSelectedSchemaItem,
 } from '../../store/schema-editor.actions';
-import * as NotificationsActions from 'src/app/core/modules/notifications/store/notifications.actions';
 import {
   getSelectedSchemaItem,
   getSelectedSchemaItemAllFields,
@@ -51,15 +50,13 @@ export class FieldsListComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject();
   private type: SchemaClassTypeModel;
   private selectedFieldName: string;
-  @Output() setItemList = new EventEmitter<string[]>();
+  @Output() setItemList = new EventEmitter<{name: string; id: string}[]>();
   @Output() addNewFieldEvent = new EventEmitter<[HTMLElement, boolean]>();
   @HostListener('keydown.insert', ['$event']) onInsertKeyDown(event: KeyboardEvent) {
     if (!this.readonly) {
       this.addNewFieldEvent.emit([event.target as HTMLElement, this.gridService.gridApi.getSelectedRows()[0].static]);
     }
   }
-  private initialSchema = true;
-
   constructor(
     private appStore: Store<AppState>,
     private translate: TranslateService,
@@ -79,11 +76,13 @@ export class FieldsListComponent implements OnInit, OnDestroy {
           rowClassRules: {
             isEdited: ({data}) =>
               this.seFieldFormsService.fieldHasChanges(data) || data._props._isNew,
-            hasError: ({data}) => this.schemaValidityService.showErrorOnField(this.type, data, this.insideModal) ||  
+            hasError: ({data}) => data.duplicated || this.schemaValidityService.showErrorOnField(this.type, data, this.insideModal) ||
               this.seFieldFormsService.showErrorOnField(this.type, data) || !FIELD_NAME_PATTER_REGEXP.test(data.name),
             'ag-row-editing': ({data}) => data._props?._isSelected,
           },
-          getRowNodeId: ({name}) => name,
+          // Inherited fields (rendered with _props._parentField) are namespaced by their owning parent so an
+          // own-type field can still legitimately override a same-named inherited field without an id collision.
+          getRowNodeId: ({id, _props}) => (_props?._parentField ? `${_props._parentName}:${id}` : id),
         });
       }),
     );
@@ -220,33 +219,6 @@ export class FieldsListComponent implements OnInit, OnDestroy {
         select(getSelectedSchemaItemAllFields),
         distinctUntilChanged(),
         filter((fields) => !!fields),
-        map(fields => {
-          const nameSet = new Set();
-          const fieldNamesRepeatingNumber = {};
-          return fields.map(field => {
-            if (!nameSet.has(field.name)) {
-              nameSet.add(field.name);
-              return field;
-            } else {
-              if (!fieldNamesRepeatingNumber[field.name]) {
-                fieldNamesRepeatingNumber[field.name] = 1;
-              } else {
-                fieldNamesRepeatingNumber[field.name] += 1;
-              }
-
-              if (this.initialSchema) {
-                this.appStore.dispatch(
-                  new NotificationsActions.AddWarn({
-                    message: `Field name conflict: display name ${field.name} changed to ${field.name}${fieldNamesRepeatingNumber[field.name]}`,
-                    closeInterval: 6000,
-                    dismissible: true
-                  }),
-                );
-              }
-              return { ...field, name: `${field.name}${fieldNamesRepeatingNumber[field.name]}` };
-            }
-          });
-        }),
         takeUntil(this.destroy$),
         withLatestFrom(this.appStore.select(getAppSettings).pipe(pluck('hasNanoseconds'))),
         switchMap(([fields, hasNanoseconds]) => {
@@ -268,8 +240,9 @@ export class FieldsListComponent implements OnInit, OnDestroy {
       )
 
       .subscribe((fields) => {
-        this.setItemList.emit(fields.filter(field => !field._props._parentField).map(field => field.name));
-        this.initialSchema = false;
+        this.setItemList.emit(
+          fields.filter(field => !field._props._parentField).map(field => ({name: field.name, id: field.id})),
+        );
         const selected = fields.find((f) => f._props._isSelected);
         if (selected) {
           this.seSelectionService.onSelectField(selected._props._typeName, selected?._props._uuid);

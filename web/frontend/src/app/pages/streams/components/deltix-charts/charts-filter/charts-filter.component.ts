@@ -260,7 +260,7 @@ export class ChartsFilterComponent implements OnInit, OnDestroy, OnChanges {
     
     const props$ = this.currentTab$.pipe(
       filter(tab => tab && !!tab.stream && !!tab.symbol && !!tab?.filter.chart_type),
-      switchMap(({symbol, stream, id}) => {
+      switchMap(({symbol, stream, id, tbId}) => {
         this.streamId = stream;
         const tabSybols = symbol.split(',');
         this.symbolName = tabSybols[0];
@@ -272,7 +272,7 @@ export class ChartsFilterComponent implements OnInit, OnDestroy, OnChanges {
           this.filterForm?.patchValue( { symbol: savedSymbols.map(symbol => ({ id: symbol, name: symbol })) } );
         }
 
-        return this.symbolsService.getProps(stream, tabSybols[0]);
+        return this.symbolsService.getProps(stream, tabSybols[0], null, true, tbId);
       }),
       takeUntil(this.destroy$),
       filter(({props}) => {
@@ -288,7 +288,7 @@ export class ChartsFilterComponent implements OnInit, OnDestroy, OnChanges {
       distinctUntilChanged((t1, t2) => t1 && t2 && t1.id === t2.id),
       switchMap(tab => {
         if (!this.tabSymbolList[tab.id]) {
-          return this.symbolsService.getSymbols(tab.stream)
+          return this.symbolsService.getSymbols(tab.stream, null, null, tab.tbId)
             .pipe(map(symbols => ({ tab, symbols: symbols.map((s) => ({ id: s, name: s })) })))
         } else {
           return of(this.tabSymbolList[tab.id]).pipe(map(symbols => ({ tab, symbols })))
@@ -306,9 +306,9 @@ export class ChartsFilterComponent implements OnInit, OnDestroy, OnChanges {
         if (sourceValue && tabFilterource && sourceValue !== tabFilterource) {
           this.filterForm.patchValue({source: tab.filter.source}, {emitEvent: false, onlySelf: true});
         }
-        const { symbol, stream, id } = tab;
+        const { symbol, stream, id, tbId } = tab;
         const tabSybols = symbol.split(',');
-        return this.symbolsService.getProps(stream, this.tabSymbolList[id][0].id ?? tabSybols[0])
+        return this.symbolsService.getProps(stream, this.tabSymbolList[id][0].id ?? tabSybols[0], null, true, tbId)
       }),
       filter(({ props }) => props.periodicity?.milliseconds !== this.periodicityInMilliseconds),
       takeUntil(this.destroy$)
@@ -340,7 +340,7 @@ export class ChartsFilterComponent implements OnInit, OnDestroy, OnChanges {
       .pipe(
         distinctUntilChanged(([t1, l1], [t2, l2]) => JSON.stringify([t1, l1]) === JSON.stringify([t2, l2])),
         filter(([tab,]) => tab && !!this.tabId && !!tab.stream && tab.chart),
-        switchMap(([tab, list]) => this.symbolsService.getRanges(tab.stream, list)),
+        switchMap(([tab, list]) => this.symbolsService.getRanges(tab.stream, list, tab.tbId)),
         takeUntil(this.destroy$)
       )
       .subscribe((range: { start: string, end: string }) => this.scrollRange = { ...range, tabId: this.tabId });
@@ -402,8 +402,8 @@ export class ChartsFilterComponent implements OnInit, OnDestroy, OnChanges {
     this.maxInterval$ = this.currentTab$.pipe(
       filter(tab => tab && !!tab.stream && !!tab.symbol),
       take(1),
-      switchMap(({symbol, stream}) =>
-        this.streamsService.rangeCached(stream, symbol.split(',')[0], this.space),
+      switchMap(({symbol, stream, tbId}) =>
+        this.streamsService.rangeCached(stream, symbol.split(',')[0], this.space, null, tbId),
       ),
       switchMap((range) => {
         return this.deltixChartFeedService.onEndOfStream().pipe(
@@ -1035,6 +1035,7 @@ export class ChartsFilterComponent implements OnInit, OnDestroy, OnChanges {
             tab.symbol?.split(',')[0],
             tab.space,
             this.filterForm.get('period').value?.aggregation,
+            tab.tbId,
           )
           .pipe(
             take(1),

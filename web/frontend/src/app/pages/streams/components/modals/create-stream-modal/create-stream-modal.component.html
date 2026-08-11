@@ -1,8 +1,19 @@
 <app-modal>
   <h4 class="modal-title pull-left" title>
-    {{ (topic ? 'text.onCreateTopic' : 'text.onCreateStream') | translate }}</h4>
+    {{ (topic ? 'text.onCreateTopic' : 'text.onCreateStream') | translate }}
+    <ng-container *ngIf="timebases$ | async as timebases">
+      <select *ngIf="timebases.length > 1" class="db-selector" [class.db-selector-error]="selectedTbUnavailable"
+              (change)="onTbChange($event.target['value'])">
+        <option *ngFor="let tb of timebases" [value]="tb.id" [selected]="tb.id === tbId"
+                [disabled]="tb.connected === false"
+                [title]="tb.connected === false ? (tb.errorMessage || 'Timebase is unavailable') : null">{{ tb.id }}{{ tb.connected === false ? ' (unavailable)' : '' }}</option>
+      </select>
+      <span *ngIf="timebases.length === 1 && tbId" class="db-indicator" [class.db-selector-error]="selectedTbUnavailable">{{ tbId }}</span>
+    </ng-container>
+    <span *ngIf="selectedTbUnavailable" class="db-selector-hint">Selected timebase is unavailable.</span>
+  </h4>
   <ng-container content>
-    <form (ngSubmit)="onCreateStream()" id="nameForm" [class.create-topic-form]="topic">
+    <form *ngIf="streamNameControl" (ngSubmit)="onCreateStream()" id="nameForm" [class.create-topic-form]="topic">
       <div class="controlWr" [class.invalid]="streamNameControl?.invalid && !streamNameControl.pristine">
         <label class="btn control-label" for="keyInput">
           {{ (topic ? 'forms.topicName' : 'forms.streamKey') | translate }}
@@ -98,9 +109,10 @@
   </ng-container>
   <ng-container footer>
     <button
-        [disabled]="streamNameControl.invalid || streamNameControl.pristine || streamNameControl?.status === 'PENDING'
-        || (!topic ? false : copyToStreamControl.invalid) || 
-        ((!topic || (!copyToExistingStream && copyToStreamControl.value)) && (showDistributionFactorInput$ | async) && distributionFactorControl.invalid)"
+        [disabled]="!streamNameControl || streamNameControl.invalid || streamNameControl.pristine || streamNameControl?.status === 'PENDING'
+        || (!topic ? false : copyToStreamControl.invalid) ||
+        ((!topic || (!copyToExistingStream && copyToStreamControl.value)) && (showDistributionFactorInput$ | async) && distributionFactorControl.invalid)
+        || selectedTbUnavailable"
         aria-label="Close"
         class="btn btn-danger pull-right"
         form="nameForm"

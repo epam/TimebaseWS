@@ -18,16 +18,20 @@ export class SymbolsService {
 
   constructor(private httpClient: HttpClient, private cacheRequestService: CacheRequestService) {}
   
-  getSymbols(stream: string, spaceId: string = null, filter: string = null): Observable<string[]> {
+  getSymbols(stream: string, spaceId: string = null, filter: string = null, tbId: string = null): Observable<string[]> {
     const params: { [index: string]: string | string[] } = {};
     if (typeof spaceId === 'string') {
       params.space = encodeURIComponent(spaceId);
     }
-    
+
     if (filter) {
       params.filter = filter;
     }
-    
+
+    if (tbId) {
+      params.tb = tbId;
+    }
+
     return this.httpClient.get<string[]>(`/${encodeURIComponent(stream)}/symbols`, {
       params,
       headers: {customError: 'true'},
@@ -40,16 +44,21 @@ export class SymbolsService {
     });
   }
   
-  getProps(stream: string, symbol: string, time = null, fromCache = true): Observable<fromStreamProps.State> {
+  getProps(stream: string, symbol: string, time = null, fromCache = true, tbId: string = null): Observable<fromStreamProps.State> {
+    const params: { [index: string]: string } = {};
+    if (tbId) {
+      params.tb = tbId;
+    }
     const props$ = this.httpClient
       .get<PropsModel>(`/${encodeURIComponent(stream)}/options/${encodeURIComponent(symbol)}`, {
+        params,
         headers: {customError: 'true'},
       })
       .pipe(map((resp) => ({props: resp || null, opened: false})));
 
     if (fromCache) {
       return this.cacheRequestService.cache(
-        {action: 'SymbolsService.getProps', stream, symbol},
+        {action: 'SymbolsService.getProps', stream, symbol, tbId},
         props$,
         time,
       );
@@ -58,14 +67,17 @@ export class SymbolsService {
     }
   }
 
-  getRanges(stream: string, symbols: string[]): Observable<{ start: string, end: string }> {
-    const cashKey = JSON.stringify( { stream, symbols } );
+  getRanges(stream: string, symbols: string[], tbId: string = null): Observable<{ start: string, end: string }> {
+    const cashKey = JSON.stringify( { stream, symbols, tbId } );
     if (this.rangeRequestsInProgress[cashKey] && Date.now() - this.lastRangeRequestTimestamp < 5000) {
       return this.rangeRequestsInProgress[cashKey];
     } else {
-      const params = { symbols };
+      const params: { [key: string]: string | string[] } = { symbols };
+      if (tbId) {
+        params.tb = tbId;
+      }
       this.lastRangeRequestTimestamp = Date.now();
-      this.rangeRequestsInProgress[cashKey] = 
+      this.rangeRequestsInProgress[cashKey] =
         this.httpClient.get<{ start: string, end: string }>(`/${encodeURIComponent(stream)}/range`, { params }).pipe(shareReplay(1));
       return this.rangeRequestsInProgress[cashKey];
     }

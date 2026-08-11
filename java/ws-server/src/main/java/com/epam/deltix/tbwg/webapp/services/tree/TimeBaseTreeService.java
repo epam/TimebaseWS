@@ -24,5 +24,5 @@ public interface TimeBaseTreeService {
 
     TreeNodeDef         buildTree(List<String> paths, TreeFilter filter, boolean showSpaces, boolean views, boolean filterRootOnly);
 
-    TreeNodeDef findSymbolTree(String stream, String symbol, boolean showSpaces, boolean views);
+    TreeNodeDef findSymbolTree(String tbId, String stream, String symbol, boolean showSpaces, boolean views);
 }

@@ -14,13 +14,14 @@ export class MenuItemsService {
 
   constructor(private httpClient: HttpClient) {}
 
-  getSymbolPath(stream: string, symbol: string, showSpaces = false, filter = null, views = false, filterOptions = null) {
+  getSymbolPath(stream: string, symbol: string, showSpaces = false, filter = null, views = false, filterOptions = null, tbId: string = null) {
     const filterParams = filterOptions ? {
       ...filterOptions,
       filterRootOnly: filterOptions.match === "streams",
-      matchExactly: !!filterOptions.matchExactly,   
+      matchExactly: !!filterOptions.matchExactly,
     } : null;
-    return this.httpClient.post(`structure/${encodeURIComponent(stream)}/${encodeURIComponent(symbol)}`, 
+    const tbParam = tbId ? `?tb=${encodeURIComponent(tbId)}` : '';
+    return this.httpClient.post(`structure/${encodeURIComponent(stream)}/${encodeURIComponent(symbol)}${tbParam}`,
       { showSpaces, filter, views, filterOptions: filterParams });
   }
 

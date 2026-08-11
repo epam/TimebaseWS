@@ -1,6 +1,25 @@
 <app-top-filters-page-layout>
   <ng-container [formGroup]="filters" filters>
     <div class="filters-left">
+      <ng-container *ngIf="timebases$ | async as timebases">
+        <div *ngIf="timebases.length > 1" class="filter">
+          <label>{{ 'orderBook.filterLabels.timebase' | translate }}</label>
+          <select class="db-selector"
+                  [class.db-selector-error]="selectedTbUnavailable"
+                  (change)="onTbChange($event.target['value'])">
+            <option *ngFor="let tb of timebases"
+                    [value]="tb.id"
+                    [selected]="tb.id === tbId"
+                    [disabled]="tb.connected === false"
+                    [title]="tb.connected === false ? (tb.errorMessage || 'Timebase is unavailable') : null">
+              {{ tb.id }}{{ tb.connected === false ? ' (unavailable)' : '' }}
+            </option>
+          </select>
+        </div>
+        <span *ngIf="timebases.length === 1 && tbId"
+              class="db-indicator"
+              [class.db-selector-error]="selectedTbUnavailable">{{ tbId }}</span>
+      </ng-container>
       <div class="filter streams-filter">
         <label>{{ 'orderBook.filterLabels.streams' | translate }}</label>
         <ng-multiselect-dropdown
@@ -58,9 +77,10 @@
         *ngIf="filters?.get('symbol').value[0]"
         [class.hidden]="loading || noData"
         [hiddenExchanges]="hiddenExchanges$ | async"
-        [streams]="streamKeys | async"
+        [streams]="streamKeys$ | async"
         [inDepthChart]="true"
         [source]="filters.get('source').value?.[0]"
+        [tbId]="tbId"
         [symbol]="filters.get('symbol').value[0]"></app-order-book>
     <div [class.show]="loading && !noData" class="loader"></div>
     <div [class.hidden]="!noData" class="no-data-message">

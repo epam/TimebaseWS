@@ -130,7 +130,7 @@ public class TopicController implements SubscriptionController {
         String subscriptionId = header.getSubscriptionId();
         JsonBigIntEncoding bigIntEncoding = HeaderAccessorHelper.getJsonBigIntEncoding(header);
 
-        monitorService.subscribeTopic(sessionId, subscriptionId, topicKey, channel::sendMessage, bigIntEncoding);
+        monitorService.subscribeTopic(sessionId, subscriptionId, topicKey, channel::sendMessage, bigIntEncoding, null);
         return () -> monitorService.unsubscribe(sessionId, subscriptionId);
     }
 

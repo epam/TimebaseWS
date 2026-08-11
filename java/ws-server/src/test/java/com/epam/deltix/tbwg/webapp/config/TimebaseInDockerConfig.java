@@ -20,6 +20,7 @@ import com.epam.deltix.tbwg.webapp.services.timebase.connections.TbUserConnectio
 import com.epam.deltix.tbwg.webapp.utils.TimebaseInDocker;
 import com.epam.deltix.tbwg.webapp.services.charting.datasource.MessageSourceFactory;
 import com.epam.deltix.tbwg.webapp.services.timebase.SystemMessagesService;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseServiceImpl;
 import com.epam.deltix.tbwg.webapp.settings.TimebaseSettings;
@@ -27,6 +28,8 @@ import org.mockito.Mockito;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+
+import java.util.List;
 
 @Configuration
 @Profile("withTb")
@@ -45,6 +48,15 @@ public class TimebaseInDockerConfig {
     public TimebaseService timebaseService2(TimebaseSettings timebaseSettings, TbUserConnectionsService userConnectionsService,
                                             SystemMessagesService systemMessagesService) {
         return new TimebaseServiceImpl(timebaseSettings, systemMessagesService, userConnectionsService);
+    }
+
+    @Bean
+    public TimebaseRegistry timebaseRegistry(TimebaseService timebaseService) {
+        return new TimebaseRegistry() {
+            @Override public List<TimebaseService> getAll() { return List.of(timebaseService); }
+            @Override public TimebaseService getById(String id) { return timebaseService; }
+            @Override public TimebaseService getDefault() { return timebaseService; }
+        };
     }
 
     @Bean

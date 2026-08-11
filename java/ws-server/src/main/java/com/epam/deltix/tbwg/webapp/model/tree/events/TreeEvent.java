@@ -16,17 +16,22 @@
  */
 package com.epam.deltix.tbwg.webapp.model.tree.events;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
 @Setter
 @Getter
-@AllArgsConstructor
 public class TreeEvent {
 
     private TreeEventType type;
     private TreeEventAction action;
     private String id;
+    private String tbId;
+
+    public TreeEvent(TreeEventType type, TreeEventAction action, String id) {
+        this.type = type;
+        this.action = action;
+        this.id = id;
+    }
 
 }

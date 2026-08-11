@@ -13,6 +13,7 @@ import {SchemaClassTypeModel} from '../../../../../../shared/models/schema.class
 import {uniqueName} from '../../../../../../shared/utils/validators';
 import { SchemaEditorService } from '../../services/schema-editor.service';
 import {AddNewSchemaItem, EditSchemaMergeState, UpdateSchemaAndRemoveType } from '../../store/schema-editor.actions';
+import { addIdsToSchema } from '../../store/schema-editor.reducer';
 import {
   getAllClasses,
   getAllSchemaItems,
@@ -204,21 +205,23 @@ export class ClControlPanelComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$)
       )
       .subscribe((response: any) => {
-        const classes = [];
-        const enums = [];
-        for (let newItem of response.all) {
-          if (!this.allShemaItems.includes(newItem.name)) {
-            if (!newItem.isEnum) {
-              if (response.types.find(type => type.name === newItem.name)) {
-                classes.push({ ...newItem, isConcrete: true });
-              } else {
-                classes.push(newItem);
-              }
-            } else {
-              enums.push(newItem);
-            }
-          }
-        }
+        // response.all is the server-computed dependency closure for the built-in type and can legitimately
+        // contain the same nested type more than once (e.g. reached via several parent messages in UNIVERSAL).
+        // Only drop items that already exist in the current schema; genuine repeats *within* this response are
+        // disambiguated by addIdsToSchema (unique id + duplicated:true) instead of being silently discarded, so
+        // they surface through the same duplicates warning/Remove-Keep flow as everywhere else in the editor.
+        const newItems = response.all
+          .filter(newItem => !this.allShemaItems.includes(newItem.name))
+          .map(newItem =>
+            !newItem.isEnum && response.types.find(type => type.name === newItem.name)
+              ? { ...newItem, isConcrete: true }
+              : newItem,
+          );
+
+        const itemsWithIds = addIdsToSchema(newItems);
+        const classes = itemsWithIds.filter(item => !item.isEnum);
+        const enums = itemsWithIds.filter(item => item.isEnum);
+
         this.appStore.dispatch(
           EditSchemaMergeState({
             classes: classes.map(classItem => this.addTypeRenderProps(classItem)),
@@ -241,8 +244,8 @@ export class ClControlPanelComponent implements OnInit, OnDestroy {
     const fieldsWithProps = type.fields.map(typeField => ({
       ...typeField,
       _props: {
-        typeName: type.name,
-        _uuid: `${type.name}:${typeField.name}`,
+        typeName: type.id,
+        _uuid: `${type.id}:${typeField.id}`,
         _isSelected: false
       }
     }))
@@ -254,7 +257,7 @@ export class ClControlPanelComponent implements OnInit, OnDestroy {
         _isEdited: true,
         _isSelected: false,
         _isNew: true,
-        _typeName: type.name,
+        _typeName: type.id,
         _uuid: uuid()
       }
     }

@@ -113,6 +113,7 @@ export class MonacoQqlConfigService implements OnDestroy {
   private havingAndRecordsAvailable$: Observable<boolean>;
   private alterAvailable$ = new BehaviorSubject<boolean>(false);
   private ddlQuery: boolean;
+  tbId: string = null;
 
   constructor(
     private monacoSqlTokensService: MonacoQqlTokensService,
@@ -579,7 +580,7 @@ export class MonacoQqlConfigService implements OnDestroy {
         if (this.monacoService.currentDDLStreamDetails[streamKey]) {
           streamDetails$ = of(this.monacoService.currentDDLStreamDetails[streamKey]);
         } else {
-          streamDetails$ = this.streamsService.describe(streamKey)
+          streamDetails$ = this.streamsService.describe(streamKey, this.tbId)
             .pipe(pluck('ddl'), tap(details => this.monacoService.currentDDLStreamDetails[streamKey] = details));
         }
 
@@ -645,7 +646,7 @@ export class MonacoQqlConfigService implements OnDestroy {
         if (this.monacoService.currentDDLStreamSchema[streamKey]) {
           schema$ = of(this.monacoService.currentDDLStreamSchema[streamKey]);
         } else {
-          schema$ = this.schemaService.getSchema(streamKey)
+          schema$ = this.schemaService.getSchema(streamKey, null, false, this.tbId)
             .pipe(tap(schema => this.monacoService.currentDDLStreamSchema[streamKey] = schema));
         }
         const dropAction = actionWord === QqlSequenceKeyWord.drop;
@@ -694,7 +695,7 @@ export class MonacoQqlConfigService implements OnDestroy {
       if (this.monacoService.currentDDLStreamSchema[streamKey]) {
         schema$ = of(this.monacoService.currentDDLStreamSchema[streamKey]);
       } else {
-        schema$ = this.schemaService.getSchema(streamKey)
+        schema$ = this.schemaService.getSchema(streamKey, null, false, this.tbId)
           .pipe(tap(schema => this.monacoService.currentDDLStreamSchema[streamKey] = schema));
       }
 
@@ -703,7 +704,7 @@ export class MonacoQqlConfigService implements OnDestroy {
         if (this.monacoService.currentDDLStreamDetails[streamKey]) {
           streamDetails$ = of(this.monacoService.currentDDLStreamDetails[streamKey]);
         } else {
-          streamDetails$ = this.streamsService.describe(streamKey)
+          streamDetails$ = this.streamsService.describe(streamKey, this.tbId)
             .pipe(pluck('ddl'), tap(details => this.monacoService.currentDDLStreamDetails[streamKey] = details));
         }
       } else {
@@ -744,7 +745,7 @@ export class MonacoQqlConfigService implements OnDestroy {
       if (this.monacoService.currentDDLStreamSchema[streamKey]) {
         schema$ = of(this.monacoService.currentDDLStreamSchema[streamKey]);
       } else {
-        schema$ = this.schemaService.getSchema(streamKey)
+        schema$ = this.schemaService.getSchema(streamKey, null, false, this.tbId)
           .pipe(tap(schema => this.monacoService.currentDDLStreamSchema[streamKey] = schema));
       }
 
@@ -755,7 +756,7 @@ export class MonacoQqlConfigService implements OnDestroy {
 
       let allProperties$: Observable<[string, string][]>;
       if (lastKeyWord === QqlSequenceKeyWord.stream) {
-        allProperties$ = this.streamsService.getProps(streamKey, true).pipe(
+        allProperties$ = this.streamsService.getProps(streamKey, true, this.tbId).pipe(
          take(1),
           map(({props}) => Object.entries(props)
             .filter(([key]) => !key.includes('range'))
@@ -825,14 +826,14 @@ export class MonacoQqlConfigService implements OnDestroy {
       const rewrite = splittedText[splittedText.length - 3].trim() === QqlSequenceKeyWord56.rewrite;
 
       const streamKey = streams[0].replace(/\"/g, '');
-      const schema$ = this.schemaService.getSchema(streamKey);
+      const schema$ = this.schemaService.getSchema(streamKey, null, false, this.tbId);
 
       let streamDetails$: Observable<string>;
       if (rewrite) {
         if (this.monacoService.currentDDLStreamDetails[streamKey]) {
           streamDetails$ = of(this.monacoService.currentDDLStreamDetails[streamKey]);
         } else {
-          streamDetails$ = this.streamsService.describe(streamKey)
+          streamDetails$ = this.streamsService.describe(streamKey, this.tbId)
             .pipe(pluck('ddl'), tap(details => this.monacoService.currentDDLStreamDetails[streamKey] = details));
         }
       } else {
@@ -890,7 +891,7 @@ export class MonacoQqlConfigService implements OnDestroy {
         if (this.monacoService.currentDDLStreamSchema[streamKey]) {
           schema$ = of(this.monacoService.currentDDLStreamSchema[streamKey]);
         } else {
-          schema$ = this.schemaService.getSchema(streamKey)
+          schema$ = this.schemaService.getSchema(streamKey, null, false, this.tbId)
             .pipe(tap(schema => this.monacoService.currentDDLStreamSchema[streamKey] = schema));
         }
       }
@@ -910,7 +911,7 @@ export class MonacoQqlConfigService implements OnDestroy {
         if (this.monacoService.currentDDLStreamDetails[streamKey]) {
           streamDetails$ = of(this.monacoService.currentDDLStreamDetails[streamKey]);
         } else {
-          streamDetails$ = this.streamsService.describe(streamKey)
+          streamDetails$ = this.streamsService.describe(streamKey, this.tbId)
             .pipe(pluck('ddl'), tap(details => this.monacoService.currentDDLStreamDetails[streamKey] = details));
         }
       } else {
@@ -1245,7 +1246,7 @@ export class MonacoQqlConfigService implements OnDestroy {
       }
 
       const streamKey = textBeforeCursor.match(/"([^"]+)"/)?.[1];
-      const schema$ = this.schemaService.getSchema(streamKey);
+      const schema$ = this.schemaService.getSchema(streamKey, null, false, this.tbId);
       return schema$.pipe(
         map(schema => {
           const classItem = schema.all.find(cl => cl.name.endsWith(className));

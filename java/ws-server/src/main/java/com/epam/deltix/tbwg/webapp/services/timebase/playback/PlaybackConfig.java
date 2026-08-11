@@ -31,5 +31,7 @@ public class PlaybackConfig {
     private boolean cyclic = false;
     private boolean targetTopic = false;
     private boolean permanent = false;
+    private String sourceTb;
+    private String targetTb;
 
 }

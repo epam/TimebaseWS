@@ -22,6 +22,7 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import com.epam.deltix.qsrv.hf.pub.RawMessage;
 import com.epam.deltix.qsrv.util.json.JSONRawMessagePrinter;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
 import com.epam.deltix.tbwg.webapp.utils.cache.CachedMessageBufferImpl;
 import org.springframework.stereotype.Service;
@@ -42,20 +43,21 @@ public class MonitorServiceImpl implements MonitorService {
     private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(MAX_TASKS);
     private final ExecutorService executorService = Executors.newFixedThreadPool(MAX_TASKS);
 
-    private final TimebaseService timebase;
+    private final TimebaseRegistry registry;
     private final Table<String, String, Task> table = HashBasedTable.create();
 
-    public MonitorServiceImpl(TimebaseService timebase) {
-        this.timebase = timebase;
+    public MonitorServiceImpl(TimebaseRegistry registry) {
+        this.registry = registry;
     }
 
     @Override
     public synchronized void subscribe(String sessionId, String subscriptionId, String key, String qql,
                                        long fromTimestamp, List<String> types,
-                                        List<String> symbols, Consumer<String> consumer, JsonBigIntEncoding bigIntEncoding)
+                                        List<String> symbols, Consumer<String> consumer, JsonBigIntEncoding bigIntEncoding,
+                                       String tbId)
     {
         BufferedConsumer bufferedConsumer = new BufferedConsumer(WebGatewayJsonRawMessagePrinterFactory.create(bigIntEncoding));
-        StreamConsumer streamConsumer = new StreamConsumer(timebase, fromTimestamp, key, qql, symbols, types, bufferedConsumer);
+        StreamConsumer streamConsumer = new StreamConsumer(registry.resolve(tbId), fromTimestamp, key, qql, symbols, types, bufferedConsumer);
         ScheduledFuture<?> scheduledFuture = scheduledExecutorService.scheduleAtFixedRate(() -> {
                 String messages = bufferedConsumer.messageBuffer.flush();
                 if (messages != null && !messages.isEmpty()) {
@@ -69,10 +71,11 @@ public class MonitorServiceImpl implements MonitorService {
 
     @Override
     public synchronized void subscribeTopic(String sessionId, String subscriptionId, String key,
-                                            Consumer<String> consumer, JsonBigIntEncoding bigIntEncoding)
+                                            Consumer<String> consumer, JsonBigIntEncoding bigIntEncoding,
+                                            String tbId)
     {
         BufferedConsumer bufferedConsumer = new BufferedConsumer(WebGatewayJsonRawMessagePrinterFactory.create(bigIntEncoding));
-        TopicConsumer topicConsumer = new TopicConsumer(timebase, key, bufferedConsumer);
+        TopicConsumer topicConsumer = new TopicConsumer(registry.resolve(tbId), key, bufferedConsumer);
         ScheduledFuture<?> scheduledFuture = scheduledExecutorService.scheduleAtFixedRate(() -> {
                     String messages = bufferedConsumer.messageBuffer.flush();
                     if (messages != null && !messages.isEmpty()) {

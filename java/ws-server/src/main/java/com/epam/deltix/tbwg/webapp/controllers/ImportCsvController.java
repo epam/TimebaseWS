@@ -63,10 +63,11 @@ public class ImportCsvController implements SubscriptionController {
 
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @PostMapping(value = "/csv/init")
-    public ResponseEntity<?> initImport(@RequestParam String streamKey) throws UnknownStreamException {
+    public ResponseEntity<?> initImport(@RequestParam String streamKey,
+                                         @RequestParam(required = false) String tb) throws UnknownStreamException {
         if (TextUtils.isEmpty(streamKey))
             throw new UnknownStreamException(streamKey);
-        String id = importService.initImport(streamKey);
+        String id = importService.initImport(streamKey, tb);
         LOGGER.info().append("CSV Import initialization for stream ").append(streamKey)
                 .append(". Import Id: ").append(id).commit();
         return new ResponseEntity<>(Collections.singletonList(id), HttpStatus.CREATED);

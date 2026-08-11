@@ -58,6 +58,8 @@ public interface TimebaseService extends TimebaseLoginService {
 
     boolean         isConnected();
 
+    String          getLastError();
+
     boolean         isReadonly();
 
     DXTickStream    getCurrenciesStream();
@@ -69,6 +71,8 @@ public interface TimebaseService extends TimebaseLoginService {
     long            getFlushPeriodMs();
 
     String          getId();
+
+    String          getUrl();
 
     TopicDB         getTopicDB();
 }

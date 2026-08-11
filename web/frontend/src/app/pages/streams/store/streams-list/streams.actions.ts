@@ -79,6 +79,7 @@ export class GetSymbols implements Action {
   constructor(
     public payload: {
       streamKey: string;
+      tbId?: string;
       spaceName?: string;
       props?: {
         _filter?: string;
@@ -105,6 +106,7 @@ export class GetSpaces implements Action {
   constructor(
     public payload: {
       streamKey: string;
+      tbId?: string;
       props?: {
         _filter?: string;
       };
@@ -182,6 +184,7 @@ export class TruncateStream implements Action {
   constructor(
     public payload: {
       streamKey: string;
+      tbId?: string;
       params: {
         symbols?: string[];
         timestamp: number;
@@ -196,6 +199,7 @@ export class PurgeStream implements Action {
   constructor(
     public payload: {
       streamKey: string;
+      tbId?: string;
       params: {
         timestamp: number;
       };
@@ -209,6 +213,7 @@ export class AskToDeleteStream implements Action {
   constructor(
     public payload: {
       streamKey: string;
+      tbId?: string;
       spaceName?: string;
       noNotification?: boolean
     },
@@ -221,6 +226,7 @@ export class AskToDeleteSymbols implements Action {
   constructor(
     public payload: {
       streamKey: string;
+      tbId?: string;
       symbols: string[];
     },
   ) {}
@@ -232,6 +238,7 @@ export class DeleteStream implements Action {
   constructor(
     public payload: {
       streamKey: string;
+      tbId?: string;
       spaceName?: string;
     },
   ) {}
@@ -261,6 +268,7 @@ export class DownloadQSMSGFile implements Action {
   constructor(
     public payload: {
       streamId: string;
+      tbId?: string;
     },
   ) {}
 }
@@ -271,6 +279,7 @@ export class AskToRenameStream implements Action {
   constructor(
     public payload: {
       streamId: string;
+      tbId?: string;
       newName: string;
       spaceName?: string;
     },
@@ -283,6 +292,7 @@ export class AskToRenameSymbol implements Action {
   constructor(
     public payload: {
       streamId: string;
+      tbId?: string;
       oldSymbolName: string;
       newSymbolName: string;
       spaceName?: string;
@@ -296,6 +306,7 @@ export class RenameStream implements Action {
   constructor(
     public payload: {
       streamId: string;
+      tbId?: string;
       newName: string;
       spaceName?: string;
     },
@@ -308,6 +319,7 @@ export class RenameSymbol implements Action {
   constructor(
     public payload: {
       streamId: string;
+      tbId?: string;
       oldSymbolName: string;
       newSymbolName: string;
     },
@@ -320,6 +332,7 @@ export class GetStreamDescribe implements Action {
   constructor(
     public payload: {
       streamId: string;
+      tbId?: string;
     },
   ) {}
 }
@@ -342,6 +355,7 @@ export class SendMessage implements Action {
       messages: StreamDetailsModel[];
       writeMode: string;
       streamId: string;
+      tbId?: string;
     },
   ) {}
 }

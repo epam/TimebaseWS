@@ -21,6 +21,7 @@ import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickDB;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
 import com.epam.deltix.tbwg.webapp.services.charting.TimeInterval;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,20 +39,20 @@ public class StreamMessageSourceFactory implements MessageSourceFactory {
 
     private final long PREFETCH_INTERVAL_MS = 60 * 1000;
 
-    private final TimebaseService timebase;
+    private final TimebaseRegistry registry;
 
     @Value("${charting.use-interpret-codecs:false}")
     private boolean useInterpretCodecs;
 
     @Autowired
-    public StreamMessageSourceFactory(TimebaseService timebase) {
-        this.timebase = timebase;
+    public StreamMessageSourceFactory(TimebaseRegistry registry) {
+        this.registry = registry;
     }
 
     @Override
-    public ReactiveMessageSource buildSource(String streamName, String[] symbols, Set<String> types, TimeInterval interval,
+    public ReactiveMessageSource buildSource(TimebaseService service, String streamName, String[] symbols, Set<String> types, TimeInterval interval,
                                              boolean live, boolean unbound) {
-        DXTickStream stream = timebase.getStream(streamName);
+        DXTickStream stream = registry.resolve(service).getStream(streamName);
         if (stream == null) {
             throw new IllegalArgumentException("Can't find stream " + streamName);
         }
@@ -76,15 +77,15 @@ public class StreamMessageSourceFactory implements MessageSourceFactory {
     }
 
     @Override
-    public ReactiveMessageSource buildSource(String qql, TimeInterval interval, boolean live, boolean unbound) {
-        return buildSource(null, null, qql, interval, live, unbound);
+    public ReactiveMessageSource buildSource(TimebaseService service, String qql, TimeInterval interval, boolean live, boolean unbound) {
+        return buildSource(service, null, null, qql, interval, live, unbound);
     }
 
     @Override
-    public ReactiveMessageSource buildSource(String stream, String[] symbols, String qql, TimeInterval interval, boolean live, boolean unbound) {
+    public ReactiveMessageSource buildSource(TimebaseService service, String stream, String[] symbols, String qql, TimeInterval interval, boolean live, boolean unbound) {
         LOGGER.info().append("CHART QQL QUERY: ").append(qql).commit();
 
-        DXTickDB db = timebase.getConnection();
+        DXTickDB db = registry.resolve(service).getConnection();
         TimeBaseReactiveMessageSource.Builder builder = TimeBaseReactiveMessageSource.builder(db);
 
         builder.time(interval.getStartTimeMilli());
@@ -98,14 +99,14 @@ public class StreamMessageSourceFactory implements MessageSourceFactory {
             builder.interpreted();
         }
         if (stream != null && symbols != null) {
-            builder.symbols(findInstruments(stream, symbols));
+            builder.symbols(findInstruments(service, stream, symbols));
         }
 
         return builder.build();
     }
 
-    private String[] findInstruments(String streamName, String[] symbols) {
-        DXTickStream stream = timebase.getStream(streamName);
+    private String[] findInstruments(TimebaseService service, String streamName, String[] symbols) {
+        DXTickStream stream = registry.resolve(service).getStream(streamName);
         if (stream == null) {
             throw new IllegalArgumentException("Can't find stream " + streamName);
         }

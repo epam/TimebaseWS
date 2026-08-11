@@ -20,7 +20,7 @@ import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
 import com.epam.deltix.tbwg.webapp.services.MetricsService;
-import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.util.concurrent.QuickExecutor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -60,21 +60,21 @@ public class LiveServiceImpl implements WebSocketConfigurer {
 
     private final QuickExecutor executor = QuickExecutor.createNewInstance("Live Handler", null);
 
-    private final TimebaseService service;
+    private final TimebaseRegistry tbRegistry;
 
     private final MetricsService metrics;
 
-    public LiveServiceImpl(TimebaseService timebaseService, MetricsService metrics) {
-        this.service = timebaseService;
+    public LiveServiceImpl(TimebaseRegistry tbRegistry, MetricsService metrics) {
+        this.tbRegistry = tbRegistry;
         this.metrics = metrics;
     }
 
     @Override
     public void registerWebSocketHandlers(@NotNull WebSocketHandlerRegistry registry) {
-        registry.addHandler(new WSHandler(service, executor, metrics), WS_SELECT_STREAM_TEMPLATE)
-                .addHandler(new WSHandler(service, executor, metrics), "/ws/v0/select")
-                .addHandler(new WSQueryHandler(service, executor, metrics), "/ws/v0/query")
-                .addHandler(new WSHandler(service, executor, metrics, service.getFlushPeriodMs()), WS_SELECT_MONITOR_TEMPLATE)
+        registry.addHandler(new WSHandler(tbRegistry, executor, metrics), WS_SELECT_STREAM_TEMPLATE)
+                .addHandler(new WSHandler(tbRegistry, executor, metrics), "/ws/v0/select")
+                .addHandler(new WSQueryHandler(tbRegistry, executor, metrics), "/ws/v0/query")
+                .addHandler(new WSHandler(tbRegistry, executor, metrics, tbRegistry.getDefault().getFlushPeriodMs()), WS_SELECT_MONITOR_TEMPLATE)
                 .addInterceptors(new TemplateHandshakeInterceptor())
                 .addInterceptors(new WebSocketConfig.IpInterceptor())
                 .setAllowedOrigins("*");

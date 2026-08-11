@@ -18,6 +18,7 @@ package com.epam.deltix.tbwg.webapp.services.charting.queries;
 
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.services.charting.TimeInterval;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 
 public abstract class LinesQueryImpl implements LinesQuery {
 
@@ -25,6 +26,7 @@ public abstract class LinesQueryImpl implements LinesQuery {
     protected final long pointInterval;
     protected final ChartType type;
     protected final boolean isLive;
+    private TimebaseService service;
 
     public LinesQueryImpl(ChartType type, TimeInterval interval,
                           long pointInterval, boolean isLive)
@@ -53,6 +55,15 @@ public abstract class LinesQueryImpl implements LinesQuery {
     @Override
     public boolean isLive() {
         return isLive;
+    }
+
+    @Override
+    public TimebaseService getService() {
+        return service;
+    }
+
+    public void setService(TimebaseService service) {
+        this.service = service;
     }
 
 }

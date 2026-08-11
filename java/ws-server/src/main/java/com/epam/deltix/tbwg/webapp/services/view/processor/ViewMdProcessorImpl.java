@@ -20,6 +20,7 @@ import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.messages.ViewState;
 import com.epam.deltix.tbwg.webapp.services.tasks.workers.FixedSizeWorkersManager;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.view.md.QueryViewMd;
 import com.epam.deltix.tbwg.webapp.services.view.md.ViewMd;
@@ -32,7 +33,7 @@ public class ViewMdProcessorImpl implements ViewMdEventsListener, ViewProcessing
 
     private static final Log LOGGER = LogFactory.getLog(ViewMdProcessorImpl.class);
 
-    private final TimebaseService timebaseService;
+    private final TimebaseRegistry registry;
     private final ViewProcessingListener viewProcessingListener;
 
     private final ExecutorService actionsExecutor = Executors.newSingleThreadExecutor();
@@ -40,10 +41,10 @@ public class ViewMdProcessorImpl implements ViewMdEventsListener, ViewProcessing
 
     private final Map<String, ViewProcessingWorker> runningWorkers = new ConcurrentHashMap<>();
 
-    public ViewMdProcessorImpl(TimebaseService timebaseService,
+    public ViewMdProcessorImpl(TimebaseRegistry registry,
                                ViewProcessingListener viewProcessingListener,
                                FixedSizeWorkersManager workersManager) {
-        this.timebaseService = timebaseService;
+        this.registry = registry;
         this.viewProcessingListener = viewProcessingListener;
         this.workersManager = workersManager;
     }
@@ -111,6 +112,7 @@ public class ViewMdProcessorImpl implements ViewMdEventsListener, ViewProcessing
         }
 
         if (viewMd instanceof QueryViewMd) {
+            TimebaseService timebaseService = registry.resolve(viewMd.getTbId());
             QueryViewProcessingWorker worker = new QueryViewProcessingWorker((QueryViewMd) viewMd, this, timebaseService);
             runningWorkers.put(viewMd.getId(), worker);
 

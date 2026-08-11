@@ -24,7 +24,7 @@ import com.epam.deltix.tbwg.webapp.services.charting.datasource.ChartDataSource;
 import com.epam.deltix.tbwg.webapp.services.charting.datasource.MarketDataTypeLoader;
 import com.epam.deltix.tbwg.webapp.services.charting.queries.*;
 import com.epam.deltix.tbwg.webapp.services.charting.transformations.*;
-import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.pub.md.ClassDescriptor;
@@ -64,7 +64,7 @@ public class TransformationServiceImpl implements TransformationService {
     @Value("${charting.transformations.use-qll:true}")
     private boolean useQql;
 
-    private final TimebaseService timebaseService;
+    private final TimebaseRegistry registry;
     private final MessageSourceFactory messageSourceFactory;
 
     private interface TransformationPlanBuilder {
@@ -502,16 +502,17 @@ public class TransformationServiceImpl implements TransformationService {
         }
     }
 
-    public TransformationServiceImpl(TimebaseService timebaseService, MessageSourceFactory messageSourceFactory) {
-        this.timebaseService = timebaseService;
+    public TransformationServiceImpl(TimebaseRegistry registry, MessageSourceFactory messageSourceFactory) {
+        this.registry = registry;
         this.messageSourceFactory = messageSourceFactory;
     }
 
     @Override
     public LinesQueryResult buildTransformationPlan(LinesQuery query) {
+        com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService svc = registry.resolve(query.getService());
         RecordClassSet metadata = null;
         if (query instanceof SymbolQuery) {
-            metadata = timebaseService.getStreamMetadata(((SymbolQuery) query).getStream());
+            metadata = svc.getStreamMetadata(((SymbolQuery) query).getStream());
         }
 
         TransformationType transformationType = transformationType(query, metadata);
@@ -522,13 +523,13 @@ public class TransformationServiceImpl implements TransformationService {
             QqlQueryPlanBuilder queryPlanBuilder = (QqlQueryPlanBuilder) planBuilder;
             QqlQuery qqlQuery = queryPlanBuilder.query();
             source = messageSourceFactory.buildSource(
-                qqlQuery.getQql(), qqlQuery.getInterval(), qqlQuery.isLive(), true
+                svc, qqlQuery.getQql(), qqlQuery.getInterval(), qqlQuery.isLive(), true
             );
         } else if (planBuilder instanceof LinearPlanBuilder) {
             if (query instanceof SymbolQuery) {
                 SymbolQuery symbolQuery = (SymbolQuery) query;
                 source = messageSourceFactory.buildSource(
-                    symbolQuery.getStream(), symbolQuery.getSymbols(),
+                    svc, symbolQuery.getStream(), symbolQuery.getSymbols(),
                     transformationType.types,
                     symbolQuery.getInterval(), symbolQuery.isLive(),
                     true
@@ -541,27 +542,27 @@ public class TransformationServiceImpl implements TransformationService {
             if (planBuilder instanceof L2PricesPlanBuilder) {
                 L2PricesPlanBuilder l2PricesPlanBuilder = (L2PricesPlanBuilder) planBuilder;
                 if (l2PricesPlanBuilder.buildByQuery()) {
-                    ChartQueryGenerator qqlB = createQueryGenerator(symbolQuery, metadata);
+                    ChartQueryGenerator qqlB = createQueryGenerator(svc, symbolQuery, metadata);
                     source = messageSourceFactory.buildSource(
-                        symbolQuery.getStream(), symbolQuery.getSymbols(), qqlB.generateL2PricesQuery(),
+                        svc, symbolQuery.getStream(), symbolQuery.getSymbols(), qqlB.generateL2PricesQuery(),
                         symbolQuery.getInterval(), symbolQuery.isLive(), false
                     );
                 }
             } else if (planBuilder instanceof BboPlanBuilder) {
                 BboPlanBuilder bboPlanBuilder = (BboPlanBuilder) planBuilder;
                 if (bboPlanBuilder.buildByQuery()) {
-                    ChartQueryGenerator qqlB = createQueryGenerator(symbolQuery, metadata);
+                    ChartQueryGenerator qqlB = createQueryGenerator(svc, symbolQuery, metadata);
                     source = messageSourceFactory.buildSource(
-                        symbolQuery.getStream(), symbolQuery.getSymbols(), qqlB.generateBboQuery(),
+                        svc, symbolQuery.getStream(), symbolQuery.getSymbols(), qqlB.generateBboQuery(),
                         symbolQuery.getInterval(), symbolQuery.isLive(), false
                     );
                 }
             } else if (planBuilder instanceof BarPlanBuilder) {
                 BarPlanBuilder barPlanBuilder = (BarPlanBuilder) planBuilder;
                 if (barPlanBuilder.buildByQuery()) {
-                    ChartQueryGenerator qqlB = createQueryGenerator(symbolQuery, metadata);
+                    ChartQueryGenerator qqlB = createQueryGenerator(svc, symbolQuery, metadata);
                     source = messageSourceFactory.buildSource(
-                        symbolQuery.getStream(), symbolQuery.getSymbols(), qqlB.generateBarQuery(),
+                        svc, symbolQuery.getStream(), symbolQuery.getSymbols(), qqlB.generateBarQuery(),
                         symbolQuery.getInterval(), symbolQuery.isLive(), false
                     );
                 }
@@ -569,7 +570,7 @@ public class TransformationServiceImpl implements TransformationService {
 
             if (source == null) {
                 source = messageSourceFactory.buildSource(
-                    symbolQuery.getStream(), symbolQuery.getSymbols(),
+                    svc, symbolQuery.getStream(), symbolQuery.getSymbols(),
                     transformationType.types,
                     symbolQuery.getInterval(), symbolQuery.isLive(),
                     false
@@ -580,8 +581,9 @@ public class TransformationServiceImpl implements TransformationService {
         return planBuilder.build(source);
     }
 
-    private ChartQueryGenerator createQueryGenerator(BookSymbolQuery symbolQuery, RecordClassSet metadata) {
-        return versionHasRecord(timebaseService.getServerVersion()) ?
+    private ChartQueryGenerator createQueryGenerator(com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService svc,
+                                                      BookSymbolQuery symbolQuery, RecordClassSet metadata) {
+        return versionHasRecord(svc.getServerVersion()) ?
             new RecordChartQueryGenerator(symbolQuery, metadata) :
             new UnionChartQueryGenerator(symbolQuery, metadata);
     }

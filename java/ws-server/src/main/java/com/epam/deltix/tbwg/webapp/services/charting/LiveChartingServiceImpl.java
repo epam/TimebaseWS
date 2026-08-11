@@ -20,6 +20,7 @@ import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.services.charting.provider.LinesProvider;
 import com.epam.deltix.tbwg.webapp.services.tasks.StompSubscriptionTaskServiceImpl;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -32,14 +33,17 @@ public class LiveChartingServiceImpl implements LiveChartingService {
     private final LinesProvider linesProvider;
     private final StompSubscriptionTaskServiceImpl subscriptionTaskService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final TimebaseRegistry registry;
 
     public LiveChartingServiceImpl(LinesProvider linesProvider,
                                    StompSubscriptionTaskServiceImpl subscriptionTaskService,
-                                   SimpMessagingTemplate messagingTemplate)
+                                   SimpMessagingTemplate messagingTemplate,
+                                   TimebaseRegistry registry)
     {
         this.linesProvider = linesProvider;
         this.subscriptionTaskService = subscriptionTaskService;
         this.messagingTemplate = messagingTemplate;
+        this.registry = registry;
     }
 
     @Override
@@ -50,7 +54,7 @@ public class LiveChartingServiceImpl implements LiveChartingService {
         subscriptionTaskService.startTask(
             sessionId, subscriptionId,
             new LiveChartingStompSubscriptionTask(
-                linesProvider, chartingSettings, channel
+                linesProvider, chartingSettings, channel, registry
             )
         );
     }

@@ -17,10 +17,11 @@
 package com.epam.deltix.tbwg.webapp.services.orderbook;
 
 import com.epam.deltix.tbwg.webapp.model.orderbook.L2PackageDto;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.NoStreamsException;
 
 public interface OrderBookDebugger {
 
-    L2PackageDto        snapshot(OrderBookSnapshotRequest request) throws NoStreamsException;
+    L2PackageDto        snapshot(OrderBookSnapshotRequest request, TimebaseService service) throws NoStreamsException;
 
 }

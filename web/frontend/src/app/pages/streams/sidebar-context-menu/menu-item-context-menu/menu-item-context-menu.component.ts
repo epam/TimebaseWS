@@ -1,6 +1,6 @@
 import {ChangeDetectorRef, Component, HostListener, Input, OnDestroy, OnInit} from '@angular/core';
 import {distinctUntilChanged, map, take, takeUntil} from 'rxjs/operators';
-import {MenuItem} from '../../../../shared/models/menu-item';
+import {MenuItem, MenuItemType} from '../../../../shared/models/menu-item';
 import {StreamsNavigationService} from '../../streams-navigation/streams-navigation.service';
 import {SidebarContextMenuService} from '../sidebar-context-menu.service';
 import { GlobalFiltersService } from 'src/app/shared/services/global-filters.service';
@@ -27,7 +27,8 @@ export class MenuItemContextMenuComponent implements OnInit, OnDestroy {
   ) {}
 
   @HostListener('contextmenu', ['$event']) onRightClick(event) {
-    if (this.streamsNavigationService.url(this.item, this.activeTabType, this.reverseViewIsDefault$.getValue()) === null) {
+    const isDb = this.item?.type === MenuItemType.db;
+    if (!isDb && this.streamsNavigationService.url(this.item, this.activeTabType, this.reverseViewIsDefault$.getValue()) === null) {
       return;
     }
 

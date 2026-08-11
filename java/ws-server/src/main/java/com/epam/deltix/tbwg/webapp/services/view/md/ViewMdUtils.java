@@ -27,10 +27,11 @@ public enum ViewMdUtils {
         return new QueryViewMdImpl();
     }
 
-    public ViewMd fromMessage(ViewMetadataMessage message) {
+    public ViewMd fromMessage(ViewMetadataMessage message, String tbId) {
         QueryViewMdImpl viewMd = new QueryViewMdImpl();
         viewMd.setQuery(toString(message.getQuery()));
         viewMd.setId(toString(message.getSymbol()));
+        viewMd.setTbId(tbId);
         viewMd.setTimestamp(message.getTimeStampMs());
         viewMd.setLastTimestamp(message.getLastTimestamp());
         viewMd.setStream(toString(message.getOutput()));

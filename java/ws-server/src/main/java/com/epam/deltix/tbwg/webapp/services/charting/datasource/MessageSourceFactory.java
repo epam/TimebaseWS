@@ -17,16 +17,17 @@
 package com.epam.deltix.tbwg.webapp.services.charting.datasource;
 
 import com.epam.deltix.tbwg.webapp.services.charting.TimeInterval;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 
 import java.util.Set;
 
 public interface MessageSourceFactory {
 
-    ReactiveMessageSource   buildSource(String streamName, String[] symbols, Set<String> types,
+    ReactiveMessageSource   buildSource(TimebaseService service, String streamName, String[] symbols, Set<String> types,
                                         TimeInterval interval, boolean live, boolean unbound);
 
-    ReactiveMessageSource   buildSource(String qql, TimeInterval interval, boolean live, boolean unbound);
+    ReactiveMessageSource   buildSource(TimebaseService service, String qql, TimeInterval interval, boolean live, boolean unbound);
 
-    ReactiveMessageSource   buildSource(String streamName, String[] symbols, String qql, TimeInterval interval, boolean live, boolean unbound);
+    ReactiveMessageSource   buildSource(TimebaseService service, String streamName, String[] symbols, String qql, TimeInterval interval, boolean live, boolean unbound);
 
 }

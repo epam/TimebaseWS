@@ -160,8 +160,8 @@ public abstract class ChartingBaseTest {
         Mockito.when(bookSymbolQuery.getSymbols()).thenReturn(symbols);
 
         ReactiveMessageSource reactiveMessageSource = new ReactiveMessageSourceImpl(messageProducer, messageProducer.getObservable());
-        Mockito.when(messageSourceFactory.buildSource(any(), any(), anyBoolean(), anyBoolean())).thenReturn(reactiveMessageSource);
-        Mockito.when(messageSourceFactory.buildSource(any(), any(), anySet(), any(), anyBoolean(), anyBoolean())).thenReturn(reactiveMessageSource);
+        Mockito.when(messageSourceFactory.buildSource(timebaseService, any(), any(), anyBoolean(), anyBoolean())).thenReturn(reactiveMessageSource);
+        Mockito.when(messageSourceFactory.buildSource(timebaseService, any(), any(), anySet(), any(), anyBoolean(), anyBoolean())).thenReturn(reactiveMessageSource);
     }
 
     public long runTestFullResponseCheck(long pointInterval, Instant startTime, Instant endTime, String resultFilename,

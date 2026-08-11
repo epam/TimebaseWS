@@ -11,6 +11,7 @@ import {reducer as fromSchema, State as SchemaState} from './stream-schema/strea
 import {reducer as fromList, State as ListState} from './streams-list/streams.reducer';
 import {reducer as fromTabs, State as TabsState} from './streams-tabs/streams-tabs.reducer';
 import {reducer as fromBar, State as BarState} from './timeline-bar/timeline-bar.reducer';
+import {reducer as fromTimebases, State as TimebasesState} from './timebases/timebases.reducer';
 
 export const streamsStoreSelector = createFeatureSelector<StreamsState>('streams-store');
 
@@ -23,6 +24,7 @@ export interface StreamsState {
   tabs: TabsState;
   schema: SchemaState;
   query: QueryState;
+  timebases: TimebasesState;
 }
 
 export const reducers: ActionReducerMap<StreamsState> = {
@@ -34,4 +36,5 @@ export const reducers: ActionReducerMap<StreamsState> = {
   tabs: fromTabs,
   schema: fromSchema,
   query: fromQuery,
+  timebases: fromTimebases,
 };

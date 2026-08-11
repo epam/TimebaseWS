@@ -6,12 +6,25 @@
     </ng-container>
     <div content>
       <form [formGroup]="formGroup" class="playback-settings">
-        <h3>{{ 'playback.headers.source' | translate }}</h3>
+        <h3>
+          {{ 'playback.headers.source' | translate }}
+          <ng-container *ngIf="timebases$ | async as timebases">
+            <select *ngIf="timebases.length > 1" class="db-selector"
+                    [class.db-selector-error]="sourceTbUnavailable"
+                    (change)="onSourceTbChange($event.target['value'])">
+              <option *ngFor="let tb of timebases" [value]="tb.id" [selected]="tb.id === sourceTbId"
+                      [disabled]="tb.connected === false"
+                      [title]="tb.connected === false ? (tb.errorMessage || 'Timebase is unavailable') : null">{{ tb.id }}{{ tb.connected === false ? ' (unavailable)' : '' }}</option>
+            </select>
+            <span *ngIf="timebases.length === 1 && sourceTbId" class="db-indicator" [class.db-selector-error]="sourceTbUnavailable">{{ sourceTbId }}</span>
+          </ng-container>
+          <span *ngIf="sourceTbUnavailable" class="db-selector-hint">Source timebase is unavailable.</span>
+        </h3>
         <div class="input-with-label">
           <label class="target-streams-label">{{ 'playback.inputLabels.streams' | translate }}</label>
           <div [ngClass]="{'invalid': !!validationErrorMessages.sourceStream, 'multiselect-wrapper': true}">
             <ng-multiselect-dropdown
-              [data]="streamNameList"
+              [data]="sourceStreamNameList"
               [settings]="{ allowSearchFilter: true, enableCheckAll: false }"
               appMultiselectNormalize
               class="flat-multiselect"
@@ -51,7 +64,20 @@
           </div>
         </div>
 
-        <h3>{{ 'playback.headers.target' | translate }}</h3>
+        <h3>
+          {{ 'playback.headers.target' | translate }}
+          <ng-container *ngIf="timebases$ | async as timebases">
+            <select *ngIf="timebases.length > 1" class="db-selector"
+                    [class.db-selector-error]="targetTbUnavailable"
+                    (change)="onTargetTbChange($event.target['value'])">
+              <option *ngFor="let tb of timebases" [value]="tb.id" [selected]="tb.id === targetTbId"
+                      [disabled]="tb.connected === false"
+                      [title]="tb.connected === false ? (tb.errorMessage || 'Timebase is unavailable') : null">{{ tb.id }}{{ tb.connected === false ? ' (unavailable)' : '' }}</option>
+            </select>
+            <span *ngIf="timebases.length === 1 && targetTbId" class="db-indicator" [class.db-selector-error]="targetTbUnavailable">{{ targetTbId }}</span>
+          </ng-container>
+          <span *ngIf="targetTbUnavailable" class="db-selector-hint">Target timebase is unavailable.</span>
+        </h3>
         <div class="row">
           <div class="topics-checkbox col-2">
             <input class="form-check-input" type="radio" value="stream" formControlName="targetType">
@@ -62,7 +88,7 @@
             formControlName="targetStream"
             (changeInput)="onTargetStreamChanged($event)"
             (selectItem)="onTargetStreamChanged($event)"
-            [values]="streamNameList"
+            [values]="targetStreamNameList"
             cssClass="in-modal"
             [free]="true"
             [invalid]="validationErrorMessages.targetStream"
@@ -132,8 +158,8 @@
     </div>
 
     <footer footer>
-      <button class="btn btn-primary" 
-        [disabled]="(formInvalid$ | async) || (targetTypeIsTopic ? !topicNameControl?.value : !streamNameControl?.value)" 
+      <button class="btn btn-primary"
+        [disabled]="(formInvalid$ | async) || (targetTypeIsTopic ? !topicNameControl?.value : !streamNameControl?.value) || sourceTbUnavailable || targetTbUnavailable"
         (click)="createPlayback()">
         {{ 'playback.buttons.next' | translate }}
       </button>

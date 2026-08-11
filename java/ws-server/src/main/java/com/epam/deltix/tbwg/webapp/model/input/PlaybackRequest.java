@@ -81,4 +81,16 @@ public class PlaybackRequest {
     @JsonProperty
     private boolean permanent = false;
 
+    /**
+     * Source TimeBase instance id. If null, the default TimeBase is used.
+     */
+    @JsonProperty
+    private String sourceTb;
+
+    /**
+     * Target TimeBase instance id. If null, the default TimeBase is used.
+     */
+    @JsonProperty
+    private String targetTb;
+
 }

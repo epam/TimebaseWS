@@ -25,6 +25,7 @@ export class ChartScrollComponent implements OnChanges, OnInit, OnDestroy, After
   @Input() symbolName: string;
   @Input() scrollRange: { start: string, end: string, tabId: string, liveData: boolean };
   @Input() symbolList: string[];
+  @Input() tbId: string;
 
   @ViewChild('scrollWrapper') scrollWrapper: ElementRef;
   @ViewChild('scrollInner') scrollInner: ElementRef;
@@ -48,6 +49,7 @@ export class ChartScrollComponent implements OnChanges, OnInit, OnDestroy, After
   private tooltipShift = 160;
   private lastAppliedRange: { start: string, end: string };
   private scrolledToTheEnd = false;
+  private pendingGoToEnd = false;
   private chartTabNumber: number;
   private mouseDown: boolean = false;
 
@@ -95,10 +97,19 @@ export class ChartScrollComponent implements OnChanges, OnInit, OnDestroy, After
         this.streamsService.removeChartSettings();
         setTimeout(() => {
           if (!savedChartSettings || this.chartTabNumber > savedChartSettings.chartTabNumber) {
-            this.goToEnd(this.selectedRange);
+            if (this.tbId != null) {
+              this.goToEnd(this.selectedRange);
+            } else {
+              this.pendingGoToEnd = true;
+            }
           }
         }, 1000);
       }
+    }
+
+    if (changes.tbId?.currentValue && this.pendingGoToEnd) {
+      this.pendingGoToEnd = false;
+      this.goToEnd(this.selectedRange);
     }
   }
 
@@ -242,7 +253,7 @@ export class ChartScrollComponent implements OnChanges, OnInit, OnDestroy, After
   }
 
   goToEnd(selectedRange: { start: string, end: string } = this.lastAppliedRange) {
-    this.symbolService.getRanges(this.streamId, this.symbolList)
+    this.symbolService.getRanges(this.streamId, this.symbolList, this.tbId)
       .pipe(take(1))
       .subscribe((range: { start: string, end: string }) => {
         const symbolRangeEnd = new Date(range.end) > new Date(this.symbolRange.end) ? range.end : this.symbolRange.end;

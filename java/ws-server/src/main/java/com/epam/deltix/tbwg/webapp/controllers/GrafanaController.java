@@ -60,8 +60,9 @@ public class GrafanaController {
     @RequestMapping(value = "/streams", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<DynamicList> streams(@RequestParam(required = false, defaultValue = "") String template,
                                                @RequestParam(required = false, defaultValue = "0") int offset,
-                                               @RequestParam(required = false, defaultValue = "30") int limit) {
-        return ResponseEntity.ok(grafanaService.listStreams(template, offset, limit));
+                                               @RequestParam(required = false, defaultValue = "30") int limit,
+                                               @RequestParam(required = false) String tb) {
+        return ResponseEntity.ok(grafanaService.listStreams(template, offset, limit, tb));
     }
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
@@ -69,15 +70,17 @@ public class GrafanaController {
     public ResponseEntity<DynamicList> symbols(@RequestParam String stream,
                                                @RequestParam(required = false, defaultValue = "") String template,
                                                @RequestParam(required = false, defaultValue = "0") int offset,
-                                               @RequestParam(required = false, defaultValue = "30") int limit)
+                                               @RequestParam(required = false, defaultValue = "30") int limit,
+                                               @RequestParam(required = false) String tb)
             throws NoSuchStreamException {
-        return ResponseEntity.ok(grafanaService.listSymbols(stream, template, offset, limit));
+        return ResponseEntity.ok(grafanaService.listSymbols(stream, template, offset, limit, tb));
     }
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/schema", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StreamSchema> schema(@RequestParam String stream) throws NoSuchStreamException {
-        return ResponseEntity.ok(grafanaService.schema(stream));
+    public ResponseEntity<StreamSchema> schema(@RequestParam String stream,
+                                               @RequestParam(required = false) String tb) throws NoSuchStreamException {
+        return ResponseEntity.ok(grafanaService.schema(stream, tb));
     }
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
@@ -87,20 +90,23 @@ public class GrafanaController {
     }
 
     @RequestMapping(value = "/queries/selectTS", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<TimeSeriesEntry> selectTS(@Valid @RequestBody DataQueryRequest<SelectQuery> request) throws ValidationException, RecordValidationException {
-        return grafanaService.timeSeries(request);
+    public List<TimeSeriesEntry> selectTS(@Valid @RequestBody DataQueryRequest<SelectQuery> request,
+                                          @RequestParam(required = false) String tb) throws ValidationException, RecordValidationException {
+        return grafanaService.timeSeries(request, tb);
     }
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/queries/selectDF", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<DataFrame> selectDataFrame(@Valid @RequestBody DataQueryRequest<SelectQuery> request) throws ValidationException, RecordValidationException {
-        return grafanaService.dataFrames(request);
+    public List<DataFrame> selectDataFrame(@Valid @RequestBody DataQueryRequest<SelectQuery> request,
+                                           @RequestParam(required = false) String tb) throws ValidationException, RecordValidationException {
+        return grafanaService.dataFrames(request, tb);
     }
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/queries/select", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<Object> select(@Valid @RequestBody DataQueryRequest<SelectQuery> request) throws ValidationException, RecordValidationException {
-        return grafanaService.select(request);
+    public List<Object> select(@Valid @RequestBody DataQueryRequest<SelectQuery> request,
+                               @RequestParam(required = false) String tb) throws ValidationException, RecordValidationException {
+        return grafanaService.select(request, tb);
     }
 
 

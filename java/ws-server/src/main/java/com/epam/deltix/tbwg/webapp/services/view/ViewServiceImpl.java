@@ -18,9 +18,16 @@ package com.epam.deltix.tbwg.webapp.services.view;
 
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
+import com.epam.deltix.qsrv.hf.pub.md.ClassDescriptor;
+import com.epam.deltix.qsrv.hf.pub.md.ClassSet;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
+import com.epam.deltix.qsrv.hf.tickdb.pub.SelectionOptions;
 import com.epam.deltix.tbwg.messages.ViewState;
+import com.epam.deltix.tbwg.webapp.services.timebase.exc.InvalidQueryException;
+import com.epam.deltix.tbwg.webapp.services.view.md.QueryViewMd;
+import com.epam.deltix.util.parsers.CompilationException;
 import com.epam.deltix.tbwg.webapp.services.tasks.workers.FixedSizeWorkersManager;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.view.md.MutableQueryViewMd;
 import com.epam.deltix.tbwg.webapp.services.view.md.MutableViewMd;
@@ -36,8 +43,12 @@ import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.time.Instant;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 @Service
 public class ViewServiceImpl implements ViewService, ViewProcessingListener, ViewMdEventsListener {
@@ -47,39 +58,40 @@ public class ViewServiceImpl implements ViewService, ViewProcessingListener, Vie
     @Value("${views.processor.thread-pool-size:4}")
     private int threadPoolSize;
 
-    private final TimebaseService timebaseService;
-    private final ViewMdRepository mdRepository;
-    private final ViewMdEventsPublisher mdEventsPublisher;
-    private final TimebaseViewMdCache timebaseViewMdCache;
+    private final TimebaseRegistry registry;
+    private final Map<String, TimebaseViewMdCache> caches = new LinkedHashMap<>();
 
     private ViewMdProcessorImpl processor;
     private FixedSizeWorkersManager workersManager;
 
     private final List<ViewListener> listeners = new CopyOnWriteArrayList<>();
 
-    public ViewServiceImpl(TimebaseService timebaseService) {
-        this.timebaseService = timebaseService;
-        this.timebaseViewMdCache = new TimebaseViewMdCache(timebaseService);
-        this.mdRepository = timebaseViewMdCache;
-        this.mdEventsPublisher = timebaseViewMdCache;
+    public ViewServiceImpl(TimebaseRegistry registry) {
+        this.registry = registry;
+        for (TimebaseService tb : registry.getAll()) {
+            caches.put(tb.getId(), new TimebaseViewMdCache(tb));
+        }
     }
 
     @PostConstruct
     public void init() {
         this.workersManager = new FixedSizeWorkersManager(threadPoolSize);
-        this.processor = new ViewMdProcessorImpl(timebaseService, this, workersManager);
+        this.processor = new ViewMdProcessorImpl(registry, this, workersManager);
 
-        this.mdEventsPublisher.subscribe(processor);
-        this.mdEventsPublisher.subscribe(this);
-        timebaseViewMdCache.start();
+        for (TimebaseViewMdCache cache : caches.values()) {
+            cache.subscribe(processor);
+            cache.subscribe(this);
+            cache.start();
+        }
     }
 
     @PreDestroy
     public void destroy() {
-        mdEventsPublisher.unsubscribe(processor);
-        mdEventsPublisher.unsubscribe(this);
-
-        timebaseViewMdCache.stop();
+        for (TimebaseViewMdCache cache : caches.values()) {
+            cache.unsubscribe(processor);
+            cache.unsubscribe(this);
+            cache.stop();
+        }
         processor.stop();
         workersManager.close();
     }
@@ -91,29 +103,49 @@ public class ViewServiceImpl implements ViewService, ViewProcessingListener, Vie
 
     @Override
     public boolean isViewStream(String key) {
-        if (!mdRepository.isInitialized()) {
+        if (!isAnyInitialized()) {
             return false;
         }
 
         if (key != null && key.endsWith(VIEW_STREAM_SUFFIX)) {
-            return mdRepository.findById(getIdByKey(key)) != null;
+            return findAcrossAll(getIdByKey(key)) != null;
         }
         return false;
     }
 
     @Override
-    public synchronized void create(ViewMd viewMd) {
-        ViewMd savedMd = mdRepository.findById(viewMd.getId());
-        if (savedMd != null) {
+    public synchronized void create(ViewMd viewMd, String tbId) throws InvalidQueryException {
+        if (findAcrossAll(viewMd.getId()) != null) {
             throw new IllegalArgumentException("View with id " + viewMd.getId() + " already exists");
         }
 
-        mdRepository.saveAll(viewMd);
+        TimebaseService tb = registry.resolve(tbId);
+        if (viewMd instanceof QueryViewMd) {
+            String query = ((QueryViewMd) viewMd).getQuery();
+            try {
+                ClassSet classSet = tb.getConnection().describeQuery(query, new SelectionOptions());
+                ClassDescriptor[] descriptors = classSet.getClasses();
+                for (ClassDescriptor descriptor : descriptors) {
+                    if (descriptor.getName() == null) {
+                        throw new NullPointerException("Query result set contains types with empty name. " +
+                            "Use `TYPE` keyword to specify type name for result set, for example: `SELECT a, b, c TYPE MyType`");
+                    }
+                }
+            } catch (CompilationException e) {
+                throw new InvalidQueryException(query);
+            }
+        }
+
+        if (viewMd instanceof MutableViewMd) {
+            ((MutableViewMd) viewMd).setTbId(tb.getId());
+        }
+
+        findCache(tb.getId()).saveAll(viewMd);
     }
 
     @Override
-    public synchronized void restart(String viewId, Instant from) {
-        ViewMd savedMd = mdRepository.findById(viewId);
+    public synchronized void restart(String viewId, String tbId, Instant from) {
+        ViewMd savedMd = findViewMd(viewId, tbId);
         if (savedMd == null) {
             throw new IllegalArgumentException("View with id " + viewId + " doesn't exist");
         }
@@ -123,15 +155,15 @@ public class ViewServiceImpl implements ViewService, ViewProcessingListener, Vie
             queryMd.setInfo(null);
             queryMd.setState(ViewState.RESTARTED);
             queryMd.setLastTimestamp(from != null ? from.toEpochMilli() : Long.MIN_VALUE);
-            mdRepository.saveAll(queryMd);
+            findCache(savedMd.getTbId()).saveAll(queryMd);
         } else {
             throw new RuntimeException("Invalid view metadata type");
         }
     }
 
     @Override
-    public synchronized void stop(String viewId) {
-        ViewMd savedMd = mdRepository.findById(viewId);
+    public synchronized void stop(String viewId, String tbId) {
+        ViewMd savedMd = findViewMd(viewId, tbId);
         if (savedMd == null) {
             throw new IllegalArgumentException("View with id " + viewId + " doesn't exist");
         }
@@ -140,42 +172,54 @@ public class ViewServiceImpl implements ViewService, ViewProcessingListener, Vie
             MutableQueryViewMd queryMd = (MutableQueryViewMd) savedMd;
             queryMd.setInfo(null);
             queryMd.setState(ViewState.STOPPED);
-            mdRepository.saveAll(queryMd);
+            findCache(savedMd.getTbId()).saveAll(queryMd);
         } else {
             throw new RuntimeException("Invalid view metadata type");
         }
     }
 
     @Override
-    public synchronized ViewMd get(String id) {
-        return mdRepository.findById(id);
+    public synchronized ViewMd get(String id, String tbId) {
+        return findViewMd(id, tbId);
     }
 
     @Override
-    public synchronized List<ViewMd> list() {
-        return mdRepository.findAll();
+    public synchronized List<ViewMd> list(String tbId) {
+        if (tbId != null && !tbId.isEmpty()) {
+            TimebaseViewMdCache cache = caches.get(tbId);
+            if (cache == null) return Collections.emptyList();
+            if (!cache.isInitialized()) {
+                LOGGER.warn().append("[").append(tbId).append("] View md cache not yet initialized, returning empty list").commit();
+                return Collections.emptyList();
+            }
+            return cache.findAll();
+        }
+        return caches.values().stream()
+            .filter(TimebaseViewMdCache::isInitialized)
+            .flatMap(c -> c.findAll().stream())
+            .collect(Collectors.toList());
     }
 
     @Override
-    public synchronized void delete(String viewId) {
-        ViewMd viewMd = mdRepository.findById(viewId);
+    public synchronized void delete(String viewId, String tbId) {
+        ViewMd viewMd = findViewMd(viewId, tbId);
         if (viewMd == null) {
             throw new IllegalArgumentException("View with id " + viewId + " doesn't exist");
         }
 
-        mdRepository.delete(viewMd);
+        findCache(viewMd.getTbId()).delete(viewMd);
     }
 
     @Override
     public void onUpdate(ViewProcessingEvent event) {
-        ViewMd viewMd = mdRepository.findById(event.getViewId());
+        ViewMd viewMd = findAcrossAll(event.getViewId());
         if (viewMd instanceof MutableViewMd) {
             MutableViewMd mutableMd = (MutableViewMd) viewMd;
             mutableMd.setState(event.getState());
             mutableMd.setLastTimestamp(event.getLastTimestamp());
             mutableMd.setInfo(event.getReason());
 
-            mdRepository.saveAll(mutableMd);
+            findCache(mutableMd.getTbId()).saveAll(mutableMd);
         }
     }
 
@@ -201,7 +245,7 @@ public class ViewServiceImpl implements ViewService, ViewProcessingListener, Vie
     @Override
     public void removed(ViewMd viewMd) {
         listeners.forEach(l -> l.deleted(viewMd));
-        deleteStream(viewMd.getStream());
+        deleteStream(viewMd);
     }
 
     @Override
@@ -209,9 +253,51 @@ public class ViewServiceImpl implements ViewService, ViewProcessingListener, Vie
         listeners.forEach(l -> l.updated(viewMd));
     }
 
-    private void deleteStream(String streamKey) {
+    private ViewMd findViewMd(String id, String tbId) {
+        if (tbId != null && !tbId.isEmpty()) {
+            TimebaseViewMdCache cache = caches.get(tbId);
+            if (cache != null) {
+                try {
+                    ViewMd found = cache.findById(id);
+                    if (found != null) return found;
+                } catch (RuntimeException ignored) {}
+            }
+        }
+        return findAcrossAll(id);
+    }
+
+    private ViewMd findAcrossAll(String id) {
+        for (TimebaseViewMdCache cache : caches.values()) {
+            try {
+                ViewMd found = cache.findById(id);
+                if (found != null) return found;
+            } catch (RuntimeException ignored) {
+                // cache not yet initialized
+            }
+        }
+        return null;
+    }
+
+    private TimebaseViewMdCache findCache(String tbId) {
+        TimebaseViewMdCache cache = caches.get(tbId);
+        if (cache == null) {
+            // fall back to default
+            cache = caches.get(registry.getDefault().getId());
+        }
+        if (cache == null) {
+            throw new IllegalStateException("No view cache available");
+        }
+        return cache;
+    }
+
+    private boolean isAnyInitialized() {
+        return caches.values().stream().anyMatch(TimebaseViewMdCache::isInitialized);
+    }
+
+    private void deleteStream(ViewMd viewMd) {
         try {
-            DXTickStream stream = timebaseService.getStream(streamKey);
+            TimebaseService tb = registry.resolve(viewMd.getTbId());
+            DXTickStream stream = tb.getStream(viewMd.getStream());
             if (stream != null) {
                 stream.delete();
             }
@@ -221,7 +307,7 @@ public class ViewServiceImpl implements ViewService, ViewProcessingListener, Vie
     }
 
     private String getIdByKey(String key) {
-        return key.substring(0,  key.length() - VIEW_STREAM_SUFFIX.length());
+        return key.substring(0, key.length() - VIEW_STREAM_SUFFIX.length());
     }
 
 }

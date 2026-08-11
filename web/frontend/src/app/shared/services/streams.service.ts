@@ -28,7 +28,7 @@ export class StreamsService {
   streamNameUpdated = new Subject<streamNameUpdateData>();
   nonExistentStreamNavigated = new Subject<string>();
 
-  streamCreationData: { storageVersion: string, distributionFactor: number };
+  streamCreationData: { storageVersion: string, distributionFactor: number, tbId?: string };
   streamRemoved = new Subject<string>();
   streamPropsOpened: boolean;
   private rangeRequestsInProgress = {};
@@ -56,11 +56,12 @@ export class StreamsService {
     symbol: string = null,
     spaceName: string = null,
     barSize = null,
+    tbId: string = null,
   ): Observable<{end: string; start: string}> {
     const key = stream + symbol + spaceName + barSize;
     return this.httpClient
         .get<{end: string; start: string}>(`/${encodeURIComponent(stream)}/range`, {
-          params: this.rangeParams(symbol, spaceName, barSize),
+          params: {...this.rangeParams(symbol, spaceName, barSize), ...(tbId ? {tb: tbId} : {})},
         })
         .pipe(
           map(({start, end}) => {
@@ -88,15 +89,16 @@ export class StreamsService {
     symbol: string,
     spaceName: string,
     barSize = null,
+    tbId: string = null,
   ): Observable<{end: string; start: string}> {
     if (!stream) {
       return of(null);
     }
-    const key = stream + symbol + spaceName + barSize;
+    const key = stream + symbol + spaceName + barSize + (tbId || '');
     if (this.cashedRanges[key]) {
       return of(this.cashedRanges[key]);
     } else {
-      return this.range(stream, symbol, spaceName, barSize)
+      return this.range(stream, symbol, spaceName, barSize, tbId)
         .pipe(tap(range => this.cashedRanges[key] = range));
     }
   }
@@ -113,7 +115,7 @@ export class StreamsService {
     return this.listWithUpdates$;
   }
 
-  getList(useCache, filter: string = null, spaces: boolean = null): Observable<StreamModel[]> {
+  getList(useCache, filter: string = null, spaces: boolean = null, tbId: string = null): Observable<StreamModel[]> {
     const params = [];
     if (filter?.length) {
       params.push(`filter=${encodeURIComponent(filter)}`);
@@ -121,6 +123,10 @@ export class StreamsService {
 
     if (spaces) {
       params.push('spaces=true');
+    }
+
+    if (tbId) {
+      params.push(`tb=${encodeURIComponent(tbId)}`);
     }
 
     const req = '/streams' + (params.length ? `?${params.join('&')}` : '');
@@ -150,16 +156,18 @@ export class StreamsService {
     return streams$;
   }
 
-  getProps(stream: string, fromCache: boolean = true): Observable<fromStreamProps.State> {
+  getProps(stream: string, fromCache: boolean = true, tbId: string = null): Observable<fromStreamProps.State> {
+    const params = tbId ? {tb: tbId} : {};
     const props$ = this.httpClient
       .get<PropsModel>(`/${encodeURIComponent(stream)}/options`, {
         headers: {customError: 'true'},
+        params,
       })
       .pipe(map((resp) => ({props: resp || null, opened: false})));
 
     if (fromCache) {
       return this.cacheRequestService.cache(
-        {action: 'StreamsService.getProps', stream},
+        {action: 'StreamsService.getProps', stream, tbId},
         props$,
       );
     } else {
@@ -167,8 +175,9 @@ export class StreamsService {
     }
   }
   
-  describe(streamId: string): Observable<StreamDescribeModel> {
-    return this.httpClient.get<StreamDescribeModel>(`${encodeURIComponent(streamId)}/describe`);
+  describe(streamId: string, tbId: string = null): Observable<StreamDescribeModel> {
+    const params = tbId ? {tb: tbId} : {};
+    return this.httpClient.get<StreamDescribeModel>(`${encodeURIComponent(streamId)}/describe`, {params});
   }
 
   private rangeParams(symbol: string, spaceName: string, barSize: number) {
@@ -179,8 +188,9 @@ export class StreamsService {
     };
   }
 
-  updateStreamProperties(streamId: string, props) {
-    return this.httpClient.put(`${encodeURIComponent(streamId)}/options`, props);
+  updateStreamProperties(streamId: string, props, tbId: string = null) {
+    const params = tbId ? {tb: tbId} : {};
+    return this.httpClient.put(`${encodeURIComponent(streamId)}/options`, props, {params});
   }
 
   getChartSettings(key: string) {

@@ -35,6 +35,7 @@ export class ModalPurgeComponent implements OnInit, OnDestroy {
     this.appStore.dispatch(
       new StreamDetailsActions.GetStreamRange({
         streamId: this.stream.id,
+        tbId: this.stream.tbId,
       }),
     );
     this.appStore
@@ -59,6 +60,7 @@ export class ModalPurgeComponent implements OnInit, OnDestroy {
     this.appStore.dispatch(
       new StreamsActions.PurgeStream({
         streamKey: this.stream.id,
+        tbId: this.stream.tbId,
         params: {
           timestamp: this.dateValue.getTime(),
         },

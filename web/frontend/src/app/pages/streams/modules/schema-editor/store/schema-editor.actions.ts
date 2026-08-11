@@ -34,6 +34,7 @@ export enum SchemaEditorActionTypes {
   EDIT_SCHEMA_RESET_STATE = '[EditSchema] ResetState',
   EDIT_SCHEMA_UPDATE_STATE = '[EditSchema] UpdateState',
   EDIT_SCHEMA_MERGE_STATE = '[EditSchema] MergeState',
+  REMOVE_DUPLICATED_ITEMS = '[EditSchema] Remove Duplicated Schema Items',
 
   GET_SCHEMA_DIFF = '[EditSchema] Get schema diff',
   SET_SCHEMA_DIFF = '[EditSchema] Set schema diff',
@@ -82,12 +83,12 @@ export const RemoveSchemaDiff = createAction(
 
 export const CreateStream = createAction(
   SchemaEditorActionTypes.CREATE_STREAM,
-  props<{key: string, topic: boolean, copyToStream?: string, version: string, distributionFactor: string, noNotification?: boolean}>(),
+  props<{key: string, topic: boolean, copyToStream?: string, version: string, distributionFactor: string, noNotification?: boolean, tbId?: string}>(),
 );
 
 export const SetStreamId = createAction(
   SchemaEditorActionTypes.SET_STREAM_ID,
-  props<{streamId: string}>(),
+  props<{streamId: string, tbId?: string}>(),
 );
 export const SetSelectedSchemaItem = createAction(
   SchemaEditorActionTypes.SET_SELECTED_SCHEMA_ITEM,
@@ -178,6 +179,10 @@ export const EditSchemaMergeState = createAction(
     classes: SchemaClassTypeModel[];
     enums: SchemaClassTypeModel[];
   }>(),
+);
+
+export const RemoveDuplicatedSchemaItems = createAction(
+  SchemaEditorActionTypes.REMOVE_DUPLICATED_ITEMS,
 );
 
 export const UpdateSchemaAndRemoveType = createAction(

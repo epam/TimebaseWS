@@ -12,6 +12,18 @@
       <span *ngIf="displayStreamName" class="stream-title">
         to <b>{{ displayStreamName }}</b>
       </span>
+      <ng-container *ngIf="timebases$ | async as timebases">
+        <select *ngIf="timebases.length > 1" class="db-selector"
+                [class.db-selector-error]="selectedTbUnavailable"
+                [disabled]="importStep !== 'fileInput' || uploading"
+                (change)="onTbChange($event.target['value'])">
+          <option *ngFor="let tb of timebases" [value]="tb.id" [selected]="tb.id === tbId"
+                  [disabled]="tb.connected === false"
+                  [title]="tb.connected === false ? (tb.errorMessage || 'Timebase is unavailable') : null">{{ tb.id }}{{ tb.connected === false ? ' (unavailable)' : '' }}</option>
+        </select>
+        <span *ngIf="timebases.length === 1 && tbId" class="db-indicator" [class.db-selector-error]="selectedTbUnavailable">{{ tbId }}</span>
+      </ng-container>
+      <span *ngIf="selectedTbUnavailable" class="db-selector-hint">Selected timebase is unavailable.</span>
     </ng-container>
     <div [formGroup]="form" class="import-file-content" content>
       <ng-container *ngIf="!uploading && importStep === 'fileInput'">
@@ -214,7 +226,7 @@
           [class.error-message-not-empty]="!!message.value">{{ message.value }}</div>
       </div>
       <ng-container *ngIf="!uploading && importStep === 'fileInput'">
-        <button [disabled]="form.invalid || (existingStream$ | async) || schemaButtonDisabled || schemaEditingDisabled || importButtonDisabled" 
+        <button [disabled]="form.invalid || (existingStream$ | async) || schemaButtonDisabled || schemaEditingDisabled || importButtonDisabled || selectedTbUnavailable"
           (click)="editSchema()" class="btn btn-primary">
           <span *ngIf="!schemaButtonDisabled">{{ 'importFromFile.editSchema' | translate }}</span>
           <div *ngIf="schemaButtonDisabled" class="uploading-text-and-icon">
@@ -223,7 +235,7 @@
             <div class="file-upload-progress" [ngStyle]="{'right': (100 - uploadingFileProgress) + '%'}"></div>
           </div>
         </button>
-        <button [disabled]="form.invalid || uploadingFile || schemaButtonDisabled || importButtonDisabled" (click)="import()" class="btn btn-primary">
+        <button [disabled]="form.invalid || uploadingFile || schemaButtonDisabled || importButtonDisabled || selectedTbUnavailable" (click)="import()" class="btn btn-primary">
           <span *ngIf="!importButtonDisabled">{{ 'importFromFile.import' | translate }}</span>
           <div *ngIf="importButtonDisabled" class="uploading-text-and-icon">
             <div>{{ 'importFromFile.uploading' | translate }}</div>
@@ -236,7 +248,7 @@
         <button (click)="backToFileInput()" class="btn btn-primary">
           {{ 'importFromFile.back' | translate }}
         </button>
-        <button (click)="createStreamAndImport()" [disabled]="(schemaInvalid$ | async)" class="btn btn-primary">
+        <button (click)="createStreamAndImport()" [disabled]="(schemaInvalid$ | async) || selectedTbUnavailable" class="btn btn-primary">
           {{ 'importFromFile.createStreamAndImport' | translate }}
         </button>
       </ng-container>

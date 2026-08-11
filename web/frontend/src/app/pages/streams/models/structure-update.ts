@@ -3,6 +3,7 @@ export interface StructureUpdate {
   action: StructureUpdateAction;
   id: string;
   target: string;
+  tbId?: string;
   viewMd?: {
     stream: string;
   };

@@ -18,6 +18,7 @@ package com.epam.deltix.tbwg.webapp.services.charting;
 
 import com.epam.deltix.tbwg.webapp.model.charting.ChartingFrameDef;
 import com.epam.deltix.tbwg.webapp.services.charting.queries.ChartingResult;
+import com.epam.deltix.tbwg.webapp.services.timebase.exc.UnknownStreamException;
 
 public interface ChartingService {
 
@@ -28,4 +29,6 @@ public interface ChartingService {
     ChartingResult            getDataStream(ChartingSettings settings, Long correlationId);
 
     void                      stopCharting(Long correlationId);
+
+    String[]                  linearChartColumns(String streamKey, String tbId) throws UnknownStreamException;
 }

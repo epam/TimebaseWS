@@ -9,7 +9,7 @@ import {SchemaTypeModel} from '../../../../shared/models/schema.type.model';
 import {GlobalFilterModel} from '../../models/global.filter.model';
 import {StreamDetailsModel} from '../../models/stream.details.model';
 import {StreamDetailsActions, StreamDetailsActionTypes} from './stream-details.actions';
-import { SchemaClassTypeModel } from 'src/app/shared/models/schema.class.type.model';
+import {addIdsToSchema} from '../../modules/schema-editor/store/schema-editor.reducer';
 
 export interface FeatureState extends AppState {
   streamDetails: State;
@@ -143,16 +143,3 @@ export function reducer(state = initialState, action: Action | StreamDetailsActi
   }
 }
 
-export function addIdsToSchema(schemaItems: SchemaClassTypeModel[]) {
-  const nameCount: { name: string, count: number }[] = [];
-  return schemaItems.map(row => {
-    const targetIndex = nameCount.findIndex(infoItem => infoItem.name === row.name);
-    if (targetIndex < 0) {
-      nameCount.push({ name: row.name, count: 1 });
-      return ({ ...row, id: row.name });
-    } else {
-      nameCount.splice(targetIndex, 1, { name: row.name, count: nameCount[targetIndex].count += 1 });
-      return ({ ...row, id: `${row.name}${nameCount[targetIndex].count - 1}` });
-    }
-  });
-}

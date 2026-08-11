@@ -25,7 +25,9 @@ import com.epam.deltix.tbwg.webapp.model.charting.line.LineElement;
 import com.epam.deltix.tbwg.webapp.model.charting.line.LineElementDef;
 import com.epam.deltix.tbwg.webapp.services.charting.provider.LinesProvider;
 import com.epam.deltix.tbwg.webapp.services.charting.queries.*;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.tasks.StompSubscriptionTask;
+import com.epam.deltix.tbwg.webapp.services.charting.queries.LinesQueryImpl;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
 import com.epam.deltix.tbwg.webapp.websockets.subscription.SubscriptionChannel;
 
@@ -74,30 +76,31 @@ public class LiveChartingStompSubscriptionTask extends StompSubscriptionTask {
 
     public LiveChartingStompSubscriptionTask(LinesProvider linesProvider,
                                              ChartingSettings chartingSettings,
-                                             SubscriptionChannel channel)
+                                             SubscriptionChannel channel,
+                                             TimebaseRegistry registry)
     {
         this.channel = channel;
 
-        this.result = linesProvider.getLines(
-            chartingSettings.getQql() == null ?
-                new BookSymbolQueryImpl(
-                    chartingSettings.getStream(),
-                    chartingSettings.getSymbols(),
-                    chartingSettings.getType(),
-                    chartingSettings.getInterval(),
-                    chartingSettings.getPointInterval(),
-                    chartingSettings.getLevels(),
-                    true,
-                    chartingSettings.getDataSource()
-                ) :
-                new QqlQueryImpl(
-                    chartingSettings.getQql(),
-                    chartingSettings.getType(),
-                    chartingSettings.getInterval(),
-                    chartingSettings.getPointInterval(),
-                    true
-                )
-        );
+        LinesQueryImpl query = chartingSettings.getQql() == null ?
+            new BookSymbolQueryImpl(
+                chartingSettings.getStream(),
+                chartingSettings.getSymbols(),
+                chartingSettings.getType(),
+                chartingSettings.getInterval(),
+                chartingSettings.getPointInterval(),
+                chartingSettings.getLevels(),
+                true,
+                chartingSettings.getDataSource()
+            ) :
+            new QqlQueryImpl(
+                chartingSettings.getQql(),
+                chartingSettings.getType(),
+                chartingSettings.getInterval(),
+                chartingSettings.getPointInterval(),
+                true
+            );
+        query.setService(registry.resolve(chartingSettings.getTbId()));
+        this.result = linesProvider.getLines(query);
 
         result.result().getLines().forEach(lineResult -> {
             LineElements linesElements = new LineElements(lineResult);

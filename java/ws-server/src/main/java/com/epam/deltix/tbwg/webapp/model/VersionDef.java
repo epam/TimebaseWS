@@ -21,6 +21,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * API Version information.
  */
@@ -45,33 +47,11 @@ public class VersionDef {
     private long timestamp;
 
     /**
-     * TimeBase info
+     * TimeBase instances
      */
-    private TimeBase timebase;
+    private List<TimebaseInstanceDef> timebases;
 
     @JsonProperty
     public boolean authentication = true;
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class TimeBase {
-
-        /**
-         * Client version
-         */
-        private String clientVersion;
-
-        /**
-         * Server version
-         */
-        private String serverVersion;
-
-
-        /**
-         * Connection status
-         */
-        boolean connected;
-    }
 
 }

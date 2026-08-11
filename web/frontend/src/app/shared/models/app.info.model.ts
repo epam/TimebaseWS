@@ -1,11 +1,16 @@
+export interface TimebaseInstanceModel {
+  id: string;
+  url: string;
+  readonly: boolean;
+  connected: boolean;
+  serverVersion: string;
+  clientVersion: string;
+}
+
 export interface AppInfoModel {
   name: string;
   version: string;
   timestamp: number;
-  timebase: {
-    clientVersion: string;
-    connected: boolean;
-    serverVersion: string;
-  };
+  timebases: TimebaseInstanceModel[];
   authentication: boolean;
 }

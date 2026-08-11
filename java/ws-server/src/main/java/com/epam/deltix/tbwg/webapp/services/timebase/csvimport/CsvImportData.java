@@ -28,6 +28,7 @@ public class CsvImportData {
 
     private final String id;
     private final String streamKey;
+    private final String tbId;
 
     private Map<String, Preview> csvPreviewData = new HashMap<>();
     private long processId = -1;
@@ -36,9 +37,10 @@ public class CsvImportData {
     private ImportStatus importStatus;
     private volatile boolean isActive = true;
 
-    public CsvImportData(String id, String streamKey) {
+    public CsvImportData(String id, String streamKey, String tbId) {
         this.id = id;
         this.streamKey = streamKey;
+        this.tbId = tbId;
     }
 
     public boolean clearProcessResources() {

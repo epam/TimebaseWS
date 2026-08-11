@@ -19,14 +19,17 @@ export class StructureUpdatesService {
     return this.wsService.watchObject(`/topic/streams`);
   }
 
-  getBackgroundTask(streamId: string): Observable<any> {
+  getBackgroundTask(streamId: string, tbId: string = null): Observable<any> {
     return this.httpClient.get(`/${encodeURIComponent(streamId)}/options/backgroundTask`, {
-      headers: { customError: 'true' }
+      headers: { customError: 'true' },
+      params: tbId ? {tb: tbId} : {},
     });
   }
 
-  abortBackgroundTask(streamId: string): Observable<any> {
-    return this.httpClient.get(`/${encodeURIComponent(streamId)}/abortBackgroundTask`);
+  abortBackgroundTask(streamId: string, tbId: string = null): Observable<any> {
+    return this.httpClient.get(`/${encodeURIComponent(streamId)}/abortBackgroundTask`, {
+      params: tbId ? {tb: tbId} : {},
+    });
   }
 
   saveTabSynchronizationState(enabled: boolean) {

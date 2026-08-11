@@ -16,9 +16,13 @@
  */
 package com.epam.deltix.tbwg.webapp.interceptors;
 
-import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseLoginService;
+import com.epam.deltix.gflog.api.Log;
+import com.epam.deltix.gflog.api.LogFactory;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.timebase.connections.TbUserDetails;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -29,19 +33,30 @@ import java.security.Principal;
 @Component
 public class TimebaseLoginInterceptor implements HandlerInterceptor {
 
-    private final TimebaseLoginService timebaseLoginService;
+    private static final Log LOGGER = LogFactory.getLog(TimebaseLoginInterceptor.class);
 
-    public TimebaseLoginInterceptor(TimebaseLoginService timebaseLoginService) {
-        this.timebaseLoginService = timebaseLoginService;
+    private final TimebaseRegistry registry;
+
+    public TimebaseLoginInterceptor(TimebaseRegistry registry) {
+        this.registry = registry;
     }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         Principal principal = request.getUserPrincipal();
         if (principal != null) {
-            timebaseLoginService.login(request.getUserPrincipal(), TbUserDetails.create(TBWGUtils.getIp(request)));
+            TbUserDetails details = TbUserDetails.create(TBWGUtils.getIp(request));
+            for (TimebaseService svc : registry.getAll()) {
+                try {
+                    svc.login(principal, details);
+                } catch (AccessDeniedException e) {
+                    throw e;
+                } catch (Exception e) {
+                    LOGGER.warn().append("Failed to login to timebase [").append(svc.getId()).append("]: ")
+                            .append(e.getMessage()).commit();
+                }
+            }
         }
-
         return true;
     }
 
@@ -49,7 +64,15 @@ public class TimebaseLoginInterceptor implements HandlerInterceptor {
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
         Principal principal = request.getUserPrincipal();
         if (principal != null) {
-            timebaseLoginService.logout(request.getUserPrincipal(), TbUserDetails.create(TBWGUtils.getIp(request)));
+            TbUserDetails details = TbUserDetails.create(TBWGUtils.getIp(request));
+            for (TimebaseService svc : registry.getAll()) {
+                try {
+                    svc.logout(principal, details);
+                } catch (Exception e) {
+                    LOGGER.warn().append("Failed to logout from timebase [").append(svc.getId()).append("]: ")
+                            .append(e.getMessage()).commit();
+                }
+            }
         }
     }
 

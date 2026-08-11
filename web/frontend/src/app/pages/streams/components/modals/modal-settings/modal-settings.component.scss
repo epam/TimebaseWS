@@ -30,6 +30,30 @@ ng-multiselect-dropdown {
   margin-top: 10px;
 }
 
+.container-ch input:disabled ~ .checkmark {
+  opacity: 0.5;
+}
+
+.container-ch:has(input:disabled) {
+  opacity: 0.6;
+}
+
+.checkbox-hit-area {
+  position: relative;
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+}
+
+.container-ch:has(.checkbox-hit-area) {
+  padding-left: 0;
+
+  .checkbox-hit-area {
+    margin-right: 7px;
+  }
+}
+
 .kb-link {
   position: absolute;
   left: 1rem;

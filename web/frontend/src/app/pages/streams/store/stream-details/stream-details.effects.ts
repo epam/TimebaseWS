@@ -1,4 +1,3 @@
-import {HttpClient} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {Actions, createEffect, ofType} from '@ngrx/effects';
 import {Subject} from 'rxjs';
@@ -70,17 +69,17 @@ export class StreamDetailsEffects {
     ofType<StreamDetailsActions.GetStreamRange>(StreamDetailsActionTypes.GET_STREAM_RANGE),
     switchMap((action) => {
       return this.streamsService
-        .rangeCached(action.payload.streamId, action.payload.symbol, action.payload.spaceName)
+        .rangeCached(action.payload.streamId, action.payload.symbol, action.payload.spaceName, null, action.payload.tbId)
         .pipe(map((streamRange) => new StreamDetailsActions.SetStreamRange({streamRange})));
     }),
   ));
   private stop_subscription$ = new Subject();
    getSchema = createEffect(() => this.actions$.pipe(
     ofType<StreamDetailsActions.GetSchema>(StreamDetailsActionTypes.GET_SCHEMA),
-    map((action) => action.payload.streamId),
+    map((action) => action.payload),
     // distinctUntilChanged(),
-    switchMap((streamId) => {
-      return this.schemaService.getSchema(streamId, null, true).pipe(
+    switchMap(({streamId, tbId}) => {
+      return this.schemaService.getSchema(streamId, null, true, tbId).pipe(
         takeUntil(this.stop_subscription$),
         map((resp) => {
           let schemaTypes = [];
@@ -114,10 +113,10 @@ export class StreamDetailsEffects {
     ofType<StreamDetailsActions.GetSymbols>(StreamDetailsActionTypes.GET_SYMBOLS),
     map((action) => action.payload),
     distinctUntilChanged(
-      (e, prev) => `${e.streamId}-${e.spaceId}` === `${prev.streamId}-${prev.spaceId}`,
+      (e, prev) => `${e.streamId}-${e.spaceId}-${e.tbId}` === `${prev.streamId}-${prev.spaceId}-${prev.tbId}`,
     ),
-    switchMap(({streamId, spaceId}) => {
-      return this.symbolsService.getSymbols(streamId, spaceId).pipe(
+    switchMap(({streamId, spaceId, tbId}) => {
+      return this.symbolsService.getSymbols(streamId, spaceId, null, tbId).pipe(
         takeUntil(this.stop_subscription$),
         map((resp: Array<string>) => {
           return new StreamDetailsActions.SetSymbols({
@@ -148,6 +147,7 @@ export class StreamDetailsEffects {
         new StreamDetailsActions.CleanStreamData(),
         new StreamDetailsActions.GetSchema({
           streamId: activeTab.stream,
+          tbId: activeTab.tbId,
         }),
       ];
     }),
@@ -155,7 +155,6 @@ export class StreamDetailsEffects {
 
   constructor(
     private actions$: Actions,
-    private httpClient: HttpClient,
     private tabsService: TabsService,
     private schemaService: SchemaService,
     private symbolsService: SymbolsService,

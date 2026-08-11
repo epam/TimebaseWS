@@ -52,4 +52,11 @@
       placement="bottom">
     {{ 'filtersPanel.filter' | translate }}
   </button>
+  <span *ngIf="tbId$ | async as tbId"
+        class="db-indicator ms-auto"
+        [tooltip]="tbUrl$ | async"
+        placement="bottom"
+        container="body">
+    {{ tbId }}
+  </span>
 </div>

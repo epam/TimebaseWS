@@ -78,9 +78,9 @@ export class TimelineBarComponent implements OnInit, OnDestroy {
       switchMap((tab) => {
         return tab.symbol
           ? this.symbolsService
-              .getProps(tab.stream, tab.symbol, 1000)
+              .getProps(tab.stream, tab.symbol, 1000, true, tab.tbId)
               .pipe(map((p) => p?.props.symbolRange))
-          : this.streamsService.getProps(tab.stream).pipe(map((p) => p?.props.range));
+          : this.streamsService.getProps(tab.stream, true, tab.tbId).pipe(map((p) => p?.props.range));
       }),
       filter((r) => !!r),
       distinctUntilChanged(equal),
