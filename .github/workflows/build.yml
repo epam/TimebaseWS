@@ -21,6 +21,11 @@ jobs:
         java: [ '17' ]
         os: [ 'ubuntu-latest']
     steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16.13.0'
+          cache: 'npm'       # Automatically caches dependencies for faster builds
       - name: Checkout code
         uses: actions/checkout@v2
         with:
