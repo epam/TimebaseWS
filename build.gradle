@@ -13,7 +13,7 @@ plugins {
     id 'base'
     id 'io.spring.dependency-management' version '1.1.5'
     id 'org.springframework.boot' version '3.3.0' apply false
-    id "com.github.node-gradle.node" version "3.3.0" apply false
+    id "com.github.node-gradle.node" version "7.1.0" apply false
     id "com.webcohesion.enunciate" version "2.17.0" apply false
     id "io.freefair.lombok" version "8.6" apply false
 
