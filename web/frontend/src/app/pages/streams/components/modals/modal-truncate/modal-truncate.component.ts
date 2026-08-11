@@ -46,10 +46,10 @@ export class ModalTruncateComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.appStore.dispatch(new StreamDetailsActions.GetStreamRange({streamId: this.stream.id}));
+    this.appStore.dispatch(new StreamDetailsActions.GetStreamRange({streamId: this.stream.id, tbId: this.stream.tbId}));
 
     this.symbolsList$ = this.symbolsService
-      .getSymbols(this.stream.id)
+      .getSymbols(this.stream.id, null, null, this.stream.tbId)
       .pipe(map((symbols) => symbols.map((s) => ({id: s, name: s}))));
 
     this.appStore
@@ -84,6 +84,7 @@ export class ModalTruncateComponent implements OnInit, OnDestroy {
     this.appStore.dispatch(
       new StreamsActions.TruncateStream({
         streamKey: this.stream.id,
+        tbId: this.stream.tbId,
         params: params,
       }),
     );

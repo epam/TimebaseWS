@@ -9,6 +9,7 @@ export class QueryBtnComponent implements OnChanges, OnInit {
   @Input() showText = true;
   @Input() stream: string;
   @Input() symbol: string;
+  @Input() tbId: string;
 
   params: {[index: string]: unknown};
 
@@ -21,6 +22,6 @@ export class QueryBtnComponent implements OnChanges, OnInit {
   }
 
   private freshParams() {
-    this.params = {newTab: true, querySymbol: this.symbol, queryStream: this.stream};
+    this.params = {newTab: true, querySymbol: this.symbol, queryStream: this.stream, ...(this.tbId ? {tbId: this.tbId} : {})};
   }
 }

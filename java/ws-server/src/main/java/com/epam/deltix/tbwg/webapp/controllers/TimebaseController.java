@@ -58,8 +58,10 @@ import com.epam.deltix.tbwg.webapp.model.schema.changes.StreamMetaDataChangeDef;
 import com.epam.deltix.tbwg.webapp.model.smd.InstrumentDef;
 //import com.epam.deltix.tbwg.webapp.services.InstrumentsService;
 import com.epam.deltix.tbwg.webapp.services.OptionsService;
+import com.epam.deltix.tbwg.webapp.model.TimebaseInstanceDef;
 import com.epam.deltix.tbwg.webapp.services.orderbook.OrderBookDebugger;
 import com.epam.deltix.tbwg.webapp.services.orderbook.OrderBookSnapshotRequest;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.timebase.base.SchemaManipulationService;
 import com.epam.deltix.tbwg.webapp.services.timebase.base.SelectService;
@@ -124,7 +126,7 @@ public class TimebaseController {
 
     private static final Log LOGGER = LogFactory.getLog(TimebaseController.class);
 
-    private final TimebaseService service;
+    private final TimebaseRegistry registry;
     private final SchemaManipulationService schemaManipulationService;
     private final SelectService selectService;
     //private final InstrumentsService instrumentsService;
@@ -136,10 +138,11 @@ public class TimebaseController {
     private final AtomicLong idGenerator = new AtomicLong(System.currentTimeMillis());
 
     @Autowired
-    public TimebaseController(TimebaseService service, SelectService selectService, ExportService exportService,
+    public TimebaseController(TimebaseRegistry registry,
+                              SelectService selectService, ExportService exportService,
                               SchemaManipulationService schemaManipulationService, OptionsService optionsService,
                               ViewService viewService, OrderBookDebugger orderBookDebugger) {
-        this.service = service;
+        this.registry = registry;
         this.schemaManipulationService = schemaManipulationService;
         this.selectService = selectService;
         //this.instrumentsService = instrumentsService;
@@ -152,14 +155,25 @@ public class TimebaseController {
     @RequestMapping(value = {"/v", "/"}, method = {RequestMethod.GET, RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public VersionDef version() {
-        return new VersionDef("Timebase Web Gateway", Application.VERSION, System.currentTimeMillis(),
-                new VersionDef.TimeBase(Version.getVersion(), service.getServerVersion(), service.isConnected()), true);
+        List<TimebaseInstanceDef> timebases = registry.getAll().stream()
+                .map(TimebaseInstanceDef::new)
+                .collect(Collectors.toList());
+        return new VersionDef("Timebase Web Gateway", Application.VERSION, System.currentTimeMillis(), timebases, true);
     }
 
     @RequestMapping(value = {"/correlationId"}, method = RequestMethod.GET)
     @ResponseBody
     public long correlationId() {
         return idGenerator.incrementAndGet();
+    }
+
+    @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
+    @RequestMapping(value = "/timebases", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TimebaseInstanceDef>> timebases() {
+        List<TimebaseInstanceDef> result = registry.getAll().stream()
+            .map(TimebaseInstanceDef::new)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(result);
     }
 
     /**
@@ -177,13 +191,14 @@ public class TimebaseController {
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/select", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StreamingResponseBody> select(@Valid @RequestBody(required = false) SelectRequest select,
-                                                        JsonBigIntEncoding bigIntEncoding) throws NoStreamsException {
+                                                        JsonBigIntEncoding bigIntEncoding,
+                                                        @RequestParam(required = false) String tb) throws NoStreamsException {
         if (select == null) {
             select = new SelectRequest();
         }
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(selectService.select(select, MAX_NUMBER_OF_RECORDS_PER_REST_RESULTSET, bigIntEncoding));
+                .body(selectService.select(registry.resolve(tb), select, MAX_NUMBER_OF_RECORDS_PER_REST_RESULTSET, bigIntEncoding));
     }
 
     /**
@@ -219,6 +234,7 @@ public class TimebaseController {
             @RequestParam(required = false) Integer rows,
             @RequestParam(required = false) String space,
             @RequestParam(required = false) boolean reverse,
+            @RequestParam(required = false) String tb,
             JsonBigIntEncoding bigIntEncoding) throws NoStreamsException {
         SelectRequest request = new SelectRequest();
         request.streams = streams;
@@ -232,7 +248,7 @@ public class TimebaseController {
         request.reverse = reverse;
         request.depth = depth;
         request.space = space;
-        return select(request, bigIntEncoding);
+        return select(request, bigIntEncoding, tb);
     }
 
     /**
@@ -252,13 +268,14 @@ public class TimebaseController {
     @RequestMapping(value = "/{streamId}/select", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StreamingResponseBody> select(@PathVariable String streamId,
                                                         @Valid @RequestBody(required = false) StreamRequest select,
+                                                        @RequestParam(required = false) String tb,
                                                         JsonBigIntEncoding bigIntEncoding)
             throws NoStreamsException {
         if (select == null)
             select = new StreamRequest();
 
         return select(streamId, select.symbols, select.types, null, select.from, select.to, select.offset,
-                select.rows, select.space, select.reverse, bigIntEncoding);
+                select.rows, select.space, select.reverse, tb, bigIntEncoding);
     }
 
     /**
@@ -301,11 +318,12 @@ public class TimebaseController {
             @RequestParam(required = false) Integer rows,
             @RequestParam(required = false) String space,
             @RequestParam(required = false) boolean reverse,
+            @RequestParam(required = false) String tb,
             JsonBigIntEncoding bigIntEncoding) throws NoStreamsException {
         if (TextUtils.isEmpty(streamId))
             throw new NoStreamsException();
 
-        return select(new String[]{streamId}, symbols, types, depth, from, to, offset, rows, space, reverse, bigIntEncoding);
+        return select(new String[]{streamId}, symbols, types, depth, from, to, offset, rows, space, reverse, tb, bigIntEncoding);
     }
 
     // download operation is permitted for any user
@@ -331,7 +349,8 @@ public class TimebaseController {
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/export", method = {RequestMethod.POST})
-    public ResponseEntity<DownloadId> export(@Valid @RequestBody(required = false) ExportStreamsRequest select)
+    public ResponseEntity<DownloadId> export(@Valid @RequestBody(required = false) ExportStreamsRequest select,
+                                             @RequestParam(required = false) String tb)
             throws NoStreamsException {
         if (select == null)
             select = new ExportStreamsRequest();
@@ -339,9 +358,10 @@ public class TimebaseController {
         if (select.streams == null)
             throw new NoStreamsException();
 
+        TimebaseService tbService = registry.resolve(tb);
         ArrayList<DXTickStream> streams = new ArrayList<>();
         for (String streamId : select.streams) {
-            DXTickStream stream = service.getStream(streamId);
+            DXTickStream stream = tbService.getStream(streamId);
             if (stream != null)
                 streams.add(stream);
         }
@@ -382,7 +402,7 @@ public class TimebaseController {
 
         return ResponseEntity.ok(new DownloadId(
             exportService.prepareExport(
-                new StreamsExportSourceFactory(service, startTime, options, tickStreams, select.getTypes(), ids),
+                new StreamsExportSourceFactory(tbService, startTime, options, tickStreams, select.getTypes(), ids),
                 select, startTime, select.getEndTime(), startIndex, endIndex, periodicity, descriptors
             )
         ));
@@ -402,7 +422,8 @@ public class TimebaseController {
             @RequestParam(required = false) boolean skipEmpty,
             @RequestParam(required = false, defaultValue = "true") boolean enableStaticFields,
             @RequestParam(required = false) String datetimeFormat,
-            @RequestParam(required = false) boolean reverse) throws NoStreamsException {
+            @RequestParam(required = false) boolean reverse,
+            @RequestParam(required = false) String tb) throws NoStreamsException {
 
         ExportStreamsRequest request = new ExportStreamsRequest();
         request.streams = streams;
@@ -417,14 +438,15 @@ public class TimebaseController {
         request.enableStaticFields = enableStaticFields;
         request.datetimeFormat = datetimeFormat;
 
-        return export(request);
+        return export(request, tb);
     }
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/export", method = RequestMethod.POST)
-    public ResponseEntity<DownloadId> export(@PathVariable String streamId, @Valid @RequestBody(required = false) ExportRequest select)
+    public ResponseEntity<DownloadId> export(@PathVariable String streamId, @Valid @RequestBody(required = false) ExportRequest select,
+                                             @RequestParam(required = false) String tb)
             throws UnknownStreamException {
-        DXTickStream stream = service.getStream(streamId);
+        DXTickStream stream = registry.resolve(tb).getStream(streamId);
 
         if (stream == null)
             throw new UnknownStreamException(streamId);
@@ -445,7 +467,7 @@ public class TimebaseController {
 
         return ResponseEntity.ok(new DownloadId(
             exportService.prepareExport(
-                new StreamsExportSourceFactory(service, startTime, options, new DXTickStream[]{stream}, select.getTypes(), ids),
+                new StreamsExportSourceFactory(registry.resolve(tb), startTime, options, new DXTickStream[]{stream}, select.getTypes(), ids),
                 select, startTime, select.getEndTime(), startIndex, endIndex, periodicity,
                 stream.getTypes()
             )
@@ -465,7 +487,8 @@ public class TimebaseController {
             @RequestParam(required = false) boolean skipEmpty,
             @RequestParam(required = false, defaultValue = "true") boolean enableStaticFields,
             @RequestParam(required = false) String datetimeFormat,
-            @RequestParam(required = false) boolean reverse) throws NoStreamsException, UnknownStreamException {
+            @RequestParam(required = false) boolean reverse,
+            @RequestParam(required = false) String tb) throws NoStreamsException, UnknownStreamException {
         if (TextUtils.isEmpty(streamId))
             throw new NoStreamsException();
 
@@ -482,12 +505,13 @@ public class TimebaseController {
         request.enableStaticFields = enableStaticFields;
         request.datetimeFormat = datetimeFormat;
 
-        return export(streamId, request);
+        return export(streamId, request, tb);
     }
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/export-query", method = {RequestMethod.POST})
-    public ResponseEntity<DownloadId> exportQuery(@Valid @RequestBody(required = false) QueryRequest query)
+    public ResponseEntity<DownloadId> exportQuery(@Valid @RequestBody(required = false) QueryRequest query,
+                                                  @RequestParam(required = false) String tb)
         throws InvalidQueryException
     {
         if (query == null || StringUtils.isEmpty(query.query)) {
@@ -501,7 +525,8 @@ public class TimebaseController {
         ExportRequest request = new ExportRequest();
         request.format = query.format != null ? query.format : ExportFormat.QSMSG;
 
-        ClassSet classSet = service.getConnection().describeQuery(query.query, options);
+        TimebaseService tbService = registry.resolve(tb);
+        ClassSet classSet = tbService.getConnection().describeQuery(query.query, options);
         ClassDescriptor[] descriptors = classSet.getContentClasses();
 
         RecordClassDescriptor[] rcds = Arrays.stream(descriptors)
@@ -513,7 +538,7 @@ public class TimebaseController {
 
         return ResponseEntity.ok(new DownloadId(
             exportService.prepareExport(
-                new QueryExportSourceFactory(service, options, query.query),
+                new QueryExportSourceFactory(tbService, options, query.query),
                 request, Long.MIN_VALUE, Long.MAX_VALUE, 0, -1, null, rcds
             )
         ));
@@ -527,8 +552,9 @@ public class TimebaseController {
      */
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/describe", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<DescribeResponse> describeStream(@PathVariable String streamId) throws UnknownStreamException {
-        return ResponseEntity.ok(schemaManipulationService.describeStream(streamId));
+    public ResponseEntity<DescribeResponse> describeStream(@PathVariable String streamId,
+                                                           @RequestParam(required = false) String tb) throws UnknownStreamException {
+        return ResponseEntity.ok(schemaManipulationService.describeStream(registry.resolve(tb), streamId));
     }
 
     /**
@@ -539,7 +565,9 @@ public class TimebaseController {
      */
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/spaces", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> listSpaces(@PathVariable String streamId, @RequestParam(required = false, defaultValue = "") String filter)
+    public ResponseEntity<?> listSpaces(@PathVariable String streamId,
+                                        @RequestParam(required = false, defaultValue = "") String filter,
+                                        @RequestParam(required = false) String tb)
             throws UnknownStreamException {
 
         LOGGER.log(LogLevel.INFO, "GET [%s].listSpaces(filter = %s)").with(streamId).with(filter);
@@ -547,7 +575,7 @@ public class TimebaseController {
         if (TextUtils.isEmpty(streamId))
             throw new UnknownStreamException(streamId);
 
-        DXTickStream stream = service.getStreamChecked(streamId);
+        DXTickStream stream = registry.resolve(tb).getStreamChecked(streamId);
         String[] spaces = stream != null ? stream.listSpaces() : EMPTY_LIST;
 
         if (spaces != null) {
@@ -569,12 +597,14 @@ public class TimebaseController {
      */
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/purge", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> purge(@PathVariable String streamId, @RequestBody(required = true) SimpleRequest request) throws UnknownStreamException {
-        ResponseEntity<StreamingResponseBody> entity = checkWritable("Purge stream [" + streamId + "] Failed");
+    public ResponseEntity<?> purge(@PathVariable String streamId, @RequestBody(required = true) SimpleRequest request,
+                                   @RequestParam(required = false) String tb) throws UnknownStreamException {
+        TimebaseService tbService = registry.resolve(tb);
+        ResponseEntity<StreamingResponseBody> entity = checkWritable(tbService, "Purge stream [" + streamId + "] Failed");
         if (entity != null)
             return entity;
 
-        DXTickStream stream = service.getStream(streamId);
+        DXTickStream stream = tbService.getStream(streamId);
 
         if (stream == null)
             throw new UnknownStreamException(streamId);
@@ -594,13 +624,15 @@ public class TimebaseController {
      */
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/delete", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> delete(@PathVariable String streamId)
+    public ResponseEntity<?> delete(@PathVariable String streamId,
+                                    @RequestParam(required = false) String tb)
             throws UnknownStreamException {
-        ResponseEntity<StreamingResponseBody> entity = checkWritable("Delete stream [" + streamId + "] Failed");
+        TimebaseService tbService = registry.resolve(tb);
+        ResponseEntity<StreamingResponseBody> entity = checkWritable(tbService, "Delete stream [" + streamId + "] Failed");
         if (entity != null)
             return entity;
 
-        DXTickStream stream = service.getStream(streamId);
+        DXTickStream stream = tbService.getStream(streamId);
 
         if (stream == null)
             throw new UnknownStreamException(streamId);
@@ -619,13 +651,15 @@ public class TimebaseController {
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/rename", method = RequestMethod.POST, headers = "Content-Type=multipart/form-data",
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> renameStream(@PathVariable String streamId, @RequestParam String newStreamId)
+    public ResponseEntity<?> renameStream(@PathVariable String streamId, @RequestParam String newStreamId,
+                                          @RequestParam(required = false) String tb)
             throws UnknownStreamException {
-        ResponseEntity<StreamingResponseBody> entity = checkWritable("Rename stream [" + streamId + "] Failed");
+        TimebaseService tbService = registry.resolve(tb);
+        ResponseEntity<StreamingResponseBody> entity = checkWritable(tbService, "Rename stream [" + streamId + "] Failed");
         if (entity != null)
             return entity;
 
-        DXTickStream stream = service.getStream(streamId);
+        DXTickStream stream = tbService.getStream(streamId);
 
         if (stream == null)
             throw new UnknownStreamException(streamId);
@@ -650,12 +684,14 @@ public class TimebaseController {
     @RequestMapping(value = "/{streamId}/{symbol}/rename", method = RequestMethod.POST, headers = "Content-Type=multipart/form-data",
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> renameSymbol(@PathVariable String streamId, @PathVariable String symbol,
-                                          @RequestParam String newSymbol) throws UnknownStreamException {
-        ResponseEntity<StreamingResponseBody> entity = checkWritable("Rename stream [" + streamId + "] Failed");
-        if (entity != null)
+                                          @RequestParam String newSymbol,
+                                          @RequestParam(required = false) String tb) throws UnknownStreamException {
+        TimebaseService tbService = registry.resolve(tb);
+        ResponseEntity<StreamingResponseBody> entity = checkWritable(tbService, "Rename stream [" + streamId + "] Failed");
+        if (entity != null) {
             return entity;
-
-        DXTickStream stream = service.getStream(streamId);
+        }
+        DXTickStream stream = tbService.getStream(streamId);
 
         if (stream == null)
             throw new UnknownStreamException(streamId);
@@ -687,12 +723,14 @@ public class TimebaseController {
     @RequestMapping(value = "/{streamId}/renameSpace", method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> renameSpace(@PathVariable String streamId, @RequestParam String space,
-                                         @RequestParam String newName) throws UnknownStreamException {
-        ResponseEntity<StreamingResponseBody> entity = checkWritable("Rename stream [" + streamId + "] Failed");
-        if (entity != null)
+                                         @RequestParam String newName,
+                                         @RequestParam(required = false) String tb) throws UnknownStreamException {
+        TimebaseService tbService = registry.resolve(tb);
+        ResponseEntity<StreamingResponseBody> entity = checkWritable(tbService, "Rename stream [" + streamId + "] Failed");
+        if (entity != null) {
             return entity;
-
-        DXTickStream stream = service.getStream(streamId);
+        }
+        DXTickStream stream = tbService.getStream(streamId);
 
         if (stream == null)
             throw new UnknownStreamException(streamId);
@@ -711,13 +749,15 @@ public class TimebaseController {
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/deleteSpace", method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> deleteSpace(@PathVariable String streamId, @RequestParam String space)
+    public ResponseEntity<?> deleteSpace(@PathVariable String streamId, @RequestParam String space,
+                                         @RequestParam(required = false) String tb)
             throws UnknownStreamException {
-        ResponseEntity<StreamingResponseBody> entity = checkWritable("Delete stream [" + streamId + "] space [" + space + "] failed");
+        TimebaseService tbService = registry.resolve(tb);
+        ResponseEntity<StreamingResponseBody> entity = checkWritable(tbService, "Delete stream [" + streamId + "] space [" + space + "] failed");
         if (entity != null)
             return entity;
 
-        DXTickStream stream = service.getStream(streamId);
+        DXTickStream stream = tbService.getStream(streamId);
 
         if (stream == null)
             throw new UnknownStreamException(streamId);
@@ -735,14 +775,15 @@ public class TimebaseController {
      */
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/deleteSymbols", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> deleteSymbols(@PathVariable String streamId, @RequestBody String[] symbols)
+    public ResponseEntity<?> deleteSymbols(@PathVariable String streamId, @RequestBody String[] symbols,
+                                           @RequestParam(required = false) String tb)
             throws UnknownStreamException {
-
-        ResponseEntity<StreamingResponseBody> entity = checkWritable("Delete stream [" + streamId + "] symbols " + Arrays.toString(symbols) + " failed");
+        TimebaseService tbService = registry.resolve(tb);
+        ResponseEntity<StreamingResponseBody> entity = checkWritable(tbService, "Delete stream [" + streamId + "] symbols " + Arrays.toString(symbols) + " failed");
         if (entity != null)
             return entity;
 
-        DXTickStream stream = service.getStream(streamId);
+        DXTickStream stream = tbService.getStream(streamId);
         if (stream == null)
             throw new UnknownStreamException(streamId);
 
@@ -763,15 +804,16 @@ public class TimebaseController {
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/setPeriodicity", method = RequestMethod.POST,
         produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> setPeriodicity(@PathVariable String streamId, @RequestParam String periodicity)
+    public ResponseEntity<?> setPeriodicity(@PathVariable String streamId, @RequestParam String periodicity,
+                                            @RequestParam(required = false) String tb)
         throws UnknownStreamException
     {
-        ResponseEntity<StreamingResponseBody> entity = checkWritable("Change periodicity of stream [" + streamId + "] failed");
+        TimebaseService tbService = registry.resolve(tb);
+        ResponseEntity<StreamingResponseBody> entity = checkWritable(tbService, "Change periodicity of stream [" + streamId + "] failed");
         if (entity != null)
             return entity;
 
-        DXTickStream stream = service.getStream(streamId);
-
+        DXTickStream stream = tbService.getStream(streamId);
         if (stream == null)
             throw new UnknownStreamException(streamId);
 
@@ -790,13 +832,14 @@ public class TimebaseController {
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/truncate", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> truncate(@PathVariable String streamId, @RequestBody(required = true) SimpleRequest request,
-                                      OutputStream outputStream) throws UnknownStreamException {
-
-        ResponseEntity<StreamingResponseBody> entity = checkWritable("Truncate stream [" + streamId + "] Failed");
+                                      OutputStream outputStream,
+                                      @RequestParam(required = false) String tb) throws UnknownStreamException {
+        TimebaseService tbService = registry.resolve(tb);
+        ResponseEntity<StreamingResponseBody> entity = checkWritable(tbService, "Truncate stream [" + streamId + "] Failed");
         if (entity != null)
             return entity;
 
-        DXTickStream stream = service.getStream(streamId);
+        DXTickStream stream = tbService.getStream(streamId);
 
         if (stream == null)
             throw new UnknownStreamException(streamId);
@@ -829,13 +872,15 @@ public class TimebaseController {
     public ResponseEntity<StreamingResponseBody> write(@PathVariable String streamId,
                                                        @RequestParam(required = false) String space,
                                                        @RequestParam(required = false, defaultValue = "APPEND") LoadingOptions.WriteMode writeMode,
+                                                       @RequestParam(required = false) String tb,
                                                        @RequestBody String messages) throws UnknownStreamException {
 
-        ResponseEntity<StreamingResponseBody> entity = checkWritable("Write failed.");
+        TimebaseService tbService = registry.resolve(tb);
+        ResponseEntity<StreamingResponseBody> entity = checkWritable(tbService, "Write failed.");
         if (entity != null)
             return entity;
 
-        DXTickStream stream = service.getStream(streamId);
+        DXTickStream stream = tbService.getStream(streamId);
 
         if (stream == null)
             throw new UnknownStreamException(streamId);
@@ -884,14 +929,15 @@ public class TimebaseController {
                                                       @RequestParam Instant timestamp,
                                                       @RequestParam Integer offset,
                                                       @RequestParam boolean reverse,
+                                                      @RequestParam(required = false) String tb,
                                                       @RequestBody String message) throws UnknownStreamException
     {
-        ResponseEntity<StreamingResponseBody> entity = checkWritable("Write failed.");
-        if (entity != null) {
+        TimebaseService tbService = registry.resolve(tb);
+        ResponseEntity<StreamingResponseBody> entity = checkWritable(tbService, "Write failed.");
+        if (entity != null)
             return entity;
-        }
 
-        DXTickStream stream = service.getStream(streamId);
+        DXTickStream stream = tbService.getStream(streamId);
         if (stream == null) {
             throw new UnknownStreamException(streamId);
         }
@@ -998,7 +1044,7 @@ public class TimebaseController {
         return listener;
     }
 
-    ResponseEntity<StreamingResponseBody> checkWritable(String error) {
+    ResponseEntity<StreamingResponseBody> checkWritable(TimebaseService service, String error) {
         if (service.isReadonly()) {
 
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(outputStream -> {
@@ -1029,8 +1075,9 @@ public class TimebaseController {
     @RequestMapping(value = "/{streamId}/{symbolId}/select", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StreamingResponseBody> select(@PathVariable String streamId, @PathVariable String symbolId,
                                                         @Valid @RequestBody(required = false) InstrumentRequest select,
-                                                        OutputStream outputStream, JsonBigIntEncoding bigIntEncoding) {
-        DXTickStream stream = service.getStream(streamId);
+                                                        OutputStream outputStream, JsonBigIntEncoding bigIntEncoding,
+                                                        @RequestParam(required = false) String tb) {
+        DXTickStream stream = registry.resolve(tb).getStream(streamId);
 
         if (stream == null)
             //noinspection unchecked
@@ -1095,6 +1142,7 @@ public class TimebaseController {
             @RequestParam(required = false) Integer rows,
             @RequestParam(required = false) String space,
             @RequestParam(required = false) boolean reverse,
+            @RequestParam(required = false) String tb,
             JsonBigIntEncoding bigIntEncoding) throws NoStreamsException {
         if (TextUtils.isEmpty(streamId))
             throw new NoStreamsException();
@@ -1102,7 +1150,7 @@ public class TimebaseController {
         if (TextUtils.isEmpty(symbolId))
             return ResponseEntity.notFound().build();
 
-        return select(new String[]{streamId}, new String[]{symbolId}, types, depth, from, to, offset, rows, space, reverse, bigIntEncoding);
+        return select(new String[]{streamId}, new String[]{symbolId}, types, depth, from, to, offset, rows, space, reverse, tb, bigIntEncoding);
     }
 
     private SelectionOptions getSelectionOption(BaseRequest r) {
@@ -1145,11 +1193,12 @@ public class TimebaseController {
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @RequestMapping(value = "/createStream", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<SchemaDef> createStream(@RequestParam String key,
-                                                  @RequestBody SchemaDef schema) throws WriteOperationsException {
+                                                  @RequestBody SchemaDef schema,
+                                                  @RequestParam(required = false) String tb) throws WriteOperationsException {
         TBWGUtils.validateStreamKey(key);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(schemaManipulationService.createStream(key, schema));
+                .body(schemaManipulationService.createStream(registry.resolve(tb), key, schema));
     }
 
     @ResponseBody
@@ -1173,11 +1222,12 @@ public class TimebaseController {
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/getSchemaChanges", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StreamMetaDataChangeDef> getSchemaChanges(@PathVariable String streamId,
-                                                                    @RequestBody SchemaChangesRequest schemaChangesRequest)
+                                                                    @RequestBody SchemaChangesRequest schemaChangesRequest,
+                                                                    @RequestParam(required = false) String tb)
             throws UnknownStreamException {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(schemaManipulationService.schemaChanges(streamId, schemaChangesRequest));
+                .body(schemaManipulationService.schemaChanges(registry.resolve(tb), streamId, schemaChangesRequest));
     }
 
     /**
@@ -1192,11 +1242,12 @@ public class TimebaseController {
      */
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/changeSchema", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<SchemaDef> changeSchema(@PathVariable String streamId, @RequestBody ChangeSchemaRequest changeSchemaRequest)
+    public ResponseEntity<SchemaDef> changeSchema(@PathVariable String streamId, @RequestBody ChangeSchemaRequest changeSchemaRequest,
+                                                  @RequestParam(required = false) String tb)
             throws InvalidSchemaChangeException, UnknownStreamException, WriteOperationsException {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(schemaManipulationService.changeSchema(streamId, changeSchemaRequest));
+                .body(schemaManipulationService.changeSchema(registry.resolve(tb), streamId, changeSchemaRequest));
     }
 
 
@@ -1209,11 +1260,12 @@ public class TimebaseController {
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/schema", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<SchemaDef> schema(@PathVariable String streamId,
-                                            @RequestParam(required = false, defaultValue = "false") boolean tree)
+                                            @RequestParam(required = false, defaultValue = "false") boolean tree,
+                                            @RequestParam(required = false) String tb)
             throws UnknownStreamException {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(schemaManipulationService.schema(streamId, tree));
+                .body(schemaManipulationService.schema(registry.resolve(tb), streamId, tree));
     }
 
     /**
@@ -1277,7 +1329,8 @@ public class TimebaseController {
         LOGGER.log(LogLevel.INFO, "GET App Settings");
 
         AppSettingDef def = new AppSettingDef();
-        def.hasNanoseconds = VersionUtils.versionHasNsEncoding(service.getServerVersion());
+        def.hasNanoseconds = registry.getAll().stream()
+                .allMatch(svc -> VersionUtils.versionHasNsEncoding(svc.getServerVersion()));
 
         return ResponseEntity.ok(def);
     }
@@ -1291,14 +1344,15 @@ public class TimebaseController {
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/describe", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<SchemaDef> describe(@Valid @RequestBody QueryRequest select,
-                                              @RequestParam(required = false, defaultValue = "false") boolean tree) {
+                                              @RequestParam(required = false, defaultValue = "false") boolean tree,
+                                              @RequestParam(required = false) String tb) {
 
         if (select == null || StringUtils.isEmpty(select.query))
             return ResponseEntity.badRequest().build();
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(schemaManipulationService.describe(select, tree));
+                .body(schemaManipulationService.describe(registry.resolve(tb), select, tree));
     }
 
     /**
@@ -1309,12 +1363,13 @@ public class TimebaseController {
      */
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/compileQuery", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<CompileResult> compile(@Valid @RequestBody QueryRequest select) {
+    public ResponseEntity<CompileResult> compile(@Valid @RequestBody QueryRequest select,
+                                                 @RequestParam(required = false) String tb) {
 
         if (select == null || StringUtils.isEmpty(select.query))
             return ResponseEntity.badRequest().build();
 
-        DXTickDB connection = service.getConnection();
+        DXTickDB connection = registry.resolve(tb).getConnection();
 
         if (connection instanceof TickDBClient) {
             ArrayList<Token> tokens = new ArrayList<Token>();
@@ -1335,8 +1390,9 @@ public class TimebaseController {
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/options", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StreamOptionsDef> streamOptions(@PathVariable String streamId) throws UnknownStreamException {
-        DXTickStream stream = service.getStream(streamId);
+    public ResponseEntity<StreamOptionsDef> streamOptions(@PathVariable String streamId,
+                                                          @RequestParam(required = false) String tb) throws UnknownStreamException {
+        DXTickStream stream = registry.resolve(tb).getStream(streamId);
 
         if (stream == null)
             throw new UnknownStreamException(streamId);
@@ -1346,8 +1402,9 @@ public class TimebaseController {
 
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @PutMapping(value = "/{streamId}/options", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StreamOptionsDef> updateOptions(@PathVariable String streamId, @RequestBody StreamOptionsDef options) throws UnknownStreamException {
-        DXTickStream stream = service.getStream(streamId);
+    public ResponseEntity<StreamOptionsDef> updateOptions(@PathVariable String streamId, @RequestBody StreamOptionsDef options,
+                                                          @RequestParam(required = false) String tb) throws UnknownStreamException {
+        DXTickStream stream = registry.resolve(tb).getStream(streamId);
 
         if (stream == null)
             throw new UnknownStreamException(streamId);
@@ -1358,8 +1415,9 @@ public class TimebaseController {
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/options/{symbolId}", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> symbolOptions(@PathVariable String streamId,
-                                                          @PathVariable String symbolId) throws UnknownStreamException {
-        DXTickStream stream = service.getStream(streamId);
+                                           @PathVariable String symbolId,
+                                           @RequestParam(required = false) String tb) throws UnknownStreamException {
+        DXTickStream stream = registry.resolve(tb).getStream(streamId);
 
         if (stream == null) {
             throw new UnknownStreamException(streamId);
@@ -1372,8 +1430,9 @@ public class TimebaseController {
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/options/backgroundTask", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BackgroundTaskDef> getBackgroundTaskInfo(@PathVariable String streamId) throws UnknownStreamException {
-        DXTickStream stream = service.getStream(streamId);
+    public ResponseEntity<BackgroundTaskDef> getBackgroundTaskInfo(@PathVariable String streamId,
+                                                                   @RequestParam(required = false) String tb) throws UnknownStreamException {
+        DXTickStream stream = registry.resolve(tb).getStream(streamId);
 
         if (stream == null)
             throw new UnknownStreamException(streamId);
@@ -1383,13 +1442,14 @@ public class TimebaseController {
 
     @PreAuthorize("hasAuthority('TB_ALLOW_WRITE')")
     @RequestMapping(value = "/{streamId}/abortBackgroundTask", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> abortBackgroundProcess(@PathVariable String streamId) throws UnknownStreamException {
-
-        ResponseEntity<StreamingResponseBody> entity = checkWritable("Abort background task for stream [" + streamId + "] Failed");
+    public ResponseEntity<?> abortBackgroundProcess(@PathVariable String streamId,
+                                                    @RequestParam(required = false) String tb) throws UnknownStreamException {
+        TimebaseService tbService = registry.resolve(tb);
+        ResponseEntity<StreamingResponseBody> entity = checkWritable(tbService, "Abort background task for stream [" + streamId + "] Failed");
         if (entity != null)
             return entity;
 
-        DXTickStream stream = service.getStream(streamId);
+        DXTickStream stream = tbService.getStream(streamId);
         if (stream == null)
             throw new UnknownStreamException(streamId);
 
@@ -1447,8 +1507,9 @@ public class TimebaseController {
     public ResponseEntity<TimeRangeDef> range(@PathVariable String streamId,
                                               @RequestParam(value = "symbols", required = false) String[] symbols,
                                               @RequestParam(required = false) String space,
-                                              @RequestParam(required = false) Long barSize) throws UnknownStreamException {
-        DXTickStream stream = service.getStream(streamId);
+                                              @RequestParam(required = false) Long barSize,
+                                              @RequestParam(required = false) String tb) throws UnknownStreamException {
+        DXTickStream stream = registry.resolve(tb).getStream(streamId);
 
         if (stream == null)
             throw new UnknownStreamException(streamId);
@@ -1481,9 +1542,10 @@ public class TimebaseController {
     @RequestMapping(value = "/{streamId}/symbols", method = {RequestMethod.GET}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> symbols(@PathVariable String streamId,
                                      @RequestParam(required = false, defaultValue = "") String filter,
-                                     @RequestParam(required = false) String space) throws UnknownStreamException {
+                                     @RequestParam(required = false) String space,
+                                     @RequestParam(required = false) String tb) throws UnknownStreamException {
 
-        DXTickStream stream = service.getStream(streamId);
+        DXTickStream stream = registry.resolve(tb).getStream(streamId);
         if (stream == null)
             throw new UnknownStreamException(streamId);
 
@@ -1507,29 +1569,42 @@ public class TimebaseController {
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/streams", method = RequestMethod.GET)
     public ResponseEntity<StreamDef[]> streams(@RequestParam(required = false, defaultValue = "") String filter,
-                                               @RequestParam(required = false) boolean spaces) {
+                                               @RequestParam(required = false) boolean spaces,
+                                               @RequestParam(required = false) String tb) {
         LOGGER.log(LogLevel.INFO, "GET streams() using filter = %s").with(filter);
 
-        DXTickStream[] streams = Arrays.stream(service.listStreams(filter, spaces))
-                .filter(stream -> !viewService.isViewStream(stream.getKey())).toArray(DXTickStream[]::new);
+        boolean explicitTb = tb != null && !tb.isEmpty();
+        List<TimebaseService> services = explicitTb
+                ? Collections.singletonList(registry.resolve(tb))
+                : registry.getAll();
 
-//        List<DXTickStream> list = Arrays.stream(streams)
-//                //.filter((stream)->stream.getScope() == StreamScope.DURABLE) // Hide 'transient' streams
-//                .filter((s) -> !s.getKey().contains("#")) // Hide 'system' streams
-//                .collect(Collectors.toList());
-
-        StreamDef[] result = new StreamDef[streams.length];
-
-        for (int i = 0, listSize = streams.length; i < listSize; i++) {
-            DXTickStream stream = streams[i];
-            result[i] = new StreamDef(stream.getKey(), stream.getName(), stream.listEntities().length);
-
-            ChartTypeDef[] chartTypes = TBWGUtils.chartTypes(stream);
-            if (chartTypes.length > 0)
-                result[i].chartType = chartTypes;
+        List<StreamDef> result = new ArrayList<>();
+        for (TimebaseService svc : services) {
+            DXTickStream[] streams;
+            try {
+                streams = Arrays.stream(svc.listStreams(filter, spaces))
+                        .filter(stream -> !viewService.isViewStream(stream.getKey())).toArray(DXTickStream[]::new);
+            } catch (Exception e) {
+                // A single unreachable timebase must not prevent listing streams from the others.
+                // If the caller explicitly asked for this timebase (tb param), let the error propagate.
+                if (explicitTb) {
+                    throw e;
+                }
+                LOGGER.warn().append("Timebase [").append(svc.getId()).append("] is unavailable, skipping it in streams() : ")
+                        .append(e.getMessage()).commit();
+                continue;
+            }
+            for (DXTickStream stream : streams) {
+                StreamDef def = new StreamDef(stream.getKey(), stream.getName(), stream.listEntities().length);
+                def.tbId = svc.getId();
+                ChartTypeDef[] chartTypes = TBWGUtils.chartTypes(stream);
+                if (chartTypes.length > 0)
+                    def.chartType = chartTypes;
+                result.add(def);
+            }
         }
 
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result.toArray(new StreamDef[0]));
     }
 
     /**
@@ -1541,11 +1616,13 @@ public class TimebaseController {
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/query", method = {RequestMethod.POST})
     public ResponseEntity<StreamingResponseBody> query(Principal principal, @Valid @RequestBody(required = false) QueryRequest select,
+                                                       @RequestParam(required = false) String tb,
                                                        JsonBigIntEncoding bigIntEncoding) throws InvalidQueryException, WriteOperationsException {
         if (select == null || StringUtils.isEmpty(select.query))
             throw new InvalidQueryException(select == null ? "" : select.query);
 
-        if (service.isReadonly() && (select.query.toLowerCase().contains("drop") || select.query.toLowerCase().contains("create")))
+        TimebaseService tbService = registry.resolve(tb);
+        if (tbService.isReadonly() && (select.query.toLowerCase().contains("drop") || select.query.toLowerCase().contains("create")))
             throw new WriteOperationsException("CREATE or DROP");
 
         if (isDdlQuery(select.query) && !hasAuthority(principal, "TB_ALLOW_WRITE")) {
@@ -1561,7 +1638,7 @@ public class TimebaseController {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new MessageSource2ResponseStream(
-                        service.getConnection().executeQuery(
+                        tbService.getConnection().executeQuery(
                                 select.query, options, null, null, select.getStartTime(Long.MIN_VALUE), select.getEndTime(Long.MIN_VALUE)),
                         select.getEndTime(), startIndex, endIndex, MAX_NUMBER_OF_RECORDS_PER_REST_RESULTSET, bigIntEncoding));
     }
@@ -1572,12 +1649,14 @@ public class TimebaseController {
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/unlimitedQuery", method = {RequestMethod.POST})
     public ResponseEntity<StreamingResponseBody> unlimitedQuery(Principal principal, @Valid @RequestBody(required = false) QueryRequest select,
+                                                                @RequestParam(required = false) String tb,
                                                                 JsonBigIntEncoding bigIntEncoding)
             throws InvalidQueryException, WriteOperationsException {
 
         if (select == null || StringUtils.isEmpty(select.query))
             throw new InvalidQueryException(select == null ? "" : select.query);
-        if (service.isReadonly() && (select.query.toLowerCase().contains("drop") || select.query.toLowerCase().contains("create")))
+        TimebaseService tbService = registry.resolve(tb);
+        if (tbService.isReadonly() && (select.query.toLowerCase().contains("drop") || select.query.toLowerCase().contains("create")))
             throw new WriteOperationsException("CREATE or DROP");
         if (isDdlQuery(select.query) && !hasAuthority(principal, "TB_ALLOW_WRITE")) {
             throw new AccessDeniedException("TB_ALLOW_WRITE permission required.");
@@ -1588,7 +1667,7 @@ public class TimebaseController {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new MessageSource2ResponseStream(
-                        service.getConnection().executeQuery(
+                        tbService.getConnection().executeQuery(
                                 select.query, options, null, null, select.getStartTime(Long.MIN_VALUE), select.getEndTime(Long.MIN_VALUE)),
                         select.getEndTime(), 0, Integer.MAX_VALUE, Integer.MAX_VALUE, bigIntEncoding));
     }
@@ -1605,12 +1684,12 @@ public class TimebaseController {
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/query-info/functions", method = {RequestMethod.GET})
-    public List<FunctionDef> queryFunctions() {
+    public List<FunctionDef> queryFunctions(@RequestParam(required = false) String tb) {
         SelectionOptions options = new SelectionOptions();
         options.raw = true;
         options.live = false;
 
-        try (InstrumentMessageSource cursor = service.getConnection().executeQuery(
+        try (InstrumentMessageSource cursor = registry.resolve(tb).getConnection().executeQuery(
             "select\n" +
                 "stateful.id as 'name',\n" +
                 "stateful.returnType as 'returnType',\n" +
@@ -1645,12 +1724,12 @@ public class TimebaseController {
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/query-info/functions-short", method = {RequestMethod.GET})
-    public Set<ShortFunctionDef> queryFunctionsShort() {
+    public Set<ShortFunctionDef> queryFunctionsShort(@RequestParam(required = false) String tb) {
         SelectionOptions options = new SelectionOptions();
         options.raw = true;
         options.live = false;
 
-        try (InstrumentMessageSource cursor = service.getConnection().executeQuery(
+        try (InstrumentMessageSource cursor = registry.resolve(tb).getConnection().executeQuery(
         "select stateful.id as 'name', (size([1]) == 1) as 'isStateful' ARRAY JOIN stateful_functions() as 'stateful'\n" +
             "UNION \n" +
             "select stateless.id as 'name', (size([1]) == 0) as 'isStateful' ARRAY JOIN stateless_functions() as 'stateless'",
@@ -1695,8 +1774,9 @@ public class TimebaseController {
     @RequestMapping(value = "/{streamId}/filter", method = {RequestMethod.POST}, consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StreamingResponseBody> filter(@PathVariable String streamId, @Valid @RequestBody FilterRequest filter,
+                                                        @RequestParam(required = false) String tb,
                                                         JsonBigIntEncoding bigIntEncoding) throws UnknownStreamException {
-        DXTickStream stream = service.getStream(streamId);
+        DXTickStream stream = registry.resolve(tb).getStream(streamId);
         if (stream == null)
             throw new UnknownStreamException(streamId);
 
@@ -1726,7 +1806,7 @@ public class TimebaseController {
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new MessageSource2ResponseStream(service.getConnection()
+                .body(new MessageSource2ResponseStream(registry.resolve(tb).getConnection()
                         .executeQuery(query, options, null, null, startTime), endTime, startIndex, endIndex,
                         MAX_NUMBER_OF_RECORDS_PER_REST_RESULTSET, bigIntEncoding));
     }
@@ -1753,7 +1833,8 @@ public class TimebaseController {
         @RequestParam(required = false) Long offset,
         @RequestParam(required = false) String space,
         @RequestParam(required = false) boolean reverse,
-        @RequestParam(defaultValue = "L2") ModelDataSourceType source) throws NoStreamsException
+        @RequestParam(defaultValue = "L2") ModelDataSourceType source,
+        @RequestParam(required = false) String tb) throws NoStreamsException
     {
         OrderBookSnapshotRequest request = new OrderBookSnapshotRequest();
         request.setStreams(streams);
@@ -1768,12 +1849,13 @@ public class TimebaseController {
 
         return ResponseEntity.status(HttpStatus.OK)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(orderBookDebugger.snapshot(request));
+                .body(orderBookDebugger.snapshot(request, registry.resolve(tb)));
     }
 
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @RequestMapping(value = "/order-book", method = {RequestMethod.POST}, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<L2PackageDto> orderBook(@Valid @RequestBody OrderBookRequest request) throws NoStreamsException
+    public ResponseEntity<L2PackageDto> orderBook(@Valid @RequestBody OrderBookRequest request,
+                                                  @RequestParam(required = false) String tb) throws NoStreamsException
     {
         OrderBookSnapshotRequest snapshotRequest = new OrderBookSnapshotRequest();
         snapshotRequest.setStreams(request.streams);
@@ -1788,7 +1870,7 @@ public class TimebaseController {
 
         return ResponseEntity.status(HttpStatus.OK)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(orderBookDebugger.snapshot(snapshotRequest));
+                .body(orderBookDebugger.snapshot(snapshotRequest, registry.resolve(tb)));
     }
 
     /**
@@ -1799,12 +1881,13 @@ public class TimebaseController {
      */
     @PreAuthorize("hasAnyAuthority('TB_ALLOW_READ', 'TB_ALLOW_WRITE')")
     @GetMapping(value = "/availableSources", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> availableSources(@RequestParam String[] streams) {
+    public ResponseEntity<?> availableSources(@RequestParam String[] streams,
+                                              @RequestParam(required = false) String tb) {
         String[] decodeStreams = new String[streams.length];
         for (int i = 0; i < streams.length; i++) {
             decodeStreams[i] = URLDecoder.decode(streams[i], StandardCharsets.UTF_8);
         }
-        DXTickStream[] tickStreams = match(service, decodeStreams);
+        DXTickStream[] tickStreams = match(registry.resolve(tb), decodeStreams);
         return ResponseEntity.ok(getAvailableSources(tickStreams));
     }
 

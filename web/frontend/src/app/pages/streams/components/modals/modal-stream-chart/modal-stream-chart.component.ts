@@ -42,7 +42,7 @@ export class ModalStreamChartComponent implements OnInit, OnDestroy {
       newTab: localStorage.getItem('chartNewTabLastChoice') || false,
     });
     this.symbols$ = this.symbolsService
-      .getSymbols(this.item.meta.stream.id)
+      .getSymbols(this.item.meta.stream.id, null, null, this.item.tbId)
       .pipe(map((symbols) => symbols.map((s) => ({id: s, name: s}))));
 
     this.form
@@ -85,6 +85,9 @@ export class ModalStreamChartComponent implements OnInit, OnDestroy {
     queryParams['stream'] = this.item.meta.stream.id;
     queryParams['symbol'] = this.form.get('symbol').value.map(item => item.id).join(',');
     queryParams['name'] = this.item.meta.stream.name;
+    if (this.item.tbId) {
+      queryParams['tbId'] = this.item.tbId;
+    }
 
     this.router.navigate(
       ['/', appRoute, 'chart'],

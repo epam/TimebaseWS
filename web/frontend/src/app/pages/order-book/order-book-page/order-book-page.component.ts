@@ -25,15 +25,16 @@ import { SplitterSizesDirective }                                               
 import { StreamsService }                                                       from '../../../shared/services/streams.service';
 import { SymbolsService }                                                       from '../../../shared/services/symbols.service';
 import { TabStorageService }                                                    from '../../../shared/services/tab-storage.service';
+import { TimebaseInstanceDef }                                                  from '../../../shared/models/timebase-instance-def.model';
 import { ChartTypes }                                                           from '../../streams/models/chart.model';
 import { TabModel }                                                             from '../../streams/models/tab.model';
 import { StreamUpdatesService }                                                 from '../../streams/services/stream-updates.service';
 import { UpdateTab }                                                            from '../../streams/store/streams-tabs/streams-tabs.actions';
 import { getTabsState }                                                         from '../../streams/store/streams-tabs/streams-tabs.selectors';
+import { getDefaultTimebase, getTimebases }                                     from '../../streams/store/timebases/timebases.selectors';
 import { EOrientations }                                                        from '../order-book/order-book.component';
 import { StreamSourceService } from '../../streams/services/stream-source.service';
 import { StreamModel } from '../../streams/models/stream.model';
-import { ViewsService } from 'src/app/shared/services/views.service';
 
 @Component({
   selector: 'app-order-book-page',
@@ -43,10 +44,13 @@ import { ViewsService } from 'src/app/shared/services/views.service';
 })
 export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit {
   filters: UntypedFormGroup;
-  streams: { key: string, name: string }[];
-  streams$: Observable<{ key: string, name: string }[]>;
+  streams: { key: string, name: string, tbId?: string }[];
+  streams$: Observable<{ key: string, name: string, tbId?: string }[]>;
   streamNames$: Observable<string[]>;
+  streamKeys$: Observable<string[]>;
   symbols$: Observable<string[]>;
+  tbId: string = null;
+  timebases$: Observable<TimebaseInstanceDef[]>;
   loading: boolean = true;
   noData: boolean = false;
   hiddenExchanges$: Observable<string[]>;
@@ -54,10 +58,16 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
   orientation$: Observable<EOrientations>;
   orderBookFiltersReady = false;
   sourceOptions: string[];
-  
+
+  get selectedTbUnavailable(): boolean {
+    return this.timebasesList.find((tb) => tb.id === this.tbId)?.connected === false;
+  }
+
   private destroy$ = new ReplaySubject<void>(1);
   private bookState$ = new ReplaySubject<boolean>(1);
   private streamsUpdated$ = new BehaviorSubject<void>(null);
+  private selectedTbId$ = new BehaviorSubject<string>(null);
+  private timebasesList: TimebaseInstanceDef[] = [];
   private selectedStreams: string[];
   private bookIsEmpty: boolean;
 
@@ -72,14 +82,14 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
       streams: string[];
       symbol: string[];
       orientation: EOrientations;
-      source: string
+      source: string;
+      timebase: string;
     }>,
     private appStore: Store<AppState>,
     private activatedRoute: ActivatedRoute,
     private parentSplitterSizes: SplitterSizesDirective,
     private streamUpdatesService: StreamUpdatesService,
     private streamSourceService: StreamSourceService,
-    private viewService: ViewsService
   ) {}
   
   ngOnInit() {
@@ -105,12 +115,31 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
         ...data,
         streams: data?.streams || (tab.stream ? [tab.stream] : null),
         symbol: data?.symbol || (tab?.symbol ? [tab.symbol] : null),
-        source: data?.source ? [data.source] : null
-        })
-      ),
+        source: data?.source ? [data.source] : null,
+        timebase: data?.timebase || null,
+      })),
       distinctUntilChanged(equal),
       shareReplay(1),
     );
+
+    // Initialize timebases list and set default/saved TB
+    this.timebases$ = this.appStore.pipe(select(getTimebases));
+    this.timebases$.pipe(takeUntil(this.destroy$)).subscribe((timebases) => {
+      this.timebasesList = timebases || [];
+    });
+    storageData$.pipe(take(1)).subscribe((data) => {
+      if (data?.timebase) {
+        this.tbId = data.timebase;
+        this.selectedTbId$.next(data.timebase);
+      } else {
+        this.appStore.pipe(select(getDefaultTimebase), take(1)).subscribe((defaultTb) => {
+          if (defaultTb?.id) {
+            this.tbId = defaultTb.id;
+            this.selectedTbId$.next(defaultTb.id);
+          }
+        });
+      }
+    });
 
     this.exchanges$ = storageData$.pipe(
       map((data) => {
@@ -171,22 +200,21 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
           streams: current.streams,
           symbol: current.symbol,
           source: current.source?.[0],
+          timebase: this.tbId,
           hiddenExchanges: freshExchanges ? [] : data?.hiddenExchanges,
           exchanges: freshExchanges ? null : data?.exchanges,
         }));
       });
     
-    this.streams$ = combineLatest(
-      [this.streamsUpdated$.pipe(
-        switchMap(() => this.streamsService.getList(true)),
-        map((streams) =>
-          streams
-            .filter((s) => !!s.chartType?.find((ct) => ct.chartType === ChartTypes.PRICE_LEVELS))
-            .map(({key, name}) => ( { key, name } ))
-        ),
+    this.streams$ = combineLatest([this.streamsUpdated$, this.selectedTbId$]).pipe(
+      switchMap(([, tbId]) => this.streamsService.getList(true, null, null, tbId)),
+      map((streams) =>
+        streams
+          .filter((s) => !!s.chartType?.find((ct) => ct.chartType === ChartTypes.PRICE_LEVELS))
+          .map(({key, name, tbId}) => ({ key, name, tbId }))
       ),
-      this.viewService.getViews().pipe(map(views => views.map(view => ({ key: view.stream, name: view.stream }))))
-    ]).pipe(map(([streams, viewStreams]) => [...streams, ...viewStreams]));
+      shareReplay(1),
+    );
 
     this.filters.get('streams').valueChanges
       .pipe(
@@ -199,13 +227,10 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
         }),
         delay(500),
         switchMap((streamList: StreamModel[]) => {
-          const selectedStreamKeys = [];
-          streamList.forEach(stream => {
-            if (this.selectedStreams.includes(stream.name)) {
-              selectedStreamKeys.push(stream.key);
-            }
-          })
-          return this.streamSourceService.getAvailableSources(selectedStreamKeys);
+          const selectedStreamKeys = streamList
+            .filter(stream => this.selectedStreams.includes(stream.name))
+            .map(stream => stream.key);
+          return this.streamSourceService.getAvailableSources(selectedStreamKeys, this.tbId);
         }),
         takeUntil(this.destroy$)
       )
@@ -222,6 +247,15 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
 
     this.streamNames$ = this.streams$.pipe(map((s) => s.map(str => str.name)));
 
+    this.streamKeys$ = combineLatest([
+      this.streams$,
+      this.filters.get('streams').valueChanges.pipe(startWith(this.filters.get('streams').value)),
+    ]).pipe(
+      map(([streamList, selectedNames]) =>
+        streamList.filter(str => (selectedNames as string[]).includes(str.name)).map(str => str.key)
+      ),
+    );
+
     this.symbols$ = this.streams$.pipe(
       tap(streams => this.streams = streams),
       switchMap(() => storageData$),
@@ -233,7 +267,7 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
           data.streams.map((streamName: string) => {
             const stream = this.streams.find(streamItem => streamItem.name === streamName);
 
-            return this.symbolsService.getSymbols(stream.key).pipe(
+            return this.symbolsService.getSymbols(stream.key, null, null, stream.tbId).pipe(
               catchError((e: HttpErrorResponse) => {
                 if (e.status === 400 && e.error.message.startsWith('Unknown stream')) {
                   this.streamsUpdated$.next();
@@ -329,13 +363,6 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
     this.bookState$.next(false);
   }
 
-  get streamKeys() {
-    const value = this.filters.get('streams').value;
-    return this.streams$.pipe(
-      map(s => s.filter(str => value.includes(str.name)).map(str => str.key))
-    )
-  }
-  
   onExchanges(exchanges: string[]) {
     if (!exchanges.length) {
       return;
@@ -364,7 +391,21 @@ export class OrderBookPageComponent implements OnInit, OnDestroy, AfterViewInit 
   onOrientationChanged(orientation: EOrientations) {
     this.tabStorageService.updateDataSync((data) => ({...data, orientation}));
   }
-  
+
+  onTbChange(tbId: string) {
+    this.tbId = tbId;
+    this.selectedTbId$.next(tbId);
+    this.filters.patchValue({ streams: [], symbol: [] });
+    this.tabStorageService.updateDataSync((data) => ({
+      ...data,
+      timebase: tbId,
+      streams: [],
+      symbol: [],
+      exchanges: null,
+      hiddenExchanges: [],
+    }));
+  }
+
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();

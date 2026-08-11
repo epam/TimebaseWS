@@ -11,7 +11,7 @@ jobs:
   prepare:
     name: Prepare
     if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
-    runs-on: ubuntu-22.04
+    runs-on: [ 'ubuntu-latest']
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -39,7 +39,7 @@ jobs:
       fail-fast: false
       matrix:
         java: [ '17' ]
-        os: [ 'ubuntu-22.04']
+        os: [ 'ubuntu-latest']
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -59,11 +59,18 @@ jobs:
           git config user.email github-actions@github.com
           git fetch
           git checkout -b workflow-$GITHUB_RUN_ID origin/workflow-$GITHUB_RUN_ID~1
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16.13.0'
+          cache: 'yarn'      # Automatically caches dependencies for faster builds
+          cache-dependency-path: 'web/frontend/yarn.lock'
       - name: Setup java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
+          cache: 'gradle'
       - name: Build with gradle
         run: ./gradlew build
 
@@ -71,7 +78,7 @@ jobs:
     name: Release
     if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: build
-    runs-on: ubuntu-22.04
+    runs-on: [ 'ubuntu-latest']
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -90,7 +97,7 @@ jobs:
   publish:
     name: Publish
     needs: release
-    runs-on: ubuntu-latest
+    runs-on: [ 'ubuntu-latest']
     steps:
       - name: Skip
         run: |
@@ -100,7 +107,7 @@ jobs:
     name: Publish Dockers
     if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: release
-    runs-on: ubuntu-22.04
+    runs-on: [ 'ubuntu-latest']
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -128,7 +135,7 @@ jobs:
     name: Cleanup
     if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: publish-docker
-    runs-on: ubuntu-latest
+    runs-on: [ 'ubuntu-latest']
     steps:
       - name: Checkout code
         uses: actions/checkout@v2

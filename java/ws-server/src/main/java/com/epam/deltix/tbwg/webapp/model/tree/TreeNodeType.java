@@ -17,6 +17,8 @@
 package com.epam.deltix.tbwg.webapp.model.tree;
 
 public enum TreeNodeType {
+    /** Virtual root returned when multiple TimeBase instances are configured. */
+    ROOT,
     DB,
     STREAM,
     VIEW,

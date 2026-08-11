@@ -20,6 +20,7 @@ export class StreamPropsEffects {
       return this.httpClient
         .get<PropsModel>(`/${encodeURIComponent(activeTab.stream)}/options`, {
           headers: {customError: 'true'},
+          params: activeTab.tbId ? {tb: activeTab.tbId} : {},
         })
         .pipe(
           takeUntil(this.stop_subscription$),

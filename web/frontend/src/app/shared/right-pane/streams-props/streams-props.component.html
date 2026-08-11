@@ -5,6 +5,18 @@
   <ng-container content >
     <div class="props-table">
       <div *ngIf="propsSubject | async as props" class="table-responsive">
+        <ng-container *ngIf="tbId$ | async as tbId">
+          <table class="table db-table">
+            <tbody>
+              <tr>
+                <th>DB</th>
+                <td>
+                  <span [tooltip]="tbUrl$ | async" placement="bottom" container="body">{{ tbId }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </ng-container>
         <ng-container *ngIf="!(isSymbol$ | async)">
   <!--         <h6 *ngIf="!(notView$ | async)">{{ 'Stream Properties' | translate }}</h6> -->
           <table class="table">

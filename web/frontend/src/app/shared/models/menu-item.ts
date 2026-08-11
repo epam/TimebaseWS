@@ -7,6 +7,7 @@ export enum MenuItemType {
   group = 'GROUP',
   view = 'VIEW',
   topic = 'TOPIC',
+  db = 'DB',
 }
 
 export interface MenuItemMeta extends SidebarContextMenuItem {
@@ -31,5 +32,8 @@ export interface MenuItem {
     state: string;
   };
   active?: boolean;
-  parent?: string
+  parent?: string;
+  tbId?: string;
+  available?: boolean;
+  errorMessage?: string;
 }

@@ -50,7 +50,7 @@ const instrumentTypes = [
   styleUrls: ['./modal-send-message.component.scss'],
 })
 export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestroy {
-  stream: {id: string; name: string} | MenuItem;
+  stream: {id: string; name: string; tbId?: string} | MenuItem;
   formData: any;
   editMessageMode: boolean;
   messageInfo: editedMessageProps;
@@ -109,8 +109,8 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
       timestamp: this.formData?.timestamp,
     });
 
-    this.schema$ = this.schemaService.getSchema(this.stream.id).pipe(shareReplay(1));
-    this.symbols$ = this.symbolsService.getSymbols(this.stream.id).pipe(shareReplay(1));
+    this.schema$ = this.schemaService.getSchema(this.stream.id, null, false, this.stream.tbId).pipe(shareReplay(1));
+    this.symbols$ = this.symbolsService.getSymbols(this.stream.id, null, null, this.stream.tbId).pipe(shareReplay(1));
 
     this.initialCommonValues().subscribe(({symbol, $type, timestamp}) =>
       this.formGroup.patchValue({
@@ -315,7 +315,7 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
     if (!this.symbolEndCache[symbol]) {
       const nullRange$ = of({props: {symbolRange: {end: '0'}}});
       const props$ = symbol ?
-        this.symbolsService.getProps(this.stream.id, symbol).pipe(catchError(() => nullRange$)) :
+        this.symbolsService.getProps(this.stream.id, symbol, null, true, this.stream.tbId).pipe(catchError(() => nullRange$)) :
         nullRange$;
   
       this.symbolEndCache[symbol] = props$.pipe(
@@ -406,7 +406,7 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
     });
 
     this.streamMessageService
-      .updateMessage(this.stream.id, JSON.parse(JSON.stringify(form)), this.messageInfo)
+      .updateMessage(this.stream.id, JSON.parse(JSON.stringify(form)), this.messageInfo, this.stream.tbId)
       .pipe(withLatestFrom(this.translateService.get('notification_messages')))
       .subscribe({
         next: ([response, messages]) => {
@@ -492,7 +492,7 @@ export class ModalSendMessageComponent implements OnInit, AfterViewInit, OnDestr
     });
 
     this.streamMessageService
-      .sendMessage(this.stream.id, [JSON.parse(JSON.stringify(form))], writeMode)
+      .sendMessage(this.stream.id, [JSON.parse(JSON.stringify(form))], writeMode, this.stream.tbId)
       .pipe(withLatestFrom(this.translateService.get('notification_messages')))
       .subscribe({
         next:([response, messages]) => {

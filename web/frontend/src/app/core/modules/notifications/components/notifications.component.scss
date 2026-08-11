@@ -14,12 +14,30 @@
     .btn {
       margin: 0 2 * $ss;
     }
+
+    &.flex-center {
+      margin-top: 0.5rem;
+      justify-content: center;
+
+      .remove-btn { background-color: #28a7464b; }
+      .keep-btn { background-color: #dc354642; }
+    }
   }
 
   .notifications-wrapper .alert.alert-info {
     background: $nav-bg;
     color: $white;
     border-color: $body-bg;
+  }
+}
+
+.warns-wrapper {
+  ul {
+    margin-left: 1rem;
+  }
+
+  .type-name {
+    font-weight: 600;
   }
 }
 

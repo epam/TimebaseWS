@@ -25,6 +25,8 @@ public interface ViewMd {
 
     String getId();
 
+    String getTbId();
+
     long getTimestamp();
 
     String getStream();

@@ -99,7 +99,10 @@
 
 <ng-template #modalTemplate>
   <div class="modal-header">
-    <h4 class="modal-title pull-left">{{ (newTopic ? 'text.onCreateTopic' : 'text.onCreateStream') | translate }}</h4>
+    <h4 class="modal-title pull-left">
+      {{ (newTopic ? 'text.onCreateTopic' : 'text.onCreateStream') | translate }}
+      <span *ngIf="currentTab?.tbId" class="db-indicator">{{ currentTab.tbId }}</span>
+    </h4>
   </div>
   <div class="modal-body centered-text">
     <ng-container *ngTemplateOutlet="unusedEnumWarning"></ng-container>

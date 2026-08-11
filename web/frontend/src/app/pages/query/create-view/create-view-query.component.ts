@@ -18,6 +18,7 @@ import { noSpecialSymbols }           from '../../../shared/utils/validators';
 export class CreateViewQueryComponent implements OnInit {
   
   query: string;
+  tbId: string;
   titleControl: UntypedFormControl;
   liveView: UntypedFormControl;
   beErrorText: string;
@@ -39,7 +40,7 @@ export class CreateViewQueryComponent implements OnInit {
   }
   
   create() {
-    this.viewsService.save(this.titleControl.value, this.query, this.liveView.value).pipe(
+    this.viewsService.save(this.titleControl.value, this.query, this.liveView.value, this.tbId).pipe(
       switchMap(() => this.translateService.get('qqlEditor.createViewModal.successCreated', {name: this.titleControl.value})),
       tap(message => {
         this.bsModalRef.hide();

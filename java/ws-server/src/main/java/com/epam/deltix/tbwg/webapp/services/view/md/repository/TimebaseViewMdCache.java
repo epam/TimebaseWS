@@ -18,13 +18,7 @@ package com.epam.deltix.tbwg.webapp.services.view.md.repository;
 
 import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
-import com.epam.deltix.qsrv.hf.pub.md.RecordClassSet;
 import com.epam.deltix.qsrv.hf.tickdb.pub.*;
-import com.epam.deltix.qsrv.hf.tickdb.pub.lock.DBLock;
-import com.epam.deltix.qsrv.hf.tickdb.pub.task.SchemaChangeTask;
-import com.epam.deltix.qsrv.hf.tickdb.schema.*;
-import com.epam.deltix.tbwg.messages.QueryViewMdMessage;
-import com.epam.deltix.tbwg.messages.ViewMdMessage;
 import com.epam.deltix.tbwg.messages.ViewMetadataMessage;
 import com.epam.deltix.tbwg.messages.ViewState;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
@@ -32,7 +26,6 @@ import com.epam.deltix.tbwg.webapp.services.view.ViewService;
 import com.epam.deltix.tbwg.webapp.services.view.md.MutableViewMd;
 import com.epam.deltix.tbwg.webapp.services.view.md.ViewMd;
 import com.epam.deltix.tbwg.webapp.services.view.md.ViewMdUtils;
-import com.epam.deltix.tbwg.webapp.utils.TimeBaseUtils;
 import com.epam.deltix.timebase.messages.ConstantIdentityKey;
 import com.epam.deltix.timebase.messages.IdentityKey;
 import com.epam.deltix.timebase.messages.InstrumentMessage;
@@ -55,6 +48,7 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
     private static final long SYMBOL_HISTORY_MESSAGE_COUNT = 100;
 
     private final TimebaseService timebaseService;
+    private final String tbId;
 
     private final ExecutorService processEventsExecutor = Executors.newSingleThreadExecutor();
 
@@ -69,6 +63,7 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
 
     public TimebaseViewMdCache(TimebaseService timebaseService) {
         this.timebaseService = timebaseService;
+        this.tbId = timebaseService.getId();
     }
 
     public void start() {
@@ -76,20 +71,20 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
     }
 
     public void stop() {
-        LOGGER.info().append("Stream view# processing stop").commit();
+        LOGGER.info().append("[").append(tbId).append("] Stream view# processing stop").commit();
         closed = true;
         processEventsExecutor.shutdown();
     }
 
     private void processEvents() {
-        LOGGER.info().append("Stream view# processing has started").commit();
+        LOGGER.info().append("[").append(tbId).append("] Stream view# processing has started").commit();
         while (!closed) {
             try {
                 processViewsStream(
                     ViewsStreamUtils.getViewsStream(timebaseService.getConnection())
                 );
             } catch (Throwable t) {
-                LOGGER.error().append("View processing failed: ").append(t.getMessage()).commit();
+                LOGGER.error().append("[").append(tbId).append("] View processing failed").append(t).commit();
             }
 
             initialized = false;
@@ -100,14 +95,13 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
                 threadSleep(10000);
             }
         }
-        LOGGER.info().append("Stream view# processing has completed").commit();
+        LOGGER.info().append("[").append(tbId).append("] Stream view# processing has completed").commit();
     }
 
     private void processViewsStream(DXTickStream viewStream) {
         this.stream = viewStream;
-        DBLock lock = stream.lock();
         try (TickCursor cursor = openCursor(stream)) {
-            LOGGER.info().append("Initializing views metadata...").commit();
+            LOGGER.info().append("[").append(tbId).append("] Initializing views metadata...").commit();
             while (cursor.next()) {
                 if (closed) {
                     return;
@@ -118,7 +112,7 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
                     if (message instanceof RealTimeStartMessage) {
                         finishInit();
                         initialized = true;
-                        LOGGER.info().append("Initializing views metadata finished").commit();
+                        LOGGER.info().append("[").append(tbId).append("] Initializing views metadata finished").commit();
                     } else if (message instanceof ViewMetadataMessage) {
                         init((ViewMetadataMessage) message);
                     }
@@ -128,11 +122,10 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
             }
         } catch (Throwable t) {
             if (!closed) {
-                LOGGER.error().append("View metadata events processor failed").append(t).commit();
+                LOGGER.error().append("[").append(tbId).append("] View metadata events processor failed").append(t).commit();
             }
         } finally {
             stream = null;
-            lock.release();
         }
     }
 
@@ -148,11 +141,11 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
     private TickLoader openLoader() {
         DXTickStream stream = getViewsMdStream();
         if (stream == null) {
-            throw new RuntimeException("Can't find view md stream");
+            throw new RuntimeException("[" + tbId + "] Can't find view md stream");
         }
 
         TickLoader loader = stream.createLoader(LoadingOptions.withRewriteMode(false));
-        loader.addEventListener((e) -> LOGGER.error().append("Failed to send message").append(e).commit());
+        loader.addEventListener((e) -> LOGGER.error().append("[").append(tbId).append("] Failed to send message").append(e).commit());
 
         return loader;
     }
@@ -164,7 +157,7 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
     @Override
     public List<ViewMd> findAll() {
         if (!initialized) {
-            throw new RuntimeException("View md cache is not initialized");
+            throw new RuntimeException("[" + tbId + "] View md cache is not initialized");
         }
 
         return new ArrayList<>(views.values());
@@ -173,7 +166,7 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
     @Override
     public ViewMd findById(String id) {
         if (!initialized) {
-            throw new RuntimeException("View md cache is not initialized");
+            throw new RuntimeException("[" + tbId + "] View md cache is not initialized");
         }
 
         return views.get(id);
@@ -187,7 +180,7 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
     @Override
     public void saveAll(ViewMd... streamViews) {
         if (!initialized) {
-            throw new RuntimeException("View md cache is not initialized");
+            throw new RuntimeException("[" + tbId + "] View md cache is not initialized");
         }
 
         try (TickLoader loader = openLoader()) {
@@ -204,7 +197,7 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
     @Override
     public void delete(ViewMd viewMd) {
         if (!initialized) {
-            throw new RuntimeException("View md cache is not initialized");
+            throw new RuntimeException("[" + tbId + "] View md cache is not initialized");
         }
 
         if (viewMd instanceof MutableViewMd) {
@@ -248,9 +241,9 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
     }
 
     private void init(ViewMetadataMessage viewMdMessage) {
-        ViewMd viewMd = ViewMdUtils.INSTANCE.fromMessage(viewMdMessage);
+        ViewMd viewMd = ViewMdUtils.INSTANCE.fromMessage(viewMdMessage, tbId);
         if (viewMd == null) {
-            LOGGER.warn().append("Unknown view metadata type: ").append(viewMdMessage).commit();
+            LOGGER.warn().append("[").append(tbId).append("] Unknown view metadata type: ").append(viewMdMessage).commit();
         } else {
             init(viewMd);
         }
@@ -269,9 +262,9 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
     }
 
     private void process(ViewMetadataMessage viewMdMessage) {
-        ViewMd viewMd = ViewMdUtils.INSTANCE.fromMessage(viewMdMessage);
+        ViewMd viewMd = ViewMdUtils.INSTANCE.fromMessage(viewMdMessage, tbId);
         if (viewMd == null) {
-            LOGGER.warn().append("Unknown view metadata type: ").append(viewMdMessage).commit();
+            LOGGER.warn().append("[").append(tbId).append("] Unknown view metadata type: ").append(viewMdMessage).commit();
         } else {
             process(viewMd);
         }
@@ -309,7 +302,7 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
 
     private void clearViewsMd(String... ids) {
         try {
-            LOGGER.info().append("Removed views: ").append(
+            LOGGER.info().append("[").append(tbId).append("] Removed views: ").append(
                 Arrays.toString(ids)
             ).commit();
 
@@ -322,7 +315,7 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
                 );
             }
         } catch (Throwable t) {
-            LOGGER.error().append("Failed to clear view md from in stream").append(t).commit();
+            LOGGER.error().append("[").append(tbId).append("] Failed to clear view md from in stream").append(t).commit();
         }
     }
 
@@ -335,7 +328,7 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
                 }
             }
         } catch (Throwable t) {
-            LOGGER.error().append("Failed to delete stream for removed view md").append(t).commit();
+            LOGGER.error().append("[").append(tbId).append("] Failed to delete stream for removed view md").append(t).commit();
         }
     }
 
@@ -370,7 +363,7 @@ public class TimebaseViewMdCache implements ViewMdRepository, ViewMdEventsPublis
                                 new ConstantIdentityKey(viewMd.getId())
                             );
 
-                            LOGGER.info().append("Instruments ").append(stream.getKey())
+                            LOGGER.info().append("[").append(viewMd.getTbId()).append("] Instruments ").append(stream.getKey())
                                 .append("[").append(viewMd.getId()).append("] cleared with last timestamp ").append(timestamp)
                                 .commit();
                         }

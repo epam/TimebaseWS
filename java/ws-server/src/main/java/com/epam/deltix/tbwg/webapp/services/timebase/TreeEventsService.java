@@ -45,25 +45,36 @@ public class TreeEventsService implements SystemMessagesService.SubscribeUserLis
     private final ViewService viewService;
     private final TopicService topicService;
     private final PlaybackService playbackService;
+    private final TimebaseRegistry registry;
     private final TreeEventsListener masterEventsListener;
 
     private final Map<String, TreeEventsListener> userToListener = new HashMap<>();
+    private final Map<String, TreeEventsListener> tbEventsListeners = new HashMap<>();
 
     public TreeEventsService(SimpMessagingTemplate template,
                              SystemMessagesService systemMessagesService,
                              ViewService viewService,
                              TopicService topicService,
-                             PlaybackService playbackService) {
+                             PlaybackService playbackService,
+                             TimebaseRegistry registry) {
         this.template = template;
         this.systemMessagesService = systemMessagesService;
         this.viewService = viewService;
         this.topicService = topicService;
         this.playbackService = playbackService;
+        this.registry = registry;
 
+        // Per-TB listeners handle stream DB state events with tbId context.
+        for (TimebaseService tb : registry.getAll()) {
+            TreeEventsListener tbListener = new TreeEventsListener(template, viewService, tb.getId());
+            systemMessagesService.getStateListenerForTb(tb.getId()).subscribe(tbListener);
+            tbEventsListeners.put(tb.getId() != null ? tb.getId() : "", tbListener);
+        }
+
+        // masterEventsListener handles views, topics and playback (no DB-state events).
         this.masterEventsListener = new TreeEventsListener(template, viewService);
 
         systemMessagesService.setSubscribeUserListener(this);
-        systemMessagesService.masterNotifier().subscribe(masterEventsListener);
         this.viewService.subscribe(masterEventsListener);
         this.topicService.subscribe(masterEventsListener);
         this.playbackService.subscribe(masterEventsListener);
@@ -72,6 +83,7 @@ public class TreeEventsService implements SystemMessagesService.SubscribeUserLis
     @Scheduled(fixedDelay = 1000)
     public void broadcastStreamsState() {
         masterEventsListener.broadcastEvents();
+        tbEventsListeners.forEach((tbId, listener) -> listener.broadcastEvents());
         synchronized (userToListener) {
             userToListener.forEach((k, v) -> v.broadcastEvents());
         }
@@ -79,10 +91,11 @@ public class TreeEventsService implements SystemMessagesService.SubscribeUserLis
 
     @PreDestroy
     public void preDestroy() {
-        systemMessagesService.masterNotifier().unsubscribe(masterEventsListener);
         viewService.unsubscribe(masterEventsListener);
         topicService.unsubscribe(masterEventsListener);
         playbackService.unsubscribeListener(masterEventsListener);
+        tbEventsListeners.forEach((tbId, listener) ->
+            systemMessagesService.getStateListenerForTb(tbId.isEmpty() ? null : tbId).unsubscribe(listener));
     }
 
     @Override
@@ -103,6 +116,7 @@ public class TreeEventsService implements SystemMessagesService.SubscribeUserLis
 
         private final SimpMessagingTemplate template;
         private final String endpoint;
+        private final String tbId;
 
         private final ViewService viewService;
 
@@ -112,12 +126,22 @@ public class TreeEventsService implements SystemMessagesService.SubscribeUserLis
             this.template = template;
             this.endpoint = WebSocketConfig.STRUCTURE_EVENTS_TOPIC;
             this.viewService = viewService;
+            this.tbId = null;
         }
 
         public TreeEventsListener(SimpMessagingTemplate template, String user, ViewService viewService) {
             this.template = template;
             this.endpoint = WebSocketConfig.STRUCTURE_EVENTS_TOPIC + "/" + user;
             this.viewService = viewService;
+            this.tbId = null;
+        }
+
+        /** Per-TB master listener — same broadcast endpoint as master but carries tbId on events. */
+        public TreeEventsListener(SimpMessagingTemplate template, ViewService viewService, String tbId) {
+            this.template = template;
+            this.endpoint = WebSocketConfig.STRUCTURE_EVENTS_TOPIC;
+            this.viewService = viewService;
+            this.tbId = tbId;
         }
 
         public void broadcastEvents() {
@@ -235,6 +259,7 @@ public class TreeEventsService implements SystemMessagesService.SubscribeUserLis
         }
 
         private void addEvent(TreeEvent event) {
+            event.setTbId(tbId);
             synchronized (events) {
                 events.add(event);
             }

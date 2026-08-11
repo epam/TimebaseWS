@@ -1,7 +1,15 @@
 @import '~src/app/core/styles/variables';
+@import '~src/app/core/styles/db-selector';
 
 .hidden {
   display: none !important;
+}
+
+.db-indicator {
+  display: flex;
+  color: $nav-color;
+  white-space: nowrap;
+  cursor: default;
 }
 
 ::ng-deep {

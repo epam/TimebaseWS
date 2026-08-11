@@ -25,8 +25,12 @@ import com.epam.deltix.tbwg.webapp.model.charting.line.LineElementDef;
 import com.epam.deltix.tbwg.webapp.services.charting.provider.LinesProvider;
 import com.epam.deltix.tbwg.webapp.services.charting.queries.BookSymbolQueryImpl;
 import com.epam.deltix.tbwg.webapp.services.charting.queries.ChartingResult;
+import com.epam.deltix.tbwg.webapp.services.charting.queries.LinesQueryImpl;
 import com.epam.deltix.tbwg.webapp.services.charting.queries.LinesQueryResult;
 import com.epam.deltix.tbwg.webapp.services.charting.queries.QqlQueryImpl;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
+import com.epam.deltix.tbwg.webapp.services.timebase.exc.UnknownStreamException;
+import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
 import com.epam.deltix.util.collections.generated.LongToLongHashMap;
 import com.epam.deltix.util.collections.generated.LongToObjectHashMap;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,13 +45,15 @@ public class ChartingServiceImpl implements ChartingService {
     private static final Log LOGGER = LogFactory.getLog(ChartingServiceImpl.class);
 
     private final LinesProvider provider;
+    private final TimebaseRegistry registry;
 
     private final LongToObjectHashMap<ChartingResult> runningTasks = new LongToObjectHashMap<>();
     private final LongToLongHashMap stoppedTasks = new LongToLongHashMap();
 
     @Autowired
-    public ChartingServiceImpl(LinesProvider provider) {
+    public ChartingServiceImpl(LinesProvider provider, TimebaseRegistry registry) {
         this.provider = provider;
+        this.registry = registry;
     }
 
     @Scheduled(fixedDelay = 5 * 60 * 1000)
@@ -86,26 +92,31 @@ public class ChartingServiceImpl implements ChartingService {
     }
 
     private ChartingResult buildChartingResult(ChartingSettings settings) {
-        return provider.getLines(
-            settings.getQql() == null ?
-                new BookSymbolQueryImpl(
-                    settings.getStream(),
-                    settings.getSymbols(),
-                    settings.getType(),
-                    settings.getInterval(),
-                    settings.getPointInterval(),
-                    settings.getLevels(),
-                    false,
-                    settings.getDataSource()
-                ) :
-                new QqlQueryImpl(
-                    settings.getQql(),
-                    settings.getType(),
-                    settings.getInterval(),
-                    settings.getPointInterval(),
-                    false
-                )
-        );
+        LinesQueryImpl query = settings.getQql() == null ?
+            new BookSymbolQueryImpl(
+                settings.getStream(),
+                settings.getSymbols(),
+                settings.getType(),
+                settings.getInterval(),
+                settings.getPointInterval(),
+                settings.getLevels(),
+                false,
+                settings.getDataSource()
+            ) :
+            new QqlQueryImpl(
+                settings.getQql(),
+                settings.getType(),
+                settings.getInterval(),
+                settings.getPointInterval(),
+                false
+            );
+        query.setService(registry.resolve(settings.getTbId()));
+        return provider.getLines(query);
+    }
+
+    @Override
+    public String[] linearChartColumns(String streamKey, String tbId) throws UnknownStreamException {
+        return TBWGUtils.getLinearChartColumns(registry.resolve(tbId).getStreamChecked(streamKey).getTypes());
     }
 
     @Override

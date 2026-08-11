@@ -14,7 +14,7 @@ export class StreamsNavigationService {
   constructor(private router: Router) {}
 
   url(item: MenuItem, activeTabType: string, reverseViewIsDefault: boolean): string[] {
-    if (!item || item.type === MenuItemType.group) {
+    if (!item || item.type === MenuItemType.group || item.type === MenuItemType.db) {
       return null;
     }
 
@@ -59,9 +59,13 @@ export class StreamsNavigationService {
       if (isTopic) {
         params['stream'] = item.id + '#topic#';
       } else {
-        params['stream'] = item.meta.stream.id; 
+        params['stream'] = item.meta.stream.id;
       }
       params['symbol'] = item.meta.symbol;
+    }
+
+    if (item.tbId) {
+      params['tbId'] = item.tbId;
     }
 
     return params;

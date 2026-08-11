@@ -50,8 +50,9 @@ public class PlaybackController implements SubscriptionController {
     private final PlaybackServiceImpl playbackService;
 
     @Autowired
-    public PlaybackController(SubscriptionControllerRegistry registry, PlaybackServiceImpl playbackService) {
-        registry.register(WebSocketConfig.PLAYBACK_TOPIC, this);
+    public PlaybackController(SubscriptionControllerRegistry subscriptionRegistry,
+                              PlaybackServiceImpl playbackService) {
+        subscriptionRegistry.register(WebSocketConfig.PLAYBACK_TOPIC, this);
         this.playbackService = playbackService;
     }
 
@@ -70,6 +71,8 @@ public class PlaybackController implements SubscriptionController {
         config.setCyclic(request.isCyclic());
         config.setTargetTopic(request.isTargetTopic());
         config.setPermanent(request.isPermanent());
+        config.setSourceTb(request.getSourceTb());
+        config.setTargetTb(request.getTargetTb());
         return new ResponseEntity<>(playbackService.createPlayer(config, user.getName()), HttpStatus.CREATED);
     }
 

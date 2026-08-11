@@ -4,4 +4,5 @@ export interface ViewInfo {
   description: string;
   lastTimestamp: number;
   query: string;
+  tbId?: string;
 }

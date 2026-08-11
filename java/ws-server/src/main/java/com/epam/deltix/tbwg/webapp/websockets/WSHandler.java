@@ -21,6 +21,7 @@ import com.epam.deltix.qsrv.hf.tickdb.pub.*;
 import com.epam.deltix.tbwg.webapp.config.WebSocketConfig;
 import com.epam.deltix.tbwg.webapp.model.ws.*;
 import com.epam.deltix.tbwg.webapp.services.MetricsService;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.timebase.connections.TbUserDetails;
 import com.epam.deltix.tbwg.webapp.utils.TBWGUtils;
@@ -68,6 +69,7 @@ public class WSHandler extends TextWebSocketHandler {
     static final Log LOGGER = LogFactory.getLog(WSHandler.class);
 
     static final String PRINCIPAL_ATTRIBUTE_NAME = "principal";
+    static final String TB_SERVICE_ATTRIBUTE = "tbService";
 
     protected static final int MAX_BUFFER_SIZE = 16 * 1024;
     protected static final int LIMIT_BUFFER_SIZE = MAX_BUFFER_SIZE - (MAX_BUFFER_SIZE % 10);
@@ -227,6 +229,7 @@ public class WSHandler extends TextWebSocketHandler {
 
     private final DirectChannel         channel;
     protected final TimebaseService     timebase;
+    protected final TimebaseRegistry    registry;
 
     protected final QuickExecutor       executor;
 
@@ -239,12 +242,13 @@ public class WSHandler extends TextWebSocketHandler {
 
     // Global selector for multiply streams
 
-    public WSHandler(TimebaseService timebase, QuickExecutor executor, MetricsService metrics) {
-        this(timebase, executor, metrics, 0);
+    public WSHandler(TimebaseRegistry registry, QuickExecutor executor, MetricsService metrics) {
+        this(registry, executor, metrics, 0);
     }
 
-    public WSHandler(TimebaseService timebase, QuickExecutor executor, MetricsService metrics, long flushPeriodMs) {
-        this.timebase = timebase;
+    public WSHandler(TimebaseRegistry registry, QuickExecutor executor, MetricsService metrics, long flushPeriodMs) {
+        this.registry = registry;
+        this.timebase = registry.getDefault();
         this.executor = executor;
         this.channel = null;
         this.gson = createGson();
@@ -253,10 +257,11 @@ public class WSHandler extends TextWebSocketHandler {
         this.metrics = metrics;
     }
 
-    public WSHandler(TimebaseService timebase, DirectChannel channel, QuickExecutor executor, MetricsService metrics) {
+    public WSHandler(TimebaseRegistry registry, DirectChannel channel, QuickExecutor executor, MetricsService metrics) {
         this.executor = executor;
         this.channel = channel;
-        this.timebase = timebase;
+        this.registry = registry;
+        this.timebase = registry.getDefault();
         this.gson = createGson();
         this.flushPeriodMs = 0;
         this.scheduler = initTaskScheduler();
@@ -287,12 +292,22 @@ public class WSHandler extends TextWebSocketHandler {
         return useCache() ? "/ws/v0/monitor" : "/ws/v0/select";
     }
 
+    protected TimebaseService resolveService(WebSocketSession session) {
+        MultiValueMap<String, String> params =
+                UriComponentsBuilder.fromUriString(session.getUri().toString()).build().getQueryParams();
+        List<String> tbParam = params.get("tb");
+        String tbId = (tbParam != null && !tbParam.isEmpty()) ? tbParam.get(0) : null;
+        return registry.resolve(tbId);
+    }
+
     protected DXTickDB openConnection(WebSocketSession session) {
+        TimebaseService svc = resolveService(session);
+        session.getAttributes().put(TB_SERVICE_ATTRIBUTE, svc);
         Object principal = session.getAttributes().get(PRINCIPAL_ATTRIBUTE_NAME);
         if (principal instanceof Principal) {
             TbUserDetails details = TbUserDetails.create(TBWGUtils.getIp(session));
-            DXTickDB connection = timebase.login((Principal) principal, details);
-            timebase.openSession((Principal) principal, details, session.getId());
+            DXTickDB connection = svc.login((Principal) principal, details);
+            svc.openSession((Principal) principal, details, session.getId());
             return connection;
         } else {
             throw new IllegalStateException("Unknown principal, authentication required.");
@@ -300,10 +315,11 @@ public class WSHandler extends TextWebSocketHandler {
     }
 
     protected void closeConnection(WebSocketSession session) {
+        TimebaseService svc = (TimebaseService) session.getAttributes().getOrDefault(TB_SERVICE_ATTRIBUTE, timebase);
         Object principal = session.getAttributes().get(PRINCIPAL_ATTRIBUTE_NAME);
         if (principal instanceof Principal) {
             TbUserDetails details = TbUserDetails.create(TBWGUtils.getIp(session));
-            timebase.closeSession((Principal) principal, details, session.getId());
+            svc.closeSession((Principal) principal, details, session.getId());
         }
     }
 

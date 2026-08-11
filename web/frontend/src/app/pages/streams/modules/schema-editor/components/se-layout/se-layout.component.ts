@@ -55,6 +55,7 @@ import {
   GetDefaultTypes,
   GetSchema,
   GetSchemaDiff,
+  RemoveDuplicatedSchemaItems,
   RemoveSchemaDiff,
   SaveSchemaChanges,
   SetSchema,
@@ -66,7 +67,9 @@ import {
   getEditSchemaState,
   getSchemaDiff,
   getSelectedSchemaItem,
+  iSchemaDuplicates,
 } from '../../store/schema-editor.selectors';
+import * as NotificationsActions from 'src/app/core/modules/notifications/store/notifications.actions';
 import { ClControlPanelComponent } from '../cl-control-panel/cl-control-panel.component';
 import { FlControlPanelComponent } from '../fl-control-panel/fl-control-panel.component';
 import { ClassEnumListItem } from '../../models/class-enum-list-item.model';
@@ -112,7 +115,7 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
   keyForm: UntypedFormGroup;
   isWriter$: Observable<boolean>;
   classEnumList: ClassEnumListItem[];
-  fieldList: string[];
+  fieldList: {name: string; id: string}[];
   schemaChanged$: Observable<boolean>;
   showChanges: boolean = false;
   newStream: boolean;
@@ -247,6 +250,39 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
 
     this.selectedSchemaItem$ = this.appStore.pipe(select(getSelectedSchemaItem));
 
+    this.appStore.pipe(
+      select(iSchemaDuplicates),
+      delay(100), // let the store settle after SetSchema/EditSchemaMergeState before reacting, avoids racing other schema subscribers
+      map(({duplicatedItems}) => duplicatedItems),
+      distinctUntilChanged((i1, i2) => i1.toString() === i2.toString()),
+      takeUntil(this.destroy$),
+    ).subscribe((duplicatedItems) => {
+      if (!duplicatedItems.length) {
+        this.appStore.dispatch(new NotificationsActions.RemoveWarnByAlias('Schema with duplicates'));
+      } else {
+        const typeList = duplicatedItems.filter((item) => !item.type).map((item) => item.name);
+        const fieldList = duplicatedItems.filter((item) => !!item.type);
+        this.appStore.dispatch(new NotificationsActions.AddWarn({
+          alias: 'Schema with duplicates',
+          dismissible: true,
+          closeInterval: 100000,
+          message: 'The schema is invalid and contains duplicates, do you want to remove duplicating data?',
+          typeList,
+          fieldList,
+          requestDialogParams: {
+            closeActions: {
+              onSuccess: () => this.removeDuplications(),
+              onCancel: () => {},
+            },
+            buttonsTextLinks: {
+              success: 'Remove Duplicates',
+              cancel: 'Keep Duplicates',
+            },
+          },
+        }));
+      }
+    });
+
     this.route.params
       .pipe(
         filter((params: {stream: string; id: string; symbol?: string}) => !!params?.stream),
@@ -270,7 +306,7 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
       .subscribe(([tabModel, data]: [TabModel, Data]) => {
         if (!tabModel.streamCreate && !tabModel)
           this.streamDetailsStore.dispatch(
-            new StreamDetailsActions.GetSymbols({streamId: tabModel.stream}),
+            new StreamDetailsActions.GetSymbols({streamId: tabModel.stream, tbId: tabModel.tbId}),
           );
         this.streamName = tabModel.stream;
         if (!tabModel.stream) return;
@@ -286,7 +322,7 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
           this.tabName += tabModel.symbol;
         }
 
-        this.appStore.dispatch(SetStreamId({streamId: tab.stream}));
+        this.appStore.dispatch(SetStreamId({streamId: tab.stream, tbId: tabModel.tbId}));
         if (!tabModel.streamCreate && !tabModel.topicCreate) {
           this.appStore.dispatch(GetSchema({ topic: tabModel.schemaView }));
         } else if (this.topicService.dataForCopyToStream?.copyToExistingStream) {
@@ -307,12 +343,13 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
     this.newItemModalRef?.hide();
     const streamKey = this.insideModal ? this.stream : this.streamName;
     this.appStore.dispatch(CreateStream({
-      key: streamKey, 
-      topic: newTopic, 
+      key: streamKey,
+      topic: newTopic,
       version: newTopic ? this.topicService.dataForCopyToStream?.storageVersion : this.streamsService.streamCreationData.storageVersion,
       distributionFactor: newTopic ? this.topicService.dataForCopyToStream?.distributionFactor : this.streamsService.streamCreationData.distributionFactor,
-      copyToStream: this.topicStreamKey, 
-      noNotification: this.insideModal }));
+      copyToStream: this.topicStreamKey,
+      noNotification: this.insideModal,
+      tbId: newTopic ? null : (this.streamsService.streamCreationData?.tbId || this.currentTab?.tbId) }));
     this.topicService.dataForCopyToStream = null;
   }
 
@@ -416,8 +453,12 @@ export class SeLayoutComponent implements OnInit, OnDestroy {
     this.classEnumList = itemList;
   }
 
-  setFieldList(itemList: string[]) {
+  setFieldList(itemList: {name: string; id: string}[]) {
     this.fieldList = itemList;
+  }
+
+  private removeDuplications() {
+    this.appStore.dispatch(RemoveDuplicatedSchemaItems());
   }
 
   private getStandaloneEnums() {

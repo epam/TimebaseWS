@@ -33,4 +33,11 @@ public class ChartingSettings {
     private long pointInterval;
     private int levels;
     private ModelDataSourceType dataSource;
+    private String tbId;
+
+    public ChartingSettings(String stream, String qql, String[] symbols, ChartType type,
+                             TimeInterval interval, long pointInterval, int levels,
+                             ModelDataSourceType dataSource) {
+        this(stream, qql, symbols, type, interval, pointInterval, levels, dataSource, null);
+    }
 }

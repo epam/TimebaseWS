@@ -16,12 +16,16 @@
  */
 package com.epam.deltix.tbwg.webapp.services.tree;
 
+import com.epam.deltix.gflog.api.Log;
+import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DBStateListener;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DBStateNotifier;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickDB;
 import com.epam.deltix.tbwg.webapp.events.TimeBaseEvent;
 import com.epam.deltix.tbwg.webapp.model.tree.TreeNodeDef;
+import com.epam.deltix.tbwg.webapp.model.tree.TreeNodeType;
 import com.epam.deltix.tbwg.webapp.services.timebase.SystemMessagesService;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 import com.epam.deltix.tbwg.webapp.services.view.ViewService;
 import com.epam.deltix.tbwg.webapp.settings.TimeBaseTreeSettings;
@@ -37,6 +41,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class TimeBaseTreeServiceImpl implements TimeBaseTreeService, DBStateListener, ApplicationListener<TimeBaseEvent> {
+
+    private static final Log LOGGER = LogFactory.getLog(TimeBaseTreeServiceImpl.class);
 
     private static class TreePath {
         private final String[] elements;
@@ -65,27 +71,35 @@ public class TimeBaseTreeServiceImpl implements TimeBaseTreeService, DBStateList
     }
 
     private final TimeBaseTreeSettings settings;
-    private final TimebaseService timebaseService;
+    private final TimebaseRegistry registry;
     private final ViewService viewService;
+    private final SystemMessagesService messagesService;
 
     private final SplitGroupsStrategy splitGroupsStrategy = new BucketSplitGroups();
     private final SpaceEntitiesCache spaceEntitiesCache;
 
     public TimeBaseTreeServiceImpl(TimeBaseTreeSettings settings,
-                                   TimebaseService timebaseService, ViewService viewService,
+                                   TimebaseRegistry registry, ViewService viewService,
                                    SystemMessagesService messagesService) {
         this.settings = settings;
-        this.timebaseService = timebaseService;
+        this.registry = registry;
         this.viewService = viewService;
+        this.messagesService = messagesService;
         this.spaceEntitiesCache = new SpaceEntitiesCacheImpl();
         messagesService.masterNotifier().subscribe(this);
     }
 
     @PreDestroy
     public void destroy() {
-        DXTickDB db = timebaseService.getConnection();
-        if (db instanceof DBStateNotifier) {
-            ((DBStateNotifier) db).removeStateListener(this);
+        messagesService.masterNotifier().unsubscribe(this);
+        for (TimebaseService svc : registry.getAll()) {
+            try {
+                DXTickDB db = svc.getConnection();
+                if (db instanceof DBStateNotifier) {
+                    ((DBStateNotifier) db).removeStateListener(this);
+                }
+            } catch (Exception ignored) {
+            }
         }
     }
 
@@ -120,24 +134,73 @@ public class TimeBaseTreeServiceImpl implements TimeBaseTreeService, DBStateList
 
     @Override
     public TreeNodeDef buildTree(List<String> paths, TreeFilter filter, boolean showSpaces, boolean views, boolean filterRootOnly) {
-        List<TreePath> treePaths = paths.stream()
-            .map(TreePath::new)
-            .collect(Collectors.toList());
+        List<TimebaseService> allServices = registry.getAll();
 
-        return walk(
-            new TickDbTreeNode(
-                new TreeConfig(filter, showSpaces, views, filterRootOnly, settings, splitGroupsStrategy, spaceEntitiesCache),
-                timebaseService, viewService
-            ),
-            treePaths, 1
-        ).getTreeNodeDef();
+        if (allServices.size() == 1) {
+            List<TreePath> treePaths = paths.stream().map(TreePath::new).collect(Collectors.toList());
+            return walk(
+                new TickDbTreeNode(
+                    new TreeConfig(filter, showSpaces, views, filterRootOnly, settings, splitGroupsStrategy, spaceEntitiesCache),
+                    allServices.get(0), viewService
+                ),
+                treePaths, 1
+            ).getTreeNodeDef();
+        }
+
+        // Multi-instance: virtual ROOT node, one DB child per TB.
+        // Paths start with /{tbId}/... or "/" to expand everything.
+        TreeNodeDef root = new TreeNodeDef("", "", TreeNodeType.ROOT);
+        for (TimebaseService tb : allServices) {
+            String tbId = tb.getId();
+            TreeNodeDef dbDef;
+            try {
+                TreeConfig config = new TreeConfig(filter, showSpaces, views, filterRootOnly, settings, splitGroupsStrategy, spaceEntitiesCache);
+                TickDbTreeNode dbNode = new TickDbTreeNode(config, tb, viewService);
+
+                List<TreePath> tbPaths = paths.stream()
+                    .filter(p -> p.equals("/") || isPathForTb(p, tbId))
+                    .map(p -> p.equals("/") ? "/" : stripTbPrefix(p, tbId))
+                    .map(TreePath::new)
+                    .collect(Collectors.toList());
+                dbDef = tbPaths.isEmpty() ? dbNode.getTreeNodeDef() : walk(dbNode, tbPaths, 1).getTreeNodeDef();
+            } catch (Exception e) {
+                LOGGER.warn().append("Timebase [").append(tbId).append("] is unavailable, showing it as an errored node in the tree: ")
+                        .append(e.getMessage()).commit();
+                dbDef = new TreeNodeDef(tbId, tbId, TreeNodeType.DB);
+                dbDef.setAvailable(false);
+                dbDef.setErrorMessage(describeError(e));
+            }
+
+            root.getChildren().add(dbDef);
+        }
+
+        root.setChildrenCount(root.getChildren().size());
+        root.setTotalCount(root.getChildren().size());
+        return root;
+    }
+
+    private static String describeError(Throwable e) {
+        return e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+    }
+
+    private static boolean isPathForTb(String path, String tbId) {
+        return path.equals("/" + tbId) || path.startsWith("/" + tbId + "/");
+    }
+
+    private static String stripTbPrefix(String path, String tbId) {
+        String prefix = "/" + tbId;
+        if (path.equals(prefix)) {
+            return "/";
+        }
+        return path.substring(prefix.length()); // "/tb1/streamA" → "/streamA"
     }
 
     @Override
-    public TreeNodeDef findSymbolTree(String stream, String symbol, boolean showSpaces, boolean views) {
+    public TreeNodeDef findSymbolTree(String tbId, String stream, String symbol, boolean showSpaces, boolean views) {
+        TimebaseService tb = registry.resolve(tbId);
         TickDbTreeNode dbTreeNode = new TickDbTreeNode(
             new TreeConfig(null, showSpaces, views, false, settings, splitGroupsStrategy, spaceEntitiesCache),
-            timebaseService, viewService
+            tb, viewService
         );
 
         TreeNode<?> node = dbTreeNode.addChild(stream);

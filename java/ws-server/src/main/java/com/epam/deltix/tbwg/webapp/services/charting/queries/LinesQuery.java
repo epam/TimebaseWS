@@ -18,6 +18,7 @@ package com.epam.deltix.tbwg.webapp.services.charting.queries;
 
 import com.epam.deltix.tbwg.webapp.model.charting.ChartType;
 import com.epam.deltix.tbwg.webapp.services.charting.TimeInterval;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
 
 public interface LinesQuery {
 
@@ -28,4 +29,6 @@ public interface LinesQuery {
     long                getPointInterval();
 
     boolean             isLive();
+
+    default TimebaseService getService() { return null; }
 }

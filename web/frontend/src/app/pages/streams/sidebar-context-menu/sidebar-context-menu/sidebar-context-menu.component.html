@@ -1,11 +1,68 @@
 <context-menu menuClass="sidebar-context-menu">
   <ng-container *ngIf="item">
+    <!-- DB root node items -->
     <ng-template contextMenuItem passive="true">
-      <app-sidebar-context-menu-item>
+      <app-sidebar-context-menu-item *ngIf="isDb">
+        <button (click)="createStreamForDb()" class="btn btn-link" type="button">
+          <svg fill="none" height="16" stroke="currentcolor" stroke-linecap="round"
+              stroke-linejoin="round" stroke-width="2" viewBox="0 0 32 32" width="16"
+              xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 2 L16 30 M2 16 L30 16" />
+          </svg>
+          {{ 'buttons.create_stream' | translate }}
+        </button>
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item *ngIf="isDb && (showTopics$ | async) && (isWriter$ | async)">
+        <button (click)="createTopicForDb()" class="btn btn-link" type="button">
+          <svg fill="none" height="16" stroke="currentcolor" stroke-linecap="round"
+              stroke-linejoin="round" stroke-width="2" viewBox="0 0 32 32" width="16"
+              xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 2 L16 30 M2 16 L30 16" />
+          </svg>
+          {{ 'buttons.create_topic' | translate }}
+        </button>
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item *ngIf="isDb">
+        <button (click)="createViewForDb()" class="btn btn-link" type="button">
+          <svg fill="none" height="16" stroke="currentcolor" stroke-linecap="round"
+              stroke-linejoin="round" stroke-width="2" viewBox="0 0 32 32" width="16"
+              xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 2 L16 30 M2 16 L30 16" />
+          </svg>
+          {{ 'buttons.create_view' | translate }}
+        </button>
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <span *ngIf="isDb" class="menu-separator"></span>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item *ngIf="isDb && (isWriter$ | async)">
+        <button (click)="importFromQSMSGForDb()" class="btn btn-link" type="button">
+          <ng-container *ngTemplateOutlet="downloadIcon"></ng-container>
+          {{ 'contextMenu.importFromQSMSG' | translate }}
+        </button>
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item *ngIf="isDb && (isWriter$ | async)">
+        <button (click)="importFromCSVForDb()" class="btn btn-link" type="button">
+          <ng-container *ngTemplateOutlet="downloadIcon"></ng-container>
+          {{ 'contextMenu.importFromTextFile' | translate }}
+        </button>
+      </app-sidebar-context-menu-item>
+    </ng-template>
+    <!-- Stream / topic / symbol items -->
+    <ng-template contextMenuItem passive="true">
+      <app-sidebar-context-menu-item *ngIf="!isDb">
         <a
             (click)="closeContextMenu()"
             (auxclick)="onWheelClick($event)"
-            [queryParams]="activeTabType === 'chart' ? 
+            [queryParams]="activeTabType === 'chart' ?
               ((item | streamsNavigationParams: activeTabType) | objectMerge: newTabQueryParams) : newTabQueryParams"
             [routerLink]="item | streamsNavigationUrl: activeTabType: (reverseViewIsDefault$ | async)">
           <svg
@@ -22,6 +79,7 @@
         </a>
       </app-sidebar-context-menu-item>
     </ng-template>
+    <ng-container *ngIf="!isDb">
     <ng-template contextMenuItem passive="true">
       <app-sidebar-context-menu-item *ngIf="!isTopic"
           [link]="
@@ -202,7 +260,7 @@
     </ng-template>
     <ng-template contextMenuItem passive="true">
       <app-sidebar-context-menu-item *ngIf="!isTopic">
-        <app-query-btn [stream]="item.meta.stream.id" [symbol]="item.meta.symbol" 
+        <app-query-btn [stream]="item.meta.stream.id" [symbol]="item.meta.symbol" [tbId]="item.tbId"
           (click)="closeContextMenu()" (auxclick)="onWheelClick($event)"></app-query-btn>
       </app-sidebar-context-menu-item>
     </ng-template>
@@ -418,6 +476,7 @@
         </app-sidebar-context-menu-item>
       </ng-template>
     </ng-container>
+    </ng-container><!-- end !isDb -->
   </ng-container>
 </context-menu>
 

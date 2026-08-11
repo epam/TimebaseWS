@@ -48,14 +48,15 @@ public class OrderBookController implements SubscriptionController {
     private static final String SOURCE_HEADER = "source";
     private static final String STREAMS_LIST_HEADER = "streams";
     private static final String HIDDEN_EXCHANGES_LIST_HEADER = "hiddenExchanges";
+    private static final String TB_HEADER = "tbId";
 
     private final OrderBookService orderBookService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
-    public OrderBookController(SubscriptionControllerRegistry registry, OrderBookService orderBookService) {
-        registry.register(WebSocketConfig.ORDER_BOOK_TOPIC, this);
+    public OrderBookController(SubscriptionControllerRegistry subscriptionRegistry, OrderBookService orderBookService) {
+        subscriptionRegistry.register(WebSocketConfig.ORDER_BOOK_TOPIC, this);
         this.orderBookService = orderBookService;
     }
 
@@ -67,7 +68,7 @@ public class OrderBookController implements SubscriptionController {
     }
 
     private OrderBookSubscriptionOptions getSubscriptionOptions(SimpMessageHeaderAccessor headerAccessor,
-                                                                SubscriptionChannel channel){
+                                                                SubscriptionChannel channel) {
         String instrument = headerAccessor.getFirstNativeHeader(INSTRUMENT_HEADER);
         if (instrument == null || instrument.isEmpty()) {
             throw new IllegalArgumentException("Unknown instrument, specify '" + INSTRUMENT_HEADER + "' STOMP header.");
@@ -115,8 +116,10 @@ public class OrderBookController implements SubscriptionController {
                 .append("; SessionId: ").append(sessionId)
                 .append("; SubscriptionId: ").append(subscriptionId).commit();
 
+        String tb = headerAccessor.getFirstNativeHeader(TB_HEADER);
         orderBookService.subscribe(
             sessionId, subscriptionId, so.getInstrument(), so.getStreams(), so.getHiddenExchanges(),
+            tb,
             (l2PackageDto) -> {
                 if (LOG.isTraceEnabled()) {
                     LOG.trace().append("Sending L2PackageDto for instrument ").append(so.getInstrument())

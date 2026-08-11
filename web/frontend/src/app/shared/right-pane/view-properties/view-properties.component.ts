@@ -34,7 +34,7 @@ export class ViewPropertiesComponent implements OnInit {
       select(getActiveTab),
       filter(t => !!t),
       distinctUntilChanged((t1, t2) => t1.id === t2.id),
-      switchMap(tab => this.viewsService.get(tab.streamName)),
+      switchMap(tab => this.viewsService.get(tab.streamName, tab.tbId)),
     );
     
     this.infoFormatted$ = combineLatest([

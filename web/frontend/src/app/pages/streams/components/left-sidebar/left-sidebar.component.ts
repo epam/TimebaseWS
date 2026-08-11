@@ -7,6 +7,7 @@ import { distinctUntilChanged, map, take, takeUntil }                  from 'rxj
 
 import { AppState }                   from '../../../../core/store';
 import { getAppInfo }                 from '../../../../core/store/app/app.selectors';
+import { getActiveOrFirstTab }        from '../../store/streams-tabs/streams-tabs.selectors';
 import * as StreamsActions            from '../../store/streams-list/streams.actions';
 import { GlobalResizeService }        from '../../../../shared/services/global-resize.service';
 import { PlaybackService } from '../../services/playback.service';
@@ -32,6 +33,7 @@ export class LeftSidebarComponent implements OnInit {
   version$: Observable<string>;
   activePlaybackIds: number[];
   showTopics$: Observable<boolean>;
+  activeTabTbId: string = null;
   private searchValue = '';
   @ViewChild(StreamsListComponent) streamsListComponent: StreamsListComponent;
 
@@ -104,6 +106,13 @@ export class LeftSidebarComponent implements OnInit {
       map((f) => f?.showTopics),
       distinctUntilChanged(),
     );
+
+    this.appStore.pipe(
+      select(getActiveOrFirstTab),
+      map(tab => tab?.tbId || null),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(tbId => { this.activeTabTbId = tbId; });
   }
 
   ngOnDestroy() {
@@ -135,6 +144,7 @@ export class LeftSidebarComponent implements OnInit {
     this.bsModalService.show(CreateStreamModalComponent, {
       class: 'modal-small',
       ignoreBackdropClick: true,
+      initialState: { tbId: this.activeTabTbId },
     });
   }
 
@@ -142,14 +152,15 @@ export class LeftSidebarComponent implements OnInit {
     this.bsModalService.show(CreateStreamModalComponent, {
       class: 'modal-small',
       ignoreBackdropClick: true,
-      initialState: { topic: true },
+      initialState: { topic: true, tbId: this.activeTabTbId },
     });
   }
-  
+
   createView() {
     this.bsModalService.show(CreateViewModalComponent, {
       ignoreBackdropClick: true,
       class: 'modal-xl',
+      initialState: { tbId: this.activeTabTbId },
     });
   }
   
@@ -171,6 +182,7 @@ export class LeftSidebarComponent implements OnInit {
     this.bsModalService.show(ModalImportQSMSGFileComponent, {
       class: 'modal-xl',
       ignoreBackdropClick: true,
+      initialState: { tbId: this.activeTabTbId },
     });
     this.onCloseContextMenu();
   }
@@ -179,6 +191,7 @@ export class LeftSidebarComponent implements OnInit {
     this.bsModalService.show(ModalImportCSVFileComponent, {
       ignoreBackdropClick: true,
       class: 'modal-xl',
+      initialState: { tbId: this.activeTabTbId },
     });
     this.onCloseContextMenu();
   }

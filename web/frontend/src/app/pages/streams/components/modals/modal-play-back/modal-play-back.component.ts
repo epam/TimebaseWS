@@ -1,13 +1,12 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup } from '@angular/forms';
 import { select, Store } from '@ngrx/store';
-import { map, takeUntil, take, tap, switchMap } from 'rxjs/operators';
+import { map, takeUntil, take, switchMap, filter, distinctUntilChanged } from 'rxjs/operators';
 import { Subject, forkJoin, BehaviorSubject, Observable } from 'rxjs';
 import { BsModalRef } from 'ngx-bootstrap/modal';
 
 import * as fromStreams from '../../../store/streams-list/streams.reducer';
 import * as fromStreamProps from 'src/app/pages/streams/store/stream-props/stream-props.reducer';
-import { streamsListStateSelector } from '../../../store/streams-list/streams.selectors';
 import { StreamsService } from 'src/app/shared/services/streams.service';
 import { PlaybackService } from '../../../services/playback.service';
 import { StreamModel } from '../../../models/stream.model';
@@ -16,6 +15,8 @@ import { camelCaseToWords } from 'src/app/shared/utils/camelCaseToWords';
 import { KeyValue } from '@angular/common';
 import { GlobalFilterTimeZone } from '../../../models/global.filter.model';
 import { GlobalFiltersService } from 'src/app/shared/services/global-filters.service';
+import { getDefaultTimebase, getTimebases } from '../../../store/timebases/timebases.selectors';
+import { TimebaseInstanceDef } from 'src/app/shared/models/timebase-instance-def.model';
 
 @Component({
   selector: 'app-modal-play-back',
@@ -24,8 +25,21 @@ import { GlobalFiltersService } from 'src/app/shared/services/global-filters.ser
 })
 export class ModalPlayBackComponent implements OnInit {
   formGroup: FormGroup;
-  streamNameList: string[] = [];
+  sourceStreamNameList: string[] = [];
+  targetStreamNameList: string[] = [];
   topicNameList: string[] = [];
+  timebases$: Observable<TimebaseInstanceDef[]>;
+  sourceTbId: string = null;
+  targetTbId: string = null;
+  private timebasesList: TimebaseInstanceDef[] = [];
+
+  get sourceTbUnavailable(): boolean {
+    return this.timebasesList.find((tb) => tb.id === this.sourceTbId)?.connected === false;
+  }
+
+  get targetTbUnavailable(): boolean {
+    return this.timebasesList.find((tb) => tb.id === this.targetTbId)?.connected === false;
+  }
   playbackSpeedOptions = ['1', '2', '5', '10', 'MAX'];
   endTimeMin: Date;
   validationErrorMessages = {
@@ -46,11 +60,14 @@ export class ModalPlayBackComponent implements OnInit {
   }
   formInvalid$ = new BehaviorSubject(false);
 
-  private allStreamRanges: { streamName: string, startTime: Date, endTime: Date }[];
+  private allStreamRanges: { streamName: string, startTime: Date, endTime: Date }[] = [];
   private currentStreamRanges: { streamName: string, startTime: Date, endTime: Date }[];
-  private streamList: StreamModel[];
+  private streamList: StreamModel[] = [];
+  private targetStreamList: StreamModel[] = [];
   private stream: { id: string, name: string };
   private destroy$ = new Subject();
+  private _sourceTbId$ = new BehaviorSubject<string>(null);
+  private _targetTbId$ = new BehaviorSubject<string>(null);
 
   public selectedTimezone$: Observable<GlobalFilterTimeZone>;
   public targetTypeIsTopic: boolean;
@@ -82,32 +99,49 @@ export class ModalPlayBackComponent implements OnInit {
       endTime: null
     });
 
-    this.selectedTimezone$ = this.globalFiltersService.getFilters().pipe(map(filters => filters.timezone[0]), takeUntil(this.destroy$))
+    this.selectedTimezone$ = this.globalFiltersService.getFilters().pipe(map(filters => filters.timezone[0]), takeUntil(this.destroy$));
 
-    this.streamsStore.pipe(select(streamsListStateSelector))
-      .pipe(
-        tap((state) => this.streamList =  state.streams ?? []),
-        map((state: fromStreams.State) => state.streams.map(stream => stream.name) ?? []),
-        takeUntil(this.destroy$)
-      )
-      .subscribe(streamNameList => this.streamNameList = streamNameList.filter(name => !!name.trim()));
+    this.timebases$ = this.streamsStore.pipe(select(getTimebases));
+    this.timebases$.pipe(takeUntil(this.destroy$)).subscribe((timebases) => {
+      this.timebasesList = timebases || [];
+    });
+
+    // Load stream lists when source/target TB changes
+    this._sourceTbId$.pipe(
+      filter(tbId => tbId != null),
+      distinctUntilChanged(),
+      switchMap(tbId => this.streamsService.getList(false, null, null, tbId)),
+      takeUntil(this.destroy$)
+    ).subscribe(streams => {
+      this.streamList = streams;
+      this.sourceStreamNameList = streams.map(s => s.name).filter(n => !!n.trim());
+      this.allStreamRanges = [];
+      const name = streams.find(s => s.key === this.stream.id)?.name ?? this.stream.name;
+      this.formGroup.patchValue({ sourceStreams: name ? [name] : [] });
+    });
+
+    this._targetTbId$.pipe(
+      filter(tbId => tbId != null),
+      distinctUntilChanged(),
+      switchMap(tbId => this.streamsService.getList(false, null, null, tbId)),
+      takeUntil(this.destroy$)
+    ).subscribe(streams => {
+      this.targetStreamList = streams;
+      this.targetStreamNameList = streams.map(s => s.name).filter(n => !!n.trim());
+    });
+
+    // Resolve default TB and trigger initial stream loading
+    this.streamsStore.pipe(select(getDefaultTimebase), take(1)).subscribe(defaultTb => {
+      const defaultId = defaultTb?.id ?? null;
+      if (!this.sourceTbId) { this.sourceTbId = defaultId; }
+      if (!this.targetTbId) { this.targetTbId = defaultId; }
+      this._sourceTbId$.next(this.sourceTbId);
+      this._targetTbId$.next(this.targetTbId);
+    });
 
     this.topicServics.getTopicList()
       .pipe(takeUntil(this.destroy$))
       .subscribe((topicList: string[]) => this.topicNameList = topicList);
-
-    this.streamsService.getProps(this.stream.id)
-      .pipe(
-        take(1), 
-        map((response: fromStreamProps.State) => [new Date(response.props.range.start), new Date(response.props.range.end)]),
-        takeUntil(this.destroy$)
-      )
-      .subscribe(timeRange => {
-        const [startTime, endTime] = timeRange;
-        this.formGroup.patchValue({ startTime, endTime });
-        this.cdRef.detectChanges();
-        this.allStreamRanges = [ { streamName: this.stream.name, startTime, endTime } ];
-      });
 
     this.formGroup.get('startTime').valueChanges
       .pipe(takeUntil(this.destroy$))
@@ -146,8 +180,8 @@ export class ModalPlayBackComponent implements OnInit {
             if (!this.allStreamRanges.find(item => item.streamName === streamName)) {
               const streamId = this.streamList.find(stream => stream.name === streamName).key;
               streamPropsObservables.push(
-                this.streamsService.getProps(streamId)
-                  .pipe(take(1), 
+                this.streamsService.getProps(streamId, true, this.sourceTbId)
+                  .pipe(take(1),
                     map((response: fromStreamProps.State) => [streamName, response.props.range.start, response.props.range.end]),
                   )
                 )
@@ -198,6 +232,16 @@ export class ModalPlayBackComponent implements OnInit {
       });
   }
 
+  onSourceTbChange(tbId: string) {
+    this.sourceTbId = tbId;
+    this._sourceTbId$.next(tbId);
+  }
+
+  onTargetTbChange(tbId: string) {
+    this.targetTbId = tbId;
+    this._targetTbId$.next(tbId);
+  }
+
   ngOnDestroy() {
     this.destroy$.next(true);
     this.destroy$.complete();
@@ -217,8 +261,9 @@ export class ModalPlayBackComponent implements OnInit {
     const sourceStreams = this.formGroup.value.sourceStreams.map((streamName: string) => {
       return this.streamList.find(stream => stream.name === streamName).key;
     });
-    const targetStream = isTopic ? this.formGroup.value.targetTopic : 
-      (this.streamList.find(stream => stream.name === this.formGroup.value.targetStream)?.key ?? 
+    const targetLookupList = this.targetStreamList.length ? this.targetStreamList : this.streamList;
+    const targetStream = isTopic ? this.formGroup.value.targetTopic :
+      (targetLookupList.find(stream => stream.name === this.formGroup.value.targetStream)?.key ??
       this.formGroup.value.targetStream);
 
     const params = { ...this.formGroup.value };
@@ -233,7 +278,9 @@ export class ModalPlayBackComponent implements OnInit {
       speed: speedValue === 'MAX' ? Number.MAX_SAFE_INTEGER : parseFloat(speedValue),
       from: this.inputsAreDisabled.startTime ? null : this.formGroup.get('startTime').value,
       to: this.inputsAreDisabled.endTime ? null : this.formGroup.get('endTime').value,
-      targetTopic: isTopic
+      targetTopic: isTopic,
+      sourceTb: this.sourceTbId,
+      targetTb: this.targetTbId,
     }).subscribe((id: number) => {
         this.playbackService.speedValues[id] = speedValue === 'MAX' ? 'MAX' : `${speedValue}x`;
         this.playbackService.permanenceValues[id] = this.formGroup.get('permanent').value;

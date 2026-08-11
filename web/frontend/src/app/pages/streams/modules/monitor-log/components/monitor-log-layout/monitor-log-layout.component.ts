@@ -203,6 +203,7 @@ export class MonitorLogLayoutComponent implements OnInit, AfterViewInit, OnDestr
             new StreamDetailsActions.GetSymbols({
               streamId: tabModel.stream,
               ...(tabModel.space ? {spaceId: tabModel.space} : {}),
+              ...(tabModel.tbId ? {tbId: tabModel.tbId} : {}),
             }),
           );
         }

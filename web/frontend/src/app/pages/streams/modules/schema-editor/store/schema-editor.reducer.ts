@@ -9,12 +9,12 @@ import {SchemaMappingModel} from '../models/schema.mapping.model';
 import {StreamMetaDataChangeModel} from '../models/stream.meta.data.change.model';
 import {SeFormPreferencesService} from '../services/se-form-preferences.service';
 import * as SchemaEditorActions from './schema-editor.actions';
-import { addIdsToSchema } from '../../../store/stream-details/stream-details.reducer';
 
 export const schemaEditorFeatureKey = 'schemaEditor';
 
 export interface State {
   streamId: string;
+  tbId: string;
   classes: SchemaClassTypeModel[];
   enums: SchemaClassTypeModel[];
   newClassAdding: boolean;
@@ -25,10 +25,12 @@ export interface State {
   diff: StreamMetaDataChangeModel;
   newDefaultValues: {[key: string]: {[key: string]: {}}};
   dropValues: {[key: string]: string[]};
+  duplicatedItems: {type: string; name: string; id: string}[];
 }
 
 const defaultState: State = {
   streamId: null,
+  tbId: null,
   classes: [],
   enums: [],
   newClassAdding: false,
@@ -43,9 +45,91 @@ const defaultState: State = {
   diff: null,
   newDefaultValues: null,
   dropValues: null,
+  duplicatedItems: [],
 };
 
 export const initialState: State = {...defaultState};
+
+// Module-level set of duplicate-name occurrences found while assigning ids in addIdsToSchema/addIdsToFields.
+// Each entry is a JSON string {"id": "...", "type": "<typeName>|null", "name": "..."}: type === null means a
+// duplicate class/enum, otherwise a duplicate field within the class named `type`. It's read and cleared by the
+// SetSchema/EditSchemaMergeState reducer handlers right after the call that populated it.
+const duplicatedItems = new Set<string>();
+
+export function addIdsToSchema(schemaItems: SchemaClassTypeModel[]) {
+  const itemsWithChangedParent = [];
+  const nameCount: {name: string; count: number}[] = [];
+  const schemaWithIds = schemaItems.map((row) => {
+    const targetIndex = nameCount.findIndex((infoItem) => infoItem.name === row.name);
+    if (targetIndex < 0) {
+      nameCount.push({name: row.name, count: 1});
+      return row.isEnum
+        ? {...row, id: row.name}
+        : {...row, id: row.name, fields: addIdsToFields(row.fields, row.name)};
+    } else {
+      const typeName = row.name;
+      const children = schemaItems.filter((schemaItem) => schemaItem.parent === typeName);
+      itemsWithChangedParent.push(...children);
+      nameCount.splice(targetIndex, 1, {name: row.name, count: (nameCount[targetIndex].count += 1)});
+      const id = `${row.name}${nameCount[targetIndex].count - 1}`;
+      duplicatedItems.add(JSON.stringify({id, type: null, name: row.name}));
+      return row.isEnum
+        ? {...row, id, duplicated: true}
+        : {...row, id, fields: addIdsToFields(row.fields, row.name), duplicated: true};
+    }
+  });
+  return changeParentNames(schemaWithIds, itemsWithChangedParent);
+}
+
+export function addIdsToFields(fields: SchemaClassFieldModel[], typeName: string) {
+  const nameCount: {name: string; count: number}[] = [];
+  return (fields || []).map((field) => {
+    const targetIndex = nameCount.findIndex((infoItem) => infoItem.name === field.name);
+    if (targetIndex < 0) {
+      nameCount.push({name: field.name, count: 1});
+      return {...field, id: field.name};
+    } else {
+      nameCount.splice(targetIndex, 1, {name: field.name, count: (nameCount[targetIndex].count += 1)});
+      const id = `${field.name}${nameCount[targetIndex].count - 1}`;
+      duplicatedItems.add(JSON.stringify({id, type: typeName, name: field.name}));
+      return {...field, id, duplicated: true};
+    }
+  });
+}
+
+// If a class/enum's parent name was itself duplicated, children whose `parent` still points at the old
+// name need to be repointed at the correct parent id, otherwise the parent/children hierarchy breaks
+// once duplicate names are disambiguated above.
+function changeParentNames(schemaItems: SchemaClassTypeModel[], itemsWithChangedParent: SchemaClassTypeModel[]) {
+  const nameSet = new Set<string>();
+  const repeatingChildren = itemsWithChangedParent.reduce((acc, schemaItem) => {
+    if (nameSet.has(schemaItem.name)) {
+      acc.add(schemaItem.name);
+    } else {
+      nameSet.add(schemaItem.name);
+    }
+    return acc;
+  }, new Set<string>());
+
+  if (!repeatingChildren.size) {
+    return schemaItems;
+  } else {
+    const childNameCount: {name: string; count: number}[] = [];
+    return schemaItems.map((row) => {
+      const targetIndex = childNameCount.findIndex((infoItem) => infoItem.name === row.name);
+      if (targetIndex < 0) {
+        childNameCount.push({name: row.name, count: 1});
+        return row;
+      } else {
+        childNameCount.splice(targetIndex, 1, {name: row.name, count: (childNameCount[targetIndex].count += 1)});
+        const targetParent = schemaItems.find(
+          (schemaItem) => schemaItem.id === `${row.parent}${childNameCount[targetIndex].count - 1}`,
+        );
+        return targetParent ? {...row, parent: targetParent.id} : row;
+      }
+    });
+  }
+}
 
 const getSortedSchema = ({
   types,
@@ -142,11 +226,15 @@ const getDropValues = (diff: StreamMetaDataChangeModel): {[key: string]: string[
 
 const schemaEditorReducer = createReducer(
   initialState,
-  on(SchemaEditorActions.SetStreamId, (state, {streamId}) => ({...state, streamId})),
-  on(SchemaEditorActions.SetSchema, (state, {schema}) => ({
-    ...state,
-    ...getSortedSchema({ types: addIdsToSchema(schema.types), all: addIdsToSchema(schema.all) }),
-  })),
+  on(SchemaEditorActions.SetStreamId, (state, {streamId, tbId}) => ({...state, streamId, tbId: tbId ?? null})),
+  on(SchemaEditorActions.SetSchema, (state, {schema}) => {
+    duplicatedItems.clear();
+    return {
+      ...state,
+      ...getSortedSchema({types: addIdsToSchema(schema.types), all: addIdsToSchema(schema.all)}),
+      duplicatedItems: Array.from(duplicatedItems).map((item) => JSON.parse(item)),
+    };
+  }),
   on(SchemaEditorActions.SetSchemaDiff, (state, {diff}) => ({
     ...state,
     diff,
@@ -455,6 +543,7 @@ const schemaEditorReducer = createReducer(
       const NEW_FIELD: SchemaClassFieldModel = {
         hide: false,
         name: name,
+        id: name,
         title: '',
         static: !!isStatic,
         type: SeFormPreferencesService.preferType,
@@ -606,10 +695,10 @@ const schemaEditorReducer = createReducer(
 
       const NEW_PROPS = {...SELECTED_ITEM._props};
       const deletedFieldsUuids = SELECTED_ITEM.fields
-        .filter(field => deletingItems.includes(field.name))
+        .filter(field => deletingItems.includes(field.id))
         .map(field => field._props._uuid);
 
-      SELECTED_ITEM.fields = SELECTED_ITEM.fields.filter(field => !deletingItems.includes(field.name));
+      SELECTED_ITEM.fields = SELECTED_ITEM.fields.filter(field => !deletingItems.includes(field.id));
   
       const selectedFieldRemoved = deletedFieldsUuids.includes(SELECTED_ITEM._props._selectedFieldUuid);
       if (selectedFieldRemoved) {
@@ -672,10 +761,13 @@ const schemaEditorReducer = createReducer(
       },
     };
 
+    const wasDuplicated = field.duplicated;
+
     field = {
       ...field,
       ...newData,
       ...(updateKey === 'enums' ? enumAttributes : {}),
+      duplicated: field.duplicated && newData.name === oldName,
       targetName: newData.name,
       _props: {
         ...field._props,
@@ -683,6 +775,20 @@ const schemaEditorReducer = createReducer(
         _isSelected,
       },
     };
+
+    // Renaming a duplicated field out of collision clears its `duplicated` flag; keep
+    // stateCopy.duplicatedItems and the module-level tracker (read by SetSchema/EditSchemaMergeState) in sync.
+    if (wasDuplicated && !field.duplicated) {
+      stateCopy.duplicatedItems = stateCopy.duplicatedItems.filter(
+        (item) => !(item.type === type.name && item.id === field.id),
+      );
+      duplicatedItems.forEach((entry) => {
+        const parsed = JSON.parse(entry);
+        if (parsed.type === type.name && parsed.id === field.id) {
+          duplicatedItems.delete(entry);
+        }
+      });
+    }
 
     if (_isSelected) {
       type._props._selectedFieldUuid = field._props._uuid;
@@ -978,6 +1084,15 @@ const schemaEditorReducer = createReducer(
         ...state,
         classes: [...state.classes, ...classes],
         enums: [...state.enums, ...enums],
+        duplicatedItems: [
+          ...state.duplicatedItems,
+          ...[...classes, ...enums].filter((item) => item.duplicated).map((item) => ({id: item.id, type: null, name: item.name})),
+          ...[...classes, ...enums].flatMap((item) =>
+            (item.fields || [])
+              .filter((field) => field.duplicated)
+              .map((field) => ({id: field.id, type: item.name, name: field.name})),
+          ),
+        ],
         newClassAdding: false,
         newEnumAdding: false,
         _isEdited: true,
@@ -990,6 +1105,23 @@ const schemaEditorReducer = createReducer(
         newDefaultValues: {},
         dropValues: {},
     }
+  }),
+  on(SchemaEditorActions.RemoveDuplicatedSchemaItems, (state) => {
+    const newState = {
+      ...state,
+      classes: state.classes
+        .filter((schemaItem) => !state.duplicatedItems.find((item) => item.id === schemaItem.id && !item.type))
+        .map((schemaItem) => ({
+          ...schemaItem,
+          fields: schemaItem.fields.filter(
+            (field) => !state.duplicatedItems.find((item) => item.id === field.id && item.type === schemaItem.name),
+          ),
+        })),
+      enums: state.enums.filter((schemaItem) => !state.duplicatedItems.find((item) => item.id === schemaItem.id && !item.type)),
+      duplicatedItems: [],
+    };
+    duplicatedItems.clear();
+    return newState;
   }),
 );
 

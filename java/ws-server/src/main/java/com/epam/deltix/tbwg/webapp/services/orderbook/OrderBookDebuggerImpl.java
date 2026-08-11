@@ -57,34 +57,28 @@ public class OrderBookDebuggerImpl implements OrderBookDebugger {
     @Value("${order-book-debugger.snapshot-lookup-ms:60000}")
     private long snapshotLookupMs;
 
-    private final TimebaseService timebase;
-
-    public OrderBookDebuggerImpl(TimebaseService timebase) {
-        this.timebase = timebase;
-    }
-
     @Override
-    public L2PackageDto snapshot(OrderBookSnapshotRequest request) throws NoStreamsException {
+    public L2PackageDto snapshot(OrderBookSnapshotRequest request, TimebaseService service) throws NoStreamsException {
         if (request.isReverse()) {
             return reverseSnapshot(
-                request.getStreams(), request.getSymbol(), request.getFrom(),
+                service, request.getStreams(), request.getSymbol(), request.getFrom(),
                 request.getOffset(), request.getTypes(), request.getSymbols(), request.getSpace(), request.getLevel()
             );
         } else {
             return snapshot(
-                request.getStreams(), request.getSymbol(), request.getFrom(),
+                service, request.getStreams(), request.getSymbol(), request.getFrom(),
                 request.getOffset(), request.getTypes(), request.getSymbols(), request.getSpace(), request.getLevel()
             );
         }
     }
 
-    private L2PackageDto snapshot(String[] streamKeys, String symbol, long startTime, long offset,
+    private L2PackageDto snapshot(TimebaseService service, String[] streamKeys, String symbol, long startTime, long offset,
                                   String[] types, String[] symbols, String space, DataModelType bookLevel)
     {
         boolean snapshotFound = false;
         boolean packageHeaderFound = false;
         long from = startTime == Long.MIN_VALUE ? Long.MIN_VALUE : startTime - snapshotLookupMs;
-        try (TickCursor cursor = select(streamKeys, symbols, from, types, space, false)) {
+        try (TickCursor cursor = select(service, streamKeys, symbols, from, types, space, false)) {
             OrderBook<OrderBookQuote> book = createBook(symbol, DataModelType.LEVEL_TWO);
 
             long currentOffset = -1;
@@ -135,13 +129,13 @@ public class OrderBookDebuggerImpl implements OrderBookDebugger {
         return snapshot;
     }
 
-    private L2PackageDto reverseSnapshot(String[] streamKeys, String symbol, long startTime, long offset,
+    private L2PackageDto reverseSnapshot(TimebaseService service, String[] streamKeys, String symbol, long startTime, long offset,
                                          String[] types, String[] symbols, String space, DataModelType bookLevel)
     {
         boolean snapshotFound = false;
         List<PackageHeaderInfo> messages = new ArrayList<>();
         long messageTimestamp = Long.MIN_VALUE;
-        try (TickCursor cursor = select(streamKeys, symbols, startTime, types, space, true)) {
+        try (TickCursor cursor = select(service, streamKeys, symbols, startTime, types, space, true)) {
             int currentOffset = 0;
 
             while (cursor.next()) {
@@ -254,10 +248,10 @@ public class OrderBookDebuggerImpl implements OrderBookDebugger {
         return packageDto;
     }
 
-    private TickCursor select(String[] streamKeys, String[] symbols, long startTime,
+    private TickCursor select(TimebaseService service, String[] streamKeys, String[] symbols, long startTime,
                               String[] types, String space, boolean reverse) throws NoStreamsException
     {
-        List<DXTickStream> streams = getStreams(streamKeys);
+        List<DXTickStream> streams = getStreams(service, streamKeys);
 
         SelectionOptions options = new SelectionOptions();
         options.channelQOS = ChannelQualityOfService.MIN_INIT_TIME;
@@ -266,18 +260,18 @@ public class OrderBookDebuggerImpl implements OrderBookDebugger {
         options.withSpace(space);
         options.typeLoader = new DefaultTypeLoader();
 
-        return timebase.getConnection().select(startTime, options, types, getInstrument(streams, symbols),
+        return service.getConnection().select(startTime, options, types, getInstrument(streams, symbols),
             streams.toArray(new DXTickStream[streams.size()]));
     }
 
-    private List<DXTickStream> getStreams(String... streamKeys) throws NoStreamsException {
+    private List<DXTickStream> getStreams(TimebaseService service, String... streamKeys) throws NoStreamsException {
         if (streamKeys == null || streamKeys.length == 0) {
             throw new NoStreamsException();
         }
 
         List<DXTickStream> streams = new ArrayList<>(streamKeys.length);
         for (String key : streamKeys) {
-            DXTickStream stream = timebase.getStream(key);
+            DXTickStream stream = service.getStream(key);
             if (stream != null)
                 streams.add(stream);
         }

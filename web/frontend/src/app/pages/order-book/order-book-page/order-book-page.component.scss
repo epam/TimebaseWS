@@ -1,4 +1,5 @@
 @import 'src/app/core/styles/variables';
+@import 'src/app/core/styles/db-selector';
 
 app-order-book {
   flex-grow: 1;
@@ -28,6 +29,21 @@ ng-multiselect-dropdown {
   display: inline-block;
   min-width: 0;
   margin-bottom: 15px;
+}
+
+.db-selector {
+  height: 34px;
+  margin-left: 0;
+  margin-bottom: 15px;
+  vertical-align: unset;
+}
+
+.db-indicator {
+  display: inline-block;
+  vertical-align: unset;
+  margin-left: 0;
+  margin-bottom: 15px;
+  line-height: 34px;
 }
 
 .streams-filter {

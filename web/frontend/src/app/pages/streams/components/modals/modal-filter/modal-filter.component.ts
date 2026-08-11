@@ -36,6 +36,7 @@ export class ModalFilterComponent implements OnInit, OnDestroy {
   stream: string;
   symbol: string;
   space: string;
+  tbId: string;
 
   private destroy$ = new Subject();
 
@@ -50,7 +51,7 @@ export class ModalFilterComponent implements OnInit, OnDestroy {
     this.dropdownListTypes = this.types.map((t) => ({name: t.name, id: t.name}));
 
     this.dropdownListSymbols$ = this.symbolsService
-      .getSymbols(this.stream, this.space)
+      .getSymbols(this.stream, this.space, null, this.tbId)
       .pipe(map((symbols) => symbols.map((s) => ({name: s, id: s}))));
 
     merge(this.symbolsControl.valueChanges, this.typesControl.valueChanges)

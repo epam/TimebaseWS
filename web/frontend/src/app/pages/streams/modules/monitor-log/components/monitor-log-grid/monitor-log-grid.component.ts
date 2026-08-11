@@ -246,7 +246,7 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
         if (tab.stream.endsWith('#topic#')) {
           return this.topicService.getTopicSchema(tab.stream.slice(0, tab.stream.length - 7));
         } else {
-          return this.schemaService.getSchema(tab.stream, null, true).pipe(
+          return this.schemaService.getSchema(tab.stream, null, true, tab.tbId).pipe(
             catchError(e => {
               this.error$.next(e);
               return of(null);
@@ -397,7 +397,11 @@ export class MonitorLogGridComponent implements OnInit, OnDestroy {
           if (tab.filter.filter_types && tab.filter.filter_types.length) {
             socketData.types = tab.filter.filter_types;
           }
-          
+
+          if (tab.tbId) {
+            socketData.tbId = tab.tbId;
+          }
+
           this.monitorLogGridDataService?.destroy();
           
           this.subIsInited = true;

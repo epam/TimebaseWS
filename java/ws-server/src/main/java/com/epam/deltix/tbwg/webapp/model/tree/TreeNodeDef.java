@@ -35,6 +35,8 @@ public class TreeNodeDef {
     private long childrenCount;
     private long totalCount;
     private List<TreeNodeDef> children = new ArrayList<>();
+    private boolean available = true;
+    private String errorMessage;
 
     public TreeNodeDef(String id, TreeNodeType type) {
         this(id, id, type);

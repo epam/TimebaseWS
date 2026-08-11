@@ -43,6 +43,7 @@ export class ImportFromTextFileService {
 
   public sessionId: string;
   public streamId: string;
+  public tbId: string = null;
   public streamIdSubject = new Subject<string>();
   public uploadingId: string = '';
   public validation = {};
@@ -118,7 +119,8 @@ export class ImportFromTextFileService {
   public initImport(streamId = this.streamId): Observable<string> {
     const formData = new FormData();
     formData.append('streamKey', streamId);
-    return this.http.post<string>(this.uploadFileUrl, formData);
+    const params = this.tbId ? {tb: this.tbId} : {};
+    return this.http.post<string>(this.uploadFileUrl, formData, {params});
   }
 
   public getPreviews() {
@@ -230,7 +232,7 @@ export class ImportFromTextFileService {
   }
 
   public getStreamSchema() {
-    return this.http.get(`${this.streamId}/schema`);
+    return this.http.get(`${this.streamId}/schema`, this.tbId ? {params: {tb: this.tbId}} : {});
   }
 
   public validateMappingGeneral() {
@@ -283,6 +285,7 @@ export class ImportFromTextFileService {
       this.uploadedFiles.length = 0;
       this.sessionId = null;
       this.streamId = null;
+      this.tbId = null;
       this.streamIdSubject.next(this.streamId);
       this.validation = {};
       this.validationSubject.next(this.validation);
@@ -472,13 +475,16 @@ export class ImportFromTextFileService {
   }
 
   public createStream(streamName: string, storageVersion: string, distributionFactor: number) {
-    const params = {
+    const params: any = {
       key: streamName,
       version: storageVersion,
       distributionFactor
     };
     if (!params.distributionFactor) {
       delete params.distributionFactor;
+    }
+    if (this.tbId) {
+      params.tb = this.tbId;
     }
     const { types, all } = this.createdStreamSchema;
     return this.http.post('/createStream',

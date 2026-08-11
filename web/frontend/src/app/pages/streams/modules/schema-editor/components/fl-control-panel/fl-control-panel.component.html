@@ -156,9 +156,9 @@
     <ul class="class-enum-field-list">
       <li *ngFor="let field of fieldList">
         <label class="container-ch">
-          <input type="checkbox" (change)="onRemoveItemsModalCheckboxChange($event, field)">
+          <input type="checkbox" (change)="onRemoveItemsModalCheckboxChange($event, field.id)">
           <span class="checkmark"></span>
-          <span class='item-name field-name'>{{ field }}</span>
+          <span class='item-name field-name'>{{ field.name }}</span>
         </label>
       </li>
     </ul>

@@ -31,4 +31,6 @@ public interface ImportSettings {
     Periodicity getPeriodicity();
     boolean isFileBySymbol();
     LoadingOptions.WriteMode getWriteMode();
+
+    default String getTbId() { return null; }
 }

@@ -72,7 +72,7 @@ export class CheckConnectionService {
       })
       .pipe(
         map((response: AppInfoModel) =>
-          response.timebase.connected
+          response.timebases?.some(tb => tb.connected)
             ? ConnectionStatus.ok
             : ConnectionStatus.timebaseNotResponding,
         ),

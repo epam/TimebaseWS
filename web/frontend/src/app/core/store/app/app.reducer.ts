@@ -33,7 +33,7 @@ export const initialState: State = {
     name: null,
     version: null,
     timestamp: null,
-    timebase: null,
+    timebases: [],
     authentication: null,
   },
 };

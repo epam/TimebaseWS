@@ -31,16 +31,11 @@ import java.util.ArrayList;
 @ConditionalOnBean(AiApiSettings.class)
 public class QueryCompiler {
     private static final Log LOG = LogFactory.getLog(QueryCompiler.class);
-    private final TimebaseService timebaseService;
 
-    public QueryCompiler(TimebaseService timebaseService) {
-        this.timebaseService = timebaseService;
-    }
-
-    public String compile(String query) {
+    public String compile(String query, TimebaseService service) {
         if (query == null || query.isBlank()) return "Empty query";
         try {
-            TickDBClient tb = (TickDBClient) timebaseService.getConnection();
+            TickDBClient tb = (TickDBClient) service.getConnection();
             tb.compileQuery(query, new ArrayList<>());
             return "";
         } catch (CompilationException ce) {

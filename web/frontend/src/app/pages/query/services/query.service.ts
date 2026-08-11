@@ -14,14 +14,14 @@ export class QueryService {
 
   serverErrorQueries = new Set<string>();
 
-  describe(query: string): Observable<{types: SchemaTypeModel[]; all: SchemaTypeModel[]}> {
+  describe(query: string, tb?: string): Observable<{types: SchemaTypeModel[]; all: SchemaTypeModel[]}> {
+    const params: {[k: string]: string} = {tree: 'true'};
+    if (tb) params['tb'] = tb;
     return this.httpClient.post<{types: SchemaTypeModel[]; all: SchemaTypeModel[]}>(
       `/describe`,
       {query},
       {
-        params: {
-          tree: 'true',
-        },
+        params,
         headers: {
           customError: 'true',
         },
@@ -29,11 +29,14 @@ export class QueryService {
     );
   }
 
-  query(query: string, offset: number, rows: number) {
+  query(query: string, offset: number, rows: number, tb?: string) {
+    const params: {[k: string]: string} = {};
+    if (tb) params['tb'] = tb;
     return this.httpClient.post<StreamDetailsModel[]>(
       `/query`,
       {query, offset, rows},
       {
+        params: Object.keys(params).length ? params : undefined,
         headers: {
           customError: 'true',
         },
@@ -41,11 +44,14 @@ export class QueryService {
     );
   }
 
-  compile(query: string): Observable<CompileResponse> {
+  compile(query: string, tb?: string): Observable<CompileResponse> {
+    const params: {[k: string]: string} = {};
+    if (tb) params['tb'] = tb;
     return this.httpClient.post<CompileResponse>(
       `/compileQuery`,
       {query},
       {
+        params: Object.keys(params).length ? params : undefined,
         headers: {
           customError: 'true',
         },
@@ -53,11 +59,29 @@ export class QueryService {
     );
   }
 
-  export(query: string, format: ExportTypes): Observable<{id: string}> {
+  checkQueryTb(query: string, tb?: string): Observable<{tbId: string; changed: boolean; streams: string[]; error: string}> {
+    const params: {[k: string]: string} = {};
+    if (tb) params['tb'] = tb;
+    return this.httpClient.post<{tbId: string; changed: boolean; streams: string[]; error: string}>(
+      `/checkQueryTb`,
+      {query},
+      {
+        params: Object.keys(params).length ? params : undefined,
+        headers: {
+          customError: 'true',
+        },
+      },
+    );
+  }
+
+  export(query: string, format: ExportTypes, tb?: string): Observable<{id: string}> {
+    const params: {[k: string]: string} = {};
+    if (tb) params['tb'] = tb;
     return this.httpClient.post<{id: string}>(
       `/export-query`,
       {query, format},
       {
+        params: Object.keys(params).length ? params : undefined,
         headers: {
           customError: 'true',
         },

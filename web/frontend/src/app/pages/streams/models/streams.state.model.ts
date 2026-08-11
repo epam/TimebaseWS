@@ -1,6 +1,7 @@
 export interface StreamsStateModel {
   messageType?: string;
   id?: number;
+  tbId?: string;
   added?: string[];
   deleted?: Array<string | {streamId: string; space: string}>;
   changed?: string[];

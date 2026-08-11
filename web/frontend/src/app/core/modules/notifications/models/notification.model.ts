@@ -18,6 +18,8 @@ export class NotificationModel {
 
   public alias?: string;
   public fullErrorText?: string;
+  public typeList?: string[];
+  public fieldList?: {name: string; type: string}[];
 
   constructor(notification: NotificationModel) {
     Object.assign(this, notification || {});

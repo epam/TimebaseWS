@@ -25,7 +25,7 @@ public interface OrderBookService {
 
     void subscribe(String sessionId, String subscriptionId,
                    String instrument, String[] streams, String[] hiddenExchanges,
-                   Consumer<L2PackageDto> consumer);
+                   String tbId, Consumer<L2PackageDto> consumer);
 
     void unsubscribe(String sessionId, String subscriptionId, String instrument);
 

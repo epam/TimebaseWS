@@ -16,6 +16,7 @@
  */
 package com.epam.deltix.tbwg.webapp.services.view;
 
+import com.epam.deltix.tbwg.webapp.services.timebase.exc.InvalidQueryException;
 import com.epam.deltix.tbwg.webapp.services.view.md.ViewMd;
 
 import java.time.Instant;
@@ -33,17 +34,17 @@ public interface ViewService {
 
     boolean isViewStream(String key);
 
-    void create(ViewMd viewMd);
+    void create(ViewMd viewMd, String tbId) throws InvalidQueryException;
 
-    void delete(String id);
+    void delete(String id, String tbId);
 
-    void restart(String id, Instant from);
+    void restart(String id, String tbId, Instant from);
 
-    void stop(String id);
+    void stop(String id, String tbId);
 
-    ViewMd get(String id);
+    ViewMd get(String id, String tbId);
 
-    List<ViewMd> list();
+    List<ViewMd> list(String tbId);
 
     void subscribe(ViewListener listener);
 

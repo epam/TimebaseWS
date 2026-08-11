@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 @ConfigurationProperties(prefix = "timebase")
 public class TimebaseSettings {
 
+    private String id;
     private String url;
     private String user;
     private String password;
@@ -36,6 +37,14 @@ public class TimebaseSettings {
     private boolean enableUac;
 
     private TbUacSettings uac = new TbUacSettings();
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public boolean isOauth2ClientConfigured() {
         return oauth2Client != null && oauth2Client.getUrl() != null;

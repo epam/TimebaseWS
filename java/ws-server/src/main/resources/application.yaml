@@ -24,6 +24,7 @@ management:
     web:
       exposure:
         include: "metrics,prometheus"
+# Single-instance TimeBase configuration:
 timebase:
   url: dxtick://localhost:8011
   readonly: false
@@ -36,6 +37,24 @@ timebase:
   currencies:
   tree:
     group-size: 1000
+# Multi-instance TimeBase configuration:
+#timebases:
+#  - id: tb1
+#    url: dxtick://localhost:8011
+#    readonly: false
+#    flushPeriodMs: 500
+#    streams:
+#      exclude: \#$ && \^metrics#
+#    tree:
+#      group-size: 1000
+#  - id: tb2
+#    url: dxtick://localhost:8012
+#    readonly: false
+#    flushPeriodMs: 500
+#    streams:
+#      exclude: \#$ && \^metrics#
+#    tree:
+#      group-size: 1000
 grafana:
   pluginsPackages:
     - com.epam.deltix.grafana

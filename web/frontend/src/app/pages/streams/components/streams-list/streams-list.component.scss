@@ -131,6 +131,22 @@ cdk-virtual-scroll-viewport {
         pointer-events: none;
         cursor: default;
       }
+
+      &[data-type="DB"] {
+        font-weight: 600;
+        color: $white;
+        opacity: 0.9;
+      }
+
+      &.db-unavailable {
+        color: $red;
+        opacity: 0.7;
+        cursor: default;
+
+        &:hover, &.active {
+          color: $red;
+        }
+      }
     }
 
     .menu-item-title {
@@ -144,6 +160,13 @@ cdk-virtual-scroll-viewport {
       opacity: 0.75;
       flex-shrink: 0;
       margin-left: 2 * $ss;
+    }
+
+    .db-unavailable-icon {
+      flex-shrink: 0;
+      margin-left: 2 * $ss;
+      color: $red;
+      cursor: help;
     }
   }
 }

@@ -75,7 +75,7 @@ export class LoginComponent implements AfterContentChecked, OnInit, AfterViewIni
         filter((isLoggedIn) => isLoggedIn),
         take(1),
         switchMap(() => this.appInfoService.getAppInfo()),
-        map(appInfo => appInfo?.timebase?.connected),
+        map(appInfo => appInfo?.timebases?.some(tb => tb.connected)),
         takeUntil(this.destroy$),
       )
       .subscribe({

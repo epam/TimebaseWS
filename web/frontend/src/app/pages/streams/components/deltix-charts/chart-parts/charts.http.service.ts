@@ -11,9 +11,9 @@ export class ChartsHttpService {
   constructor(private httpClient: HttpClient) {
   }
   
-  data(stream: string, params: { [index: string]: string | string[] }, correlationId: string): Observable<ChartModel[]> {
+  data(stream: string, params: { [index: string]: string | string[] }, correlationId: string, tbId?: string): Observable<ChartModel[]> {
     return this.httpClient.get<ChartModel[]>(`charting/dx/${encodeURIComponent(stream)}`, {
-      params: {...params, correlationId},
+      params: {...params, correlationId, ...(tbId ? {tb: tbId} : {})},
       headers: {customError: 'true'},
     });
   }
@@ -28,8 +28,10 @@ export class ChartsHttpService {
       .pipe(mapTo(null));
   }
   
-  linesInfo(stream: string): Observable<string[]> {
-    return this.httpClient.get<string[]>(`charting/${encodeURIComponent(stream)}/settings/linear-chart-columns`);
+  linesInfo(stream: string, tbId?: string): Observable<string[]> {
+    return this.httpClient.get<string[]>(`charting/${encodeURIComponent(stream)}/settings/linear-chart-columns`, {
+      params: tbId ? {tb: tbId} : {},
+    });
   }
 
   getMarketHours(startTime: string, endTime: string, exchangeId: string) {

@@ -1,5 +1,12 @@
+@import 'src/app/core/styles/variables';
+@import 'src/app/core/styles/db-selector';
+
 form {
   padding: 0rem 2rem;
+}
+
+.db-selector {
+  height: 24px;
 }
 
 ::ng-deep .modal-xl {

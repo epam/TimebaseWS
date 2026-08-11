@@ -109,7 +109,8 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() padding = 30;
   @Input() showLastTime = false;
   @Input() source: string;
-  
+  @Input() tbId: string;
+
   @Output() ready = new EventEmitter<void>();
   @Output() readyWithData = new EventEmitter<void>();
   @Output() destroy = new EventEmitter<void>();
@@ -140,6 +141,7 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
     streams: string[];
     symbol: string;
     source: string;
+    tbId?: string;
   }>();
   private reRun$ = new BehaviorSubject(null);
   private exchanges$ = new BehaviorSubject<Set<string>>(new Set<string>());
@@ -186,21 +188,21 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
       .pipe(
         map(([changes]) => changes),
         filter(changes => changes.symbol && changes.streams && changes.hiddenExchanges && changes.source),
-        filter(changes => this.lastSubscriptionParams !== changes.symbol + changes.streams + changes.hiddenExchanges + changes.source),
-        tap(changes => this.lastSubscriptionParams = changes.symbol + changes.streams + changes.hiddenExchanges + changes.source),
+        filter(changes => this.lastSubscriptionParams !== changes.symbol + changes.streams + changes.hiddenExchanges + changes.source + (changes.tbId || '')),
+        tap(changes => this.lastSubscriptionParams = changes.symbol + changes.streams + changes.hiddenExchanges + changes.source + (changes.tbId || '')),
         switchMap((data) => this.symbolConfig(data.symbol)),
         takeUntil(this.destroy$),
       )
       .subscribe(data => this.runBook(data));
-    
+
     combineLatest([
       changes$.pipe(
         distinctUntilChanged(equal),
         filter(changes => changes.symbol && changes.streams && changes.hiddenExchanges && changes.source),
-        filter(changes => this.lastSubscriptionParams !== changes.symbol + changes.streams + changes.hiddenExchanges + changes.source),
+        filter(changes => this.lastSubscriptionParams !== changes.symbol + changes.streams + changes.hiddenExchanges + changes.source + (changes.tbId || '')),
         switchMap(changes => {
-          this.lastSubscriptionParams = changes.symbol + changes.streams + changes.hiddenExchanges + changes.source;
-          return this.getFeed(changes.symbol, changes.streams, changes.hiddenExchanges, changes.source);
+          this.lastSubscriptionParams = changes.symbol + changes.streams + changes.hiddenExchanges + changes.source + (changes.tbId || '');
+          return this.getFeed(changes.symbol, changes.streams, changes.hiddenExchanges, changes.source, changes.tbId);
         }),
       ),
       this.changes$.pipe(map(changes => changes.symbol)),
@@ -247,9 +249,10 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
       streams: this.streams,
       hiddenExchanges: this.hiddenExchanges,
       symbol: this.symbol,
-      source: this.source
+      source: this.source,
+      tbId: this.tbId,
     });
-    
+
     this.exchanges$
       .pipe(
         bufferTime(300),
@@ -285,7 +288,8 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
       hiddenExchanges: this.hiddenExchanges,
       symbol: this.symbol,
       streams: this.streams,
-      source: this.source
+      source: this.source,
+      tbId: this.tbId,
     });
   }
   
@@ -336,7 +340,7 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
     this.dataReady$.next(false);
     this.ready$.next(false);
     const orderGridKernel = new OrderGridEmbeddableKernel(params);
-    const feed$: Observable<IL2Package> = this.getFeed(this.symbol, this.streams, this.hiddenExchanges, this.source)
+    const feed$: Observable<IL2Package> = this.getFeed(this.symbol, this.streams, this.hiddenExchanges, this.source, this.tbId)
       .pipe(
         tap((message) => {
           const data = this.exchanges$.getValue();
@@ -473,20 +477,24 @@ export class OrderBookComponent implements AfterViewInit, OnDestroy, OnChanges {
     });
   }
   
-  private getFeed(symbol: string, streams: string[], hiddenExchanges: string[], source: string): Observable<IL2Package> {
+  private getFeed(symbol: string, streams: string[], hiddenExchanges: string[], source: string, tbId?: string): Observable<IL2Package> {
     if (this.feed$) {
       return this.feed$.pipe(
         tap(feed => this.precisionFromFeedData(feed)),
         map(feed => ({...feed, entries: feed.entries.map(entry => ({...entry, quantity: entry.quantity || 0}))}))
       );
     } else {
+      const headers: { [key: string]: string } = {
+        instrument: symbol,
+        streams: JSON.stringify(streams),
+        hiddenExchanges: JSON.stringify(hiddenExchanges),
+        source,
+      };
+      if (tbId) {
+        headers.tbId = tbId;
+      }
       return this.wsService
-        .watchObject<IL2Package>('/user/topic/order-book', {
-          instrument: symbol,
-          streams: JSON.stringify(streams),
-          hiddenExchanges: JSON.stringify(hiddenExchanges),
-          source
-        }).pipe(
+        .watchObject<IL2Package>('/user/topic/order-book', headers).pipe(
           tap(feed => {
             this.precisionFromFeedData(feed);
             this.noDataForInDepthChart = feed.type === 'snapshot_full_refresh' && feed.entries.length < 3 ? true : false;

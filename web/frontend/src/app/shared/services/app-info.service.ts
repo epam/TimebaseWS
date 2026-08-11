@@ -12,8 +12,8 @@ export class AppInfoService {
   constructor(private http: HttpClient) {}
 
   checkTimebaseVersion(version: string, appInfo: AppInfoModel) {
-    if (appInfo?.timebase?.clientVersion) {
-      const timebaseVersion = appInfo.timebase.clientVersion.split('.').map(num => +num);
+    if (appInfo?.timebases?.[0]?.clientVersion) {
+      const timebaseVersion = appInfo.timebases[0].clientVersion.split('.').map(num => +num);
       const targetVersion = version.split('.').map(num => +num);
   
       return timebaseVersion[0] > targetVersion[0] || 

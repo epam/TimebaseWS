@@ -52,7 +52,7 @@ export class ModalRenameComponent implements OnInit, OnDestroy {
       : this.data.stream.name;
 
     const existing$ = this.streamsService
-      .getList(false)
+      .getList(false, null, null, this.data.stream.tbId)
       .pipe(map((streams) => streams
         .filter(stream => stream.key !== this.data.stream.id)
         .map((stream) => stream.key)));
@@ -99,6 +99,7 @@ export class ModalRenameComponent implements OnInit, OnDestroy {
         this.appStore.dispatch(
           new StreamsActions.AskToRenameStream({
             streamId: this.data.stream.id,
+            tbId: this.data.stream.tbId,
             newName: this.renameForm.get('newName').value,
             ...(this.data.space ? {spaceName: this.data.space.id} : {}),
           }),
@@ -108,6 +109,7 @@ export class ModalRenameComponent implements OnInit, OnDestroy {
       this.appStore.dispatch(
         new StreamsActions.AskToRenameSymbol({
           streamId: this.data.stream.id,
+          tbId: this.data.stream.tbId,
           ...(this.data.space ? {spaceName: this.data.space.id} : {}),
           newSymbolName: this.renameForm.get('newName').value,
           oldSymbolName: this.data.symbol,

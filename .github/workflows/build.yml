@@ -19,29 +19,24 @@ jobs:
       fail-fast: false
       matrix:
         java: [ '17' ]
-        os: [ 'ubuntu-22.04']
+        os: [ 'ubuntu-latest']
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           lfs: true
-      - name: Cache gradle dependencies
-        uses: actions/cache@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-caches-${{ hashFiles('**/*.gradle') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-caches-
-      - name: Cache gradle wrapper
-        uses: actions/cache@v3
-        with:
-          path: ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
+          node-version: '16.13.0'
+          cache: 'yarn'      # Automatically caches dependencies for faster builds
+          cache-dependency-path: 'web/frontend/yarn.lock'
       - name: Setup java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
+          cache: 'gradle'
       - name: Build with gradle
         run: ./gradlew build checkLicense
       - name: Build docker

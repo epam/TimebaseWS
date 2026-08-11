@@ -1,4 +1,5 @@
 @import 'src/app/core/styles/variables';
+@import 'src/app/core/styles/db-selector';
 
 :host {
   display: flex;
@@ -46,9 +47,28 @@
   }
 
   &__right {
+    display: flex;
+    align-items: center;
+
     button {
       margin-left: 10px;
     }
+  }
+
+  .db-indicator {
+    display: flex;
+    white-space: nowrap;
+    cursor: default;
+  }
+
+  .db-selector {
+    margin-left: 0;
+    margin-right: 6px;
+  }
+
+  .db-selector-hint {
+    white-space: nowrap;
+    margin-right: 6px;
   }
 
   &__rows {

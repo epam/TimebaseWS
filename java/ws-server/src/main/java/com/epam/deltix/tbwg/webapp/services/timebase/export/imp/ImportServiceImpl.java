@@ -24,7 +24,7 @@ import com.epam.deltix.qsrv.hf.pub.md.json.SchemaBuilder;
 import com.epam.deltix.qsrv.hf.pub.md.json.SchemaDef;
 import com.epam.deltix.qsrv.hf.stream.MessageReader2;
 import com.epam.deltix.qsrv.hf.tickdb.pub.DXTickStream;
-import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseService;
+import com.epam.deltix.tbwg.webapp.services.timebase.TimebaseRegistry;
 import com.epam.deltix.tbwg.webapp.services.timebase.csvimport.ImportProcessReport;
 import com.epam.deltix.tbwg.webapp.services.timebase.csvimport.ImportStatus;
 import com.epam.deltix.tbwg.webapp.services.view.utils.Utils;
@@ -48,13 +48,13 @@ public class ImportServiceImpl implements ImportService {
 
     private static final Log LOGGER = LogFactory.getLog(ImportServiceImpl.class);
 
-    private final TimebaseService timebaseService;
+    private final TimebaseRegistry registry;
     private final UploadFileService uploadFileService;
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     private final ImportStatusService statusService;
-    public ImportServiceImpl(TimebaseService timebaseService, UploadFileService uploadFileService, ImportStatusService statusService) {
-        this.timebaseService = timebaseService;
+    public ImportServiceImpl(TimebaseRegistry registry, UploadFileService uploadFileService, ImportStatusService statusService) {
+        this.registry = registry;
         this.uploadFileService = uploadFileService;
         this.statusService = statusService;
     }
@@ -108,7 +108,10 @@ public class ImportServiceImpl implements ImportService {
 
     @Override
     public boolean isValidImportSchema(long id, String streamKey) {
-        DXTickStream stream = timebaseService.getStream(streamKey);
+        ImportProcess process = uploadFileService.uploadProcess(id);
+        String tbId = process instanceof FileImportProcess ?
+            ((FileImportProcess) process).importSettings().getTbId() : null;
+        DXTickStream stream = registry.resolve(tbId).getStream(streamKey);
         if (stream == null) {
             return true;
         }
@@ -182,9 +185,12 @@ public class ImportServiceImpl implements ImportService {
         }
         FileImportProcess fileImportProcess = (FileImportProcess) importProcess;
         ImportStatus status = statusService.newImportStatus(id);
+        String tbId = fileImportProcess.importSettings().getTbId();
         executorService.submit(() -> {
             try {
-                ImportFileTask task = new ImportFileTask(timebaseService, channel, fileImportProcess, status);
+                    ImportFileTask task = new ImportFileTask(
+                    registry.resolve(tbId),
+                    channel, fileImportProcess, status);
                 fileImportProcess.importTask(task);
                 while (!importProcess.ready()) {
                     if (task.isCancelled()) {

@@ -23,6 +23,8 @@ public interface MutableViewMd extends ViewMd {
 
     void setId(String id);
 
+    void setTbId(String tbId);
+
     void setTimestamp(long timestamp);
 
     void setStream(String stream);
