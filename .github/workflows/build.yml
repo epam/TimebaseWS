@@ -26,6 +26,7 @@ jobs:
         with:
           node-version: '16.13.0'
           cache: 'npm'       # Automatically caches dependencies for faster builds
+          cache-dependency-path: './web/frontend/yarn.lock'
       - name: Checkout code
         uses: actions/checkout@v2
         with:
