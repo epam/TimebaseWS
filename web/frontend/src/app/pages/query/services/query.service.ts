@@ -59,6 +59,21 @@ export class QueryService {
     );
   }
 
+  checkQueryTb(query: string, tb?: string): Observable<{tbId: string; changed: boolean; streams: string[]; error: string}> {
+    const params: {[k: string]: string} = {};
+    if (tb) params['tb'] = tb;
+    return this.httpClient.post<{tbId: string; changed: boolean; streams: string[]; error: string}>(
+      `/checkQueryTb`,
+      {query},
+      {
+        params: Object.keys(params).length ? params : undefined,
+        headers: {
+          customError: 'true',
+        },
+      },
+    );
+  }
+
   export(query: string, format: ExportTypes, tb?: string): Observable<{id: string}> {
     const params: {[k: string]: string} = {};
     if (tb) params['tb'] = tb;

@@ -455,6 +455,20 @@ export class QueryComponent implements OnInit, AfterViewInit {
     this.cdRef.detectChanges();
     this.gridTotalService.startLoading();
     this.currentQuery = this.qqlEditor.validateQueryText(query, this.selectedRange[this.currentTabId]).pipe(
+      switchMap(() => this.queryService.checkQueryTb(formData.query, this.tbId).pipe(
+        tap((result) => {
+          if (result?.changed && result.tbId) {
+            this.onTbChange(result.tbId);
+            this.appStore.dispatch(
+              new NotificationsActions.AddWarn({
+                message: `Query streams found in TimeBase "${result.tbId}". Switching automatically.`,
+                closeInterval: 5000,
+              }),
+            );
+          }
+        }),
+        catchError(() => of(null)),
+      )),
       switchMap(() => combineLatest([
         this.queryService.describe(formData.query, this.tbId),
         ![GridTypes.live, GridTypes.monitor].includes(this.gridType$.getValue())
