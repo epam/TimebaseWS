@@ -43,6 +43,7 @@ import { GlobalFiltersService } from '../../services/global-filters.service';
 import { ResizeObserveService } from '../../services/resize-observe.service';
 import { TabStorageService }    from '../../services/tab-storage.service';
 import { HasRightPanel }        from '../has-right-panel';
+import { formatHDate }         from '../../locale.timezone';
 import { RightPaneService }     from '../right-pane.service';
 import { StreamSourceService } from 'src/app/pages/streams/services/stream-source.service';
 import { JSONisValid, formatArray, formatObject } from '../../utils/digitGrouping';
@@ -53,6 +54,8 @@ import { JSONisValid, formatArray, formatObject } from '../../utils/digitGroupin
   styleUrls: ['./message-info.component.scss'],
 })
 export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
+  private static readonly ISO_UTC_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+
   @ViewChild('infoContentWrapper', {read: ElementRef}) infoContentWrapper: ElementRef<HTMLElement>;
 
   @Input() showOrderBook = true;
@@ -150,11 +153,16 @@ export class MessageInfoComponent implements OnInit, OnDestroy, AfterViewInit {
       this.messageInfoService.onColumns(),
       this.globalFiltersService.getFilters(),
     ]).pipe(
-      map(([data, columns]) => {
+      map(([data, columns, filters]) => {
         return this.getProps(data.selectedMessage, columns)
           .filter(prop => prop.key !== 'time' && !(prop.key === 'nanoTime' && !prop.value))
           .map(prop => {
-            if (['number', 'string'].includes(typeof prop.value) && Math.abs(prop.value) >= 1000) {
+            if (MessageInfoComponent.ISO_UTC_DATE_TIME.test(prop.value)) {
+              return {
+                ...prop,
+                value: formatHDate(prop.value, filters.dateFormat, filters.timeFormat, filters.timezone),
+              };
+            } else if (['number', 'string'].includes(typeof prop.value) && Math.abs(prop.value) >= 1000) {
               return { ...prop, value: parseFloat(prop.value).toLocaleString(this.locale) };
             } else if (prop.value && JSONisValid(prop.value)) {
               const parsed = JSON.parse(prop.value);
