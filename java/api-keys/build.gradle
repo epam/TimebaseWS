@@ -16,6 +16,6 @@ dependencies {
             'org.springframework.boot:spring-boot-starter-web',
             'org.springframework.boot:spring-boot-starter-websocket',
             'org.springframework.security:spring-security-core',
-            'org.springframework.security.oauth:spring-security-oauth2'
+            'org.springframework.security:spring-security-web'
 }
 

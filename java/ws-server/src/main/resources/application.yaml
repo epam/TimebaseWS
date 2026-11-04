@@ -1,6 +1,7 @@
 # EMBEDDED SERVER CONFIGURATION (ServerProperties)
 server:
   port: 8099
+  max-http-request-header-size: 64KB
   error:
     include-message: always
   compression:
