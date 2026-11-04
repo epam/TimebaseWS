@@ -74,7 +74,7 @@ dependencies {
 
     implementation 'org.springframework.security:spring-security-oauth2-authorization-server'
 
-    implementation 'com.intellij:annotations:12.0'
+//    implementation 'com.intellij:annotations:12.0'
 
     implementation 'io.reactivex.rxjava2:rxjava'
 
@@ -128,11 +128,13 @@ licenseReport {
 //        }
 //    }
 
-    excludeGroups = ['javax.servlet.*']
+    excludeGroups = ['javax.servlet.*', 'ch.qos.logback']
     excludes = [
             'com.fasterxml.jackson:jackson-bom',
             'jakarta.annotation:jakarta.annotation-api', // DUAL license
-            'com.sun.activation:jakarta.activation' // DUAL license
+            'com.sun.activation:jakarta.activation', // DUAL license
+            'ch.qos.logback:logback-classic', // excluded from runtime, replaced by gflog
+            'ch.qos.logback:logback-core'     // excluded from runtime, replaced by gflog
     ]
 
     configurations = ['runtimeClasspath']
@@ -217,7 +219,7 @@ configurations.all {
     resolutionStrategy {
         // fail eagerly on version conflict (includes transitive dependencies)
         // e.g. multiple different versions of the same dependency (group and name are equal)
-         failOnVersionConflict()
+        failOnVersionConflict()
     }
     exclude group: 'ch.qos.logback' // we use GFlogger binding for SL4J instead of logback
 }
