@@ -1,4 +1,4 @@
-FROM amazoncorretto:17-alpine3.21
+FROM amazoncorretto:17-alpine3.24
 
 COPY ws-server /ws-server
 WORKDIR /ws-server
