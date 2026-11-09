@@ -24,6 +24,7 @@ import com.epam.deltix.qsrv.util.json.JSONRawMessagePrinter;
 import com.epam.deltix.tbwg.webapp.utils.json.JsonBigIntEncoding;
 import com.epam.deltix.tbwg.webapp.utils.json.WebGatewayJsonRawMessagePrinterFactory;
 import com.epam.deltix.util.lang.Util;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import javax.annotation.Nonnull;
@@ -67,44 +68,59 @@ public class MessageSource2ResponseStream implements StreamingResponseBody {
 
     @Override
     public void writeTo(@Nonnull OutputStream outputStream) throws IOException {
-
         try (OutputStreamWriter writer = new OutputStreamWriter(outputStream)) {
             int messageIndex = 0;
             boolean needComma = false;
 
             writer.append('[');
-            final long limitIndex = Math.min(maxRecords + startIndex, endIndex); // inclusive
-            while (source.next() && messageIndex <= limitIndex) {
-                if (messageIndex >= startIndex) {
+            try {
+                final long limitIndex = Math.min(maxRecords + startIndex, endIndex); // inclusive
+                while (source.next() && messageIndex <= limitIndex) {
+                    if (messageIndex >= startIndex) {
 
-                    RawMessage raw = (RawMessage) source.getMessage();
-                    if (raw.getTimeStampMs() > toTimestamp)
-                        break;
+                        RawMessage raw = (RawMessage) source.getMessage();
+                        if (raw.getTimeStampMs() > toTimestamp)
+                            break;
 
-                    sb.setLength(0);
-                    if (needComma)
-                        sb.append(',');
-                    else
-                        needComma = true;
-                    try {
-                        printer.append(raw, sb);
-                        writer.append(sb);
-                    } catch (Throwable ex) {
-                        LOG.error("Error sending message [%s: %s, %s]: %s")
+                        sb.setLength(0);
+                        if (needComma)
+                            sb.append(',');
+                        else
+                            needComma = true;
+                        try {
+                            printer.append(raw, sb);
+                        } catch (Throwable ex) {
+                            LOG.error("Error sending message [%s: %s, %s]: %s")
                                 .with(source.getCurrentStreamKey())
                                 .with(raw.getSymbol())
                                 .with(raw.getTimeString())
                                 .with(ex);
-                        break;
+                            break;
+                        }
+                        writer.append(sb);
                     }
-                }
 
-                messageIndex++;
+                    messageIndex++;
+                }
+            } catch (IOException e) {
+                throw e;
+            } catch (Throwable t) {
+                LOG.error("Error reading message: %s").with(t);
+                sb.setLength(0);
+                if (needComma) {
+                    sb.append(',');
+                }
+                sb.append("{")
+                    .append("\"$error\":")
+                    .append(new ObjectMapper().writeValueAsString(t.getMessage()))
+                    .append("}");
+                writer.append(sb);
             }
             writer.append(']');
-
+        } catch (IOException e) {
+            // Tomcat may report a dropped connection as a plain IOException (e.g. on close), not ClientAbortException
+            LOG.error("Client aborted streaming response: %s").with(e.toString());
         } finally {
-            outputStream.flush();
             Util.close(source);
         }
     }
