@@ -20,17 +20,28 @@ import com.epam.deltix.gflog.api.Log;
 import com.epam.deltix.gflog.api.LogFactory;
 import com.epam.deltix.tbwg.webapp.model.ApiError;
 import com.epam.deltix.tbwg.webapp.services.timebase.exc.*;
+import com.epam.deltix.tbwg.webapp.utils.ClientAbortDetector;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.catalina.connector.ClientAbortException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
+
+import java.io.IOException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Log LOGGER = LogFactory.getLog(GlobalExceptionHandler.class);
+
+    @ExceptionHandler({AsyncRequestNotUsableException.class, ClientAbortException.class})
+    public void handleClientAbort(Exception e) {
+        LOGGER.debug().append("Client aborted request: ").append(e.toString()).commit();
+    }
 
     @ExceptionHandler(WriteOperationsException.class)
     public ResponseEntity<ApiError> handleException(WriteOperationsException e) {
@@ -72,7 +83,15 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiError> handleException(Exception e) {
+    public ResponseEntity<ApiError> handleException(Exception e, HttpServletResponse response) {
+        if (ClientAbortDetector.isClientAbort(e) || (e instanceof IOException && response.isCommitted())) {
+            LOGGER.debug().append("Client aborted request: ").append(e.toString()).commit();
+            return null;
+        }
+        if (response.isCommitted()) {
+            LOGGER.warn().append("Exception after response was committed: ").append(e.toString()).commit();
+            return null;
+        }
         logException(e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .contentType(MediaType.APPLICATION_JSON)
